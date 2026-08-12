@@ -1,0 +1,561 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ERA Graph Explorer</title>
+<style>
+  :root{
+    --bg1:#0b1220; --bg2:#111a2e; --center:#e8604f;
+    --blue:#5b9bd5; --green:#7ac36a; --pink:#c894c8; --purple:#9b8fd1;
+    --orange:#f0a83a; --teal:#5fd0ae; --lav:#8f9fe0; --lgreen:#b7dd82;
+    --grey:#7a8296; --gold:#e0b64a;
+    --ink:#0d1526; --paper:#eef2ff; --panel:rgba(10,16,32,.82); --line:rgba(255,255,255,.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:radial-gradient(1400px 900px at 50% 20%, var(--bg2), var(--bg1) 70%);
+    font-family:"Segoe UI",Arial,sans-serif;color:var(--paper);overflow:hidden;}
+  #app{position:relative;width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;}
+
+  /* ---------- top bar ---------- */
+  #topbar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(6,10,20,.75);
+    border-bottom:1px solid var(--line);flex-wrap:wrap;z-index:50;}
+  #topbar h1{font-size:16px;margin:0 14px 0 0;font-weight:700;white-space:nowrap;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  #uriInput{flex:1 1 320px;min-width:200px;background:rgba(255,255,255,.06);border:1px solid var(--line);
+    color:var(--paper);padding:8px 12px;border-radius:8px;font-size:13px;font-family:monospace;}
+  #uriInput:focus-visible{outline:2px solid var(--blue);}
+  button.btn:focus-visible, .node:focus-visible, #quickLinks .ql:focus-visible, #breadcrumb .crumb:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .node,.edge,.edgeLabel,#toast,button.btn{transition-duration:.01ms !important;}
+  }
+  button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
+    padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;}
+  button.btn:hover{background:linear-gradient(180deg,#33456b,#22304d);}
+  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);}
+  button.btn.primary:hover{background:linear-gradient(180deg,#4a89e0,#3568b3);}
+  #modeToggle{display:flex;align-items:center;gap:6px;font-size:12px;color:#aebbdd;}
+  #modeToggle select{background:rgba(255,255,255,.06);color:var(--paper);border:1px solid var(--line);
+    border-radius:6px;padding:5px 8px;font-size:12px;}
+
+  /* ---------- breadcrumb ---------- */
+  #breadcrumb{display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(6,10,20,.5);
+    border-bottom:1px solid var(--line);font-size:12.5px;color:#aebbdd;overflow-x:auto;white-space:nowrap;z-index:40;}
+  #breadcrumb .crumb{cursor:pointer;padding:3px 9px;border-radius:6px;transition:background .15s;}
+  #breadcrumb .crumb:hover{background:rgba(255,255,255,.08);color:#fff;}
+  #breadcrumb .crumb.current{color:#fff;font-weight:600;background:rgba(255,255,255,.06);}
+  #breadcrumb .sep{opacity:.4;}
+
+  /* ---------- main stage ---------- */
+  #stageWrap{position:relative;flex:1;overflow:hidden;}
+  .grid{position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:46px 46px;transform:perspective(900px) rotateX(55deg) translateY(80px) scale(1.6);opacity:.5;}
+  #perspective{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:1400px;}
+  /* Static 3D tilt (not a perpetual animation): keeps the depth/perspective look
+     while staying still enough to click precisely and to pass automated tests. */
+  #world{position:relative;width:10px;height:10px;transform-style:preserve-3d;
+    transform:rotateX(14deg) rotateY(-5deg);}
+
+  .node{position:absolute;left:0;top:0;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;text-align:center;color:#0d1526;font-weight:700;
+    font-size:13px;line-height:1.15;padding:8px;cursor:pointer;user-select:none;
+    box-shadow:0 18px 34px rgba(0,0,0,.55),inset 0 8px 18px rgba(255,255,255,.35),inset 0 -14px 22px rgba(0,0,0,.18);
+    opacity:0;transform:translate3d(0,0,0) scale(.4);
+    transition:opacity .5s ease,transform .55s cubic-bezier(.2,.8,.25,1),box-shadow .2s ease,filter .2s ease;
+    backface-visibility:hidden;}
+  .node.visible{opacity:1;}
+  .node:hover:not(.center){filter:brightness(1.12);transform:translate3d(var(--tx),var(--ty),var(--tz)) scale(1.07) !important;}
+  .node .lbl{position:relative;z-index:2;white-space:pre-line;pointer-events:none;}
+  .node::after{content:"";position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.85),rgba(255,255,255,0) 45%);pointer-events:none;}
+  .node.center{width:172px;height:172px;margin:-86px 0 0 -86px;font-size:17px;cursor:default;
+    background:radial-gradient(circle at 35% 30%,#ff9c8c,var(--center) 60%,#b7392b 100%);z-index:5;}
+  .node.center:hover{filter:none;transform:translate3d(0,0,50px) scale(1) !important;}
+  .node.blue{background:radial-gradient(circle at 35% 30%,#bcdcff,var(--blue) 60%,#366a99 100%);}
+  .node.green{background:radial-gradient(circle at 35% 30%,#d3f3c8,var(--green) 60%,#4c8a41 100%);}
+  .node.pink{background:radial-gradient(circle at 35% 30%,#f0d4f0,var(--pink) 60%,#8a5b8a 100%);}
+  .node.purple{background:radial-gradient(circle at 35% 30%,#d9d4f7,var(--purple) 60%,#5b4fa0 100%);}
+  .node.orange{background:radial-gradient(circle at 35% 30%,#ffe1b0,var(--orange) 60%,#b3781f 100%);}
+  .node.teal{background:radial-gradient(circle at 35% 30%,#cdf6e8,var(--teal) 60%,#2f9c78 100%);}
+  .node.lav{background:radial-gradient(circle at 35% 30%,#dbe1ff,var(--lav) 60%,#4c5bb0 100%);}
+  .node.lgreen{background:radial-gradient(circle at 35% 30%,#eaf6d4,var(--lgreen) 60%,#7fa63f 100%);}
+  .node.grey{background:radial-gradient(circle at 35% 30%,#c7ccd8,var(--grey) 60%,#4a5062 100%);color:#e8ebf2;}
+  .node.gold{background:radial-gradient(circle at 35% 30%,#fbe6ae,var(--gold) 60%,#a5822c 100%);}
+
+  .edge{position:absolute;left:0;top:0;height:2px;width:0;
+    background:linear-gradient(90deg,rgba(255,255,255,.65),rgba(255,255,255,.85));
+    transform-origin:0 50%;opacity:0;transition:opacity .4s ease,width .5s ease;pointer-events:none;}
+  .edge.visible{opacity:1;}
+  .edge::after{content:"";position:absolute;right:-1px;top:50%;transform:translateY(-50%);width:0;height:0;
+    border-style:solid;border-width:5px 0 5px 9px;border-color:transparent transparent transparent rgba(255,255,255,.92);
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));}
+  .edge.reciprocal::before{content:"";position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:0;height:0;
+    border-style:solid;border-width:5px 9px 5px 0;border-color:transparent rgba(255,255,255,.92) transparent transparent;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));}
+  .edge.incoming::after{display:none;}
+  .edge.incoming::before{content:"";position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:0;height:0;
+    border-style:solid;border-width:5px 9px 5px 0;border-color:transparent rgba(255,255,255,.92) transparent transparent;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));}
+
+  .edgeLabel{position:absolute;left:0;top:0;background:rgba(10,16,32,.72);border:1px solid rgba(255,255,255,.18);
+    color:#d9e2ff;font-size:11px;padding:3px 8px;border-radius:10px;white-space:nowrap;opacity:0;
+    transition:opacity .4s ease;z-index:6;pointer-events:none;}
+  .edgeLabel.visible{opacity:1;}
+
+  /* ---------- side panels ---------- */
+  #infoPanel{position:absolute;left:16px;bottom:16px;max-width:340px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:12.5px;z-index:45;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);}
+  #infoPanel .lbl{font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;}
+  #infoPanel .cls{color:#8fe3c7;font-family:monospace;font-size:11.5px;margin-bottom:6px;}
+  #infoPanel .uri{color:#aebbdd;word-break:break-all;font-family:monospace;font-size:10.5px;}
+  #infoPanel .note{margin-top:8px;color:#ffb066;font-size:11px;}
+
+  #quickLinks{position:absolute;right:16px;bottom:16px;max-width:230px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:11.5px;z-index:45;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);max-height:46vh;overflow-y:auto;}
+  #quickLinks h3{margin:0 0 8px;font-size:11.5px;color:#aebbdd;text-transform:uppercase;letter-spacing:.5px;}
+  #quickLinks .ql{display:block;width:100%;text-align:left;background:rgba(255,255,255,.05);border:1px solid var(--line);
+    color:var(--paper);padding:6px 9px;border-radius:7px;margin-bottom:6px;cursor:pointer;font-size:12px;}
+  #quickLinks .ql:hover{background:rgba(255,255,255,.12);}
+
+  #toast{position:absolute;left:50%;top:14px;transform:translate(-50%,-140%);background:rgba(10,16,32,.94);
+    border:1px solid var(--line);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:80;
+    transition:transform .35s ease;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:90%;text-align:center;}
+  #toast.show{transform:translate(-50%,0);}
+
+  #legend{position:absolute;left:50%;top:16px;transform:translateX(-50%);font-size:11px;color:#8896bd;
+    background:rgba(6,10,20,.5);padding:5px 12px;border-radius:8px;z-index:40;pointer-events:none;}
+
+  #panels{position:relative;}
+
+  @media (max-width:760px){
+    html,body{overflow:auto;height:auto;}
+    #app{height:auto;min-height:100vh;}
+    #stageWrap{min-height:60vh;}
+    #panels{display:flex;flex-direction:column;gap:10px;padding:4px 12px 18px;}
+    #infoPanel,#quickLinks{position:static;max-width:none;}
+    #quickLinks{max-height:220px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>ERA Ontology Explorer</h1>
+    <input id="uriInput" type="text" spellcheck="false" placeholder="Paste an ERA URI, e.g. http://data.europa.eu/949/operationalPoint/a8e453be0d">
+    <button class="btn primary" id="goBtn">Go</button>
+    <button class="btn" id="backBtn" title="Back">← Back</button>
+    <div id="modeToggle">
+      <label>Data source</label>
+      <select id="modeSelect">
+        <option value="demo" selected>Offline demo (verified)</option>
+        <option value="live">Try live SPARQL (experimental)</option>
+      </select>
+    </div>
+  </div>
+  <div id="breadcrumb"></div>
+  <div id="stageWrap">
+    <div class="grid"></div>
+    <div id="legend">Click any bubble to follow the link · drag not needed — click "follow your nose"</div>
+    <div id="perspective"><div id="world"></div></div>
+    <div id="toast"></div>
+  </div>
+  <div id="panels">
+    <div id="infoPanel">
+      <div class="lbl" id="ipLabel">—</div>
+      <div class="cls" id="ipClass"></div>
+      <div class="uri" id="ipUri"></div>
+      <div class="note" id="ipNote"></div>
+    </div>
+    <div id="quickLinks">
+      <h3>Known demo nodes</h3>
+      <div id="qlList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   DATA MODEL — offline demo dataset
+   Every node/edge here is transcribed from real screenshots of
+   graph.data.era.europa.eu (Ontotext GraphDB Workbench "Visual graph"),
+   supplied by the user across this conversation and documented in
+   scripts/innotrans2026-era-ontology-script.md, Section 6. Where a node's
+   own dereferenceable URI wasn't visible in a screenshot, a synthetic
+   "demo:" id is used instead of guessing one — those are clearly marked.
+   "Not provided" / "Not applicable" values are kept verbatim, including
+   the honest gaps, rather than invented.
+   ========================================================================= */
+const NODES = {
+  opBrusselsAirport: {
+    uri: 'http://data.europa.eu/949/operationalPoint/a8e453be0d',
+    label: 'Brussels Airport – Zaventem', cls: 'era:OperationalPoint', swatch:'center',
+    edges: [
+      {pred:'Canonical URI', dir:'out', target:'litBEFBNL'},
+      {pred:'Primary location', dir:'out', target:'litBE00219'},
+      {pred:'type', dir:'out', target:'classOperationalPoint'},
+      {pred:'type', dir:'out', target:'classInfrastructureElement'},
+      {pred:'Type of operational point', dir:'out', target:'litStation'},
+      {pred:'in country', dir:'out', target:'countryBelgium'},
+      {pred:'validity', dir:'out', target:'validityPeriod1'},
+      {pred:'net reference', dir:'out', target:'railwayLocOP'},
+      {pred:'Op. point at start of section of line', dir:'out', target:'solBrucargo'},
+      {pred:'Op. point at end of section of line', dir:'out', target:'solYLuchthaven'},
+      {pred:'is part of / has part', dir:'reciprocal', target:'trackRunningTrack'},
+    ]
+  },
+  solBrucargo: {
+    uri: 'demo:sectionOfLine/0364-BEFBNL-BEYBR', label:'Section of Line Brussels…', cls:'era:SectionOfLine', swatch:'center',
+    edges: [
+      {pred:'Canonical URI', dir:'out', target:'litSoLUriBrucargo'},
+      {pred:'National line identification', dir:'out', target:'litLine0364'},
+      {pred:'type', dir:'out', target:'classSectionOfLine'},
+      {pred:'type', dir:'out', target:'classInfrastructureElement'},
+      {pred:'validity', dir:'out', target:'validityPeriod1'},
+      {pred:'in country', dir:'out', target:'countryBelgium'},
+      {pred:'Nature of Section of Line', dir:'out', target:'litRegularSoL'},
+      {pred:'Op. point at start of section of line', dir:'out', target:'opBrusselsAirport'},
+      {pred:'Op. point at end of section of line', dir:'out', target:'opYBrucargo'},
+      {pred:'infrastructure manager', dir:'out', target:'imRoleHub'},
+      {pred:'is part of / has part', dir:'reciprocal', target:'track1238'},
+    ]
+  },
+  solYLuchthaven: {
+    uri: 'demo:sectionOfLine/0364-BEYLHVN-BEFB', label:'Section of Line Y.Luchthaven…', cls:'era:SectionOfLine', swatch:'center',
+    edges: [
+      {pred:'National line identification', dir:'out', target:'litLine0364'},
+      {pred:'Canonical URI', dir:'out', target:'litSoLUriYLuchthaven'},
+      {pred:'type', dir:'out', target:'classSectionOfLine'},
+      {pred:'type', dir:'out', target:'classInfrastructureElement'},
+      {pred:'validity', dir:'out', target:'validityPeriod1'},
+      {pred:'in country', dir:'out', target:'countryBelgium'},
+      {pred:'Nature of Section of Line', dir:'out', target:'litRegularSoL'},
+      {pred:'Op. point at start of section of line', dir:'out', target:'opYLuchthaven'},
+      {pred:'Op. point at end of section of line', dir:'out', target:'opBrusselsAirport'},
+      {pred:'is part of / has part', dir:'reciprocal', target:'track1504'},
+    ]
+  },
+  validityPeriod1: {
+    uri: 'demo:validityPeriod/shared-2020-hub', label:'Validity period from 20…', cls:'era:ValidityPeriod', swatch:'center',
+    edges: [
+      {pred:'type', dir:'out', target:'classTemporalFeature'},
+      {pred:'type', dir:'out', target:'classTemporalEntity'},
+      {pred:'has end', dir:'out', target:'date20781231'},
+      {pred:'validity', dir:'in', target:'opBrusselsAirport'},
+      {pred:'validity', dir:'in', target:'solBrucargo'},
+      {pred:'validity', dir:'in', target:'solYLuchthaven'},
+      {pred:'validity', dir:'in', target:'trackRunningTrack'},
+      {pred:'validity', dir:'in', target:'trackAnvers'},
+      {pred:'validity', dir:'in', target:'trackKontich'},
+      {pred:'validity', dir:'in', target:'trackDiest'},
+      {pred:'validity', dir:'in', target:'trackMalines'},
+      {pred:'validity', dir:'in', target:'trackAntwerpenBerchem'},
+    ]
+  },
+  date20781231: {
+    uri: 'demo:temporal/date_2078-12-31', label:'date_2078-12-31', cls:'time:Instant', swatch:'blue',
+    edges: [
+      {pred:'type', dir:'out', target:'classTimeInstant'},
+      {pred:'has end', dir:'in', target:'validityPeriod1'},
+    ],
+    note:'Confirmed as a reuse hub for "dozens" of other validity periods per the live screenshot — only this one incoming link is individually captured here; the rest were not enumerated.'
+  },
+  imRoleHub: {
+    uri: 'demo:organisationRole/im-role-hub', label:'IM role of the body wit…', cls:'era:OrganisationRole', swatch:'gold',
+    edges: [
+      {pred:'type', dir:'out', target:'classOrganisationRole'},
+      {pred:'has organisation role', dir:'out', target:'infrabelOrg'},
+      {pred:'infrastructure manager', dir:'in', target:'solBrucargo'},
+      {pred:'infrastructure manager', dir:'in', target:'solYLuchthaven'},
+      {pred:'infrastructure manager', dir:'in', target:'litLine1296'},
+      {pred:'infrastructure manager', dir:'in', target:'litLine1335'},
+      {pred:'infrastructure manager', dir:'in', target:'litLine1877'},
+      {pred:'infrastructure manager', dir:'in', target:'litLine334'},
+    ],
+    note:'The live screenshot showed dozens of incoming "infrastructure manager" links from numbered line/section codes — only a representative handful are modelled here, not the full set.'
+  },
+  trackRunningTrack: {
+    uri: 'demo:infrastructureElement/brussel-nat-luchthaven-track', label:'Brussel Nat. Luchthav…', cls:'era:InfrastructureElement (Running Track)', swatch:'lgreen',
+    edges: [
+      {pred:'type', dir:'out', target:'classRunningTrack'},
+      {pred:'type', dir:'out', target:'classInfrastructureElement'},
+      {pred:'Canonical URI', dir:'out', target:'litTrackUri'},
+      {pred:'in country', dir:'out', target:'countryBelgium'},
+      {pred:'validity', dir:'out', target:'validityPeriod1'},
+      {pred:'Nominal track gauge', dir:'out', target:'litGauge1435'},
+      {pred:'Category of line', dir:'out', target:'litNotProvided1'},
+      {pred:'Gauging', dir:'out', target:'litNotProvided2'},
+      {pred:'Document with the tra…', dir:'out', target:'litNotProvided3'},
+      {pred:'EC declaration of verifi…', dir:'out', target:'litNotProvided4'},
+      {pred:'…rt of a Railway Freig…', dir:'out', target:'litNotApplicable1'},
+      {pred:'is part of / has part', dir:'reciprocal', target:'opBrusselsAirport'},
+      {pred:'has part', dir:'out', target:'bruxellesNatAerop'},
+    ]
+  },
+
+  /* ---- leaves / literals / classes ---- */
+  litBEFBNL:{label:'BEFBNL',cls:'canonical identifier',swatch:'blue',edges:[]},
+  litBE00219:{label:'BE00219',cls:'reference location code',swatch:'green',edges:[]},
+  classOperationalPoint:{label:'Operational Point',cls:'rdfs:Class',swatch:'pink',edges:[]},
+  classInfrastructureElement:{label:'Infrastructure element',cls:'rdfs:Class',swatch:'purple',edges:[]},
+  litStation:{label:'station',cls:'operational-point category',swatch:'orange',edges:[]},
+  countryBelgium:{label:'Belgium',cls:'era:Country',swatch:'orange',edges:[]},
+  railwayLocOP:{label:'Railway location of OP…',cls:'era:RailwayLocation (leaf — not further explored)',swatch:'purple',edges:[]},
+  litSoLUriBrucargo:{label:'0364_BEFBNL_BEYBR…',cls:'canonical identifier',swatch:'blue',edges:[]},
+  litLine0364:{label:'0364',cls:'national line number (shared)',swatch:'green',edges:[]},
+  classSectionOfLine:{label:'Section Of Line',cls:'rdfs:Class',swatch:'pink',edges:[]},
+  litRegularSoL:{label:'Regular SoL',cls:'section-of-line category',swatch:'orange',edges:[]},
+  opYBrucargo:{label:'Y.Brucargo (from 2019…)',cls:'era:OperationalPoint (freight yard — leaf, not individually explored)',swatch:'lav',edges:[]},
+  track1238:{label:'Track 1238-1 / 1238-2 (2017-09…)',cls:'era:Track (leaf)',swatch:'lgreen',edges:[]},
+  litSoLUriYLuchthaven:{label:'0364_BEYLHVN_BEFB…',cls:'canonical identifier',swatch:'blue',edges:[]},
+  opYLuchthaven:{label:'Y.Luchthaven (from 20…)',cls:'era:OperationalPoint (junction — leaf, not individually explored)',swatch:'lav',edges:[]},
+  track1504:{label:'Track 1504-1 / 1504-2 (2017-12…)',cls:'era:Track (leaf)',swatch:'lgreen',edges:[]},
+  classTemporalFeature:{label:'Temporal Feature',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
+  classTemporalEntity:{label:'Temporal entity',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
+  classTimeInstant:{label:'Time instant',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
+  trackAnvers:{label:'Anvers - Central-2…',cls:'track/line-section (leaf)',swatch:'lav',edges:[]},
+  trackKontich:{label:'Kontich - Voie V - Secti…',cls:'track/line-section (leaf)',swatch:'lav',edges:[]},
+  trackDiest:{label:'Diest - Voie II - Section',cls:'track/line-section (leaf)',swatch:'lav',edges:[]},
+  trackMalines:{label:'Malines - Voie V - Sect…',cls:'track/line-section (leaf)',swatch:'lav',edges:[]},
+  trackAntwerpenBerchem:{label:'Antwerpen - Berchem…',cls:'track/line-section (leaf; repeated many times in the live view)',swatch:'lav',edges:[]},
+  classOrganisationRole:{label:'Organisation Role',cls:'rdfs:Class',swatch:'pink',edges:[]},
+  infrabelOrg:{label:'Infrastructure Manager (Infrabel)',cls:'era:InfrastructureManager (leaf)',swatch:'blue',edges:[]},
+  litLine1296:{label:'1296-1 (from 2026-0…)',cls:'line/section identifier (leaf)',swatch:'gold',edges:[]},
+  litLine1335:{label:'1335-1 (from 2023-12…)',cls:'line/section identifier (leaf)',swatch:'gold',edges:[]},
+  litLine1877:{label:'1877-2 (from 2025-06…)',cls:'line/section identifier (leaf)',swatch:'gold',edges:[]},
+  litLine334:{label:'334-2 (from 2026-06-…)',cls:'line/section identifier (leaf)',swatch:'gold',edges:[]},
+  classRunningTrack:{label:'Running track',cls:'rdfs:Class',swatch:'pink',edges:[]},
+  litTrackUri:{label:'0088_BEFBNL_Brusse…',cls:'canonical identifier',swatch:'blue',edges:[]},
+  litGauge1435:{label:'1435',cls:'nominal track gauge, mm (standard gauge)',swatch:'green',edges:[]},
+  litNotProvided1:{label:'Not provided',cls:'(TSI field defined, value absent)',swatch:'grey',edges:[]},
+  litNotProvided2:{label:'Not provided',cls:'(TSI field defined, value absent)',swatch:'grey',edges:[]},
+  litNotProvided3:{label:'Not provided',cls:'(TSI field defined, value absent)',swatch:'grey',edges:[]},
+  litNotProvided4:{label:'Not provided',cls:'(TSI field defined, value absent)',swatch:'grey',edges:[]},
+  litNotApplicable1:{label:'Not applicable',cls:'(TSI field defined, does not apply here)',swatch:'grey',edges:[]},
+  bruxellesNatAerop:{label:'Bruxelles Nat. Aérop.',cls:'French-language name variant (leaf)',swatch:'lgreen',edges:[]},
+};
+
+const QUICK_LINKS = [
+  ['opBrusselsAirport','Brussels Airport – Zaventem (hop 1)'],
+  ['solBrucargo','Section of Line → Y.Brucargo (hop 2)'],
+  ['validityPeriod1','Validity period reuse hub (hop 3)'],
+  ['solYLuchthaven','Section of Line → Y.Luchthaven (hop 4)'],
+  ['imRoleHub','Infrastructure-manager reuse hub'],
+  ['trackRunningTrack','Track with real + "Not provided" fields'],
+];
+
+/* URI/id lookup: accept a real URI, a demo: id, or a bare key */
+function resolveInput(raw){
+  const s = raw.trim();
+  if(!s) return null;
+  if(NODES[s]) return s;
+  for(const k in NODES){ if(NODES[k].uri === s) return k; }
+  return null;
+}
+
+/* =========================================================================
+   RENDER ENGINE
+   ========================================================================= */
+const world = document.getElementById('world');
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg, ms){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toastEl.classList.remove('show'), ms||2600);
+}
+
+const history_ = [];
+let currentId = null;
+
+function el(tag, cls){ const e=document.createElement(tag); if(cls) e.className=cls; return e; }
+
+function renderNode(id, x, y, z, isCenter, onClick){
+  const data = NODES[id];
+  const swatch = isCenter ? 'center' : (data.swatch === 'center' ? 'lav' : data.swatch);
+  const n = el('div', 'node ' + swatch + (isCenter?' center':''));
+  const s = el('span','lbl'); s.textContent = data.label;
+  n.appendChild(s);
+  n.style.setProperty('--tx', x+'px'); n.style.setProperty('--ty', y+'px'); n.style.setProperty('--tz', z+'px');
+  n.style.transform = `translate3d(${x}px,${y}px,${z}px) scale(.4)`;
+  world.appendChild(n);
+  requestAnimationFrame(()=>{
+    n.classList.add('visible');
+    n.style.transform = `translate3d(${x}px,${y}px,${z}px) scale(1)`;
+  });
+  n.setAttribute('role','button');
+  n.setAttribute('tabindex', isCenter ? '-1' : '0');
+  n.setAttribute('aria-label', (isCenter?'Current: ':'Follow link to: ') + data.label.replace(/\n/g,' '));
+  if(!isCenter && onClick){
+    n.addEventListener('click', onClick);
+    n.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); onClick(); } });
+  } else if(isCenter){
+    n.addEventListener('click', ()=> showInfo(id));
+  }
+  return n;
+}
+
+function renderEdge(x1,y1,z1,x2,y2,z2,dirClass){
+  const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy), ang=Math.atan2(dy,dx)*180/Math.PI;
+  const e = el('div','edge'+(dirClass?(' '+dirClass):''));
+  e.style.transform = `translate3d(${x1}px,${y1}px,${(z1+z2)/2}px) rotate(${ang}deg)`;
+  e.style.width='0px';
+  world.appendChild(e);
+  requestAnimationFrame(()=>{ e.classList.add('visible'); e.style.width = len+'px'; });
+  return e;
+}
+
+function renderLabel(text, x, y, z){
+  const l = el('div','edgeLabel');
+  l.textContent = text;
+  l.style.transform = `translate3d(${x}px,${y}px,${z}px) translate(-50%,-50%)`;
+  world.appendChild(l);
+  requestAnimationFrame(()=> l.classList.add('visible'));
+  return l;
+}
+
+function showInfo(id){
+  const data = NODES[id];
+  document.getElementById('ipLabel').textContent = data.label;
+  document.getElementById('ipClass').textContent = data.cls;
+  document.getElementById('ipUri').textContent = data.uri;
+  document.getElementById('ipNote').textContent = data.note || '';
+  document.getElementById('uriInput').value = data.uri;
+}
+
+function renderBreadcrumb(){
+  const bc = document.getElementById('breadcrumb');
+  bc.innerHTML = '';
+  const trail = history_.concat([currentId]); // ancestors + the node we're actually on
+  trail.forEach((id, i)=>{
+    if(i>0){ const sep = el('span','sep'); sep.textContent='→'; bc.appendChild(sep); }
+    const isCurrent = i === trail.length-1;
+    const c = el('span','crumb'+(isCurrent?' current':''));
+    c.textContent = NODES[id].label.replace(/\n/g,' ');
+    if(!isCurrent){
+      c.setAttribute('role','button'); c.setAttribute('tabindex','0');
+      c.addEventListener('click', ()=> goTo(id, true));
+      c.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goTo(id, true); } });
+    }
+    bc.appendChild(c);
+  });
+}
+
+function clearWorld(){ world.innerHTML=''; }
+
+function layout(centerId){
+  clearWorld();
+  const data = NODES[centerId];
+  renderNode(centerId, 0, 0, 50, true);
+  showInfo(centerId);
+
+  const edges = data.edges;
+  const n = edges.length;
+  const R = n <= 6 ? 260 : (n <= 10 ? 300 : 330);
+  edges.forEach((edge, i)=>{
+    const angle = -90 + i*(360/Math.max(n,1));
+    const rad = angle*Math.PI/180;
+    const x = R*Math.cos(rad), y = R*Math.sin(rad)*0.82, z = 30*Math.sin(i*1.7);
+    renderNode(edge.target, x, y, z, false, ()=> goTo(edge.target));
+    renderEdge(0,0,50, x,y,z, edge.dir==='reciprocal'?'reciprocal':(edge.dir==='in'?'incoming':''));
+    renderLabel(edge.pred, x*0.55, y*0.55, (50+z)/2);
+  });
+}
+
+async function goTo(id, isBreadcrumbJump){
+  if(!NODES[id]){ toast('No cached data for this node yet.'); return; }
+  if(!isBreadcrumbJump){
+    if(currentId) history_.push(currentId);
+  } else {
+    const idx = history_.indexOf(id);
+    if(idx>=0) history_.length = idx;
+  }
+  currentId = id;
+  layout(id);
+  renderBreadcrumb();
+}
+
+document.getElementById('backBtn').addEventListener('click', ()=>{
+  if(history_.length===0){ toast('Already at the start.'); return; }
+  const prev = history_.pop();
+  currentId = prev;
+  layout(prev);
+  renderBreadcrumb();
+});
+
+document.getElementById('qlList').innerHTML = '';
+QUICK_LINKS.forEach(([id,label])=>{
+  const b = el('button','ql');
+  b.textContent = label;
+  b.addEventListener('click', ()=> goTo(id));
+  document.getElementById('qlList').appendChild(b);
+});
+
+/* =========================================================================
+   INPUT HANDLING + experimental live SPARQL fetch
+   ========================================================================= */
+async function tryLiveFetch(uri){
+  // EXPERIMENTAL / UNTESTED from this authoring environment: the sandbox this
+  // app was built in cannot reach *.era.europa.eu at all (network egress
+  // policy), so this code path has never actually completed a request here.
+  // It is a best-effort SPARQL 1.1 query against a configurable endpoint;
+  // if the endpoint is wrong or doesn't send CORS headers, it will fail and
+  // fall back to the offline demo message below. Edit ENDPOINT if you know
+  // the correct one.
+  const ENDPOINT = 'https://data-interop.era.europa.eu/sparql'; // best guess — verify before relying on it
+  const query = `
+    SELECT ?p ?o ?dir WHERE {
+      { <${uri}> ?p ?o . BIND("out" AS ?dir) }
+      UNION
+      { ?o ?p <${uri}> . BIND("in" AS ?dir) }
+    } LIMIT 60`;
+  const url = ENDPOINT + '?query=' + encodeURIComponent(query);
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), 6000);
+  try{
+    const res = await fetch(url, {headers:{Accept:'application/sparql-results+json'}, signal: ctrl.signal});
+    clearTimeout(t);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    return json.results.bindings;
+  } catch(err){
+    clearTimeout(t);
+    throw err;
+  }
+}
+
+async function handleGo(){
+  const raw = document.getElementById('uriInput').value;
+  const mode = document.getElementById('modeSelect').value;
+  const known = resolveInput(raw);
+  if(known){ goTo(known); return; }
+  if(mode === 'live'){
+    toast('Trying live SPARQL fetch (experimental, unverified from this environment)…', 4000);
+    try{
+      const bindings = await tryLiveFetch(raw.trim());
+      toast('Live fetch returned '+bindings.length+' rows — live rendering isn\'t wired up yet in this build; falling back to offline data.', 4500);
+    } catch(err){
+      toast('Live fetch failed (' + err.message + '). This is expected in most environments — falling back to offline demo data only.', 5000);
+    }
+  } else {
+    toast('That URI isn\'t in the offline demo set. Try one of the "Known demo nodes" on the right, or switch Data source to "Try live".', 4500);
+  }
+}
+
+document.getElementById('goBtn').addEventListener('click', handleGo);
+document.getElementById('uriInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleGo(); });
+
+/* boot */
+const startId = 'opBrusselsAirport';
+history_.length = 0;
+currentId = startId;
+layout(startId);
+renderBreadcrumb();
+</script>
+</body>
+</html>

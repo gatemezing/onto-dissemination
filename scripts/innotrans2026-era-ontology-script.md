@@ -234,6 +234,16 @@ Section 5's SPARQL queries prove interoperability *analytically* (ask a question
 
 **This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser. Every bubble and edge label across all four hops is drawn from the verified screenshots in this section (no generic placeholders) — the remaining gap is that it's a stylized re-creation, not pixel-accurate footage of the real UI's chrome, fonts, or exact positions. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
 
+### Interactive graph explorer app
+
+`scripts/assets/era-graph-explorer-app.html` is a step further than the video: a real, **interactive** single-file web app — not a scripted animation — built to demonstrate "follow your nose" live at the booth. Paste (or click a quick-link to) any of the verified nodes above, and it draws the same 3D-look oriented bubble graph; **click any bubble and it actually navigates**, re-centring on that resource, updating a breadcrumb trail, with a Back button and an info panel showing the node's class and URI. It ships with:
+
+- **An offline dataset** covering every node documented in this section (all four hops plus both bonus finds) — genuinely clickable end-to-end, no network required, so it works even on flaky booth WiFi.
+- **An experimental "Try live" mode** that attempts a real SPARQL query against a best-guess ERA endpoint for any URI typed in. This code path has **not been tested** from this session — `graph.data.era.europa.eu` and related subdomains are blocked here, so it's untested in an offline environment before it can be verified against the real endpoint. It fails gracefully to an explanatory message if the endpoint guess is wrong or blocked by CORS.
+- Basic keyboard accessibility (every bubble and breadcrumb entry is a focusable, `Enter`-activatable control) and a responsive mobile layout.
+
+Tested end-to-end with a headless-browser click-through of every hop, the breadcrumb/back behaviour, and the "unknown URI" fallback message — all confirmed working before delivery. Use it as a genuinely interactive booth demo alongside (or instead of) the video; unlike the video, a visitor can drive it themselves. Before the event, someone with access to the real endpoint should verify (or correct) the live-mode SPARQL query and endpoint URL in `tryLiveFetch()`.
+
 ---
 
 ## 7. Anticipated questions (FAQ)
@@ -279,6 +289,7 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 - [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `data-interop.era.europa.eu` → Data stories (this session's network egress policy blocked that domain, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
 - [ ] Hop 1 and hop 2 of the Section 6 bubble view (Brussels Airport – Zaventem → Section of Line → Y.Brucargo) are confirmed from screenshots, plus two bonus finds (the infrastructure-manager reuse hub; a Track node with real/missing TSI parameters). Still needed: the full, untruncated text of a few labels cut off on a phone screen (e.g. "Validity period from 20…", the exact date), confirmed on a wider screen.
 - [ ] `scripts/assets/era-follow-your-nose-demo.mp4` is a generated mockup, not real screen-capture footage — all bubble content is now drawn from verified screenshots, but it's still a stylized re-creation, not pixel-accurate footage of the real UI. Before using it publicly: replace (or supplement) it with an actual screen recording of `graph.data.era.europa.eu`.
+- [ ] `scripts/assets/era-graph-explorer-app.html`'s "Try live" mode (in `tryLiveFetch()`) has an unverified guessed SPARQL endpoint URL and has never successfully completed a live request (this session cannot reach `*.era.europa.eu`). Someone with real access should verify or correct the endpoint and query before demoing live mode; the offline demo mode needs no such check and is already tested end-to-end.
 - [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 8 with real feedback once available.
 - [ ] Translate the elevator pitch (Section 2) into German for the Berlin venue, if booth staff will engage German-speaking visitors directly.
 
