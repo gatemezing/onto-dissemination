@@ -474,7 +474,7 @@ function layout(centerId){
 async function goTo(id, isBreadcrumbJump){
   if(!NODES[id]){ toast('No cached data for this node yet.'); return; }
   if(NODES[id].live && NODES[id].unloaded){
-    toast('Fetching live data from graph.data.era.europa.eu…', 8000);
+    toast('Fetching live data from rinf.data.era.europa.eu…', 8000);
     try{
       await buildLiveNode(NODES[id].uri, id);
       hideToast();
@@ -512,16 +512,18 @@ QUICK_LINKS.forEach(([id,label])=>{
 
 /* =========================================================================
    LIVE SPARQL MODE
-   Endpoint supplied by the user: http://graph.data.era.europa.eu/sparql,
-   upgraded here to https:// because this app is served over https (GitHub
-   Pages) and browsers block http:// fetches from an https:// page as mixed
-   content. Still UNTESTED from this authoring session — graph.data.era.europa.eu
-   is blocked by this sandbox's network egress policy, so this has never
+   Endpoint supplied by the user: https://rinf.data.era.europa.eu/api/v1/sparql/rinf
+   (a prior attempt used https://graph.data.era.europa.eu/sparql, superseded
+   by this one — kept in mind in case the RINF-scoped endpoint doesn't cover
+   every ERA class, e.g. Track resources under /949/track/, and a fallback
+   to the graph.data endpoint is worth trying again later).
+   Still UNTESTED from this authoring session — rinf.data.era.europa.eu is
+   blocked by this sandbox's network egress policy, so this has never
    completed a real request here. Success also depends on the endpoint
    sending CORS headers that allow browser-side requests; if it doesn't,
    every live fetch will fail with a clear error rather than hang silently.
    ========================================================================= */
-const LIVE_ENDPOINT = 'https://graph.data.era.europa.eu/sparql';
+const LIVE_ENDPOINT = 'https://rinf.data.era.europa.eu/api/v1/sparql/rinf';
 const LIVE_EDGE_LIMIT = 30; // keep the graph readable; real hub nodes can have far more
 
 async function sparqlSelect(query, timeoutMs){
@@ -614,8 +616,8 @@ async function buildLiveNode(uri, key){
     uri, label: labels[uri] || liveLocalName(uri), cls: 'live resource', swatch: 'center',
     edges, live: true,
     note: edges.length >= LIVE_EDGE_LIMIT
-      ? `Live data from graph.data.era.europa.eu — showing the first ${LIVE_EDGE_LIMIT} links; this resource may have more.`
-      : 'Live data from graph.data.era.europa.eu — not part of the verified offline dataset.'
+      ? `Live data from rinf.data.era.europa.eu — showing the first ${LIVE_EDGE_LIMIT} links; this resource may have more.`
+      : 'Live data from rinf.data.era.europa.eu — not part of the verified offline dataset.'
   };
   liveNodeKeyByUri.set(uri, key);
 }
