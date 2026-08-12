@@ -369,6 +369,10 @@ function toast(msg, ms){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=> toastEl.classList.remove('show'), ms||2600);
 }
+function hideToast(){
+  clearTimeout(toastTimer);
+  toastEl.classList.remove('show');
+}
 
 const history_ = [];
 let currentId = null;
@@ -469,6 +473,16 @@ function layout(centerId){
 
 async function goTo(id, isBreadcrumbJump){
   if(!NODES[id]){ toast('No cached data for this node yet.'); return; }
+  if(NODES[id].live && NODES[id].unloaded){
+    toast('Fetching live data from rinf.data.era.europa.eu…', 8000);
+    try{
+      await buildLiveNode(NODES[id].uri, id);
+      hideToast();
+    } catch(err){
+      toast('Live fetch failed (' + err.message + '). The endpoint may be unreachable from your network, or may not allow cross-origin requests from a browser page.', 6500);
+      return;
+    }
+  }
   if(!isBreadcrumbJump){
     if(currentId) history_.push(currentId);
   } else {
@@ -497,51 +511,133 @@ QUICK_LINKS.forEach(([id,label])=>{
 });
 
 /* =========================================================================
-   INPUT HANDLING + experimental live SPARQL fetch
+   LIVE SPARQL MODE
+   Endpoint supplied by the user: https://rinf.data.era.europa.eu/api/v1/sparql/rinf
+   (a prior attempt used https://graph.data.era.europa.eu/sparql, superseded
+   by this one — kept in mind in case the RINF-scoped endpoint doesn't cover
+   every ERA class, e.g. Track resources under /949/track/, and a fallback
+   to the graph.data endpoint is worth trying again later).
+   Still UNTESTED from this authoring session — rinf.data.era.europa.eu is
+   blocked by this sandbox's network egress policy, so this has never
+   completed a real request here. Success also depends on the endpoint
+   sending CORS headers that allow browser-side requests; if it doesn't,
+   every live fetch will fail with a clear error rather than hang silently.
    ========================================================================= */
-async function tryLiveFetch(uri){
-  // EXPERIMENTAL / UNTESTED from this authoring environment: the sandbox this
-  // app was built in cannot reach *.era.europa.eu at all (network egress
-  // policy), so this code path has never actually completed a request here.
-  // It is a best-effort SPARQL 1.1 query against a configurable endpoint;
-  // if the endpoint is wrong or doesn't send CORS headers, it will fail and
-  // fall back to the offline demo message below. Edit ENDPOINT if you know
-  // the correct one.
-  const ENDPOINT = 'https://data-interop.era.europa.eu/sparql'; // best guess — verify before relying on it
-  const query = `
-    SELECT ?p ?o ?dir WHERE {
-      { <${uri}> ?p ?o . BIND("out" AS ?dir) }
-      UNION
-      { ?o ?p <${uri}> . BIND("in" AS ?dir) }
-    } LIMIT 60`;
-  const url = ENDPOINT + '?query=' + encodeURIComponent(query);
+const LIVE_ENDPOINT = 'https://rinf.data.era.europa.eu/api/v1/sparql/rinf';
+const LIVE_EDGE_LIMIT = 30; // keep the graph readable; real hub nodes can have far more
+
+async function sparqlSelect(query, timeoutMs){
+  const url = LIVE_ENDPOINT + '?query=' + encodeURIComponent(query);
   const ctrl = new AbortController();
-  const t = setTimeout(()=>ctrl.abort(), 6000);
+  const t = setTimeout(()=>ctrl.abort(), timeoutMs || 8000);
   try{
     const res = await fetch(url, {headers:{Accept:'application/sparql-results+json'}, signal: ctrl.signal});
-    clearTimeout(t);
     if(!res.ok) throw new Error('HTTP '+res.status);
     const json = await res.json();
     return json.results.bindings;
-  } catch(err){
+  } finally {
     clearTimeout(t);
-    throw err;
   }
 }
 
+function liveLocalName(uri){
+  const m = uri.match(/([^/#]+)\/?$/);
+  return m ? decodeURIComponent(m[1]) : uri;
+}
+
+async function fetchLiveTriples(uri){
+  const query = `SELECT ?other ?p ?dir WHERE {
+    { <${uri}> ?p ?other . BIND("out" AS ?dir) }
+    UNION
+    { ?other ?p <${uri}> . BIND("in" AS ?dir) }
+  } LIMIT ${LIVE_EDGE_LIMIT}`;
+  return sparqlSelect(query, 8000);
+}
+
+async function fetchLiveLabels(uris){
+  if(uris.length === 0) return {};
+  const values = uris.map(u => '<'+u+'>').join(' ');
+  const query = `SELECT ?uri ?label WHERE {
+    VALUES ?uri { ${values} }
+    OPTIONAL { ?uri <http://www.w3.org/2000/01/rdf-schema#label> ?l1 . FILTER(lang(?l1)="en"||lang(?l1)="") }
+    OPTIONAL { ?uri <http://www.w3.org/2004/02/skos/core#prefLabel> ?l2 . FILTER(lang(?l2)="en"||lang(?l2)="") }
+    BIND(COALESCE(?l1,?l2) AS ?label)
+  }`;
+  const rows = await sparqlSelect(query, 8000);
+  const map = {};
+  rows.forEach(r => { if(r.label) map[r.uri.value] = r.label.value; });
+  return map;
+}
+
+const liveNodeKeyByUri = new Map();
+let liveCounter = 0;
+
+// Fetches uri's triples + best-effort labels and (re)populates NODES[key] in place.
+// Linked URI resources become lightweight "unloaded" placeholder nodes that fetch
+// their own data lazily, the moment a visitor actually clicks through to them —
+// the same "follow your nose" pattern as the offline dataset, but live.
+async function buildLiveNode(uri, key){
+  const triples = await fetchLiveTriples(uri);
+  const uriSet = new Set();
+  triples.forEach(t => { uriSet.add(t.p.value); if(t.other.type === 'uri') uriSet.add(t.other.value); });
+
+  let labels = {};
+  try{ labels = await fetchLiveLabels(Array.from(uriSet)); }
+  catch(e){ /* labels are best-effort; edges still render using local names */ }
+
+  const edges = triples.map(t => {
+    const predLabel = labels[t.p.value] || liveLocalName(t.p.value);
+    let targetKey;
+    if(t.other.type === 'uri'){
+      const ouri = t.other.value;
+      if(liveNodeKeyByUri.has(ouri)){
+        targetKey = liveNodeKeyByUri.get(ouri);
+      } else {
+        targetKey = 'live:' + (liveCounter++);
+        liveNodeKeyByUri.set(ouri, targetKey);
+        NODES[targetKey] = {
+          uri: ouri, label: labels[ouri] || liveLocalName(ouri),
+          cls: 'live resource (click to follow)', swatch: 'lav',
+          edges: [], live: true, unloaded: true
+        };
+      }
+    } else {
+      targetKey = 'live:' + (liveCounter++);
+      NODES[targetKey] = {
+        uri: null, label: t.other.value,
+        cls: t.other['xml:lang'] ? ('literal value, @'+t.other['xml:lang']) : 'literal value',
+        swatch: 'grey', edges: [], live: true
+      };
+    }
+    return {pred: predLabel, dir: t.dir.value, target: targetKey};
+  });
+
+  NODES[key] = {
+    uri, label: labels[uri] || liveLocalName(uri), cls: 'live resource', swatch: 'center',
+    edges, live: true,
+    note: edges.length >= LIVE_EDGE_LIMIT
+      ? `Live data from rinf.data.era.europa.eu — showing the first ${LIVE_EDGE_LIMIT} links; this resource may have more.`
+      : 'Live data from rinf.data.era.europa.eu — not part of the verified offline dataset.'
+  };
+  liveNodeKeyByUri.set(uri, key);
+}
+
 async function handleGo(){
-  const raw = document.getElementById('uriInput').value;
+  const raw = document.getElementById('uriInput').value.trim();
+  if(!raw) return;
   const mode = document.getElementById('modeSelect').value;
   const known = resolveInput(raw);
   if(known){ goTo(known); return; }
   if(mode === 'live'){
-    toast('Trying live SPARQL fetch (experimental, unverified from this environment)…', 4000);
-    try{
-      const bindings = await tryLiveFetch(raw.trim());
-      toast('Live fetch returned '+bindings.length+' rows — live rendering isn\'t wired up yet in this build; falling back to offline data.', 4500);
-    } catch(err){
-      toast('Live fetch failed (' + err.message + '). This is expected in most environments — falling back to offline demo data only.', 5000);
+    let key = liveNodeKeyByUri.get(raw);
+    if(!key){
+      key = 'live:' + (liveCounter++);
+      NODES[key] = {
+        uri: raw, label: liveLocalName(raw), cls: 'live resource (loading…)',
+        swatch: 'lav', edges: [], live: true, unloaded: true
+      };
     }
+    goTo(key);
   } else {
     toast('That URI isn\'t in the offline demo set. Try one of the "Known demo nodes" on the right, or switch Data source to "Try live".', 4500);
   }
