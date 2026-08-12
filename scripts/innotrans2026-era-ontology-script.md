@@ -130,7 +130,7 @@ With that caveat, here are 5 stories that best "showcase interoperability using 
 
 ## 6. The "follow your nose" demo — ERA graph browser (bubble visualization)
 
-**✅ Verified against a real screenshot (hop 1 of the click-through).** `graph.data.era.europa.eu` is still blocked from this session's own network access (same policy as the other `*.era.europa.eu` subdomains), so this section can't be independently re-browsed — but the user supplied a screenshot of the live bubble view for the example URI, so the content below for **this first hop** is confirmed, not illustrative. Several bubble labels are cut off on a phone-width screen (`...`) — those are marked below and should be read in full on a wider screen before the event; and this is only the *first* hop of a click-through, so the "next hop" content later in this section is still illustrative until a follow-up screenshot confirms it.
+**✅ Verified against real screenshots (hop 1 and hop 2 of the click-through, plus two bonus finds).** `graph.data.era.europa.eu` is still blocked from this session's own network access (same policy as the other `*.era.europa.eu` subdomains), so this section can't be independently re-browsed — but the user supplied five screenshots of the live bubble view (Brussels Airport – Zaventem; a Track/Running-track node; a reuse "hub" node; and the Section of Line reached by clicking on from Brussels Airport), so the content below is confirmed, not illustrative, for two full hops. Several bubble labels are still cut off on a phone-width screen (`...`) — those are marked below and should be read in full on a wider screen before the event.
 
 ### The concept, in plain language
 
@@ -158,11 +158,39 @@ The ERA graph browser at `graph.data.era.europa.eu/graphs-visualizations` is a l
 
 This is a strong real example precisely because it's an airport station: every railway expert immediately understands "Brussels Airport," which makes the abstraction land fast before the demo clicks deeper into the graph.
 
-### Suggested booth script (hop 1 confirmed; hop 2 to be confirmed with a follow-up screenshot)
+### Worked example, hop 2 (confirmed): clicking through to the Section of Line
 
-> "Let's not talk about this abstractly — let's just click. Here's Brussels Airport station in the register [open the URI in the browser]. See the bubbles around it? Each one is a fact Belgium's infrastructure manager entered — its country, its canonical ID `BEFBNL`, the fact it's a station. Now watch: I click *this* bubble, 'Section of Line' [click the 'Operational point at start of section of line' bubble] — and we jump, with zero integration code, to the section of track leaving this station, which itself points to the *next* station down the line. That's 'follow your nose' — the same trick that makes clicking through Wikipedia effortless, except every link here is a verified railway fact, maintained by the responsible infrastructure manager, not a hyperlink someone typed by hand."
+Clicking the "Section of Line Brusse…" bubble from hop 1 re-centres the graph on that resource. The live bubble view shows:
 
-*(Once a screenshot of clicking through to the Section of Line bubble is available, this section should be extended with the confirmed hop 2 — ideally landing on an operational point in a different country to make the cross-border point land even harder.)*
+| Bubble (as shown) | Edge label from the centre | What it is |
+|---|---|---|
+| `0364_BEFBNL_BEYBR…` | Canonical URI | The stable identifier for this section of line. |
+| `0364` | National line identification | The official national line number. |
+| Section Of Line | type | Confirms the resource's own class. |
+| Infrastructure element | type | The broader superclass, same pattern as hop 1. |
+| Validity period from 20… | validity | Same versioning mechanism as hop 1 (truncated — confirm full date on a wide screen). |
+| Belgium | in country | Same member state as hop 1 — the line doesn't cross a border here, but the mechanism is identical wherever it does. |
+| Regular SoL | Nature of Section of Line | The section's category. |
+| Brussels Airport – Zav… | Operational point at **start** of section of line | Links straight back to hop 1 — the graph is genuinely bidirectional. |
+| **Y.Brucargo (from 2019…)** | Operational point at **end** of section of line | **The payoff of the click:** a completely different real place — Brussels' rail **freight yard** (Brucargo), reached from the airport passenger station with zero integration code, just by following one link. |
+| IM role of the body wit… | infrastructure manager | Which organisation is responsible for this section (see the bonus finding below — this single record is reused across dozens of other elements). |
+| 1238-1 / 1238-2 (from 2017-09…) | is part of / has part (reciprocal) | The physical track segments that make up this section of line. |
+
+**This is the strongest single moment in the demo**: two clicks, zero code, and you've gone from an airport passenger terminal to a freight yard — a concrete, visual proof that the graph really does connect *different kinds* of real infrastructure, not just relabelled copies of the same thing.
+
+### Bonus finding: the reuse "hub" (infrastructure manager role)
+
+A separate screenshot shows what happens when you click through to "IM role of the body wit…" itself (the `infrastructure manager` bubble from both hops above): it becomes the centre of a graph with **dozens** of incoming links — numbered line/section identifiers like `1296-1 (from 2026-0…)`, `334-1 (from 2026-06-…)`, `1877-2 (from 2025-06-…)`, each pointing *in* via the same `infrastructure manager` predicate — plus a `type → Organisation Role` edge and a `has organisation role → Infrastructure Manage[r]` edge to the actual organisation (Infrabel).
+
+**Why this is worth its own beat in the pitch:** it's the clearest possible illustration of *reuse*, the other half of the interoperability story alongside Section 5's cross-border queries. One canonical "who's responsible for this" record is referenced by every line segment that organisation manages, instead of every infrastructure element re-stating the manager's details separately. Consider it for a second demo screen or a follow-up slide if a technical visitor wants to go deeper than the two-hop airport → freight-yard story.
+
+### Bonus finding: real-world data completeness, honestly
+
+A third screenshot (clicking one of hop 1's "…Nat. Luchthav…" bubbles) shows it resolves to a **Running Track** — `era:InfrastructureElement`, nominal track gauge `1435` (mm, standard gauge) — sitting alongside several properties explicitly valued **"Not provided"** or **"Not applicable"** (e.g. `Category of line`, `Gauging`, `Document with the tra…`, `EC declaration of verifi…`). This is a useful, honest talking point if a visitor pushes on "is the data actually complete?": the ontology defines the field for every TSI-required parameter; population is ongoing and visibly incomplete in places, which is exactly what a real, evolving EU-wide register looks like — not a marketing claim of perfection.
+
+### Suggested booth script (hop 1 and hop 2 both confirmed)
+
+> "Let's not talk about this abstractly — let's just click. Here's Brussels Airport station in the register [open the URI in the browser]. See the bubbles around it? Each one is a fact Belgium's infrastructure manager entered — its country, its canonical ID `BEFBNL`, the fact it's a station. Now watch: I click *this* bubble, 'Section of Line' [click the 'Operational point at start of section of line' bubble] — and we jump, with zero integration code, to the section of track leaving this station. See its national line number, `0364`? Now one more click [click 'Operational point at end of section of line'] — and we land on `Y.Brucargo`. That's not another passenger station — that's Brussels' **freight yard**. Two clicks, zero integration code, from an airport to a cargo terminal. That's 'follow your nose' — the same trick that makes clicking through Wikipedia effortless, except every link here is a verified railway fact, maintained by the responsible infrastructure manager, not a hyperlink someone typed by hand."
 
 ### Why this belongs alongside Section 5
 
@@ -170,9 +198,9 @@ Section 5's SPARQL queries prove interoperability *analytically* (ask a question
 
 ### Explainer video mockup
 
-`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~31-second animated mockup built to pitch this booth moment before the event: a stylized, 3D-look bubble graph, auto-clicking through the confirmed Brussels Airport – Zaventem hop-1 data above (Canonical URI, in country, type of operational point, then the "start of section of line" hop), ending on a generic "the graph keeps going" continuation and a closing card.
+`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~35-second animated mockup built to pitch this booth moment before the event: a stylized, 3D-look bubble graph with **oriented links** (directional arrowheads matching the live tool — single-headed for one-way facts, double-headed for reciprocal `is part of` / `has part` pairs), auto-clicking through the confirmed hop-1 data (Canonical URI, in country, type of operational point), then the "start of section of line" hop, then landing on the confirmed hop-2 payoff — Y.Brucargo — before a closing card.
 
-**This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser, using only the verified hop-1 facts from Section 6; the "next hop" bubbles (max speed, track gauge, electrification, next operational point) are generic placeholders, not real instance data, and are styled with a dashed border for that reason. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
+**This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser. As of this version, every bubble and edge label it shows for both hops is drawn from the verified screenshots in this section (no more generic placeholders) — the remaining gap is that it's a stylized re-creation, not pixel-accurate footage of the real UI's chrome, fonts, or exact positions. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
 
 ---
 
@@ -216,8 +244,8 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 - [ ] Confirm the exact GitLab/GitHub repository link to share with technical visitors (e.g., the ERA Ontology group repository).
 - [ ] Have a compliance-aware colleague sign off on the FAQ answer to "Is this mandatory?" — this is the question most likely to be pressed on by regulators/NSAs.
 - [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `data-interop.era.europa.eu` → Data stories (this session's network egress policy blocked that domain, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
-- [ ] Hop 1 of the Section 6 bubble view (Brussels Airport – Zaventem, `BEFBNL`) is confirmed from a screenshot. Still needed: (a) the full, untruncated text of the "Validity period from 20…" and "…Nat. Luchthav…" bubbles on a wider screen, and (b) a screenshot of clicking through to hop 2 (ideally landing on a station in a different country) to complete the cross-border click-through script.
-- [ ] `scripts/assets/era-follow-your-nose-demo.mp4` is a generated mockup, not real screen-capture footage. Before using it publicly: replace (or supplement) it with an actual screen recording of `graph.data.era.europa.eu`, since the mockup's "next hop" bubbles are generic placeholders (max speed, track gauge, electrification), not real data.
+- [ ] Hop 1 and hop 2 of the Section 6 bubble view (Brussels Airport – Zaventem → Section of Line → Y.Brucargo) are confirmed from screenshots, plus two bonus finds (the infrastructure-manager reuse hub; a Track node with real/missing TSI parameters). Still needed: the full, untruncated text of a few labels cut off on a phone screen (e.g. "Validity period from 20…", the exact date), confirmed on a wider screen.
+- [ ] `scripts/assets/era-follow-your-nose-demo.mp4` is a generated mockup, not real screen-capture footage — all bubble content is now drawn from verified screenshots, but it's still a stylized re-creation, not pixel-accurate footage of the real UI. Before using it publicly: replace (or supplement) it with an actual screen recording of `graph.data.era.europa.eu`.
 - [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 8 with real feedback once available.
 - [ ] Translate the elevator pitch (Section 2) into German for the Berlin venue, if booth staff will engage German-speaking visitors directly.
 

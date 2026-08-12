@@ -107,12 +107,34 @@
 
   .edge{
     position:absolute; left:0; top:0; height:2px; width:0;
-    background:linear-gradient(90deg, rgba(255,255,255,.65), rgba(255,255,255,.15));
+    background:linear-gradient(90deg, rgba(255,255,255,.65), rgba(255,255,255,.85));
     transform-origin:0 50%;
     opacity:0; transition:opacity .5s ease, width .6s ease;
   }
   .edge.visible{opacity:1;}
   .edge.dashed{background:none; border-top:2px dashed rgba(205,215,245,.5);}
+  /* oriented links: arrowhead at the far (target) end, matching the live ERA graph browser */
+  .edge::after{
+    content:""; position:absolute; right:-1px; top:50%; transform:translateY(-50%);
+    width:0; height:0; border-style:solid; border-width:5px 0 5px 9px;
+    border-color:transparent transparent transparent rgba(255,255,255,.92);
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
+  }
+  /* reciprocal properties (e.g. "has part" / "is part of") get an arrowhead at both ends */
+  .edge.reciprocal::before{
+    content:""; position:absolute; left:-1px; top:50%; transform:translateY(-50%);
+    width:0; height:0; border-style:solid; border-width:5px 9px 5px 0;
+    border-color:transparent rgba(255,255,255,.92) transparent transparent;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
+  }
+  /* incoming edges (satellite --predicate--> center) get the arrowhead at the near/center end instead */
+  .edge.incoming::after{ display:none; }
+  .edge.incoming::before{
+    content:""; position:absolute; left:-1px; top:50%; transform:translateY(-50%);
+    width:0; height:0; border-style:solid; border-width:5px 9px 5px 0;
+    border-color:transparent rgba(255,255,255,.92) transparent transparent;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
+  }
 
   .edgeLabel{
     position:absolute; left:0; top:0; transform:translate3d(0,0,0);
@@ -151,9 +173,10 @@
   .tooltip.show{opacity:1; transform:translate(-50%,-160%);}
 
   .caption{
-    position:absolute; left:50%; bottom:118px; transform:translateX(-50%);
-    font-size:20px; color:#eaf0ff; text-align:center; opacity:0; transition:opacity .6s ease;
-    text-shadow:0 3px 10px rgba(0,0,0,.6); z-index:30; width:900px;
+    position:absolute; left:50%; top:56px; transform:translateX(-50%);
+    font-size:19px; color:#eaf0ff; text-align:center; opacity:0; transition:opacity .6s ease;
+    text-shadow:0 3px 10px rgba(0,0,0,.6); z-index:30; width:1000px;
+    background:rgba(6,10,20,.55); border-radius:12px; padding:8px 16px;
   }
   .caption.show{opacity:1;}
 
@@ -234,11 +257,16 @@ function showNode(n, delay){
     n.style.transform = `translate3d(${n.dataset.x}px, ${n.dataset.y}px, ${n.dataset.z}px) scale(1)`;
   }, delay);
 }
-function makeEdge(id, x1,y1,z1, x2,y2,z2, dashed){
+function makeEdge(id, x1,y1,z1, x2,y2,z2, dir){
+  // dir: 'out' (default, arrow at target/far end) | 'reciprocal' (arrows both ends,
+  // e.g. "has part" / "is part of") | 'in' (arrow at near/center end, an incoming link)
   const dx = x2-x1, dy = y2-y1;
   const len = Math.sqrt(dx*dx+dy*dy);
   const ang = Math.atan2(dy,dx) * 180/Math.PI;
-  const e2 = el('div', 'edge' + (dashed? ' dashed':''));
+  let cls = 'edge';
+  if(dir==='reciprocal') cls += ' reciprocal';
+  else if(dir==='in') cls += ' incoming';
+  const e2 = el('div', cls);
   e2.id = id;
   e2.style.transform = `translate3d(${x1}px, ${y1}px, ${(z1+z2)/2}px) rotate(${ang}deg)`;
   e2.dataset.len = len;
@@ -263,20 +291,20 @@ function showLabel(l){ l.classList.add('visible'); }
 const R = 300;
 const N_SAT = 11;
 const satelliteDefs = [
-  {label:'BEFBNL', cls:'blue',   edge:'Canonical URI'},
-  {label:'BE00219', cls:'green', edge:'Primary location'},
-  {label:'Operational\nPoint', cls:'pink', edge:'type'},
-  {label:'Infrastructure\nelement', cls:'purple', edge:'type'},
-  {label:'station', cls:'orange', edge:'Type of op. point'},
-  {label:'Belgium', cls:'orange', edge:'in country'},
-  {label:'Validity period\nfrom 2020…', cls:'teal', edge:'validity'},
-  {label:'Section of Line\nY.Luchthaven…', cls:'lav', edge:'Op. point at end of section'},
-  {label:'Section of Line\nBrussels…', cls:'lav', edge:'Op. point at start of section'},
-  {label:'Railway location\nof OP…', cls:'purple', edge:'net reference'},
-  {label:'Brussel Nat.\nLuchthaven…', cls:'lgreen', edge:'is part of / has part'},
+  {label:'BEFBNL', cls:'blue',   edge:'Canonical URI', dir:'out'},
+  {label:'BE00219', cls:'green', edge:'Primary location', dir:'out'},
+  {label:'Operational\nPoint', cls:'pink', edge:'type', dir:'out'},
+  {label:'Infrastructure\nelement', cls:'purple', edge:'type', dir:'out'},
+  {label:'station', cls:'orange', edge:'Type of op. point', dir:'out'},
+  {label:'Belgium', cls:'orange', edge:'in country', dir:'out'},
+  {label:'Validity period\nfrom 2020…', cls:'teal', edge:'validity', dir:'out'},
+  {label:'Section of Line\nY.Luchthaven…', cls:'lav', edge:'Op. point at end of section', dir:'out'},
+  {label:'Section of Line\nBrussels…', cls:'lav', edge:'Op. point at start of section', dir:'out'},
+  {label:'Railway location\nof OP…', cls:'purple', edge:'net reference', dir:'out'},
+  {label:'Brussel Nat.\nLuchthaven…', cls:'lgreen', edge:'is part of / has part', dir:'reciprocal'},
 ];
 const satellites = satelliteDefs.map((s,i)=>({
-  id:'s'+(i+1), label:s.label, cls:s.cls, edge:s.edge,
+  id:'s'+(i+1), label:s.label, cls:s.cls, edge:s.edge, dir:s.dir,
   angle: -90 + i*(360/N_SAT)
 }));
 
@@ -293,7 +321,7 @@ satellites.forEach((s,i)=>{
   const n = makeNode(s.id, s.label, s.cls, x, y, z);
   n.querySelector('.lbl').style.whiteSpace='pre-line';
   nodeRefs[s.id]=n;
-  const e = makeEdge('e_'+s.id, 0,0,40, x,y,z, false);
+  const e = makeEdge('e_'+s.id, 0,0,40, x,y,z, s.dir);
   edgeRefs[s.id]=e;
   const lx = x*0.56, ly = y*0.56, lz = (40+z)/2;
   const l = makeLabel('l_'+s.id, s.edge, lx, ly, lz);
@@ -385,59 +413,88 @@ function runHopTransition(){
   });
 
   // move clicked node to center; move old center to a satellite slot
+  // (positioned up and to the left, clear of the Y.Brucargo slot added below)
+  const BACK_X = -336, BACK_Y = 40, BACK_Z = 10;
   const clicked = nodeRefs['s9'];
   setTimeout(()=>{
     clicked.style.transform = 'translate3d(0,0,60px) scale(1.05)';
     clicked.classList.add('center-ish');
-    center.style.transform = 'translate3d(-230px, 60px, 10px) scale(.8)';
-    edgeRefs['s9'].style.transform = `translate3d(-230px,60px,35px) rotate(0deg)`;
-    edgeRefs['s9'].style.width = '260px';
-    const backLabel = makeLabel('l_back', 'Op. point at start of section', -140, 40, 45);
+    center.style.transform = `translate3d(${BACK_X}px, ${BACK_Y}px, ${BACK_Z}px) scale(.8)`;
+    const dx=BACK_X-0, dy=BACK_Y-0, len=Math.sqrt(dx*dx+dy*dy), ang=Math.atan2(dy,dx)*180/Math.PI;
+    edgeRefs['s9'].style.transform = `translate3d(0px,0px,${(60+BACK_Z)/2}px) rotate(${ang}deg)`;
+    edgeRefs['s9'].style.width = len + 'px';
+    const backLabel = makeLabel('l_back', 'Op. point at start of section', BACK_X*0.55, BACK_Y*0.55, 45);
     backLabel.style.transition = 'opacity .5s ease';
     setTimeout(()=> showLabel(backLabel), 250);
   }, 500);
 
-  // new ghost nodes fly in around new center (generic, not fabricated instance data)
+  // ---- HOP 2: verified "Section of Line Brussels..." data (from the user's live screenshot) ----
+  const hop2Defs = [
+    {label:'0364_BEFBNL_\nBEYBR…', cls:'blue',   edge:'Canonical URI', dir:'out'},
+    {label:'0364', cls:'green', edge:'National line identification', dir:'out'},
+    {label:'Section\nOf Line', cls:'pink', edge:'type', dir:'out'},
+    {label:'Infrastructure\nelement', cls:'purple', edge:'type', dir:'out'},
+    {label:'Validity period\nfrom 20…', cls:'teal', edge:'validity', dir:'out'},
+    {label:'Belgium', cls:'orange', edge:'in country', dir:'out'},
+    {label:'Regular SoL', cls:'orange', edge:'Nature of Section of Line', dir:'out'},
+    {label:'Y.Brucargo\n(from 2019…)', cls:'lav', edge:'Op. point at end of section', dir:'out'},
+    {label:'IM role of\nthe body wit…', cls:'purple', edge:'infrastructure manager', dir:'out'},
+    {label:'Track 1238-1 /\n1238-2 (2017-09…)', cls:'lgreen', edge:'is part of / has part', dir:'reciprocal'},
+  ];
+  // reuse the same 11-slot radial geometry as hop 1; slot index 8 stays reserved
+  // for the backlink to Brussels Airport (already placed above), same as hop 1's own slot.
+  const slotIdx = [0,1,2,3,4,5,6,7,9,10];
+  const hop2Refs = {};
   setTimeout(()=>{
-    const ghosts = [
-      {label:'→ next\nOperational Point', angle:-70},
-      {label:'max speed\n(km/h)', angle:-10},
-      {label:'track gauge\n(mm)', angle:60},
-      {label:'contact line\nsystem', angle:130},
-      {label:'electrification\nvoltage', angle:200},
-    ];
-    ghosts.forEach((g,i)=>{
-      const rad = g.angle*Math.PI/180;
-      const gx = 210*Math.cos(rad), gy = 210*Math.sin(rad)*0.7, gz = 20*Math.sin(i*2);
-      const gn = makeNode('g'+i, g.label, 'ghost', gx, gy, gz);
+    hop2Defs.forEach((g,k)=>{
+      const i = slotIdx[k];
+      const angle = -90 + i*(360/N_SAT);
+      const rad = angle*Math.PI/180;
+      const gx = R*Math.cos(rad), gy = R*Math.sin(rad)*0.82, gz = 30*Math.sin(i*1.7);
+      const gid = 'h2_'+k;
+      const gn = makeNode(gid, g.label, g.cls, gx, gy, gz);
       gn.querySelector('.lbl').style.whiteSpace='pre-line';
-      const ge = makeEdge('ge'+i, 0,0,60, gx,gy,gz, true);
-      setTimeout(()=>{ showNode(gn, 0); showEdge(ge); }, i*180);
+      const ge = makeEdge('h2e_'+k, 0,0,60, gx,gy,gz, g.dir);
+      const gl = makeLabel('h2l_'+k, g.edge, gx*0.56, gy*0.56, (60+gz)/2);
+      hop2Refs[gid] = {node:gn, x:gx, y:gy, z:gz};
+      setTimeout(()=>{ showNode(gn, 0); showEdge(ge); setTimeout(()=>showLabel(gl), 300); }, k*220);
     });
   }, 1300);
 
   setTimeout(()=>{
-    setCaption('…and it keeps going — every bubble is a new starting point', true);
-  }, 3600);
+    setCaption('Real facts, not a mockup: this section connects Brussels Airport to Y.Brucargo — Brussels\' freight yard', true);
+  }, 3700);
+
+  // emphasise the payoff: click through to the real next place, a different kind of operational point
+  setTimeout(()=>{
+    const target = hop2Refs['h2_7']; // Y.Brucargo
+    moveCursorTo(target.x, target.y, target.z, ()=>{
+      clickAt(target.node, target.x, target.y, target.z);
+      showTooltip('Op. point at end of section → <b>Y.Brucargo</b> (a freight yard, not a passenger station)', target.x, target.y, target.z);
+    });
+  }, 5300);
+
+  setTimeout(()=>{
+    setCaption('', false);
+  }, 8200);
 }
 
 // pull back + end card
 setTimeout(()=>{
-  setCaption('', false);
   document.getElementById('perspective').style.transition='transform 1.4s ease';
   document.getElementById('perspective').style.transform='scale(.82)';
-}, 24500);
+}, 27200);
 
 setTimeout(()=>{
   document.getElementById('endCard').classList.add('show');
-}, 26200);
+}, 28900);
 
 setTimeout(()=>{
   document.getElementById('blackout').classList.add('show');
-}, 30800);
+}, 33400);
 
 window.__DONE__ = false;
-setTimeout(()=>{ window.__DONE__ = true; }, 32200);
+setTimeout(()=>{ window.__DONE__ = true; }, 34900);
 </script>
 </body>
 </html>
