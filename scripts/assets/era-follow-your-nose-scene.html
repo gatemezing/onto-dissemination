@@ -383,9 +383,8 @@ function clickStep(s, tooltipHTML, atTime){
   }, atTime);
 }
 
-clickStep(satellites[5], 'in country → <b>Belgium</b>', 7200);   // Belgium
-clickStep(satellites[0], 'Canonical URI → <b>BEFBNL</b>', 10200); // BEFBNL
-clickStep(satellites[4], 'Type of operational point → <b>station</b>', 13200); // station
+clickStep(satellites[5], 'in country → <b>Belgium</b>', 7000);   // Belgium
+clickStep(satellites[0], 'Canonical URI → <b>BEFBNL</b>', 9600); // BEFBNL
 
 // Big click: Section of Line Brussels... -> hop transition
 setTimeout(()=>{
@@ -395,7 +394,7 @@ setTimeout(()=>{
     showTooltip('Operational point at <b>start</b> of Section of Line →', s._x, s._y, s._z);
     setTimeout(runHopTransition, 900);
   });
-}, 16400);
+}, 12200);
 
 function runHopTransition(){
   setCaption('Follow the link → the Section of Line becomes the new center of the graph', true);
@@ -456,14 +455,14 @@ function runHopTransition(){
       gn.querySelector('.lbl').style.whiteSpace='pre-line';
       const ge = makeEdge('h2e_'+k, 0,0,60, gx,gy,gz, g.dir);
       const gl = makeLabel('h2l_'+k, g.edge, gx*0.56, gy*0.56, (60+gz)/2);
-      hop2Refs[gid] = {node:gn, x:gx, y:gy, z:gz};
-      setTimeout(()=>{ showNode(gn, 0); showEdge(ge); setTimeout(()=>showLabel(gl), 300); }, k*220);
+      hop2Refs[gid] = {node:gn, x:gx, y:gy, z:gz, edgeRef:ge, labelRef:gl, def:g};
+      setTimeout(()=>{ showNode(gn, 0); showEdge(ge); setTimeout(()=>showLabel(gl), 300); }, k*190);
     });
-  }, 1300);
+  }, 1200);
 
   setTimeout(()=>{
     setCaption('Real facts, not a mockup: this section connects Brussels Airport to Y.Brucargo — Brussels\' freight yard', true);
-  }, 3700);
+  }, 3300);
 
   // emphasise the payoff: click through to the real next place, a different kind of operational point
   setTimeout(()=>{
@@ -472,29 +471,108 @@ function runHopTransition(){
       clickAt(target.node, target.x, target.y, target.z);
       showTooltip('Op. point at end of section → <b>Y.Brucargo</b> (a freight yard, not a passenger station)', target.x, target.y, target.z);
     });
-  }, 5300);
+  }, 4700);
 
   setTimeout(()=>{
     setCaption('', false);
-  }, 8200);
+  }, 7200);
+
+  // Big click #3: the Validity period bubble -> hop 3 transition (the reuse-hub finding)
+  setTimeout(()=>{
+    const target = hop2Refs['h2_4']; // Validity period from 20...
+    moveCursorTo(target.x, target.y, target.z, ()=>{
+      clickAt(target.node, target.x, target.y, target.z);
+      showTooltip('validity →', target.x, target.y, target.z);
+      setTimeout(()=> runHop3Transition(target, hop2Refs), 900);
+    });
+  }, 7800);
+}
+
+function runHop3Transition(clickedRef, hop2Refs){
+  setCaption('One shared record: dozens of unrelated tracks and lines point to this same validity period', true);
+  cursorEl.classList.remove('show');
+
+  // fade out ALL hop-2 satellites, their edges/labels (including the clicked one's own
+  // incoming edge, which is no longer needed once it becomes the new center) and the
+  // repositioned hop-1 center and its backlink edge/label
+  Object.keys(hop2Refs).forEach(gid=>{
+    const ref = hop2Refs[gid];
+    ref.labelRef.style.opacity = 0;
+    ref.edgeRef.style.opacity = 0;
+    if(gid !== 'h2_4'){
+      ref.node.style.transition = 'opacity .8s ease, transform .8s ease';
+      ref.node.style.opacity = 0;
+    }
+  });
+  center.style.transition = 'opacity .8s ease, transform .8s ease';
+  center.style.opacity = 0;
+  edgeRefs['s9'].style.opacity = 0;
+  const oldBackLabel = document.getElementById('l_back');
+  if(oldBackLabel) oldBackLabel.style.opacity = 0;
+
+  const clicked = clickedRef.node;
+  setTimeout(()=>{
+    clicked.style.transform = 'translate3d(0,0,60px) scale(1.05)';
+  }, 500);
+
+  // ---- HOP 3: verified "Validity period" reuse-hub data (from the user's live screenshots) ----
+  const hop3Defs = [
+    {label:'Anvers -\nCentral-2…', cls:'lav', edge:'validity', dir:'in'},
+    {label:'Kontich - Voie V\n- Secti…', cls:'lav', edge:'validity', dir:'in'},
+    {label:'Diest - Voie II\n- Section', cls:'lav', edge:'validity', dir:'in'},
+    {label:'Malines - Voie V\n- Sect…', cls:'lav', edge:'validity', dir:'in'},
+    {label:'Antwerpen -\nBerchem…', cls:'lav', edge:'validity', dir:'in'},
+    {label:'Temporal\nFeature', cls:'orange', edge:'type', dir:'out'},
+    {label:'Temporal\nentity', cls:'orange', edge:'type', dir:'out'},
+    {label:'date_\n2078-12-31', cls:'blue', edge:'has end', dir:'out'},
+  ];
+  const N3 = hop3Defs.length;
+  const hop3Refs = {};
+  setTimeout(()=>{
+    hop3Defs.forEach((g,k)=>{
+      const angle = -90 + k*(360/N3);
+      const rad = angle*Math.PI/180;
+      const gx = R*Math.cos(rad), gy = R*Math.sin(rad)*0.82, gz = 30*Math.sin(k*1.7);
+      const gid = 'h3_'+k;
+      const gn = makeNode(gid, g.label, g.cls, gx, gy, gz);
+      gn.querySelector('.lbl').style.whiteSpace='pre-line';
+      const ge = makeEdge('h3e_'+k, 0,0,60, gx,gy,gz, g.dir);
+      const gl = makeLabel('h3l_'+k, g.edge, gx*0.56, gy*0.56, (60+gz)/2);
+      hop3Refs[gid] = {node:gn, x:gx, y:gy, z:gz};
+      setTimeout(()=>{ showNode(gn, 0); showEdge(ge); setTimeout(()=>showLabel(gl), 300); }, k*160);
+    });
+  }, 1200);
+
+  // punch line: click the shared end-date
+  setTimeout(()=>{
+    const target = hop3Refs['h3_7']; // date_2078-12-31
+    moveCursorTo(target.x, target.y, target.z, ()=>{
+      clickAt(target.node, target.x, target.y, target.z);
+      showTooltip('has end → <b>date_2078-12-31</b> — the same date reused by dozens of other validity periods', target.x, target.y, target.z);
+    });
+  }, 3600);
+
+  setTimeout(()=>{
+    setCaption('', false);
+  }, 6300);
 }
 
 // pull back + end card
 setTimeout(()=>{
   document.getElementById('perspective').style.transition='transform 1.4s ease';
   document.getElementById('perspective').style.transform='scale(.82)';
-}, 27200);
+}, 31200);
 
 setTimeout(()=>{
   document.getElementById('endCard').classList.add('show');
-}, 28900);
+}, 32900);
 
 setTimeout(()=>{
   document.getElementById('blackout').classList.add('show');
-}, 33400);
+}, 38500);
 
 window.__DONE__ = false;
-setTimeout(()=>{ window.__DONE__ = true; }, 34900);
+setTimeout(()=>{ window.__DONE__ = true; }, 40000);
 </script>
 </body>
 </html>

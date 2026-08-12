@@ -208,9 +208,13 @@ Section 5's SPARQL queries prove interoperability *analytically* (ask a question
 
 ### Explainer video mockup
 
-`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~35-second animated mockup built to pitch this booth moment before the event: a stylized, 3D-look bubble graph with **oriented links** (directional arrowheads matching the live tool — single-headed for one-way facts, double-headed for reciprocal `is part of` / `has part` pairs), auto-clicking through the confirmed hop-1 data (Canonical URI, in country, type of operational point), then the "start of section of line" hop, then landing on the confirmed hop-2 payoff — Y.Brucargo — before a closing card.
+`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~40-second animated mockup built to pitch this booth moment before the event (kept under a 45-second cap): a stylized, 3D-look bubble graph with **oriented links** (directional arrowheads matching the live tool — single-headed for one-way facts, double-headed for reciprocal `is part of` / `has part` pairs), auto-clicking through three hops in sequence:
 
-**This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser. As of this version, every bubble and edge label it shows for both hops is drawn from the verified screenshots in this section (no more generic placeholders) — the remaining gap is that it's a stylized re-creation, not pixel-accurate footage of the real UI's chrome, fonts, or exact positions. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
+1. **Hop 1** — Brussels Airport – Zaventem: two quick clicks (in country → Belgium, Canonical URI → BEFBNL), then the "start of section of line" click.
+2. **Hop 2** — the Section of Line: national line `0364`, then the payoff click to **Y.Brucargo**, Brussels' freight yard.
+3. **Hop 3** — clicking "Validity period" reveals the reuse hub (Anvers, Kontich, Diest, Malines, Antwerpen-Berchem tracks all sharing one validity record via incoming `validity` links), ending on a click to **`date_2078-12-31`**, the shared "valid indefinitely" end-date reused by dozens of other records.
+
+**This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser. Every bubble and edge label across all three hops is drawn from the verified screenshots in this section (no generic placeholders) — the remaining gap is that it's a stylized re-creation, not pixel-accurate footage of the real UI's chrome, fonts, or exact positions. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
 
 ---
 
