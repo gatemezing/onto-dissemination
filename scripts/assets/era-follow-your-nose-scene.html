@@ -1,0 +1,443 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root{
+    --bg1:#0b1220;
+    --bg2:#111a2e;
+    --center:#e8604f;
+    --blue:#5b9bd5;
+    --green:#7ac36a;
+    --pink:#c894c8;
+    --purple:#9b8fd1;
+    --orange:#f0a83a;
+    --teal:#5fd0ae;
+    --lav:#8f9fe0;
+    --lgreen:#b7dd82;
+    --ink:#0d1526;
+    --paper:#eef2ff;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; width:1280px; height:720px;
+    background:radial-gradient(1200px 800px at 50% 30%, var(--bg2), var(--bg1) 70%);
+    overflow:hidden; font-family:"Segoe UI", Arial, sans-serif; color:var(--paper);
+  }
+  #stage{position:relative; width:1280px; height:720px;}
+
+  /* faint starfield / grid for depth */
+  .grid{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size:48px 48px;
+    transform:perspective(900px) rotateX(55deg) translateY(120px) scale(1.6);
+    opacity:.5;
+  }
+
+  /* ---------- title card ---------- */
+  #titleCard{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    opacity:1; transition:opacity .8s ease; z-index:50; text-align:center;
+  }
+  #titleCard h1{
+    font-size:44px; margin:0 0 10px; font-weight:700; letter-spacing:.5px;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  #titleCard p{font-size:20px; margin:0; color:#aebbdd;}
+  #titleCard.hide{opacity:0;}
+
+  /* ---------- 3D scene ---------- */
+  #perspective{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    perspective:1400px;
+  }
+  #world{
+    position:relative; width:10px; height:10px; transform-style:preserve-3d;
+    transform:rotateX(16deg) rotateY(-8deg);
+    animation:sway 14s ease-in-out infinite;
+  }
+  @keyframes sway{
+    0%{transform:rotateX(16deg) rotateY(-10deg);}
+    50%{transform:rotateX(13deg) rotateY(9deg);}
+    100%{transform:rotateX(16deg) rotateY(-10deg);}
+  }
+
+  .node{
+    position:absolute; left:0; top:0; width:126px; height:126px; margin:-63px 0 0 -63px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center; text-align:center;
+    color:#0d1526; font-weight:700; font-size:13.5px; line-height:1.15; padding:8px;
+    box-shadow:0 18px 34px rgba(0,0,0,.55), inset 0 8px 18px rgba(255,255,255,.35), inset 0 -14px 22px rgba(0,0,0,.18);
+    opacity:0; transform:translate3d(0,0,0) scale(.4);
+    transition:opacity .6s ease, transform .7s cubic-bezier(.2,.8,.25,1), box-shadow .3s ease;
+    backface-visibility:hidden;
+  }
+  .node.visible{opacity:1;}
+  .node .lbl{position:relative; z-index:2;}
+  .node::after{
+    content:""; position:absolute; inset:0; border-radius:50%;
+    background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.85), rgba(255,255,255,0) 45%);
+    pointer-events:none;
+  }
+
+  .node.center{width:168px; height:168px; margin:-84px 0 0 -84px; font-size:17px; background:radial-gradient(circle at 35% 30%, #ff9c8c, var(--center) 60%, #b7392b 100%); z-index:5;}
+  .node.blue{background:radial-gradient(circle at 35% 30%, #bcdcff, var(--blue) 60%, #366a99 100%);}
+  .node.green{background:radial-gradient(circle at 35% 30%, #d3f3c8, var(--green) 60%, #4c8a41 100%);}
+  .node.pink{background:radial-gradient(circle at 35% 30%, #f0d4f0, var(--pink) 60%, #8a5b8a 100%);}
+  .node.purple{background:radial-gradient(circle at 35% 30%, #d9d4f7, var(--purple) 60%, #5b4fa0 100%);}
+  .node.orange{background:radial-gradient(circle at 35% 30%, #ffe1b0, var(--orange) 60%, #b3781f 100%);}
+  .node.teal{background:radial-gradient(circle at 35% 30%, #cdf6e8, var(--teal) 60%, #2f9c78 100%);}
+  .node.lav{background:radial-gradient(circle at 35% 30%, #dbe1ff, var(--lav) 60%, #4c5bb0 100%);}
+  .node.lgreen{background:radial-gradient(circle at 35% 30%, #eaf6d4, var(--lgreen) 60%, #7fa63f 100%);}
+  .node.ghost{
+    background:rgba(255,255,255,.06); color:#cdd7f5; border:2px dashed rgba(205,215,245,.55);
+    box-shadow:none; font-weight:600; font-size:13px;
+  }
+  .node.ghost::after{display:none;}
+
+  .node.pulse{animation:pulse 1s ease-out;}
+  @keyframes pulse{
+    0%{box-shadow:0 18px 34px rgba(0,0,0,.55), inset 0 8px 18px rgba(255,255,255,.35), inset 0 -14px 22px rgba(0,0,0,.18), 0 0 0 0 rgba(255,255,255,.6);}
+    60%{box-shadow:0 18px 34px rgba(0,0,0,.55), inset 0 8px 18px rgba(255,255,255,.35), inset 0 -14px 22px rgba(0,0,0,.18), 0 0 0 34px rgba(255,255,255,0);}
+    100%{box-shadow:0 18px 34px rgba(0,0,0,.55), inset 0 8px 18px rgba(255,255,255,.35), inset 0 -14px 22px rgba(0,0,0,.18), 0 0 0 0 rgba(255,255,255,0);}
+  }
+
+  .edge{
+    position:absolute; left:0; top:0; height:2px; width:0;
+    background:linear-gradient(90deg, rgba(255,255,255,.65), rgba(255,255,255,.15));
+    transform-origin:0 50%;
+    opacity:0; transition:opacity .5s ease, width .6s ease;
+  }
+  .edge.visible{opacity:1;}
+  .edge.dashed{background:none; border-top:2px dashed rgba(205,215,245,.5);}
+
+  .edgeLabel{
+    position:absolute; left:0; top:0; transform:translate3d(0,0,0);
+    background:rgba(10,16,32,.72); border:1px solid rgba(255,255,255,.18);
+    color:#d9e2ff; font-size:11.5px; padding:3px 8px; border-radius:10px; white-space:nowrap;
+    opacity:0; transition:opacity .5s ease; z-index:6;
+  }
+  .edgeLabel.visible{opacity:1;}
+
+  /* cursor */
+  #cursor{
+    position:absolute; width:26px; height:26px; left:640px; top:360px; margin:-13px 0 0 -13px;
+    z-index:20; opacity:0; transition:transform 1.1s cubic-bezier(.22,.8,.2,1), opacity .4s ease;
+  }
+  #cursor.show{opacity:1;}
+  #cursor svg{filter:drop-shadow(0 4px 6px rgba(0,0,0,.6));}
+  .ripple{
+    position:absolute; width:20px; height:20px; left:640px; top:360px; margin:-10px 0 0 -10px;
+    border-radius:50%; border:3px solid rgba(255,255,255,.9); z-index:19;
+    opacity:0; pointer-events:none;
+  }
+  .ripple.go{animation:rip .8s ease-out forwards;}
+  @keyframes rip{
+    0%{opacity:.95; transform:scale(.3);}
+    100%{opacity:0; transform:scale(5.2);}
+  }
+
+  .tooltip{
+    position:absolute; left:640px; top:360px; transform:translate(-50%,-140%);
+    background:rgba(10,16,32,.92); border:1px solid rgba(255,255,255,.25);
+    color:#eaf0ff; font-size:15px; padding:9px 14px; border-radius:10px;
+    opacity:0; transition:opacity .35s ease, transform .35s ease; z-index:25; white-space:nowrap;
+    box-shadow:0 10px 24px rgba(0,0,0,.5);
+  }
+  .tooltip b{color:#8fe3c7;}
+  .tooltip.show{opacity:1; transform:translate(-50%,-160%);}
+
+  .caption{
+    position:absolute; left:50%; bottom:118px; transform:translateX(-50%);
+    font-size:20px; color:#eaf0ff; text-align:center; opacity:0; transition:opacity .6s ease;
+    text-shadow:0 3px 10px rgba(0,0,0,.6); z-index:30; width:900px;
+  }
+  .caption.show{opacity:1;}
+
+  .lowerthird{
+    position:absolute; left:28px; bottom:22px; font-size:14px; color:#9fb0dd; z-index:40; letter-spacing:.3px;
+  }
+  .lowerthird.right{left:auto; right:28px; text-align:right;}
+  .lowerthird b{color:#dfe8ff;}
+
+  #endCard{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(6,10,20,0); text-align:center; opacity:0; transition:opacity 1s ease; z-index:60;
+  }
+  #endCard.show{opacity:1; background:rgba(6,10,20,.72);}
+  #endCard h2{font-size:34px; margin:0 0 12px; color:#eaf0ff;}
+  #endCard p{font-size:18px; margin:4px 0; color:#aebbdd;}
+  #endCard .dots{margin-top:18px; display:flex; gap:10px;}
+  #endCard .dots span{width:14px; height:14px; border-radius:50%; display:inline-block;}
+
+  #blackout{position:absolute; inset:0; background:#05070d; opacity:0; transition:opacity 1s ease; z-index:99; pointer-events:none;}
+  #blackout.show{opacity:1;}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="grid"></div>
+
+  <div id="titleCard">
+    <h1>Follow Your Nose</h1>
+    <p>Linked Data navigation in the ERA Ontology — graph.data.era.europa.eu</p>
+  </div>
+
+  <div id="perspective"><div id="world"></div></div>
+
+  <div id="cursor">
+    <svg width="26" height="26" viewBox="0 0 24 24"><path fill="#ffffff" stroke="#0d1526" stroke-width="1" d="M3 2l6.5 18 2.2-7.1L19 10.7z"/></svg>
+  </div>
+
+  <div class="caption" id="caption"></div>
+
+  <div class="lowerthird"><b>Brussels Airport – Zaventem</b><br>era:OperationalPoint · canonical URI BEFBNL</div>
+  <div class="lowerthird right"><b>ERA Ontology</b><br>data.europa.eu/949</div>
+
+  <div id="endCard">
+    <h2>This is "Follow Your Nose"</h2>
+    <p>Click any fact → discover the next linked fact.</p>
+    <p>No query language. No integration code. Just links.</p>
+    <div class="dots">
+      <span style="background:#e8604f"></span><span style="background:#5b9bd5"></span>
+      <span style="background:#7ac36a"></span><span style="background:#f0a83a"></span>
+      <span style="background:#9b8fd1"></span>
+    </div>
+  </div>
+
+  <div id="blackout"></div>
+</div>
+
+<script>
+const world = document.getElementById('world');
+const cursorEl = document.getElementById('cursor');
+const captionEl = document.getElementById('caption');
+
+function el(tag, cls){ const e=document.createElement(tag); if(cls) e.className=cls; return e; }
+
+function makeNode(id, label, cls, x, y, z){
+  const n = el('div', 'node ' + cls);
+  n.id = id;
+  n.style.transform = `translate3d(${x}px, ${y}px, ${z}px) scale(.4)`;
+  n.dataset.x = x; n.dataset.y = y; n.dataset.z = z;
+  const s = el('span','lbl'); s.textContent = label;
+  n.appendChild(s);
+  world.appendChild(n);
+  return n;
+}
+function showNode(n, delay){
+  setTimeout(()=>{
+    n.classList.add('visible');
+    n.style.transform = `translate3d(${n.dataset.x}px, ${n.dataset.y}px, ${n.dataset.z}px) scale(1)`;
+  }, delay);
+}
+function makeEdge(id, x1,y1,z1, x2,y2,z2, dashed){
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx+dy*dy);
+  const ang = Math.atan2(dy,dx) * 180/Math.PI;
+  const e2 = el('div', 'edge' + (dashed? ' dashed':''));
+  e2.id = id;
+  e2.style.transform = `translate3d(${x1}px, ${y1}px, ${(z1+z2)/2}px) rotate(${ang}deg)`;
+  e2.dataset.len = len;
+  e2.style.width = '0px';
+  world.appendChild(e2);
+  return e2;
+}
+function showEdge(e){
+  e.classList.add('visible');
+  e.style.width = e.dataset.len + 'px';
+}
+function makeLabel(id, text, x, y, z){
+  const l = el('div','edgeLabel');
+  l.id = id; l.textContent = text;
+  l.style.transform = `translate3d(${x}px, ${y}px, ${z}px) translate(-50%,-50%)`;
+  world.appendChild(l);
+  return l;
+}
+function showLabel(l){ l.classList.add('visible'); }
+
+// ---------- HOP 1 layout: verified Brussels Airport – Zaventem data ----------
+const R = 300;
+const N_SAT = 11;
+const satelliteDefs = [
+  {label:'BEFBNL', cls:'blue',   edge:'Canonical URI'},
+  {label:'BE00219', cls:'green', edge:'Primary location'},
+  {label:'Operational\nPoint', cls:'pink', edge:'type'},
+  {label:'Infrastructure\nelement', cls:'purple', edge:'type'},
+  {label:'station', cls:'orange', edge:'Type of op. point'},
+  {label:'Belgium', cls:'orange', edge:'in country'},
+  {label:'Validity period\nfrom 2020…', cls:'teal', edge:'validity'},
+  {label:'Section of Line\nY.Luchthaven…', cls:'lav', edge:'Op. point at end of section'},
+  {label:'Section of Line\nBrussels…', cls:'lav', edge:'Op. point at start of section'},
+  {label:'Railway location\nof OP…', cls:'purple', edge:'net reference'},
+  {label:'Brussel Nat.\nLuchthaven…', cls:'lgreen', edge:'is part of / has part'},
+];
+const satellites = satelliteDefs.map((s,i)=>({
+  id:'s'+(i+1), label:s.label, cls:s.cls, edge:s.edge,
+  angle: -90 + i*(360/N_SAT)
+}));
+
+const center = makeNode('center', 'Brussels Airport\n– Zaventem', 'center', 0, 0, 40);
+center.querySelector('.lbl').style.whiteSpace='pre-line';
+
+const nodeRefs = {};
+const edgeRefs = {};
+const labelRefs = {};
+satellites.forEach((s,i)=>{
+  const rad = s.angle * Math.PI/180;
+  const z = 30*Math.sin(i*1.7);
+  const x = R*Math.cos(rad), y = R*Math.sin(rad)*0.82;
+  const n = makeNode(s.id, s.label, s.cls, x, y, z);
+  n.querySelector('.lbl').style.whiteSpace='pre-line';
+  nodeRefs[s.id]=n;
+  const e = makeEdge('e_'+s.id, 0,0,40, x,y,z, false);
+  edgeRefs[s.id]=e;
+  const lx = x*0.56, ly = y*0.56, lz = (40+z)/2;
+  const l = makeLabel('l_'+s.id, s.edge, lx, ly, lz);
+  labelRefs[s.id]=l;
+  s._x=x; s._y=y; s._z=z;
+});
+
+function moveCursorTo(x,y,z, cb){
+  cursorEl.classList.add('show');
+  cursorEl.style.transform = `translate3d(${x}px, ${y}px, ${z+40}px)`;
+  setTimeout(cb, 1150);
+}
+function clickAt(node, x,y,z){
+  node.classList.add('pulse');
+  const rip = el('div','ripple go');
+  rip.style.transform = `translate3d(${x}px, ${y}px, ${z+40}px)`;
+  world.appendChild(rip);
+  setTimeout(()=>{ node.classList.remove('pulse'); rip.remove(); }, 850);
+}
+function showTooltip(text, x, y, z){
+  const t = el('div','tooltip show');
+  t.style.transform = `translate3d(${x}px, ${y}px, ${z+120}px) translate(-50%,-50%)`;
+  t.innerHTML = text;
+  world.appendChild(t);
+  setTimeout(()=>{ t.style.opacity=0; setTimeout(()=>t.remove(),400); }, 1150);
+}
+function setCaption(text, on){
+  captionEl.innerHTML = text;
+  captionEl.classList.toggle('show', on);
+}
+
+// ================= TIMELINE =================
+// 0.0 - 2.4s title
+setTimeout(()=>{ document.getElementById('titleCard').classList.add('hide'); }, 2200);
+
+// 2.6s center appears
+setTimeout(()=>{
+  center.classList.add('visible');
+  center.style.transform = `translate3d(0,0,40px) scale(1)`;
+}, 2600);
+
+// 3.3 - 5.6s satellites + edges + labels stagger in
+satellites.forEach((s,i)=>{
+  const delay = 3300 + i*230;
+  setTimeout(()=>{
+    showNode(nodeRefs[s.id], 0);
+    showEdge(edgeRefs[s.id]);
+    setTimeout(()=> showLabel(labelRefs[s.id]), 350);
+  }, delay);
+});
+
+// helper to run click step
+function clickStep(s, tooltipHTML, atTime){
+  setTimeout(()=>{
+    moveCursorTo(s._x, s._y, s._z, ()=>{
+      clickAt(nodeRefs[s.id], s._x, s._y, s._z);
+      showTooltip(tooltipHTML, s._x, s._y, s._z);
+    });
+  }, atTime);
+}
+
+clickStep(satellites[5], 'in country → <b>Belgium</b>', 7200);   // Belgium
+clickStep(satellites[0], 'Canonical URI → <b>BEFBNL</b>', 10200); // BEFBNL
+clickStep(satellites[4], 'Type of operational point → <b>station</b>', 13200); // station
+
+// Big click: Section of Line Brussels... -> hop transition
+setTimeout(()=>{
+  const s = satellites[8]; // Section of Line Brussels
+  moveCursorTo(s._x, s._y, s._z, ()=>{
+    clickAt(nodeRefs[s.id], s._x, s._y, s._z);
+    showTooltip('Operational point at <b>start</b> of Section of Line →', s._x, s._y, s._z);
+    setTimeout(runHopTransition, 900);
+  });
+}, 16400);
+
+function runHopTransition(){
+  setCaption('Follow the link → the Section of Line becomes the new center of the graph', true);
+  cursorEl.classList.remove('show');
+
+  // fade out ALL hop-1 satellites and their edge labels, including the clicked one's old label
+  satellites.forEach(s=>{
+    labelRefs[s.id].style.opacity=0;
+    if(s.id!=='s9'){
+      nodeRefs[s.id].style.transition='opacity .8s ease, transform .8s ease';
+      nodeRefs[s.id].style.opacity=0;
+      nodeRefs[s.id].style.transform = nodeRefs[s.id].style.transform + ' scale(.5)';
+      edgeRefs[s.id].style.opacity=0;
+    }
+  });
+
+  // move clicked node to center; move old center to a satellite slot
+  const clicked = nodeRefs['s9'];
+  setTimeout(()=>{
+    clicked.style.transform = 'translate3d(0,0,60px) scale(1.05)';
+    clicked.classList.add('center-ish');
+    center.style.transform = 'translate3d(-230px, 60px, 10px) scale(.8)';
+    edgeRefs['s9'].style.transform = `translate3d(-230px,60px,35px) rotate(0deg)`;
+    edgeRefs['s9'].style.width = '260px';
+    const backLabel = makeLabel('l_back', 'Op. point at start of section', -140, 40, 45);
+    backLabel.style.transition = 'opacity .5s ease';
+    setTimeout(()=> showLabel(backLabel), 250);
+  }, 500);
+
+  // new ghost nodes fly in around new center (generic, not fabricated instance data)
+  setTimeout(()=>{
+    const ghosts = [
+      {label:'→ next\nOperational Point', angle:-70},
+      {label:'max speed\n(km/h)', angle:-10},
+      {label:'track gauge\n(mm)', angle:60},
+      {label:'contact line\nsystem', angle:130},
+      {label:'electrification\nvoltage', angle:200},
+    ];
+    ghosts.forEach((g,i)=>{
+      const rad = g.angle*Math.PI/180;
+      const gx = 210*Math.cos(rad), gy = 210*Math.sin(rad)*0.7, gz = 20*Math.sin(i*2);
+      const gn = makeNode('g'+i, g.label, 'ghost', gx, gy, gz);
+      gn.querySelector('.lbl').style.whiteSpace='pre-line';
+      const ge = makeEdge('ge'+i, 0,0,60, gx,gy,gz, true);
+      setTimeout(()=>{ showNode(gn, 0); showEdge(ge); }, i*180);
+    });
+  }, 1300);
+
+  setTimeout(()=>{
+    setCaption('…and it keeps going — every bubble is a new starting point', true);
+  }, 3600);
+}
+
+// pull back + end card
+setTimeout(()=>{
+  setCaption('', false);
+  document.getElementById('perspective').style.transition='transform 1.4s ease';
+  document.getElementById('perspective').style.transform='scale(.82)';
+}, 24500);
+
+setTimeout(()=>{
+  document.getElementById('endCard').classList.add('show');
+}, 26200);
+
+setTimeout(()=>{
+  document.getElementById('blackout').classList.add('show');
+}, 30800);
+
+window.__DONE__ = false;
+setTimeout(()=>{ window.__DONE__ = true; }, 32200);
+</script>
+</body>
+</html>

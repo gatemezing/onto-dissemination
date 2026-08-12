@@ -168,6 +168,12 @@ This is a strong real example precisely because it's an airport station: every r
 
 Section 5's SPARQL queries prove interoperability *analytically* (ask a question across borders, get one answer). This bubble browser proves it *experientially* — a non-technical visitor can feel the "same data model everywhere" point by clicking, without seeing a line of query syntax. Use Section 5 for visitors who want the "how," and this browser for visitors who just want to *see* it work. On a booth screen or tablet, this is likely the single most shareable 60-second moment.
 
+### Explainer video mockup
+
+`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~31-second animated mockup built to pitch this booth moment before the event: a stylized, 3D-look bubble graph, auto-clicking through the confirmed Brussels Airport – Zaventem hop-1 data above (Canonical URI, in country, type of operational point, then the "start of section of line" hop), ending on a generic "the graph keeps going" continuation and a closing card.
+
+**This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser, using only the verified hop-1 facts from Section 6; the "next hop" bubbles (max speed, track gauge, electrification, next operational point) are generic placeholders, not real instance data, and are styled with a dashed border for that reason. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
+
 ---
 
 ## 7. Anticipated questions (FAQ)
@@ -211,6 +217,7 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 - [ ] Have a compliance-aware colleague sign off on the FAQ answer to "Is this mandatory?" — this is the question most likely to be pressed on by regulators/NSAs.
 - [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `data-interop.era.europa.eu` → Data stories (this session's network egress policy blocked that domain, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
 - [ ] Hop 1 of the Section 6 bubble view (Brussels Airport – Zaventem, `BEFBNL`) is confirmed from a screenshot. Still needed: (a) the full, untruncated text of the "Validity period from 20…" and "…Nat. Luchthav…" bubbles on a wider screen, and (b) a screenshot of clicking through to hop 2 (ideally landing on a station in a different country) to complete the cross-border click-through script.
+- [ ] `scripts/assets/era-follow-your-nose-demo.mp4` is a generated mockup, not real screen-capture footage. Before using it publicly: replace (or supplement) it with an actual screen recording of `graph.data.era.europa.eu`, since the mockup's "next hop" bubbles are generic placeholders (max speed, track gauge, electrification), not real data.
 - [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 8 with real feedback once available.
 - [ ] Translate the elevator pitch (Section 2) into German for the Berlin venue, if booth staff will engage German-speaking visitors directly.
 
@@ -228,6 +235,7 @@ Use each script section as the source text for a specific deliverable:
 | Workshop / side-event slide deck | Section 4 | One slide per bullet block; keep the live-demo moment on its own slide with nothing else on it. |
 | Social media teaser (LinkedIn/X) | Section 2 | Trim the elevator pitch to ~280 characters, keep the question-opening hook, link to the vocabulary browser. |
 | Live demo script | Section 4, Slide 5 + Section 5 (query catalogue) + Section 6 (bubble browser walkthrough) + Section 9 checklist | Must be tested against the real SPARQL endpoint and graph browser before the event — do not present an untested query or click-path live. |
+| Social media / booth-screen teaser video | Section 6, "Explainer video mockup" (`scripts/assets/era-follow-your-nose-demo.mp4`) | Storyboard/pitch only — replace with real screen-recorded footage before publishing externally (see Section 9 checklist). |
 
 ---
 
