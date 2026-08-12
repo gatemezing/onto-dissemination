@@ -12,8 +12,8 @@
 This is a **working script**, not a finished slide deck. Use it to:
 
 1. Brief booth staff so everyone tells the same story, in the same order, with the same examples.
-2. Draft the poster / roll-up / one-pager copy (Section 6 gives you the checklist).
-3. Rehearse against the audience-satisfaction review in Section 4 before printing anything.
+2. Draft the poster / roll-up / one-pager copy (Section 9 gives you the checklist).
+3. Rehearse against the audience-satisfaction review in Section 7 before printing anything.
 
 Anything in `[brackets]` is a placeholder to fill in with your booth number, QR code, or contact details closer to the event.
 
@@ -105,7 +105,30 @@ Use this version for a seminar slot, side-event, or when someone at the booth wa
 
 ---
 
-## 5. Anticipated questions (FAQ)
+## 5. Top 5 interoperability queries for the live demo (from the ERA "Data stories")
+
+**⚠️ Access note:** `data-interop.era.europa.eu` (and `era.europa.eu`) could not be fetched directly from this session — both domains are blocked by this environment's network egress policy (a 403-class organisational block, not a transient error). The table below is **reconstructed from the closest available public secondary source**: Vladimir Alexiev's *RailDataForum2025-SPARQL* tutorial, which explicitly states it works from **"RINF data stories represented as competency questions"** against the same `data-interop.era.europa.eu` SPARQL endpoint (ontology v3.0.1, presented at the 2025 Rail Data Forum). It is a strong proxy, not a verified transcript of the live "Data stories" page.
+
+**Before InnoTrans, someone with access must:**
+1. Open `data-interop.era.europa.eu` → **Data stories** section directly.
+2. Confirm whether these 5 are indeed featured there (titles may differ) or swap in the site's actual top stories.
+3. Copy the *exact* SPARQL text and run it live against the endpoint at least once before the booth demo — do not present the illustrative queries below as verified.
+
+With that caveat, here are 5 stories that best "showcase interoperability using the ontology" for a railway-expert audience — chosen because together they span the five different *kinds* of interoperability payoff the ontology delivers (cross-country comparison, national filtering reuse, cross-country aggregation, temporal/versioning consistency, and network topology construction):
+
+| # | Data story | Competency question (plain English) | What it demonstrates about interoperability | Illustrative SPARQL sketch *(verify before use)* |
+|---|---|---|---|---|
+| 1 | **Longest tunnel in Europe** | "What is the single longest railway tunnel, and where is it?" | The same `Tunnel` class and `length` property are populated identically by every member state's infrastructure manager, so a single query can rank assets across 27 countries — something no single national register could answer on its own. | `SELECT ?tunnel ?country ?length WHERE { ?tunnel a era:Tunnel ; era:length ?length ; era:inCountry/skos:prefLabel ?country . FILTER(lang(?country)="en") } ORDER BY DESC(?length) LIMIT 1` |
+| 2 | **Tunnels in a given country (e.g. Romania), ranked** | "What are the top 3 longest tunnels in Romania?" | Shows the *same* query pattern from Story 1 works unmodified for any country just by changing one filter value — proof that the data model, not a bespoke per-country integration, is doing the work. | `SELECT ?tunnel ?length WHERE { ?tunnel a era:Tunnel ; era:length ?length ; era:inCountry/skos:prefLabel "Romania"@en . } ORDER BY DESC(?length) LIMIT 3` |
+| 3 | **Tunnel counts and average length, by country** | "How many tunnels does each country have, and how long are they on average?" | A cross-border aggregate/analytics query — the kind of question a planner or manufacturer would ask when comparing network characteristics across the EU, only possible because every country's tunnels share one class and one unit of measurement. | `SELECT ?country (COUNT(?tunnel) AS ?n) (SUM(?length) AS ?total) (AVG(?length) AS ?avg) WHERE { ?tunnel a era:Tunnel ; era:length ?length ; era:inCountry/skos:prefLabel ?country . FILTER(lang(?country)="en") } GROUP BY ?country ORDER BY DESC(?n)` |
+| 4 | **Same asset, tracked over time (canonical URIs)** | "This infrastructure element has been updated many times — how do I know it's still the same real-world asset?" | Directly demonstrates *temporal* interoperability: infrastructure changes (electrification upgrades, gauge changes) are versioned, but a stable "canonical" URI lets any consuming system recognise that record N and record N+1 describe the same physical track or structure. Good story for audiences worried about "which version is authoritative." | `SELECT ?canonical (COUNT(?version) AS ?nVersions) WHERE { ?version era:canonicalURI ?canonical . } GROUP BY ?canonical HAVING (COUNT(?version) > 1) ORDER BY DESC(?nVersions)` |
+| 5 | **Operational points connected by sections of line (network graph, e.g. Bulgaria)** | "Which stations/operational points are directly connected, and how does the network fit together?" | A `CONSTRUCT` query that turns individually-published `SectionOfLine` and `OperationalPoint` records into a connected network graph — the clearest visual proof that independently-maintained national records combine into one usable topology, which is exactly what cross-border path planning needs. Strongest **visual** demo for a booth screen. | `CONSTRUCT { ?op1 era:connectedTo ?op2 } WHERE { ?sol a era:SectionOfLine ; era:opStart ?op1 ; era:opEnd ?op2 ; era:inCountry/skos:prefLabel "Bulgaria"@en . }` |
+
+**Booth delivery tip:** run Story 1 first (universally relatable — "the longest tunnel in Europe" is a good hook), then Story 2 live-edited in front of the visitor to change the country filter to *their* country (makes the "same query, any country" point land physically, not just verbally), then close on Story 5's graph visualisation if the booth has a screen — it's the most visually convincing proof of interoperability.
+
+---
+
+## 6. Anticipated questions (FAQ)
 
 | Question a railway expert is likely to ask | Short answer to give at the booth |
 |---|---|
@@ -118,7 +141,7 @@ Use this version for a seminar slot, side-event, or when someone at the booth wa
 
 ---
 
-## 6. Audience-satisfaction review (self-review pass)
+## 7. Audience-satisfaction review (self-review pass)
 
 Before this script is used live, it was reviewed against a **railway-expert persona** (infrastructure engineer / planner, technically strong but not a semantic-web specialist) to check it lands with the intended audience rather than a knowledge-engineering audience. Findings and the revisions already folded into Sections 2–4 above:
 
@@ -127,28 +150,29 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 | **Opens with relevance, not definitions** | v1 opened with "an ontology is a formal specification of concepts..." — too abstract, loses a booth visitor in the first sentence. | Rewritten to open with the cross-border data-mismatch pain point before naming the concept (Section 3, "Opening"). | High |
 | **Jargon level** | v1 led with RDF/OWL/SPARQL terminology up front. | Technical vocabulary (RDF, OWL, SPARQL, dereferenceable URI) moved to secondary sentences or footnotes, always after a plain-language analogy has landed first. | High |
 | **Analogy fits the audience's world** | Generic analogies ("like a shared library catalogue") tested poorly — librarians resonate, engineers don't. | Replaced with an ETCS/signalling-rulebook analogy, since it maps a familiar interoperability concept (shared meaning across systems) onto the new one. | High |
-| **Concreteness** | v1 stayed abstract about "combining data across systems." | Added a specific, checkable example: cross-border query for ETCS Level 2 lines between two named countries, and named URI examples (`.../Track`, `.../OperationalPoint`). | Medium–High — needs a real, tested query confirmed against the live RINF SPARQL endpoint before the event (see Section 7, item 4). |
+| **Concreteness** | v1 stayed abstract about "combining data across systems." | Added a specific, checkable example: cross-border query for ETCS Level 2 lines between two named countries, and named URI examples (`.../Track`, `.../OperationalPoint`). Section 5 now adds 5 fuller demo-ready queries. | Medium–High — Section 5's queries are reconstructed from a secondary source, not the live "Data stories" page (blocked in this session); needs verification against the real endpoint before the event (see Section 8). |
 | **Length for a trade-fair booth** | v1 was a single ~6-minute block — too long for someone standing at a booth. | Split into a 30-second hook, a 3-minute booth version, and a separate 7–8 minute workshop version, so staff can match length to visitor engagement. | High |
 | **Clear "so what" for the visitor's own job** | v1 ended on a mission-style statement about "European interoperability" with no visitor-specific payoff. | Added role-specific payoffs (infrastructure manager vs. manufacturer) before the call to action (Section 3, "Why it matters to you"). | High |
 | **Actionable close** | v1 had no explicit next step. | Added a concrete call to action (live demo, QR code, contact) at the end of every format. | High — pending real booth number / QR code / contact being filled in. |
 
-**Overall assessment:** the script now leads with the visitor's problem, uses a railway-native analogy, defers jargon, and closes with a specific action — the profile most likely to satisfy a non-specialist railway-expert audience at a trade fair. The remaining open risk is factual/legal precision (see Section 7) rather than framing or tone.
+**Overall assessment:** the script now leads with the visitor's problem, uses a railway-native analogy, defers jargon, and closes with a specific action — the profile most likely to satisfy a non-specialist railway-expert audience at a trade fair. The remaining open risk is factual/legal precision (see Section 8) rather than framing or tone.
 
 ---
 
-## 7. Before this goes into production — checklist
+## 8. Before this goes into production — checklist
 
 - [ ] Confirm current ERA vocabulary/ontology **version number** and **legal status wording** directly with ERA's Interoperable Data Programme team before printing any material (versions and legal framing can change between now and September 2026).
 - [ ] Confirm and rehearse a **real, working SPARQL query** against the live RINF knowledge graph endpoint for the booth demo (don't rely on this script's example query without testing it).
 - [ ] Fill in `[booth number]`, `[QR code]`, and `[contact]` placeholders once InnoTrans 2026 booth logistics are confirmed.
 - [ ] Confirm the exact GitLab/GitHub repository link to share with technical visitors (e.g., the ERA Ontology group repository).
 - [ ] Have a compliance-aware colleague sign off on the FAQ answer to "Is this mandatory?" — this is the question most likely to be pressed on by regulators/NSAs.
-- [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 6 with real feedback once available.
+- [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `data-interop.era.europa.eu` → Data stories (this session's network egress policy blocked that domain, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
+- [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 7 with real feedback once available.
 - [ ] Translate the elevator pitch (Section 2) into German for the Berlin venue, if booth staff will engage German-speaking visitors directly.
 
 ---
 
-## 8. From this script to dissemination materials — production checklist
+## 9. From this script to dissemination materials — production checklist
 
 Use each script section as the source text for a specific deliverable:
 
@@ -159,11 +183,11 @@ Use each script section as the source text for a specific deliverable:
 | Booth staff briefing sheet | Sections 2, 3, 5, 6 | Print full booth talk + FAQ for rehearsal; the satisfaction review explains *why* the script is phrased this way, useful for staff who improvise. |
 | Workshop / side-event slide deck | Section 4 | One slide per bullet block; keep the live-demo moment on its own slide with nothing else on it. |
 | Social media teaser (LinkedIn/X) | Section 2 | Trim the elevator pitch to ~280 characters, keep the question-opening hook, link to the vocabulary browser. |
-| Live demo script | Section 4, Slide 5 + Section 7 checklist | Must be tested against the real SPARQL endpoint before the event — do not present an untested query live. |
+| Live demo script | Section 4, Slide 5 + Section 5 (query catalogue) + Section 8 checklist | Must be tested against the real SPARQL endpoint before the event — do not present an untested query live. |
 
 ---
 
-## 9. Glossary (plain language, for booth staff who need a quick refresher)
+## 10. Glossary (plain language, for booth staff who need a quick refresher)
 
 - **Ontology** — a machine-readable definition of the concepts in a domain (e.g., "Track," "Operational Point") and how they relate, so different systems interpret the same data the same way.
 - **ERA vocabulary / ERA ontology** — the EU Agency for Railways' ontology for railway infrastructure and rolling stock data, published at `data.europa.eu/949`.
@@ -176,7 +200,7 @@ Use each script section as the source text for a specific deliverable:
 
 ---
 
-## 10. Sources used to fact-check this script
+## 11. Sources used to fact-check this script
 
 - ERA Vocabulary (ERA Ontology) — [Interoperable Europe Portal](https://interoperable-europe.ec.europa.eu/collection/semic-support-centre/solution/era-vocabulary-era-ontology)
 - ERA Knowledge Graph — [European Union Agency for Railways](https://www.era.europa.eu/domains/registers/era-knowlege-graph_en)
@@ -185,5 +209,6 @@ Use each script section as the source text for a specific deliverable:
 - Community mirror/docs — [GitHub: Interoperable-data/ERA_vocabulary](https://github.com/Interoperable-data/ERA_vocabulary)
 - "Leveraging semantic technologies for digital interoperability in the European Railway domain" (ISWC 2021 In-Use) — [julianrojas.org](https://julianrojas.org/papers/iswc2021-in-use/)
 - InnoTrans 2026 dates and venue — [InnoTrans official site](https://www.innotrans.de/en) (22–25 September 2026, Berlin ExpoCenter City)
+- Section 5 query catalogue reconstructed from — [GitHub: VladimirAlexiev/RailDataForum2025-SPARQL](https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL) (Rail Data Forum 2025 SPARQL tutorial against `data-interop.era.europa.eu`, ERA ontology v3.0.1). **`data-interop.era.europa.eu` itself was not reachable from this session (blocked by network egress policy) — its actual "Data stories" section must be checked directly before the event.**
 
-**All version numbers, legal-status wording, and endpoint URLs above should be re-verified close to the event date (see Section 7) — ontology versions and legal framing can change.**
+**All version numbers, legal-status wording, endpoint URLs, and the Section 5 "Top 5" data stories above should be re-verified close to the event date (see Section 8) — ontology versions, legal framing, and the site's featured stories can change.**
