@@ -130,7 +130,7 @@ With that caveat, here are 5 stories that best "showcase interoperability using 
 
 ## 6. The "follow your nose" demo — ERA graph browser (bubble visualization)
 
-**✅ Verified against real screenshots (hop 1 and hop 2 of the click-through, plus three bonus finds).** `graph.data.era.europa.eu` is still blocked from this session's own network access (same policy as the other `*.era.europa.eu` subdomains), so this section can't be independently re-browsed — but the user supplied seven screenshots of the live bubble view (Brussels Airport – Zaventem; the Section of Line reached from it; a Track/Running-track node; an infrastructure-manager reuse "hub"; and a validity-period / end-date reuse pair), so the content below is confirmed, not illustrative, for two full hops plus three extra finds. Several bubble labels are still cut off on a phone-width screen (`...`) — those are marked below and should be read in full on a wider screen before the event.
+**✅ Verified against real screenshots (four hops of the click-through, plus two bonus finds).** `graph.data.era.europa.eu` is still blocked from this session's own network access (same policy as the other `*.era.europa.eu` subdomains), so this section can't be independently re-browsed — but the user supplied nine screenshots of the live bubble view (Brussels Airport – Zaventem; both Sections of Line reached from it; a Track/Running-track node; an infrastructure-manager reuse "hub"; and a validity-period / end-date reuse pair), so the content below is confirmed, not illustrative, for four hops plus two extra finds. Several bubble labels are still cut off on a phone-width screen (`...`) — those are marked below and should be read in full on a wider screen before the event.
 
 ### The concept, in plain language
 
@@ -198,9 +198,26 @@ Clicking through to that validity period's own `has end` link (second screenshot
 
 **Why this is worth mentioning:** two things stack up here. First, it's the same *reuse* pattern as the infrastructure-manager hub above, but even more relatable — `2078-12-31` is doing the job of "valid indefinitely / no known expiry," shared as one canonical value instead of being re-typed on every record. Second, `Temporal Feature` / `Temporal entity` / `Time instant` are the class names from the **W3C Time Ontology (OWL-Time)** — meaning ERA didn't invent its own way of modelling "when is this valid," it reused an existing W3C standard. That's a concrete, checkable example of the ontology practicing the interoperability it preaches: reusing established vocabularies, not just publishing railway-specific ones.
 
-### Suggested booth script (hop 1 and hop 2 both confirmed)
+### Worked example, hop 4 (confirmed): Brussels Airport's *other* Section of Line
 
-> "Let's not talk about this abstractly — let's just click. Here's Brussels Airport station in the register [open the URI in the browser]. See the bubbles around it? Each one is a fact Belgium's infrastructure manager entered — its country, its canonical ID `BEFBNL`, the fact it's a station. Now watch: I click *this* bubble, 'Section of Line' [click the 'Operational point at start of section of line' bubble] — and we jump, with zero integration code, to the section of track leaving this station. See its national line number, `0364`? Now one more click [click 'Operational point at end of section of line'] — and we land on `Y.Brucargo`. That's not another passenger station — that's Brussels' **freight yard**. Two clicks, zero integration code, from an airport to a cargo terminal. That's 'follow your nose' — the same trick that makes clicking through Wikipedia effortless, except every link here is a verified railway fact, maintained by the responsible infrastructure manager, not a hyperlink someone typed by hand."
+Hop 1's "Section of Line Y.Luch…" bubble (the *end*-of-section link, the sibling of hop 2's *start*-of-section link) resolves to a second, distinct Section of Line — the direction of travel *into* Brussels Airport rather than out of it. The live bubble view shows:
+
+| Bubble (as shown) | Edge label from the centre | What it is |
+|---|---|---|
+| `0364` | National line identification | **The same national line number as hop 2** — one physical line, two direction-specific Section-of-Line records. |
+| `0364_BEYLHVN_BEFB…` | Canonical URI | A *different* canonical URI from hop 2's (`…BEYBR…` vs `…BEYLHVN…`) — same line, distinguishable direction. |
+| Section Of Line | type | Same class as hop 2. |
+| Belgium | in country | Same member state. |
+| Regular SoL | Nature of Section of Line | Same category as hop 2. |
+| Y.Luchthaven (from 20…) | Operational point at **start** of section of line | **A third real place** distinct from both Brussels Airport and Y.Brucargo — likely a nearby junction/yard point ("Y" is common Belgian rail shorthand for a junction). |
+| Brussels Airport – Zav… | Operational point at **end** of section of line | Links back to hop 1 — confirms the two Section-of-Line records really are the two directions of the same physical connection. |
+| 1504-1 / 1504-2 (from 2017-12…) | is part of / has part (reciprocal) | The physical track segments making up *this* section — different segment numbers from hop 2's `1238-1`/`1238-2`. |
+
+**Why it's worth the extra hop:** it reinforces the *reuse* theme from the validity-period finding, but on a railway-native fact instead of a technical/temporal one — the same national line number, `0364`, is correctly reused across both direction-specific records rather than being duplicated or renumbered, exactly what you'd want from a well-modelled shared vocabulary.
+
+### Suggested booth script (hops 1, 2, 3 and 4 all confirmed)
+
+> "Let's not talk about this abstractly — let's just click. Here's Brussels Airport station in the register [open the URI in the browser]. See the bubbles around it? Each one is a fact Belgium's infrastructure manager entered — its country, its canonical ID `BEFBNL`, the fact it's a station. Now watch: I click *this* bubble, 'Section of Line' [click the 'Operational point at start of section of line' bubble] — and we jump, with zero integration code, to the section of track leaving this station. See its national line number, `0364`? Now one more click [click 'Operational point at end of section of line'] — and we land on `Y.Brucargo`. That's not another passenger station — that's Brussels' **freight yard**. Two clicks, zero integration code, from an airport to a cargo terminal. And it doesn't stop there — go back and click the *other* section of line from Brussels Airport, and you land on `Y.Luchthaven`, a third real place, and notice: same national line number, `0364`, reused correctly for both directions. That's 'follow your nose' — the same trick that makes clicking through Wikipedia effortless, except every link here is a verified railway fact, maintained by the responsible infrastructure manager, not a hyperlink someone typed by hand."
 
 ### Why this belongs alongside Section 5
 
@@ -208,13 +225,14 @@ Section 5's SPARQL queries prove interoperability *analytically* (ask a question
 
 ### Explainer video mockup
 
-`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~40-second animated mockup built to pitch this booth moment before the event (kept under a 45-second cap): a stylized, 3D-look bubble graph with **oriented links** (directional arrowheads matching the live tool — single-headed for one-way facts, double-headed for reciprocal `is part of` / `has part` pairs), auto-clicking through three hops in sequence:
+`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~42-second animated mockup built to pitch this booth moment before the event (kept under a 45-second cap): a stylized, 3D-look bubble graph with **oriented links** (directional arrowheads matching the live tool — single-headed for one-way facts, double-headed for reciprocal `is part of` / `has part` pairs), auto-clicking through four hops in sequence:
 
-1. **Hop 1** — Brussels Airport – Zaventem: two quick clicks (in country → Belgium, Canonical URI → BEFBNL), then the "start of section of line" click.
+1. **Hop 1** — Brussels Airport – Zaventem: one quick click (in country → Belgium), then the "start of section of line" click.
 2. **Hop 2** — the Section of Line: national line `0364`, then the payoff click to **Y.Brucargo**, Brussels' freight yard.
 3. **Hop 3** — clicking "Validity period" reveals the reuse hub (Anvers, Kontich, Diest, Malines, Antwerpen-Berchem tracks all sharing one validity record via incoming `validity` links), ending on a click to **`date_2078-12-31`**, the shared "valid indefinitely" end-date reused by dozens of other records.
+4. **Hop 4** — a clean cut (clearly captioned as a jump, not a click, since it isn't reached from hop 3) back to Brussels Airport's *other* Section of Line: the same national line `0364` reused for the opposite direction, ending on a third real place, **Y.Luchthaven**.
 
-**This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser. Every bubble and edge label across all three hops is drawn from the verified screenshots in this section (no generic placeholders) — the remaining gap is that it's a stylized re-creation, not pixel-accurate footage of the real UI's chrome, fonts, or exact positions. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
+**This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser. Every bubble and edge label across all four hops is drawn from the verified screenshots in this section (no generic placeholders) — the remaining gap is that it's a stylized re-creation, not pixel-accurate footage of the real UI's chrome, fonts, or exact positions. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
 
 ---
 

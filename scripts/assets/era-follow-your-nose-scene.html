@@ -354,18 +354,18 @@ function setCaption(text, on){
 }
 
 // ================= TIMELINE =================
-// 0.0 - 2.4s title
-setTimeout(()=>{ document.getElementById('titleCard').classList.add('hide'); }, 2200);
+// 0.0 - 1.8s title
+setTimeout(()=>{ document.getElementById('titleCard').classList.add('hide'); }, 1800);
 
-// 2.6s center appears
+// 2.2s center appears
 setTimeout(()=>{
   center.classList.add('visible');
   center.style.transform = `translate3d(0,0,40px) scale(1)`;
-}, 2600);
+}, 2200);
 
-// 3.3 - 5.6s satellites + edges + labels stagger in
+// 2.9 - 5.1s satellites + edges + labels stagger in
 satellites.forEach((s,i)=>{
-  const delay = 3300 + i*230;
+  const delay = 2900 + i*200;
   setTimeout(()=>{
     showNode(nodeRefs[s.id], 0);
     showEdge(edgeRefs[s.id]);
@@ -383,8 +383,7 @@ function clickStep(s, tooltipHTML, atTime){
   }, atTime);
 }
 
-clickStep(satellites[5], 'in country → <b>Belgium</b>', 7000);   // Belgium
-clickStep(satellites[0], 'Canonical URI → <b>BEFBNL</b>', 9600); // BEFBNL
+clickStep(satellites[5], 'in country → <b>Belgium</b>', 6200);   // Belgium
 
 // Big click: Section of Line Brussels... -> hop transition
 setTimeout(()=>{
@@ -394,7 +393,7 @@ setTimeout(()=>{
     showTooltip('Operational point at <b>start</b> of Section of Line →', s._x, s._y, s._z);
     setTimeout(runHopTransition, 900);
   });
-}, 12200);
+}, 8800);
 
 function runHopTransition(){
   setCaption('Follow the link → the Section of Line becomes the new center of the graph', true);
@@ -552,27 +551,98 @@ function runHop3Transition(clickedRef, hop2Refs){
     });
   }, 3600);
 
+  setTimeout(runHop4Transition, 6300);
+}
+
+// ---- HOP 4: verified "Section of Line Y.Luchthaven..." data — Brussels Airport's OTHER
+// direction of travel, reached via the "end of section" link back in hop 1. Reintroduced
+// as a clean cut (not a click) since we've moved on from hop 1's on-screen state by now;
+// the caption is explicit that this is a jump back, not a link from the validity-date node.
+function runHop4Transition(){
+  setCaption('Back to Brussels Airport — this time via its OTHER Section of Line', true);
+  world.style.transition = 'opacity .7s ease';
+  world.style.opacity = 0;
+
   setTimeout(()=>{
-    setCaption('', false);
-  }, 6300);
+    // hard cut: clear every previous hop's elements (they're already invisible from the
+    // container fade) so nothing old can reappear once the container's opacity is restored
+    world.innerHTML = '';
+    world.style.opacity = 1;
+
+    const center4 = makeNode('center4', 'Section of Line\nY.Luchthaven…', 'center', 0, 0, 40);
+    center4.querySelector('.lbl').style.whiteSpace='pre-line';
+    center4.classList.add('visible');
+    center4.style.transform = 'translate3d(0,0,40px) scale(1)';
+
+    const hop4Defs = [
+      {label:'0364', cls:'green', edge:'National line identification', dir:'out'},
+      {label:'0364_BEYLHVN_\nBEFB…', cls:'blue', edge:'Canonical URI', dir:'out'},
+      {label:'Section\nOf Line', cls:'pink', edge:'type', dir:'out'},
+      {label:'Belgium', cls:'orange', edge:'in country', dir:'out'},
+      {label:'Regular SoL', cls:'orange', edge:'Nature of Section of Line', dir:'out'},
+      {label:'Y.Luchthaven\n(from 20…)', cls:'lav', edge:'Op. point at start of section', dir:'out'},
+      {label:'Brussels Airport\n– Zaventem', cls:'lav', edge:'Op. point at end of section', dir:'out'},
+      {label:'Track 1504-1 /\n1504-2 (2017-12…)', cls:'lgreen', edge:'is part of / has part', dir:'reciprocal'},
+    ];
+    const N4 = hop4Defs.length;
+    const hop4Refs = {};
+    setTimeout(()=>{
+      hop4Defs.forEach((g,k)=>{
+        const angle = -90 + k*(360/N4);
+        const rad = angle*Math.PI/180;
+        const gx = R*Math.cos(rad), gy = R*Math.sin(rad)*0.82, gz = 30*Math.sin(k*1.7);
+        const gid = 'h4_'+k;
+        const gn = makeNode(gid, g.label, g.cls, gx, gy, gz);
+        gn.querySelector('.lbl').style.whiteSpace='pre-line';
+        const ge = makeEdge('h4e_'+k, 0,0,40, gx,gy,gz, g.dir);
+        const gl = makeLabel('h4l_'+k, g.edge, gx*0.56, gy*0.56, (40+gz)/2);
+        hop4Refs[gid] = {node:gn, x:gx, y:gy, z:gz};
+        setTimeout(()=>{ showNode(gn, 0); showEdge(ge); setTimeout(()=>showLabel(gl), 300); }, k*150);
+      });
+    }, 400);
+
+    setTimeout(()=>{
+      setCaption('Same national line, <b>0364</b>, reused for both directions — only the Canonical URI differs', true);
+    }, 800);
+
+    setTimeout(()=>{
+      const target = hop4Refs['h4_0']; // 0364
+      moveCursorTo(target.x, target.y, target.z, ()=>{
+        clickAt(target.node, target.x, target.y, target.z);
+        showTooltip('National line identification → <b>0364</b> (same number as hop 2)', target.x, target.y, target.z);
+      });
+    }, 2400);
+
+    setTimeout(()=>{
+      const target = hop4Refs['h4_5']; // Y.Luchthaven
+      moveCursorTo(target.x, target.y, target.z, ()=>{
+        clickAt(target.node, target.x, target.y, target.z);
+        showTooltip('Op. point at start → <b>Y.Luchthaven</b> — a third real place, zero integration code', target.x, target.y, target.z);
+      });
+    }, 4800);
+
+    setTimeout(()=>{
+      setCaption('', false);
+    }, 7300);
+  }, 750);
 }
 
 // pull back + end card
 setTimeout(()=>{
   document.getElementById('perspective').style.transition='transform 1.4s ease';
   document.getElementById('perspective').style.transform='scale(.82)';
-}, 31200);
+}, 35400);
 
 setTimeout(()=>{
   document.getElementById('endCard').classList.add('show');
-}, 32900);
+}, 37100);
 
 setTimeout(()=>{
   document.getElementById('blackout').classList.add('show');
-}, 38500);
+}, 40400);
 
 window.__DONE__ = false;
-setTimeout(()=>{ window.__DONE__ = true; }, 40000);
+setTimeout(()=>{ window.__DONE__ = true; }, 41900);
 </script>
 </body>
 </html>
