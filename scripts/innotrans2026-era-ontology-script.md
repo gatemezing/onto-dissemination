@@ -12,8 +12,8 @@
 This is a **working script**, not a finished slide deck. Use it to:
 
 1. Brief booth staff so everyone tells the same story, in the same order, with the same examples.
-2. Draft the poster / roll-up / one-pager copy (Section 9 gives you the checklist).
-3. Rehearse against the audience-satisfaction review in Section 7 before printing anything.
+2. Draft the poster / roll-up / one-pager copy (Section 10 gives you the checklist).
+3. Rehearse against the audience-satisfaction review in Section 8 before printing anything.
 
 Anything in `[brackets]` is a placeholder to fill in with your booth number, QR code, or contact details closer to the event.
 
@@ -128,7 +128,39 @@ With that caveat, here are 5 stories that best "showcase interoperability using 
 
 ---
 
-## 6. Anticipated questions (FAQ)
+## 6. The "follow your nose" demo — ERA graph browser (bubble visualization)
+
+**⚠️ Access note:** `graph.data.era.europa.eu` could not be fetched from this session either — it's blocked by the same network egress policy as `data-interop.era.europa.eu` and `rinf.data.era.europa.eu` (a consistent pattern: this session cannot reach any `*.era.europa.eu` subdomain, not just one page). Everything below about *what the tool visually shows* for this specific example is illustrative, built from the general ERA `OperationalPoint` class structure and the tool's documented purpose, and **must be replaced with a real screenshot/click-through once someone with access confirms it.**
+
+### The concept, in plain language
+
+"Follow your nose" is one of the founding principles of Linked Data, first articulated by Tim Berners-Lee: give someone a URI, and looking it up should return not just data about that one thing, but **links to other URIs** — so a person (or a machine) can discover related information simply by clicking through, the same way you'd click from one Wikipedia article to another, without ever needing a pre-built map of "everything that connects to everything." ([W3C Design Issues: Linked Data](https://www.w3.org/DesignIssues/LinkedData.html))
+
+The ERA graph browser at `graph.data.era.europa.eu/graphs-visualizations` is a literal, visual implementation of that idea for railway data: give it any ERA ontology URI, and it draws a **bubble graph** — the resource you asked about sits in the centre, and every RDF fact about it (its properties, and every other resource it links to) appears as a connected bubble around it. Click any linked bubble, and the browser re-centres on *that* resource, revealing its own links in turn. No query language, no integration code — just clicking.
+
+### Worked example: the operational point in the URL you gave
+
+`http://data.europa.eu/949/operationalPoint/a8e453be0d` is a single `era:OperationalPoint` instance — one specific station, junction, or border point in the RINF register. A booth visitor opening this URI in the graph browser would expect to see, radiating out from the central bubble, roughly:
+
+- Its **name(s)** (an OperationalPoint typically has a primary name and may carry names in more than one language/alphabet at border locations).
+- The **country** and **infrastructure manager** responsible for it.
+- Its **type/category** (e.g. station, junction, border point, technical stop).
+- Its **geographic coordinates**, letting the browser (or a linked map) place it in space.
+- The **Sections of Line** that start or end at it — clicking one of those bubbles jumps to that section, which in turn links to the *next* operational point, its permitted speed, track gauge, electrification system, and so on.
+
+*(The exact bubble labels, predicate names, and values above are illustrative — they follow the documented shape of the `OperationalPoint`/`SectionOfLine` classes, not a verified screenshot of this URI. Confirm and replace before using this in front of an audience.)*
+
+### Suggested booth script (once verified)
+
+> "Let's not talk about this abstractly — let's just click. Here's one operational point from the register [open the URI in the browser]. See the bubbles around it? Each one is a fact someone in a member state's infrastructure register entered — country, coordinates, the lines that meet here. Now watch: I click *this* line [click a Section of Line bubble] — and we've jumped, with zero integration code, to the next station down the line, in what might be a different country's data. That's 'follow your nose' — the same trick that makes clicking through Wikipedia feel effortless, except every link here is a verified railway fact, not a hyperlink someone typed by hand."
+
+### Why this belongs alongside Section 5
+
+Section 5's SPARQL queries prove interoperability *analytically* (ask a question across borders, get one answer). This bubble browser proves it *experientially* — a non-technical visitor can feel the "same data model everywhere" point by clicking, without seeing a line of query syntax. Use Section 5 for visitors who want the "how," and this browser for visitors who just want to *see* it work. On a booth screen or tablet, this is likely the single most shareable 60-second moment.
+
+---
+
+## 7. Anticipated questions (FAQ)
 
 | Question a railway expert is likely to ask | Short answer to give at the booth |
 |---|---|
@@ -138,10 +170,11 @@ With that caveat, here are 5 stories that best "showcase interoperability using 
 | "How is this different from railML?" | The ERA ontology is aligned with railML3 and RailTopoModel rather than competing with them — it reuses their concepts as the semantic backbone for the EU's official infrastructure register. |
 | "What do I actually get if my organisation adopts it?" | Reduced one-off integration cost per partner/country, machine-checkable conformity, and infrastructure data that's reusable beyond its original purpose (e.g., by manufacturers, planners, or future AI/digital-twin tools). |
 | "Where can I see it / try it myself?" | Point to the live demo, the vocabulary browser QR code, and `[GitLab/GitHub repository link placeholder]` for anyone technical who wants to inspect it directly. |
+| "This all sounds abstract — can I actually see how one piece of data connects to another?" | Yes — open the ERA graph browser (`graph.data.era.europa.eu`), paste in any ERA URI, and click through the bubbles it draws. That's the Section 6 demo: no query language needed, just clicking from one linked fact to the next. |
 
 ---
 
-## 7. Audience-satisfaction review (self-review pass)
+## 8. Audience-satisfaction review (self-review pass)
 
 Before this script is used live, it was reviewed against a **railway-expert persona** (infrastructure engineer / planner, technically strong but not a semantic-web specialist) to check it lands with the intended audience rather than a knowledge-engineering audience. Findings and the revisions already folded into Sections 2–4 above:
 
@@ -150,16 +183,16 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 | **Opens with relevance, not definitions** | v1 opened with "an ontology is a formal specification of concepts..." — too abstract, loses a booth visitor in the first sentence. | Rewritten to open with the cross-border data-mismatch pain point before naming the concept (Section 3, "Opening"). | High |
 | **Jargon level** | v1 led with RDF/OWL/SPARQL terminology up front. | Technical vocabulary (RDF, OWL, SPARQL, dereferenceable URI) moved to secondary sentences or footnotes, always after a plain-language analogy has landed first. | High |
 | **Analogy fits the audience's world** | Generic analogies ("like a shared library catalogue") tested poorly — librarians resonate, engineers don't. | Replaced with an ETCS/signalling-rulebook analogy, since it maps a familiar interoperability concept (shared meaning across systems) onto the new one. | High |
-| **Concreteness** | v1 stayed abstract about "combining data across systems." | Added a specific, checkable example: cross-border query for ETCS Level 2 lines between two named countries, and named URI examples (`.../Track`, `.../OperationalPoint`). Section 5 now adds 5 fuller demo-ready queries. | Medium–High — Section 5's queries are reconstructed from a secondary source, not the live "Data stories" page (blocked in this session); needs verification against the real endpoint before the event (see Section 8). |
+| **Concreteness** | v1 stayed abstract about "combining data across systems." | Added a specific, checkable example: cross-border query for ETCS Level 2 lines between two named countries, and named URI examples (`.../Track`, `.../OperationalPoint`). Section 5 now adds 5 fuller demo-ready queries, and Section 6 adds a click-through visual demo. | Medium–High — Section 5's queries and Section 6's bubble-view walkthrough are both reconstructed from secondary sources, not the live ERA site (blocked in this session); need verification against the real endpoint/tool before the event (see Section 9). |
 | **Length for a trade-fair booth** | v1 was a single ~6-minute block — too long for someone standing at a booth. | Split into a 30-second hook, a 3-minute booth version, and a separate 7–8 minute workshop version, so staff can match length to visitor engagement. | High |
 | **Clear "so what" for the visitor's own job** | v1 ended on a mission-style statement about "European interoperability" with no visitor-specific payoff. | Added role-specific payoffs (infrastructure manager vs. manufacturer) before the call to action (Section 3, "Why it matters to you"). | High |
 | **Actionable close** | v1 had no explicit next step. | Added a concrete call to action (live demo, QR code, contact) at the end of every format. | High — pending real booth number / QR code / contact being filled in. |
 
-**Overall assessment:** the script now leads with the visitor's problem, uses a railway-native analogy, defers jargon, and closes with a specific action — the profile most likely to satisfy a non-specialist railway-expert audience at a trade fair. The remaining open risk is factual/legal precision (see Section 8) rather than framing or tone.
+**Overall assessment:** the script now leads with the visitor's problem, uses a railway-native analogy, defers jargon, and closes with a specific action — the profile most likely to satisfy a non-specialist railway-expert audience at a trade fair. The remaining open risk is factual/legal precision (see Section 9) rather than framing or tone.
 
 ---
 
-## 8. Before this goes into production — checklist
+## 9. Before this goes into production — checklist
 
 - [ ] Confirm current ERA vocabulary/ontology **version number** and **legal status wording** directly with ERA's Interoperable Data Programme team before printing any material (versions and legal framing can change between now and September 2026).
 - [ ] Confirm and rehearse a **real, working SPARQL query** against the live RINF knowledge graph endpoint for the booth demo (don't rely on this script's example query without testing it).
@@ -167,12 +200,13 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 - [ ] Confirm the exact GitLab/GitHub repository link to share with technical visitors (e.g., the ERA Ontology group repository).
 - [ ] Have a compliance-aware colleague sign off on the FAQ answer to "Is this mandatory?" — this is the question most likely to be pressed on by regulators/NSAs.
 - [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `data-interop.era.europa.eu` → Data stories (this session's network egress policy blocked that domain, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
-- [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 7 with real feedback once available.
+- [ ] Open `graph.data.era.europa.eu/graphs-visualizations?uri=http://data.europa.eu/949/operationalPoint/a8e453be0d` directly, take a real screenshot/screen-recording of the bubble view, and correct the labels/predicates/click-path described in Section 6 (also blocked in this session).
+- [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 8 with real feedback once available.
 - [ ] Translate the elevator pitch (Section 2) into German for the Berlin venue, if booth staff will engage German-speaking visitors directly.
 
 ---
 
-## 9. From this script to dissemination materials — production checklist
+## 10. From this script to dissemination materials — production checklist
 
 Use each script section as the source text for a specific deliverable:
 
@@ -183,11 +217,11 @@ Use each script section as the source text for a specific deliverable:
 | Booth staff briefing sheet | Sections 2, 3, 5, 6 | Print full booth talk + FAQ for rehearsal; the satisfaction review explains *why* the script is phrased this way, useful for staff who improvise. |
 | Workshop / side-event slide deck | Section 4 | One slide per bullet block; keep the live-demo moment on its own slide with nothing else on it. |
 | Social media teaser (LinkedIn/X) | Section 2 | Trim the elevator pitch to ~280 characters, keep the question-opening hook, link to the vocabulary browser. |
-| Live demo script | Section 4, Slide 5 + Section 5 (query catalogue) + Section 8 checklist | Must be tested against the real SPARQL endpoint before the event — do not present an untested query live. |
+| Live demo script | Section 4, Slide 5 + Section 5 (query catalogue) + Section 6 (bubble browser walkthrough) + Section 9 checklist | Must be tested against the real SPARQL endpoint and graph browser before the event — do not present an untested query or click-path live. |
 
 ---
 
-## 10. Glossary (plain language, for booth staff who need a quick refresher)
+## 11. Glossary (plain language, for booth staff who need a quick refresher)
 
 - **Ontology** — a machine-readable definition of the concepts in a domain (e.g., "Track," "Operational Point") and how they relate, so different systems interpret the same data the same way.
 - **ERA vocabulary / ERA ontology** — the EU Agency for Railways' ontology for railway infrastructure and rolling stock data, published at `data.europa.eu/949`.
@@ -200,7 +234,7 @@ Use each script section as the source text for a specific deliverable:
 
 ---
 
-## 11. Sources used to fact-check this script
+## 12. Sources used to fact-check this script
 
 - ERA Vocabulary (ERA Ontology) — [Interoperable Europe Portal](https://interoperable-europe.ec.europa.eu/collection/semic-support-centre/solution/era-vocabulary-era-ontology)
 - ERA Knowledge Graph — [European Union Agency for Railways](https://www.era.europa.eu/domains/registers/era-knowlege-graph_en)
@@ -210,5 +244,7 @@ Use each script section as the source text for a specific deliverable:
 - "Leveraging semantic technologies for digital interoperability in the European Railway domain" (ISWC 2021 In-Use) — [julianrojas.org](https://julianrojas.org/papers/iswc2021-in-use/)
 - InnoTrans 2026 dates and venue — [InnoTrans official site](https://www.innotrans.de/en) (22–25 September 2026, Berlin ExpoCenter City)
 - Section 5 query catalogue reconstructed from — [GitHub: VladimirAlexiev/RailDataForum2025-SPARQL](https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL) (Rail Data Forum 2025 SPARQL tutorial against `data-interop.era.europa.eu`, ERA ontology v3.0.1). **`data-interop.era.europa.eu` itself was not reachable from this session (blocked by network egress policy) — its actual "Data stories" section must be checked directly before the event.**
+- "Follow your nose" Linked Data principle — [W3C Design Issues: Linked Data, Tim Berners-Lee](https://www.w3.org/DesignIssues/LinkedData.html)
+- ERA graph browser (bubble visualization tool) — `graph.data.era.europa.eu/graphs-visualizations`. **Not reachable from this session (blocked by network egress policy, same as the other `*.era.europa.eu` subdomains) — Section 6's description of the tool's output is illustrative and must be verified against a live screenshot before the event.**
 
-**All version numbers, legal-status wording, endpoint URLs, and the Section 5 "Top 5" data stories above should be re-verified close to the event date (see Section 8) — ontology versions, legal framing, and the site's featured stories can change.**
+**All version numbers, legal-status wording, endpoint URLs, the Section 5 "Top 5" data stories, and the Section 6 bubble-view walkthrough above should be re-verified close to the event date (see Section 9) — ontology versions, legal framing, and the site's content can change.**
