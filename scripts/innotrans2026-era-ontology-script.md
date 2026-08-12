@@ -130,7 +130,7 @@ With that caveat, here are 5 stories that best "showcase interoperability using 
 
 ## 6. The "follow your nose" demo — ERA graph browser (bubble visualization)
 
-**⚠️ Access note:** `graph.data.era.europa.eu` could not be fetched from this session either — it's blocked by the same network egress policy as `data-interop.era.europa.eu` and `rinf.data.era.europa.eu` (a consistent pattern: this session cannot reach any `*.era.europa.eu` subdomain, not just one page). Everything below about *what the tool visually shows* for this specific example is illustrative, built from the general ERA `OperationalPoint` class structure and the tool's documented purpose, and **must be replaced with a real screenshot/click-through once someone with access confirms it.**
+**✅ Verified against a real screenshot (hop 1 of the click-through).** `graph.data.era.europa.eu` is still blocked from this session's own network access (same policy as the other `*.era.europa.eu` subdomains), so this section can't be independently re-browsed — but the user supplied a screenshot of the live bubble view for the example URI, so the content below for **this first hop** is confirmed, not illustrative. Several bubble labels are cut off on a phone-width screen (`...`) — those are marked below and should be read in full on a wider screen before the event; and this is only the *first* hop of a click-through, so the "next hop" content later in this section is still illustrative until a follow-up screenshot confirms it.
 
 ### The concept, in plain language
 
@@ -138,21 +138,31 @@ With that caveat, here are 5 stories that best "showcase interoperability using 
 
 The ERA graph browser at `graph.data.era.europa.eu/graphs-visualizations` is a literal, visual implementation of that idea for railway data: give it any ERA ontology URI, and it draws a **bubble graph** — the resource you asked about sits in the centre, and every RDF fact about it (its properties, and every other resource it links to) appears as a connected bubble around it. Click any linked bubble, and the browser re-centres on *that* resource, revealing its own links in turn. No query language, no integration code — just clicking.
 
-### Worked example: the operational point in the URL you gave
+### Worked example: the operational point in the URL you gave (confirmed, hop 1)
 
-`http://data.europa.eu/949/operationalPoint/a8e453be0d` is a single `era:OperationalPoint` instance — one specific station, junction, or border point in the RINF register. A booth visitor opening this URI in the graph browser would expect to see, radiating out from the central bubble, roughly:
+`http://data.europa.eu/949/operationalPoint/a8e453be0d` resolves to **"Brussels Airport – Zaventem"** — the `era:OperationalPoint` for Brussels Airport station in Belgium. The live bubble view shows, radiating out from the central "Brussels Airport – Zav…" node:
 
-- Its **name(s)** (an OperationalPoint typically has a primary name and may carry names in more than one language/alphabet at border locations).
-- The **country** and **infrastructure manager** responsible for it.
-- Its **type/category** (e.g. station, junction, border point, technical stop).
-- Its **geographic coordinates**, letting the browser (or a linked map) place it in space.
-- The **Sections of Line** that start or end at it — clicking one of those bubbles jumps to that section, which in turn links to the *next* operational point, its permitted speed, track gauge, electrification system, and so on.
+| Bubble (as shown) | Edge label from the centre | What it is |
+|---|---|---|
+| `BEFBNL` | Canonical URI | The stable, canonical identifier for this operational point (survives across versioned/temporal updates — the same mechanism Section 5, Story 4 describes). |
+| `BE00219` | Primary location | A national/reference location code for the point. |
+| Operational Point | type | Confirms the resource's own class. |
+| Infrastructure element | type | The broader class `OperationalPoint` is a subclass of — both are asserted as RDF types. |
+| `station` | Type of operational point | The operational-point category (as opposed to e.g. a junction or border point). |
+| Belgium | in country | The member state responsible for this record. |
+| Validity period from 20… | validity | The time window this version of the record is valid for (truncated in the screenshot — confirm exact date on a full screen). |
+| Railway location of OP… | net reference | Links to the point's location on the rail network model. |
+| Section of Line Brusse… | Operational point at **start** of section of line | The section of line that begins here — **this is the "next hop" to click for the cross-border/cross-station story.** |
+| Section of Line Y.Luch… | Operational point at **end** of section of line | The section of line that ends here, coming from the other direction. |
+| 3× "…Nat. Luchthav…" bubbles | is part of / has part (reciprocal pairs) | Likely alternate-language name variants or related sub-records (e.g. Dutch "Brussel Nationaal Luchthaven") — text is truncated in the screenshot; confirm the full labels before using this specific detail in the script. |
 
-*(The exact bubble labels, predicate names, and values above are illustrative — they follow the documented shape of the `OperationalPoint`/`SectionOfLine` classes, not a verified screenshot of this URI. Confirm and replace before using this in front of an audience.)*
+This is a strong real example precisely because it's an airport station: every railway expert immediately understands "Brussels Airport," which makes the abstraction land fast before the demo clicks deeper into the graph.
 
-### Suggested booth script (once verified)
+### Suggested booth script (hop 1 confirmed; hop 2 to be confirmed with a follow-up screenshot)
 
-> "Let's not talk about this abstractly — let's just click. Here's one operational point from the register [open the URI in the browser]. See the bubbles around it? Each one is a fact someone in a member state's infrastructure register entered — country, coordinates, the lines that meet here. Now watch: I click *this* line [click a Section of Line bubble] — and we've jumped, with zero integration code, to the next station down the line, in what might be a different country's data. That's 'follow your nose' — the same trick that makes clicking through Wikipedia feel effortless, except every link here is a verified railway fact, not a hyperlink someone typed by hand."
+> "Let's not talk about this abstractly — let's just click. Here's Brussels Airport station in the register [open the URI in the browser]. See the bubbles around it? Each one is a fact Belgium's infrastructure manager entered — its country, its canonical ID `BEFBNL`, the fact it's a station. Now watch: I click *this* bubble, 'Section of Line' [click the 'Operational point at start of section of line' bubble] — and we jump, with zero integration code, to the section of track leaving this station, which itself points to the *next* station down the line. That's 'follow your nose' — the same trick that makes clicking through Wikipedia effortless, except every link here is a verified railway fact, maintained by the responsible infrastructure manager, not a hyperlink someone typed by hand."
+
+*(Once a screenshot of clicking through to the Section of Line bubble is available, this section should be extended with the confirmed hop 2 — ideally landing on an operational point in a different country to make the cross-border point land even harder.)*
 
 ### Why this belongs alongside Section 5
 
@@ -200,7 +210,7 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 - [ ] Confirm the exact GitLab/GitHub repository link to share with technical visitors (e.g., the ERA Ontology group repository).
 - [ ] Have a compliance-aware colleague sign off on the FAQ answer to "Is this mandatory?" — this is the question most likely to be pressed on by regulators/NSAs.
 - [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `data-interop.era.europa.eu` → Data stories (this session's network egress policy blocked that domain, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
-- [ ] Open `graph.data.era.europa.eu/graphs-visualizations?uri=http://data.europa.eu/949/operationalPoint/a8e453be0d` directly, take a real screenshot/screen-recording of the bubble view, and correct the labels/predicates/click-path described in Section 6 (also blocked in this session).
+- [ ] Hop 1 of the Section 6 bubble view (Brussels Airport – Zaventem, `BEFBNL`) is confirmed from a screenshot. Still needed: (a) the full, untruncated text of the "Validity period from 20…" and "…Nat. Luchthav…" bubbles on a wider screen, and (b) a screenshot of clicking through to hop 2 (ideally landing on a station in a different country) to complete the cross-border click-through script.
 - [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 8 with real feedback once available.
 - [ ] Translate the elevator pitch (Section 2) into German for the Berlin venue, if booth staff will engage German-speaking visitors directly.
 
@@ -245,6 +255,6 @@ Use each script section as the source text for a specific deliverable:
 - InnoTrans 2026 dates and venue — [InnoTrans official site](https://www.innotrans.de/en) (22–25 September 2026, Berlin ExpoCenter City)
 - Section 5 query catalogue reconstructed from — [GitHub: VladimirAlexiev/RailDataForum2025-SPARQL](https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL) (Rail Data Forum 2025 SPARQL tutorial against `data-interop.era.europa.eu`, ERA ontology v3.0.1). **`data-interop.era.europa.eu` itself was not reachable from this session (blocked by network egress policy) — its actual "Data stories" section must be checked directly before the event.**
 - "Follow your nose" Linked Data principle — [W3C Design Issues: Linked Data, Tim Berners-Lee](https://www.w3.org/DesignIssues/LinkedData.html)
-- ERA graph browser (bubble visualization tool) — `graph.data.era.europa.eu/graphs-visualizations`. **Not reachable from this session (blocked by network egress policy, same as the other `*.era.europa.eu` subdomains) — Section 6's description of the tool's output is illustrative and must be verified against a live screenshot before the event.**
+- ERA graph browser (bubble visualization tool) — `graph.data.era.europa.eu/graphs-visualizations`. Not reachable from this session's own network access (blocked by network egress policy, same as the other `*.era.europa.eu` subdomains). **Hop 1 of Section 6's worked example (Brussels Airport – Zaventem / `BEFBNL`) is confirmed from a user-supplied screenshot; hop 2 onward is still illustrative pending a follow-up screenshot.**
 
 **All version numbers, legal-status wording, endpoint URLs, the Section 5 "Top 5" data stories, and the Section 6 bubble-view walkthrough above should be re-verified close to the event date (see Section 9) — ontology versions, legal framing, and the site's content can change.**
