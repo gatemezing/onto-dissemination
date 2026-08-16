@@ -228,31 +228,45 @@ const NODES = {
   },
   trackOB2: {
     uri: 'https://data.banenor.no/data/_track_3992b0b1-1228-4033-b71e-4d64f9721182',
-    label: 'ØB2', cls: 'era:Track (secondaryTrack)', swatch: 'lgreen',
+    label: 'ØB2', cls: 'era:Track (era:RunningTrack, secondaryTrack)', swatch: 'lgreen',
     edges: [
       {pred:'type', dir:'out', target:'classTrack'},
+      {pred:'type', dir:'out', target:'classRunningTrack'},
+      {pred:'type', dir:'out', target:'classInfrastructureElement'},
       {pred:'Track ID', dir:'out', target:'litTrackIdKOSPO'},
       {pred:'Track direction', dir:'out', target:'trackDirB'},
       {pred:'Maximum permitted speed', dir:'out', target:'litMaxSpeed40'},
       {pred:'Contact line system', dir:'out', target:'litContactLineNotElectrified'},
       {pred:'has track type', dir:'out', target:'litTrackType3'},
+      {pred:'validity', dir:'out', target:'validityInterval2019'},
+      {pred:'net reference', dir:'out', target:'litTrackNetRef'},
+      {pred:'Not applicable', dir:'out', target:'litNotApplicableEtcs'},
+      {pred:'Not applicable', dir:'out', target:'litNotApplicableTentNetworkLevel'},
+      {pred:'not yet available', dir:'out', target:'litNotYetAvailableTrainDetection'},
       {pred:'infrastructure manager', dir:'out', target:'imRoleHub'},
       {pred:'in country', dir:'out', target:'countryNorway'},
       {pred:'is part of', dir:'out', target:'opOsloS'},
       {pred:'refers to infrastructure manager (railML)', dir:'out', target:'baneNorRailml'},
-    ]
+    ],
+    note:'Fixed 2026-08-17: this node originally omitted validity, net reference, and the real "Not applicable"/"not yet available" fields, caught by comparing it directly against graph.data.era.europa.eu\'s own view of this exact URI — now matches, reviving the honest-gap pattern (Not applicable / Not provided) the original Brussels Airport dataset used for the same TSI-style fields.'
   },
   primaryLocationNO00100: {
     uri: 'https://data.banenor.no/data/_primaryLocation_NO00100',
     label: 'Oslo S (primary location)', cls: 'era:PrimaryLocation', swatch: 'purple',
     edges: [
       {pred:'type', dir:'out', target:'classPrimaryLocation'},
+      {pred:'type', dir:'out', target:'classInfrastructureElement'},
+      {pred:'type', dir:'out', target:'classFeature'},
       {pred:'primary location code', dir:'out', target:'litNO00100'},
       {pred:'primary location name', dir:'out', target:'litOsloSName'},
       {pred:'validity', dir:'out', target:'validityInterval2023'},
       {pred:'in country', dir:'out', target:'countryNorway'},
       {pred:'infrastructure manager', dir:'out', target:'imRoleHub'},
-    ]
+      {pred:'net reference', dir:'out', target:'litPrimaryLocNetRef1'},
+      {pred:'net reference', dir:'out', target:'litPrimaryLocNetRef2'},
+      {pred:'primary location', dir:'in', target:'opOsloS'},
+    ],
+    note:'Fixed 2026-08-17: this node was originally missing its era:netReference links entirely (24 real values exist — 2 representative ones shown here) plus two of its four rdf:type values, caught by comparing it directly against graph.data.era.europa.eu\'s own view of this exact URI.'
   },
   opTypeStation: {
     uri: 'http://data.europa.eu/949/concepts/op-types/10',
@@ -270,12 +284,14 @@ const NODES = {
     label: 'Validity from 2023-09-17 (no end known)', cls: 'era:TemporalFeature / time:Interval', swatch: 'center',
     edges: [
       {pred:'type', dir:'out', target:'classTemporalFeature'},
+      {pred:'type', dir:'out', target:'classTemporalEntity'},
       {pred:'type', dir:'out', target:'classTimeInterval'},
       {pred:'has beginning', dir:'out', target:'timeinstant2023'},
       {pred:'validity', dir:'in', target:'opOsloS'},
       {pred:'validity', dir:'in', target:'primaryLocationNO00100'},
+      {pred:'validity', dir:'in', target:'trackViaValidityHub'},
     ],
-    note:'A real reuse hub: this exact validity-interval URI is pointed to by both Oslo S and its primary-location resource — the same "shared node" pattern the original Brussels Airport demo highlighted.'
+    note:'A real reuse hub, bigger than first shown: querying this exact URI directly returns 23 real incoming `validity` links (Oslo S, its primary location, several of its own tracks, and multiple lower-level netElement/netRelation resources) — only 3 representative ones are individually modelled here, not the full set. Same "shared node" pattern the original Brussels Airport demo highlighted, confirmed at real scale.'
   },
   timeinstant2023: {
     uri: 'https://data.banenor.no/data/_timeinstant_2023-09-17',
@@ -378,6 +394,13 @@ const NODES = {
       {pred:'subClassOf', dir:'out', target:'classInfrastructureElement'},
     ]
   },
+  classRunningTrack:{
+    uri:'http://data.europa.eu/949/RunningTrack', label:'Running track',cls:'owl:Class (era:)',swatch:'pink',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentRunningTrack'},
+      {pred:'subClassOf', dir:'out', target:'classTrack'},
+    ]
+  },
   classPrimaryLocation:{
     uri:'http://data.europa.eu/949/PrimaryLocation', label:'Primary Location',cls:'owl:Class (era:)',swatch:'pink',
     edges:[
@@ -390,6 +413,7 @@ const NODES = {
     edges:[{pred:'comment', dir:'out', target:'litCommentFeature'}]
   },
   classSkosConcept:{label:'Concept',cls:'rdfs:Class (skos:)',swatch:'pink',edges:[]},
+  classTemporalEntity:{label:'Temporal entity',cls:'rdfs:Class (W3C Time Ontology, time:TemporalEntity)',swatch:'orange',edges:[]},
   classTemporalFeature:{
     uri:'http://data.europa.eu/949/TemporalFeature', label:'Temporal Feature',cls:'owl:Class (era:)',swatch:'orange',
     edges:[{pred:'comment', dir:'out', target:'litCommentTemporalFeature'}]
@@ -415,13 +439,22 @@ const NODES = {
   litCommentFeature:{label:'Class that encompasses the features that are part of the physical infrastructure (class InfrastructureElement) and the topological objects (class TopologicalObject). It is a subclass of the geographical Feature class that has a spatial representation.',cls:'rdfs:comment (era:Feature)',swatch:'grey',edges:[]},
   litCommentTemporalFeature:{label:'The union of TemporalDuration that represents a time extent and TemporalEntity that represents a temporal interval or instant.',cls:'rdfs:comment (era:TemporalFeature)',swatch:'grey',edges:[]},
   litCommentOrganisationRole:{label:'Represents an n-ary relationship between a Body and a role',cls:'rdfs:comment (era:OrganisationRole)',swatch:'grey',edges:[]},
+  litCommentRunningTrack:{label:'A running track means any track used for train service movements; passing loops and meeting loops on plain line or track connections only required for train operation are not published',cls:'rdfs:comment (era:RunningTrack)',swatch:'grey',edges:[]},
   litCommentBody:{label:'Is an organisation or a physical person',cls:'rdfs:comment (era:Body)',swatch:'grey',edges:[]},
   litUopidNOOSL:{label:'NOOSL',cls:'unique operational-point ID (era:uopid)',swatch:'blue',edges:[]},
   countryNorway:{label:'Norway',cls:'era:Country',swatch:'orange',edges:[]},
   trackLeafOther:{uri:'https://data.banenor.no/data/_track_d3fca422-8aa9-4a31-b699-613949a864f6',label:'Track (unexplored)',cls:'era:Track (leaf — 1 of 482 hasPart tracks; not individually explored)',swatch:'lgreen',edges:[]},
   litSchematicUrl:{label:'banenor.no/…/Oslo S (schematic overview)',cls:'external documentation URL (era:schematicOverviewOP)',swatch:'grey',edges:[]},
   litTrackIdKOSPO:{label:'KO-SPO-003462',cls:'track ID (era:trackId)',swatch:'blue',edges:[]},
-  trackDirB:{label:'B',cls:'skos:Concept — running direction "B": both directions defined by the Section of Line',swatch:'teal',edges:[]},
+  trackDirB:{
+    uri:'http://data.europa.eu/949/concepts/track-running-directions/30', label:'B', cls:'skos:Concept (ERA Track Running Directions)', swatch:'teal',
+    edges:[
+      {pred:'type', dir:'out', target:'classSkosConcept'},
+      {pred:'definition', dir:'out', target:'litTrackDirBDefinition'},
+      {pred:'notation', dir:'out', target:'litTrackDirBNotation'},
+      {pred:'inScheme', dir:'out', target:'litTrackDirSchemeRef'},
+    ]
+  },
   litMaxSpeed40:{label:'40',cls:'maximum permitted speed, km/h (era:maximumPermittedSpeed)',swatch:'green',edges:[]},
   litContactLineNotElectrified:{label:'not_electrified',cls:'contact line system (reference URI — not independently dereferenced in this curation)',swatch:'grey',edges:[]},
   litTrackType3:{label:'3',cls:'track type code (bno:hasTrackType)',swatch:'green',edges:[]},
@@ -431,7 +464,16 @@ const NODES = {
   litStationDefinition:{label:'large or major railway node with several functions, important for international traffic, basic for national railway system',cls:'skos:definition (from the ERA-Onto repository)',swatch:'grey',edges:[]},
   lit10:{label:'10',cls:'skos:notation',swatch:'green',edges:[]},
   lit20230917:{label:'2023-09-17',cls:'xsd:date (time:inXSDDate)',swatch:'blue',edges:[]},
-  litRoleIM:{label:'IM',cls:'organisation-role concept (era:concepts/organisation-roles/IM — Infrastructure Manager)',swatch:'orange',edges:[]},
+  litRoleIM:{
+    uri:'http://data.europa.eu/949/concepts/organisation-roles/IM', label:'Infrastructure Manager (IM)', cls:'skos:Concept (ERA Organisation Roles)', swatch:'orange',
+    edges:[
+      {pred:'type', dir:'out', target:'classSkosConcept'},
+      {pred:'definition', dir:'out', target:'litRoleIMDefinition'},
+      {pred:'notation', dir:'out', target:'litRoleIMNotation'},
+      {pred:'source', dir:'out', target:'litRoleIMSource'},
+    ],
+    note:'Fetched from the ERA SKOS named graph (GRAPH <http://data.europa.eu/949/graph/rinf/skos>) — the same graph that defines all ~14,700 ERA controlled-vocabulary concepts, including "station" (opTypeStation) and this track\'s running-direction concept elsewhere in this demo.'
+  },
   lit0076:{label:'0076',cls:'organisation code (era:organisationCode)',swatch:'blue',edges:[]},
   litBaneNorDescription:{label:'The Norwegian government agency responsible for the national railway infrastructure.',cls:'dcterms:description (bno:_im01)',swatch:'grey',edges:[]},
   litTrueBoolean:{label:'true',cls:'xsd:boolean (bno:isInfrastructureManager)',swatch:'green',edges:[]},
@@ -442,6 +484,23 @@ const NODES = {
   litProvenanceUrl:{label:'orv.banenor.no/…/stedskoder (provenance)',cls:'external documentation URL (prov:wasDerivedFrom)',swatch:'grey',edges:[]},
   litPassenger:{label:'passenger',cls:'traffic type (railml3:hasTrafficType)',swatch:'orange',edges:[]},
   litStationOpType:{label:'station',cls:'operational type (railml3:hasOperationalType)',swatch:'orange',edges:[]},
+
+  /* ---- added 2026-08-17: fields caught missing by direct comparison against
+     graph.data.era.europa.eu's own view of trackOB2 and primaryLocationNO00100 ---- */
+  validityInterval2019:{uri:'https://data.banenor.no/data/_validity_interval__timeinstant_2019-01-01_no_end_known',label:'Validity from 2019-01-01 (no end known)',cls:'era:TemporalFeature (leaf — a distinct, older validity record from the track itself, not individually explored)',swatch:'lav',edges:[]},
+  litTrackNetRef:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182',label:'linear location (unexplored)',cls:'era:netReference target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  litNotApplicableEtcs:{label:'Not applicable',cls:'era:notApplicable → era:etcs (TSI field defined, does not apply to this track)',swatch:'grey',edges:[]},
+  litNotApplicableTentNetworkLevel:{label:'Not applicable',cls:'era:notApplicable → era:tentNetworkLevel (TSI field defined, does not apply to this track)',swatch:'grey',edges:[]},
+  litNotYetAvailableTrainDetection:{label:'Not yet available',cls:'era:notYetAvailable → era:trainDetectionSystem (TSI field defined, value not yet published)',swatch:'grey',edges:[]},
+  litPrimaryLocNetRef1:{uri:'https://data.banenor.no/data/_arealocation_c0576848-8f76-4489-aa6e-ae95b98c1a1c',label:'area location (unexplored)',cls:'era:netReference target (leaf — 1 of 24; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  litPrimaryLocNetRef2:{uri:'https://data.banenor.no/data/_spotlocation_308f0e34-0e5f-42c1-a1a9-74e0a03fabda_0.11322439_0.04987069_direction_both',label:'spot location (unexplored)',cls:'era:netReference target (leaf — 1 of 24; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  trackViaValidityHub:{uri:'https://data.banenor.no/data/_track_9f1c4062-1557-44eb-b90b-783b56e9f27c',label:'Track (unexplored, via validity hub)',cls:'era:Track (leaf — reached only via the shared validity-interval reuse hub, not individually explored)',swatch:'lgreen',edges:[]},
+  litTrackDirBDefinition:{label:'The normal running direction is both directions defined by the Section of Line.',cls:'skos:definition (era:concepts/track-running-directions/30)',swatch:'grey',edges:[]},
+  litTrackDirBNotation:{label:'B',cls:'skos:notation',swatch:'green',edges:[]},
+  litTrackDirSchemeRef:{label:'TrackRunningDirections',cls:'skos:ConceptScheme (leaf — the scheme this concept belongs to)',swatch:'grey',edges:[]},
+  litRoleIMDefinition:{label:'A body or firm responsible for the operation, maintenance and renewal of railway infrastructure on a network, as well as responsible for participating in its development as determined by the Member State within the framework of its general policy on development and financing of infrastructure',cls:'skos:definition (era:concepts/organisation-roles/IM)',swatch:'grey',edges:[]},
+  litRoleIMNotation:{label:'IM',cls:'skos:notation',swatch:'green',edges:[]},
+  litRoleIMSource:{label:'eli/dir/2012/34 (EU Directive 2012/34, the Single European Railway Area directive)',cls:'dcterms:source — external legal citation URL',swatch:'grey',edges:[]},
 };
 
 const QUICK_LINKS = [
@@ -670,11 +729,23 @@ QUICK_LINKS.forEach(([id,label])=>{
    does not work from a browser: GET requests to it hang with no response,
    and while POST works over plain HTTP, its CORS policy allows only its
    own app's origin — so it rejects every other origin's preflight.)
+   Also confirmed (2026-08-17): this repository mirrors more than ERA's own
+   RINF data — querying a Bane NOR URI directly (e.g.
+   https://data.banenor.no/data/_primaryLocation_NO00100) against this same
+   endpoint returns real matching data too, though only the subset of
+   properties that map onto the shared ERA vocabulary (era:validity,
+   era:netReference, era:infrastructureManager, etc.) — Bane NOR's own
+   native railML3/bno: extension properties are not mirrored here and only
+   show up when dereferencing the resource directly from data.banenor.no.
    ========================================================================= */
 const LIVE_ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
 const LIVE_EDGE_LIMIT = 30; // keep the graph readable; real hub nodes can have far more
 const ERA_NAMESPACE = 'http://data.europa.eu/949/';
 const ERA_ONTOLOGY_GRAPH = 'http://data.europa.eu/949/graph/rinf/ontology';
+// ERA's full SKOS controlled-vocabulary system (op-types, organisation-roles,
+// track-running-directions, etc. — ~14,700 skos:Concepts across ~130
+// skos:ConceptSchemes, confirmed by direct query) lives in this named graph.
+const ERA_SKOS_GRAPH = 'http://data.europa.eu/949/graph/rinf/skos';
 
 async function sparqlSelect(query, timeoutMs){
   const url = LIVE_ENDPOINT + '?query=' + encodeURIComponent(query);
@@ -697,18 +768,24 @@ function liveLocalName(uri){
 
 async function fetchLiveTriples(uri){
   // For any resource in the ERA ontology namespace (http://data.europa.eu/949/),
-  // explicitly pull in what the ontology itself says about it — rdfs:comment,
-  // rdfs:subClassOf, owl:disjointWith, etc. — from ERA's own ontology named
-  // graph. Most useful when uri is a class (e.g. era:PrimaryLocation) reached
-  // via a 'type' edge from an instance; matches what graph.data.era.europa.eu's
-  // visual graph shows for that class URI as subject. This endpoint's default
-  // (GRAPH-less) query already includes that named graph — confirmed by direct
-  // testing, byte-identical either way — so this branch is explicit/robust
-  // rather than silently relying on that store-specific default, and
-  // SELECT DISTINCT means any resulting duplicate rows collapse before LIMIT
-  // is applied, so it can't shrink the results either.
+  // explicitly pull in what ERA's own ontology and SKOS graphs say about it —
+  // rdfs:comment / rdfs:subClassOf / owl:disjointWith from the ontology graph
+  // (most useful when uri is a class, e.g. era:PrimaryLocation, reached via a
+  // 'type' edge from an instance), and skos:prefLabel / skos:definition /
+  // skos:notation / skos:broader-narrower from the SKOS graph (most useful
+  // when uri is a controlled-vocabulary concept, e.g. one of the ~14,700
+  // concepts under era:concepts/..., reached via a value-typed property like
+  // era:opType or era:trackDirection). Together these match what
+  // graph.data.era.europa.eu's visual graph shows for that URI as subject.
+  // This endpoint's default (GRAPH-less) query already includes both named
+  // graphs — confirmed by direct testing, byte-identical either way — so
+  // these branches are explicit/robust rather than silently relying on that
+  // store-specific default, and SELECT DISTINCT means any resulting
+  // duplicate rows collapse before LIMIT is applied, so it can't shrink the
+  // results either.
   const ontologyClause = uri.startsWith(ERA_NAMESPACE)
-    ? `UNION { GRAPH <${ERA_ONTOLOGY_GRAPH}> { <${uri}> ?p ?other } BIND("out" AS ?dir) }`
+    ? `UNION { GRAPH <${ERA_ONTOLOGY_GRAPH}> { <${uri}> ?p ?other } BIND("out" AS ?dir) }
+       UNION { GRAPH <${ERA_SKOS_GRAPH}> { <${uri}> ?p ?other } BIND("out" AS ?dir) }`
     : '';
   const query = `SELECT DISTINCT ?other ?p ?dir WHERE {
     { <${uri}> ?p ?other . BIND("out" AS ?dir) }
