@@ -118,8 +118,16 @@
 
   #quickLinks{position:absolute;right:16px;bottom:16px;max-width:230px;background:var(--panel);
     border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:11.5px;z-index:45;
-    box-shadow:0 10px 30px rgba(0,0,0,.4);max-height:46vh;overflow-y:auto;}
-  #quickLinks h3{margin:0 0 8px;font-size:11.5px;color:#aebbdd;text-transform:uppercase;letter-spacing:.5px;}
+    box-shadow:0 10px 30px rgba(0,0,0,.4);max-height:46vh;overflow-y:auto;
+    transition:max-height .2s ease,padding .2s ease;}
+  #quickLinks .qlHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  #quickLinks h3{margin:0;font-size:11.5px;color:#aebbdd;text-transform:uppercase;letter-spacing:.5px;}
+  #quickLinks .qlToggle{flex:none;background:transparent;border:1px solid var(--line);color:#aebbdd;
+    border-radius:6px;padding:2px 8px;font-size:10.5px;cursor:pointer;line-height:1.5;}
+  #quickLinks .qlToggle:hover{background:rgba(255,255,255,.1);color:#fff;}
+  #quickLinks.collapsed{max-height:none;padding-bottom:12px;overflow:visible;}
+  #quickLinks.collapsed .qlHeader{margin-bottom:0;}
+  #quickLinks.collapsed #qlList{display:none;}
   #quickLinks .ql{display:block;width:100%;text-align:left;background:rgba(255,255,255,.05);border:1px solid var(--line);
     color:var(--paper);padding:6px 9px;border-radius:7px;margin-bottom:6px;cursor:pointer;font-size:12px;}
   #quickLinks .ql:hover{background:rgba(255,255,255,.12);}
@@ -174,7 +182,10 @@
       <div class="note" id="ipNote"></div>
     </div>
     <div id="quickLinks">
-      <h3>Known demo nodes</h3>
+      <div class="qlHeader">
+        <h3>Known demo nodes</h3>
+        <button class="qlToggle" id="qlToggleBtn" type="button" aria-expanded="true" aria-controls="qlList">Hide</button>
+      </div>
       <div id="qlList"></div>
     </div>
   </div>
@@ -540,7 +551,20 @@ const NODES = {
 
   /* ---- added 2026-08-17: fields caught missing by direct comparison against
      graph.data.era.europa.eu's own view of trackOB2 and primaryLocationNO00100 ---- */
-  validityInterval2019:{uri:'https://data.banenor.no/data/_validity_interval__timeinstant_2019-01-01_no_end_known',label:'Validity from 2019-01-01 (no end known)',cls:'era:TemporalFeature (leaf — a distinct, older validity record from the track itself, not individually explored)',swatch:'lav',edges:[]},
+  validityInterval2019:{
+    uri:'https://data.banenor.no/data/_validity_interval__timeinstant_2019-01-01_no_end_known',
+    label:'Validity from 2019-01-01 (no end known)', cls:'era:TemporalFeature / time:Interval', swatch:'lav',
+    edges:[
+      {pred:'type', dir:'out', target:'classTemporalFeature'},
+      {pred:'type', dir:'out', target:'classTemporalEntity'},
+      {pred:'type', dir:'out', target:'classTimeInterval'},
+      {pred:'has beginning', dir:'out', target:'timeinstant2019'},
+      {pred:'validity', dir:'in', target:'trackOB2'},
+      {pred:'validity', dir:'in', target:'linearElementNetElement'},
+      {pred:'validity', dir:'in', target:'overcrossingLeaf'},
+    ],
+    note:'Dereferenced 2026-08-17 — an even bigger reuse hub than the 2023 interval: 21,860 real incoming validity links exist (mostly "overcrossing" — level-crossing/bridge — resources across the whole network); only 3 representative ones are shown here.'
+  },
   litNotApplicableEtcs:{label:'Not applicable',cls:'era:notApplicable → era:etcs (TSI field defined, does not apply to this track)',swatch:'grey',edges:[]},
   litNotApplicableTentNetworkLevel:{label:'Not applicable',cls:'era:notApplicable → era:tentNetworkLevel (TSI field defined, does not apply to this track)',swatch:'grey',edges:[]},
   litNotYetAvailableTrainDetection:{label:'Not yet available',cls:'era:notYetAvailable → era:trainDetectionSystem (TSI field defined, value not yet published)',swatch:'grey',edges:[]},
@@ -575,7 +599,7 @@ const NODES = {
     edges:[
       {pred:'type', dir:'out', target:'classNetLinearReference'},
       {pred:'starts at', dir:'out', target:'netPointRefStartpoint'},
-      {pred:'ends at', dir:'out', target:'netRefEndpointLeaf'},
+      {pred:'ends at', dir:'out', target:'netPointRefEndpoint'},
       {pred:'has sequence', dir:'out', target:'netRefSequenceLeaf'},
     ]
   },
@@ -584,7 +608,7 @@ const NODES = {
     label:'Start point (Track ØB2 linear location)', cls:'era:NetPointReference', swatch:'purple',
     edges:[
       {pred:'type', dir:'out', target:'classNetPointReference'},
-      {pred:'has LRS coordinate', dir:'out', target:'litLrsCoordinateLeaf'},
+      {pred:'has LRS coordinate', dir:'out', target:'lrsCoordStartpoint'},
       {pred:'has topo coordinate', dir:'out', target:'topoCoordStartpoint'},
     ]
   },
@@ -616,10 +640,61 @@ const NODES = {
   netElementIncludesLeaf1:{uri:'https://data.banenor.no/data/_associatednetelement_0094c625-e878-43ba-a905-1a55641400c2_0.0_0.0_1.0_',label:'Associated net element (unexplored)',cls:'era:includes target (leaf — 1 of 483; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
   netElementIncludesLeaf2:{uri:'https://data.banenor.no/data/_associatednetelement_010bb6c8-0173-4e0a-88fd-4b45e198cf31_0.0_0.0_1.0_',label:'Associated net element (unexplored)',cls:'era:includes target (leaf — 1 of 483; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
   litSpotDirectionLeaf:{uri:'http://data.europa.eu/949/concepts/orientations/02',label:'orientation concept (unexplored)',cls:'era:appliesToDirection target (leaf — SKOS concept, not individually dereferenced here)',swatch:'grey',edges:[]},
-  netRefEndpointLeaf:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_endpoint_netreference',label:'End point (unexplored)',cls:'era:NetPointReference (leaf — the mirror of netPointRefStartpoint, not individually explored)',swatch:'grey',edges:[]},
   netRefSequenceLeaf:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_sequence_0',label:'Sequence (unexplored)',cls:'era:hasSequence target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
-  litLrsCoordinateLeaf:{uri:'https://data.banenor.no/data/_linear_coordinate_lps02_393.49',label:'LRS coordinate (unexplored)',cls:'era:hasLrsCoordinate target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
   litOffsetFromOrigin:{label:'0.0',cls:'era:offsetFromOrigin',swatch:'green',edges:[]},
+
+  /* ---- added 2026-08-17: dereferenced era:hasLrsCoordinate targets, the
+     era:TemporalFeature instance validityInterval2019, and the endsAt
+     era:NetPointReference — all real, fetched live from
+     graph.data.era.europa.eu ---- */
+  netPointRefEndpoint:{
+    uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_endpoint_netreference',
+    label:'End point (Track ØB2 linear location)', cls:'era:NetPointReference', swatch:'purple',
+    edges:[
+      {pred:'type', dir:'out', target:'classNetPointReference'},
+      {pred:'has LRS coordinate', dir:'out', target:'lrsCoordEndpoint'},
+      {pred:'has topo coordinate', dir:'out', target:'topoCoordEndpointLeaf'},
+    ]
+  },
+  lrsCoordStartpoint:{
+    uri:'https://data.banenor.no/data/_linear_coordinate_lps02_393.49',
+    label:'LRS coordinate 393.49 (Track ØB2 start)', cls:'era:LinearPositioningSystemCoordinate', swatch:'blue',
+    edges:[
+      {pred:'type', dir:'out', target:'classLinearPositioningSystemCoordinate'},
+      {pred:'km post', dir:'out', target:'kmPostLeafStart'},
+      {pred:'offset from kilometric post', dir:'out', target:'litOffsetKmPost39349'},
+    ]
+  },
+  lrsCoordEndpoint:{
+    uri:'https://data.banenor.no/data/_linear_coordinate_lps02_550.0',
+    label:'LRS coordinate 550.0 (Track ØB2 end)', cls:'era:LinearPositioningSystemCoordinate', swatch:'blue',
+    edges:[
+      {pred:'type', dir:'out', target:'classLinearPositioningSystemCoordinate'},
+      {pred:'km post', dir:'out', target:'kmPostLeafEnd'},
+      {pred:'offset from kilometric post', dir:'out', target:'litOffsetKmPostNeg450'},
+    ]
+  },
+  kmPostLeafStart:{uri:'https://data.banenor.no/data/_kilometric_post_lps02_0.0',label:'Kilometric post (unexplored)',cls:'era:kmPost target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  kmPostLeafEnd:{uri:'https://data.banenor.no/data/_kilometric_post_lps02_1.0',label:'Kilometric post (unexplored)',cls:'era:kmPost target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  litOffsetKmPost39349:{label:'393.49',cls:'era:offsetFromKilometricPost',swatch:'green',edges:[]},
+  litOffsetKmPostNeg450:{label:'-450.0',cls:'era:offsetFromKilometricPost',swatch:'green',edges:[]},
+  topoCoordEndpointLeaf:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_endpoint_topo_coordinate',label:'Topological coordinate (unexplored)',cls:'era:TopologicalCoordinate (leaf — the mirror of topoCoordStartpoint, not individually explored, to avoid duplicating the same deep chain twice)',swatch:'teal',edges:[]},
+  timeinstant2019:{
+    uri:'https://data.banenor.no/data/_timeinstant_2019-01-01',
+    label:'date_2019-01-01', cls:'time:Instant', swatch:'blue',
+    edges:[
+      {pred:'type', dir:'out', target:'classTimeInstant'},
+      {pred:'in XSD date', dir:'out', target:'lit20190101'},
+      {pred:'has beginning', dir:'in', target:'validityInterval2019'},
+    ]
+  },
+  lit20190101:{label:'2019-01-01',cls:'xsd:date (time:inXSDDate)',swatch:'blue',edges:[]},
+  overcrossingLeaf:{uri:'https://data.banenor.no/data/_overcrossing_00593308-a7ac-4a09-bcee-931448c48850',label:'Overcrossing (unexplored)',cls:'era:InfrastructureElement (leaf — level-crossing/bridge resource, 1 of 21,860 real incoming validity links; not individually explored)',swatch:'lav',edges:[]},
+  classLinearPositioningSystemCoordinate:{
+    uri:'http://data.europa.eu/949/LinearPositioningSystemCoordinate', label:'Linear Positioning System Coordinate',cls:'owl:Class (era:)',swatch:'blue',
+    edges:[{pred:'comment', dir:'out', target:'litCommentLinearPositioningSystemCoordinate'}]
+  },
+  litCommentLinearPositioningSystemCoordinate:{label:'Represents coordinates in a linear positioning system.',cls:'rdfs:comment (era:LinearPositioningSystemCoordinate)',swatch:'grey',edges:[]},
   litLengthNetLinearElement:{label:'156.9530147539468',cls:'era:lengthOfNetLinearElement (metres)',swatch:'green',edges:[]},
 };
 
@@ -835,6 +910,22 @@ QUICK_LINKS.forEach(([id,label])=>{
   b.addEventListener('click', ()=> goTo(id));
   document.getElementById('qlList').appendChild(b);
 });
+
+// The panel is fixed bottom-right and can overlap bubbles on narrower
+// viewports, so it's collapsible — state persists across reloads.
+const QL_COLLAPSED_KEY = 'era-explorer-quicklinks-collapsed';
+const quickLinksPanel = document.getElementById('quickLinks');
+const qlToggleBtn = document.getElementById('qlToggleBtn');
+function setQuickLinksCollapsed(collapsed){
+  quickLinksPanel.classList.toggle('collapsed', collapsed);
+  qlToggleBtn.textContent = collapsed ? 'Show' : 'Hide';
+  qlToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+  try{ localStorage.setItem(QL_COLLAPSED_KEY, collapsed ? '1' : '0'); }catch(e){ /* storage unavailable — collapse state just won't persist */ }
+}
+qlToggleBtn.addEventListener('click', ()=> setQuickLinksCollapsed(!quickLinksPanel.classList.contains('collapsed')));
+let qlInitiallyCollapsed = false;
+try{ qlInitiallyCollapsed = localStorage.getItem(QL_COLLAPSED_KEY) === '1'; }catch(e){ /* storage unavailable — default to expanded */ }
+setQuickLinksCollapsed(qlInitiallyCollapsed);
 
 /* =========================================================================
    LIVE SPARQL MODE
