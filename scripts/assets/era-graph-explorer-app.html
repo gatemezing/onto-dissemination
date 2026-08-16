@@ -474,7 +474,7 @@ function layout(centerId){
 async function goTo(id, isBreadcrumbJump){
   if(!NODES[id]){ toast('No cached data for this node yet.'); return; }
   if(NODES[id].live && NODES[id].unloaded){
-    toast('Fetching live data from rinf.data.era.europa.eu…', 8000);
+    toast('Fetching live data from graph.data.era.europa.eu…', 8000);
     try{
       await buildLiveNode(NODES[id].uri, id);
       hideToast();
@@ -512,18 +512,20 @@ QUICK_LINKS.forEach(([id,label])=>{
 
 /* =========================================================================
    LIVE SPARQL MODE
-   Endpoint supplied by the user: https://rinf.data.era.europa.eu/api/v1/sparql/rinf
-   (a prior attempt used https://graph.data.era.europa.eu/sparql, superseded
-   by this one — kept in mind in case the RINF-scoped endpoint doesn't cover
-   every ERA class, e.g. Track resources under /949/track/, and a fallback
-   to the graph.data endpoint is worth trying again later).
-   Still UNTESTED from this authoring session — rinf.data.era.europa.eu is
-   blocked by this sandbox's network egress policy, so this has never
-   completed a real request here. Success also depends on the endpoint
-   sending CORS headers that allow browser-side requests; if it doesn't,
-   every live fetch will fail with a clear error rather than hang silently.
+   Endpoint: https://graph.data.era.europa.eu/repositories/rinf-plus
+   (the GraphDB repository behind the ERA graph browser at
+   graph.data.era.europa.eu/graphs-visualizations — "RINF+ using ERA
+   Ontology 3.1.x", found via that server's /repositories listing).
+   Verified reachable and correctly configured for browser use:
+   a GET query for the Brussels Airport demo URI returned real matching
+   data, and the response carries an Access-Control-Allow-Origin header
+   that reflects the requesting origin, so cross-origin fetch() works.
+   (A previously-tried endpoint, rinf.data.era.europa.eu/api/v1/sparql/rinf,
+   does not work from a browser: GET requests to it hang with no response,
+   and while POST works over plain HTTP, its CORS policy allows only its
+   own app's origin — so it rejects every other origin's preflight.)
    ========================================================================= */
-const LIVE_ENDPOINT = 'https://rinf.data.era.europa.eu/api/v1/sparql/rinf';
+const LIVE_ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
 const LIVE_EDGE_LIMIT = 30; // keep the graph readable; real hub nodes can have far more
 
 async function sparqlSelect(query, timeoutMs){
@@ -616,8 +618,8 @@ async function buildLiveNode(uri, key){
     uri, label: labels[uri] || liveLocalName(uri), cls: 'live resource', swatch: 'center',
     edges, live: true,
     note: edges.length >= LIVE_EDGE_LIMIT
-      ? `Live data from rinf.data.era.europa.eu — showing the first ${LIVE_EDGE_LIMIT} links; this resource may have more.`
-      : 'Live data from rinf.data.era.europa.eu — not part of the verified offline dataset.'
+      ? `Live data from graph.data.era.europa.eu — showing the first ${LIVE_EDGE_LIMIT} links; this resource may have more.`
+      : 'Live data from graph.data.era.europa.eu — not part of the verified offline dataset.'
   };
   liveNodeKeyByUri.set(uri, key);
 }
