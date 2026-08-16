@@ -347,21 +347,75 @@ const NODES = {
     ]
   },
 
-  /* ---- leaves / literals / classes ---- */
-  classOperationalPoint:{label:'Operational Point',cls:'rdfs:Class',swatch:'pink',edges:[]},
-  classInfrastructureElement:{label:'Infrastructure element',cls:'rdfs:Class',swatch:'purple',edges:[]},
-  classTrack:{label:'Track',cls:'rdfs:Class (era:)',swatch:'pink',edges:[]},
-  classPrimaryLocation:{label:'Primary Location',cls:'rdfs:Class (era:)',swatch:'pink',edges:[]},
+  /* ---- leaves / literals / classes ----
+     The 7 era: namespace classes below (OperationalPoint, InfrastructureElement,
+     Track, PrimaryLocation, OrganisationRole, Body, TemporalFeature, plus their
+     shared ancestor Feature) carry real rdfs:comment / rdfs:subClassOf content
+     fetched from the ERA ontology's own named graph,
+     GRAPH <http://data.europa.eu/949/graph/rinf/ontology>, on the same ERA
+     SPARQL endpoint the live mode queries — the same information the
+     graph.data.era.europa.eu visual graph shows for these class URIs as
+     subject. Non-era: classes (skos:, time:, railml3:, bno:) are left as
+     plain leaves since that named graph doesn't define them. */
+  classOperationalPoint:{
+    uri:'http://data.europa.eu/949/OperationalPoint', label:'Operational Point',cls:'owl:Class (era:)',swatch:'pink',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentOperationalPoint'},
+      {pred:'subClassOf', dir:'out', target:'classInfrastructureElement'},
+    ]
+  },
+  classInfrastructureElement:{
+    uri:'http://data.europa.eu/949/InfrastructureElement', label:'Infrastructure element',cls:'owl:Class (era:)',swatch:'purple',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentInfrastructureElement'},
+      {pred:'subClassOf', dir:'out', target:'classFeature'},
+    ]
+  },
+  classTrack:{
+    uri:'http://data.europa.eu/949/Track', label:'Track',cls:'owl:Class (era:)',swatch:'pink',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentTrack'},
+      {pred:'subClassOf', dir:'out', target:'classInfrastructureElement'},
+    ]
+  },
+  classPrimaryLocation:{
+    uri:'http://data.europa.eu/949/PrimaryLocation', label:'Primary Location',cls:'owl:Class (era:)',swatch:'pink',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentPrimaryLocation'},
+      {pred:'subClassOf', dir:'out', target:'classInfrastructureElement'},
+    ]
+  },
+  classFeature:{
+    uri:'http://data.europa.eu/949/Feature', label:'Feature',cls:'owl:Class (era:)',swatch:'purple',
+    edges:[{pred:'comment', dir:'out', target:'litCommentFeature'}]
+  },
   classSkosConcept:{label:'Concept',cls:'rdfs:Class (skos:)',swatch:'pink',edges:[]},
-  classTemporalFeature:{label:'Temporal Feature',cls:'rdfs:Class (era:)',swatch:'orange',edges:[]},
+  classTemporalFeature:{
+    uri:'http://data.europa.eu/949/TemporalFeature', label:'Temporal Feature',cls:'owl:Class (era:)',swatch:'orange',
+    edges:[{pred:'comment', dir:'out', target:'litCommentTemporalFeature'}]
+  },
   classTimeInterval:{label:'Interval',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
   classTimeInstant:{label:'Time instant',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
-  classOrganisationRole:{label:'Organisation Role',cls:'rdfs:Class',swatch:'pink',edges:[]},
-  classBody:{label:'Body',cls:'rdfs:Class (era:)',swatch:'pink',edges:[]},
+  classOrganisationRole:{
+    uri:'http://data.europa.eu/949/OrganisationRole', label:'Organisation Role',cls:'owl:Class (era:)',swatch:'pink',
+    edges:[{pred:'comment', dir:'out', target:'litCommentOrganisationRole'}]
+  },
+  classBody:{
+    uri:'http://data.europa.eu/949/Body', label:'Body',cls:'owl:Class (era:)',swatch:'pink',
+    edges:[{pred:'comment', dir:'out', target:'litCommentBody'}]
+  },
   classOrganizationalUnit:{label:'Organizational Unit',cls:'rdfs:Class (railml3:)',swatch:'pink',edges:[]},
   classBaneSubnetwork:{label:'Bane Subnetwork',cls:'rdfs:Class (bno:)',swatch:'pink',edges:[]},
   classDesignator:{label:'Designator',cls:'rdfs:Class (railml3:)',swatch:'pink',edges:[]},
   classOpOperation:{label:'Op Operation',cls:'rdfs:Class (bno:)',swatch:'pink',edges:[]},
+  litCommentOperationalPoint:{label:'An operational point (OP) means any location for train service operations, where train services may begin and end or change route, and where passenger or freight services may be provided; operational point also means any location at boundaries between Member States or infrastructure managers.',cls:'rdfs:comment (era:OperationalPoint)',swatch:'grey',edges:[]},
+  litCommentInfrastructureElement:{label:'This class encompasses all those classes that represent features that are implemented in the European railway infrastructure. It is a subclass of the ERA Feature that has a spatial representation. It covers tracks, platforms, signals, tunnels, operational points, and sections of line.',cls:'rdfs:comment (era:InfrastructureElement)',swatch:'grey',edges:[]},
+  litCommentTrack:{label:'A pair of rails over which rail borne vehicles can run.',cls:'rdfs:comment (era:Track)',swatch:'grey',edges:[]},
+  litCommentPrimaryLocation:{label:'Primary Location is a place used by IM to define a path for a train in TAF/TAP TSI framework/messages. This location is a rail point inside the rail network where train starts, ends, stops, or runs through or change line.',cls:'rdfs:comment (era:PrimaryLocation)',swatch:'grey',edges:[]},
+  litCommentFeature:{label:'Class that encompasses the features that are part of the physical infrastructure (class InfrastructureElement) and the topological objects (class TopologicalObject). It is a subclass of the geographical Feature class that has a spatial representation.',cls:'rdfs:comment (era:Feature)',swatch:'grey',edges:[]},
+  litCommentTemporalFeature:{label:'The union of TemporalDuration that represents a time extent and TemporalEntity that represents a temporal interval or instant.',cls:'rdfs:comment (era:TemporalFeature)',swatch:'grey',edges:[]},
+  litCommentOrganisationRole:{label:'Represents an n-ary relationship between a Body and a role',cls:'rdfs:comment (era:OrganisationRole)',swatch:'grey',edges:[]},
+  litCommentBody:{label:'Is an organisation or a physical person',cls:'rdfs:comment (era:Body)',swatch:'grey',edges:[]},
   litUopidNOOSL:{label:'NOOSL',cls:'unique operational-point ID (era:uopid)',swatch:'blue',edges:[]},
   countryNorway:{label:'Norway',cls:'era:Country',swatch:'orange',edges:[]},
   trackLeafOther:{uri:'https://data.banenor.no/data/_track_d3fca422-8aa9-4a31-b699-613949a864f6',label:'Track (unexplored)',cls:'era:Track (leaf — 1 of 482 hasPart tracks; not individually explored)',swatch:'lgreen',edges:[]},
