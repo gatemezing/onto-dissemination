@@ -423,14 +423,20 @@ function renderNode(id, x, y, z, isCenter, onClick){
   return n;
 }
 
-function renderEdge(x1,y1,z1,x2,y2,z2,dirClass){
-  const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy), ang=Math.atan2(dy,dx)*180/Math.PI;
+// Trims the line to the gap between the two bubbles' surfaces (r1/r2 are
+// their radii) instead of drawing center-to-center, so it shrinks — down to
+// a short stub, never disappearing — when bubbles sit close together
+// instead of running underneath them unchanged.
+function renderEdge(x1,y1,z1,x2,y2,z2,dirClass,r1,r2){
+  const dx=x2-x1, dy=y2-y1, fullLen=Math.sqrt(dx*dx+dy*dy)||1, rad=Math.atan2(dy,dx), ang=rad*180/Math.PI;
+  const visibleLen = Math.max(10, fullLen - r1 - r2);
+  const startX = x1 + Math.cos(rad)*r1, startY = y1 + Math.sin(rad)*r1;
   const e = el('div','edge'+(dirClass?(' '+dirClass):''));
-  e.style.transform = `translate3d(${x1}px,${y1}px,${(z1+z2)/2}px) rotate(${ang}deg)`;
+  e.style.transform = `translate3d(${startX}px,${startY}px,${(z1+z2)/2}px) rotate(${ang}deg)`;
   e.style.width='0px';
   world.appendChild(e);
-  requestAnimationFrame(()=>{ e.classList.add('visible'); e.style.width = len+'px'; });
-  return e;
+  requestAnimationFrame(()=>{ e.classList.add('visible'); e.style.width = visibleLen+'px'; });
+  return {midX: startX + Math.cos(rad)*visibleLen/2, midY: startY + Math.sin(rad)*visibleLen/2};
 }
 
 function renderLabel(text, x, y, z){
@@ -480,10 +486,12 @@ function layout(centerId){
 
   const edges = data.edges;
   const n = edges.length;
+  const centerR = bubbleMetrics(data.label, true).diameter / 2;
+  const targetDiams = edges.map(e => bubbleMetrics(NODES[e.target].label, false).diameter);
   // Radius scales with both edge count and the actual bubble sizes in this
   // view (bigger for nodes with long live-data labels), so a ring of many
   // large bubbles spreads out enough that neighbours don't overlap.
-  const avgDiam = n === 0 ? 0 : edges.reduce((sum, e) => sum + bubbleMetrics(NODES[e.target].label, false).diameter, 0) / n;
+  const avgDiam = n === 0 ? 0 : targetDiams.reduce((sum, d) => sum + d, 0) / n;
   const Rsized = (n * (avgDiam + 26)) / (2 * Math.PI * 0.82);
   const R = Math.max(280, Math.min(460, Rsized));
   edges.forEach((edge, i)=>{
@@ -491,8 +499,8 @@ function layout(centerId){
     const rad = angle*Math.PI/180;
     const x = R*Math.cos(rad), y = R*Math.sin(rad)*0.82, z = 30*Math.sin(i*1.7);
     renderNode(edge.target, x, y, z, false, ()=> goTo(edge.target));
-    renderEdge(0,0,50, x,y,z, edge.dir==='reciprocal'?'reciprocal':(edge.dir==='in'?'incoming':''));
-    renderLabel(edge.pred, x*0.55, y*0.55, (50+z)/2);
+    const mid = renderEdge(0,0,50, x,y,z, edge.dir==='reciprocal'?'reciprocal':(edge.dir==='in'?'incoming':''), centerR, targetDiams[i]/2);
+    renderLabel(edge.pred, mid.midX, mid.midY, (50+z)/2);
   });
 }
 
