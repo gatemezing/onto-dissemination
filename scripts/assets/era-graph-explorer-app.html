@@ -580,7 +580,7 @@ let liveCounter = 0;
 // the same "follow your nose" pattern as the offline dataset, but live.
 async function buildLiveNode(uri, key){
   const triples = await fetchLiveTriples(uri);
-  const uriSet = new Set();
+  const uriSet = new Set([uri]);
   triples.forEach(t => { uriSet.add(t.p.value); if(t.other.type === 'uri') uriSet.add(t.other.value); });
 
   let labels = {};
