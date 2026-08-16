@@ -45,6 +45,8 @@
   #breadcrumb .crumb{cursor:pointer;padding:3px 9px;border-radius:6px;transition:background .15s;}
   #breadcrumb .crumb:hover{background:rgba(255,255,255,.08);color:#fff;}
   #breadcrumb .crumb.current{color:#fff;font-weight:600;background:rgba(255,255,255,.06);}
+  #breadcrumb .crumb.live::after{content:"live";margin-left:6px;font-size:9.5px;font-weight:700;letter-spacing:.4px;
+    text-transform:uppercase;color:var(--teal);border:1px solid rgba(95,208,174,.5);border-radius:4px;padding:1px 4px;vertical-align:1px;}
   #breadcrumb .sep{opacity:.4;}
 
   /* ---------- main stage ---------- */
@@ -379,12 +381,29 @@ let currentId = null;
 
 function el(tag, cls){ const e=document.createElement(tag); if(cls) e.className=cls; return e; }
 
+// Bubble size/font scale with label length (sqrt curve, so it grows fast for
+// short labels and levels off for long ones) so long live-data text fits
+// inside its bubble instead of overflowing a fixed-size circle.
+function bubbleMetrics(label, isCenter){
+  const len = (label||'').replace(/\n/g,' ').length;
+  const minD = isCenter ? 150 : 104, maxD = isCenter ? 260 : 200;
+  const diameter = Math.round(Math.min(maxD, minD + Math.sqrt(len) * (isCenter ? 11 : 9)));
+  const minF = isCenter ? 12.5 : 9.5, maxF = isCenter ? 17 : 13;
+  const fontSize = Math.max(minF, maxF - Math.max(0, len - 10) * 0.09);
+  return {diameter, fontSize};
+}
+
 function renderNode(id, x, y, z, isCenter, onClick){
   const data = NODES[id];
   const swatch = isCenter ? 'center' : (data.swatch === 'center' ? 'lav' : data.swatch);
   const n = el('div', 'node ' + swatch + (isCenter?' center':''));
   const s = el('span','lbl'); s.textContent = data.label;
   n.appendChild(s);
+  const {diameter, fontSize} = bubbleMetrics(data.label, isCenter);
+  n.style.width = diameter+'px';
+  n.style.height = diameter+'px';
+  n.style.margin = (-diameter/2)+'px 0 0 '+(-diameter/2)+'px';
+  n.style.fontSize = fontSize+'px';
   n.style.setProperty('--tx', x+'px'); n.style.setProperty('--ty', y+'px'); n.style.setProperty('--tz', z+'px');
   n.style.transform = `translate3d(${x}px,${y}px,${z}px) scale(.4)`;
   world.appendChild(n);
@@ -439,7 +458,8 @@ function renderBreadcrumb(){
   trail.forEach((id, i)=>{
     if(i>0){ const sep = el('span','sep'); sep.textContent='→'; bc.appendChild(sep); }
     const isCurrent = i === trail.length-1;
-    const c = el('span','crumb'+(isCurrent?' current':''));
+    const isLive = !!NODES[id].live;
+    const c = el('span','crumb'+(isCurrent?' current':'')+(isLive?' live':''));
     c.textContent = NODES[id].label.replace(/\n/g,' ');
     if(!isCurrent){
       c.setAttribute('role','button'); c.setAttribute('tabindex','0');
@@ -460,7 +480,12 @@ function layout(centerId){
 
   const edges = data.edges;
   const n = edges.length;
-  const R = n <= 6 ? 260 : (n <= 10 ? 300 : 330);
+  // Radius scales with both edge count and the actual bubble sizes in this
+  // view (bigger for nodes with long live-data labels), so a ring of many
+  // large bubbles spreads out enough that neighbours don't overlap.
+  const avgDiam = n === 0 ? 0 : edges.reduce((sum, e) => sum + bubbleMetrics(NODES[e.target].label, false).diameter, 0) / n;
+  const Rsized = (n * (avgDiam + 26)) / (2 * Math.PI * 0.82);
+  const R = Math.max(280, Math.min(460, Rsized));
   edges.forEach((edge, i)=>{
     const angle = -90 + i*(360/Math.max(n,1));
     const rad = angle*Math.PI/180;
@@ -484,7 +509,17 @@ async function goTo(id, isBreadcrumbJump){
     }
   }
   if(!isBreadcrumbJump){
-    if(currentId) history_.push(currentId);
+    if(currentId){
+      const crossingDataSource = !!NODES[currentId].live !== !!NODES[id].live;
+      if(crossingDataSource){
+        // Crossing between the offline (verified) dataset and live SPARQL
+        // data starts a fresh trail instead of appending, so the breadcrumb
+        // never shows a single path mixing curated and live-fetched nodes.
+        history_.length = 0;
+      } else {
+        history_.push(currentId);
+      }
+    }
   } else {
     const idx = history_.indexOf(id);
     if(idx>=0) history_.length = idx;
