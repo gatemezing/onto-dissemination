@@ -520,7 +520,30 @@ const NODES = {
     ]
   },
   litMaxSpeed40:{label:'40',cls:'maximum permitted speed, km/h (era:maximumPermittedSpeed)',swatch:'green',edges:[]},
-  litContactLineNotElectrified:{label:'not_electrified',cls:'contact line system (reference URI — not independently dereferenced in this curation)',swatch:'grey',edges:[]},
+  litContactLineNotElectrified:{
+    uri:'https://data.banenor.no/data/_contactLineSystem_not_electrified',
+    label:'Contact line system: Not electrified', cls:'era:ContactLineSystem', swatch:'grey',
+    edges:[
+      {pred:'type', dir:'out', target:'classContactLineSystem'},
+      {pred:'contact line system type', dir:'out', target:'contactLineTypeConcept'},
+    ],
+    note:'Dereferenced 2026-08-17 — a real reuse hub: 2,873 real tracks across the network point to this exact "not electrified" record via era:contactLineSystem, not just Track ØB2.'
+  },
+  contactLineTypeConcept:{
+    uri:'http://data.europa.eu/949/concepts/contact-line-systems/40', label:'Not electrified', cls:'skos:Concept (ERA Contact Line Systems)', swatch:'orange',
+    edges:[
+      {pred:'type', dir:'out', target:'classSkosConcept'},
+      {pred:'notation', dir:'out', target:'litContactLineNotation'},
+      {pred:'inScheme', dir:'out', target:'litContactLineSchemeRef'},
+    ]
+  },
+  classContactLineSystem:{
+    uri:'http://data.europa.eu/949/ContactLineSystem', label:'Contact Line System',cls:'owl:Class (era:)',swatch:'pink',
+    edges:[{pred:'comment', dir:'out', target:'litCommentContactLineSystem'}]
+  },
+  litCommentContactLineSystem:{label:'System that is used to transmit electrical energy to road or rail vehicles.',cls:'rdfs:comment (era:ContactLineSystem)',swatch:'grey',edges:[]},
+  litContactLineNotation:{label:'40',cls:'skos:notation',swatch:'green',edges:[]},
+  litContactLineSchemeRef:{label:'ContactLineSystems',cls:'skos:ConceptScheme (leaf — the scheme this concept belongs to)',swatch:'grey',edges:[]},
   litTrackType3:{label:'3',cls:'track type code (bno:hasTrackType)',swatch:'green',edges:[]},
   litNO00100:{label:'NO00100',cls:'primary location code (era:primaryLocationCode)',swatch:'blue',edges:[]},
   litOsloSName:{label:'Oslo S',cls:'primary location name (era:primaryLocationName)',swatch:'green',edges:[]},
@@ -640,7 +663,18 @@ const NODES = {
   netElementIncludesLeaf1:{uri:'https://data.banenor.no/data/_associatednetelement_0094c625-e878-43ba-a905-1a55641400c2_0.0_0.0_1.0_',label:'Associated net element (unexplored)',cls:'era:includes target (leaf — 1 of 483; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
   netElementIncludesLeaf2:{uri:'https://data.banenor.no/data/_associatednetelement_010bb6c8-0173-4e0a-88fd-4b45e198cf31_0.0_0.0_1.0_',label:'Associated net element (unexplored)',cls:'era:includes target (leaf — 1 of 483; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
   litSpotDirectionLeaf:{uri:'http://data.europa.eu/949/concepts/orientations/02',label:'orientation concept (unexplored)',cls:'era:appliesToDirection target (leaf — SKOS concept, not individually dereferenced here)',swatch:'grey',edges:[]},
-  netRefSequenceLeaf:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_sequence_0',label:'Sequence (unexplored)',cls:'era:hasSequence target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  netRefSequenceLeaf:{
+    uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_sequence_0',
+    label:'Sequence (RDF List)', cls:'rdf:List', swatch:'grey',
+    edges:[
+      {pred:'type', dir:'out', target:'classRdfList'},
+      {pred:'first', dir:'out', target:'linearElementNetElement'},
+      {pred:'rest', dir:'out', target:'litRdfNil'},
+    ],
+    note:'Dereferenced 2026-08-17 — a standard RDF Collection (rdf:first/rdf:rest linked list) with a single element: it reuses the exact same LinearElement node explored elsewhere in this demo, not a new resource.'
+  },
+  classRdfList:{label:'List',cls:'rdfs:Class (rdf: — the core RDF vocabulary, not era-specific)',swatch:'pink',edges:[]},
+  litRdfNil:{label:'rdf:nil',cls:'end of list (rdf:rest)',swatch:'grey',edges:[]},
   litOffsetFromOrigin:{label:'0.0',cls:'era:offsetFromOrigin',swatch:'green',edges:[]},
 
   /* ---- added 2026-08-17: dereferenced era:hasLrsCoordinate targets, the
@@ -674,8 +708,35 @@ const NODES = {
       {pred:'offset from kilometric post', dir:'out', target:'litOffsetKmPostNeg450'},
     ]
   },
-  kmPostLeafStart:{uri:'https://data.banenor.no/data/_kilometric_post_lps02_0.0',label:'Kilometric post (unexplored)',cls:'era:kmPost target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
-  kmPostLeafEnd:{uri:'https://data.banenor.no/data/_kilometric_post_lps02_1.0',label:'Kilometric post (unexplored)',cls:'era:kmPost target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  kmPostLeafStart:{
+    uri:'https://data.banenor.no/data/_kilometric_post_lps02_0.0',
+    label:'Kilometric post 0.0', cls:'era:KilometricPost', swatch:'blue',
+    edges:[
+      {pred:'type', dir:'out', target:'classKilometricPost'},
+      {pred:'kilometer', dir:'out', target:'litKilometer00'},
+      {pred:'has LRS', dir:'out', target:'lpsLeaf'},
+    ]
+  },
+  kmPostLeafEnd:{
+    uri:'https://data.banenor.no/data/_kilometric_post_lps02_1.0',
+    label:'Kilometric post 1.0', cls:'era:KilometricPost', swatch:'blue',
+    edges:[
+      {pred:'type', dir:'out', target:'classKilometricPost'},
+      {pred:'kilometer', dir:'out', target:'litKilometer10'},
+      {pred:'has LRS', dir:'out', target:'lpsLeaf'},
+    ]
+  },
+  classKilometricPost:{
+    uri:'http://data.europa.eu/949/KilometricPost', label:'Kilometric Post',cls:'owl:Class (era:)',swatch:'pink',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentKilometricPost'},
+      {pred:'subClassOf', dir:'out', target:'classInfrastructureElement'},
+    ]
+  },
+  litCommentKilometricPost:{label:'Represents a kilometric post in the linear positioning system.',cls:'rdfs:comment (era:KilometricPost)',swatch:'grey',edges:[]},
+  litKilometer00:{label:'0.0',cls:'era:kilometer',swatch:'green',edges:[]},
+  litKilometer10:{label:'1.0',cls:'era:kilometer',swatch:'green',edges:[]},
+  lpsLeaf:{uri:'https://data.banenor.no/data/_lps02',label:'Linear positioning system (unexplored)',cls:'era:hasLRS target (leaf — shared by both kilometric posts; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
   litOffsetKmPost39349:{label:'393.49',cls:'era:offsetFromKilometricPost',swatch:'green',edges:[]},
   litOffsetKmPostNeg450:{label:'-450.0',cls:'era:offsetFromKilometricPost',swatch:'green',edges:[]},
   topoCoordEndpointLeaf:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_endpoint_topo_coordinate',label:'Topological coordinate (unexplored)',cls:'era:TopologicalCoordinate (leaf — the mirror of topoCoordStartpoint, not individually explored, to avoid duplicating the same deep chain twice)',swatch:'teal',edges:[]},
@@ -836,6 +897,26 @@ function renderBreadcrumb(){
 
 function clearWorld(){ world.innerHTML=''; }
 
+const stageWrapEl = document.getElementById('stageWrap');
+const WORLD_BASE_TRANSFORM = 'rotateX(14deg) rotateY(-5deg)';
+let lastMaxExtent = 0;
+// Bubble/radius sizing above is purely content-driven (label length, edge
+// count) and can produce a layout wider than a phone or a narrow booth
+// tablet — previously that overflow was just clipped by #stageWrap's
+// overflow:hidden, silently hiding bubbles. This scales the whole #world
+// down (uniformly, via CSS transform — every child's own translate3d
+// position scales with it) to fit whatever space is actually available,
+// so nothing goes off-screen. Never scales up past 1 (no benefit to
+// blowing up a small graph on a big monitor).
+function applyWorldScale(maxExtent){
+  lastMaxExtent = maxExtent;
+  const availW = stageWrapEl.clientWidth, availH = stageWrapEl.clientHeight;
+  const margin = 0.88;
+  const scale = Math.min(1, (availW * margin) / (2 * maxExtent), (availH * margin) / (2 * maxExtent));
+  world.style.transform = `${WORLD_BASE_TRANSFORM} scale(${scale})`;
+}
+window.addEventListener('resize', ()=>{ if(lastMaxExtent > 0) applyWorldScale(lastMaxExtent); });
+
 function layout(centerId){
   clearWorld();
   const data = NODES[centerId];
@@ -860,6 +941,9 @@ function layout(centerId){
     const mid = renderEdge(0,0,50, x,y,z, edge.dir==='reciprocal'?'reciprocal':(edge.dir==='in'?'incoming':''), centerR, targetDiams[i]/2);
     renderLabel(edge.pred, mid.midX, mid.midY, (50+z)/2);
   });
+
+  const maxTargetR = targetDiams.length ? Math.max(...targetDiams) / 2 : 0;
+  applyWorldScale(R + Math.max(centerR, maxTargetR));
 }
 
 async function goTo(id, isBreadcrumbJump){
