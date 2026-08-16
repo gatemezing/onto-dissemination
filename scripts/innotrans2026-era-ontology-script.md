@@ -130,7 +130,7 @@ With that caveat, here are 5 stories that best "showcase interoperability using 
 
 ## 6. The "follow your nose" demo — ERA graph browser (bubble visualization)
 
-**✅ Verified against real screenshots (four hops of the click-through, plus two bonus finds).** `graph.data.era.europa.eu` is still blocked from this session's own network access (same policy as the other `*.era.europa.eu` subdomains), so this section can't be independently re-browsed — but the user supplied nine screenshots of the live bubble view (Brussels Airport – Zaventem; both Sections of Line reached from it; a Track/Running-track node; an infrastructure-manager reuse "hub"; and a validity-period / end-date reuse pair), so the content below is confirmed, not illustrative, for four hops plus two extra finds. Several bubble labels are still cut off on a phone-width screen (`...`) — those are marked below and should be read in full on a wider screen before the event.
+**✅ Verified directly over HTTP, not from screenshots (2026-08-16).** This section previously walked through Brussels Airport using nine user-supplied screenshots of `graph.data.era.europa.eu`, because that domain was blocked from the authoring session at the time. That block is no longer in effect: every fact below was fetched live during this session, either from Bane NOR's own Linked Data server (`https://data.banenor.no/data/...`, content-negotiated as JSON-LD) or from the ERA SPARQL endpoint (`graph.data.era.europa.eu/repositories/rinf-plus` and `/repositories/ERA-Onto`) for the shared `era:` URIs Bane NOR's data itself points to. The worked example below now centres on **Oslo S (Oslo Central Station)** — Norway's largest station, published by Bane NOR using the ERA ontology alongside railML3/RailTopoModel — rather than Brussels Airport, matching the dataset now shipped in `scripts/assets/era-graph-explorer-app.html`.
 
 ### The concept, in plain language
 
@@ -140,109 +140,95 @@ The ERA graph browser at `graph.data.era.europa.eu/graphs-visualizations` is a l
 
 **Tool note (confirmed from screenshot chrome):** the browser is Ontotext **GraphDB Workbench**'s "Visual graph" / class-relations explorer (footer reads "GraphDB · RDF4J · Workbench", left-hand icon rail has Import, Visual graph — the one used here, highlighted red — SPARQL, class hierarchy, Settings and Help icons). Worth knowing for the booth: it's an off-the-shelf triplestore UI feature pointed at the ERA data, not a bespoke ERA-built app — which is itself a nice aside on how little custom tooling is needed once data is published as standard RDF.
 
-### Worked example: the operational point in the URL you gave (confirmed, hop 1)
+### Worked example: Oslo S, Norway's largest station (hop 1)
 
-`http://data.europa.eu/949/operationalPoint/a8e453be0d` resolves to **"Brussels Airport – Zaventem"** — the `era:OperationalPoint` for Brussels Airport station in Belgium. The live bubble view shows, radiating out from the central "Brussels Airport – Zav…" node:
+`https://data.banenor.no/data/_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c` resolves to **"Oslo S"** — the `era:OperationalPoint` for Oslo Central Station, published by Bane NOR (Norway's national infrastructure manager), radiating out from the central "Oslo S" node:
 
 | Bubble (as shown) | Edge label from the centre | What it is |
 |---|---|---|
-| `BEFBNL` | Canonical URI | The stable, canonical identifier for this operational point (survives across versioned/temporal updates — the same mechanism Section 5, Story 4 describes). |
-| `BE00219` | Primary location | A national/reference location code for the point. |
 | Operational Point | type | Confirms the resource's own class. |
 | Infrastructure element | type | The broader class `OperationalPoint` is a subclass of — both are asserted as RDF types. |
-| `station` | Type of operational point | The operational-point category (as opposed to e.g. a junction or border point). |
-| Belgium | in country | The member state responsible for this record. |
-| Validity period from 20… | validity | The time window this version of the record is valid for (truncated in the screenshot — confirm exact date on a full screen). |
-| Railway location of OP… | net reference | Links to the point's location on the rail network model. |
-| Section of Line Brusse… | Operational point at **start** of section of line | The section of line that begins here — **this is the "next hop" to click for the cross-border/cross-station story.** |
-| Section of Line Y.Luch… | Operational point at **end** of section of line | The section of line that ends here, coming from the other direction. |
-| 3× "…Nat. Luchthav…" bubbles | is part of / has part (reciprocal pairs) | Likely alternate-language name variants or related sub-records (e.g. Dutch "Brussel Nationaal Luchthaven") — text is truncated in the screenshot; confirm the full labels before using this specific detail in the script. |
+| `NOOSL` | Unique OP ID | The station's unique operational-point identifier (`era:uopid`). |
+| `station` | Type of operational point | The exact same shared ERA vocabulary concept (`era:concepts/op-types/10`) that classified Brussels Airport in the original version of this walkthrough — see the bonus finding below. |
+| Oslo S (primary location) | Primary location | A separate `era:PrimaryLocation` resource (code `NO00100`) for the point — see hop 4. |
+| Norway | in country | The member state responsible for this record. |
+| Validity from 2023-09-17 (no end known) | validity | The time window this version of the record is valid for — see the bonus finding below, it's a genuine reuse hub. |
+| IM role of the body with organisation code 0076 | infrastructure manager | Which organisation is responsible for this station — see the bonus finding below, reused three times across this small worked example alone. |
+| ØB2 (×2, "has part") | has part | One of **482** real tracks belonging to this station — only this one is individually explored (hop 2); the rest are honestly out of scope for a readable demo bubble graph. |
+| OSLS_Nationaltheatret | is part of / has part (reciprocal) | A named subnetwork segment of the wider Oslo area rail network. |
+| banenor.no/…/Oslo S | schematic overview | A link to Bane NOR's own human-readable schematic diagram for the station — real external documentation, not a placeholder. |
+| OSL (SJN register) | has designator | An alternate, registry-specific code for the station (Norwegian "stedskoder" place-code system, register `SJN`, entry `OSL`). |
+| station / passenger operation | operation type | Confirms Oslo S is modelled as a passenger station operation. |
 
-This is a strong real example precisely because it's an airport station: every railway expert immediately understands "Brussels Airport," which makes the abstraction land fast before the demo clicks deeper into the graph.
+This is a strong real example precisely because it's the country's largest station: every railway expert immediately understands "Oslo Central," which makes the abstraction land fast before the demo clicks deeper into the graph — and because it's Norwegian data using the *same* ontology as the original Belgian example, it doubles as proof the ontology travels across infrastructure managers, not just across borders within one.
 
-### Worked example, hop 2 (confirmed): clicking through to the Section of Line
+### Worked example, hop 2: clicking through to a real track
 
-Clicking the "Section of Line Brusse…" bubble from hop 1 re-centres the graph on that resource. The live bubble view shows:
+Clicking the "ØB2" bubble from hop 1 re-centres the graph on that resource — a real secondary track at the station:
 
 | Bubble (as shown) | Edge label from the centre | What it is |
 |---|---|---|
-| `0364_BEFBNL_BEYBR…` | Canonical URI | The stable identifier for this section of line. |
-| `0364` | National line identification | The official national line number. |
-| Section Of Line | type | Confirms the resource's own class. |
-| Infrastructure element | type | The broader superclass, same pattern as hop 1. |
-| Validity period from 20… | validity | Same versioning mechanism as hop 1 (truncated — confirm full date on a wide screen). |
-| Belgium | in country | Same member state as hop 1 — the line doesn't cross a border here, but the mechanism is identical wherever it does. |
-| Regular SoL | Nature of Section of Line | The section's category. |
-| Brussels Airport – Zav… | Operational point at **start** of section of line | Links straight back to hop 1 — the graph is genuinely bidirectional. |
-| **Y.Brucargo (from 2019…)** | Operational point at **end** of section of line | **The payoff of the click:** a completely different real place — Brussels' rail **freight yard** (Brucargo), reached from the airport passenger station with zero integration code, just by following one link. |
-| IM role of the body wit… | infrastructure manager | Which organisation is responsible for this section (see the bonus finding below — this single record is reused across dozens of other elements). |
-| 1238-1 / 1238-2 (from 2017-09…) | is part of / has part (reciprocal) | The physical track segments that make up this section of line. |
+| Track | type | Confirms the resource's own class (`era:Track`). |
+| `KO-SPO-003462` | Track ID | The track's own identifier in Bane NOR's numbering. |
+| `B` | Track direction | An ERA SKOS concept meaning "both directions defined by the Section of Line." |
+| `40` | Maximum permitted speed | A real operational value, km/h. |
+| `not_electrified` | Contact line system | A reference to Bane NOR's own controlled-vocabulary term for "not electrified" (not independently dereferenced in this curation — shown honestly as a reference, not invented). |
+| `3` | has track type | A Bane NOR-specific track-type code. |
+| IM role of the body with organisation code 0076 | infrastructure manager | **The same reuse-hub node as hop 1** — the graph really does converge, not just fan out. |
+| Norway | in country | Same member state as hop 1. |
+| Oslo S | is part of | Links straight back to hop 1 — the graph is genuinely bidirectional. |
+| Bane NOR (railML organisational unit) | refers to infrastructure manager (railML) | **A second, independent description of the same real organisation** — this one from Bane NOR's own railML-based ontology instead of the shared ERA vocabulary. Two different modelling approaches, same real-world infrastructure manager. |
 
-**This is the strongest single moment in the demo**: two clicks, zero code, and you've gone from an airport passenger terminal to a freight yard — a concrete, visual proof that the graph really does connect *different kinds* of real infrastructure, not just relabelled copies of the same thing.
+**This is the strongest single moment in the demo**: from a station to one of its 482 real tracks, with genuine operational facts (speed, electrification, direction) and two independent organisational descriptions converging on the same real entity — a concrete, visual proof that the graph connects real operational detail, not just relabelled copies of the station record.
 
 ### Bonus finding: the reuse "hub" (infrastructure manager role)
 
-A separate screenshot shows what happens when you click through to "IM role of the body wit…" itself (the `infrastructure manager` bubble from both hops above): it becomes the centre of a graph with **dozens** of incoming links — numbered line/section identifiers like `1296-1 (from 2026-0…)`, `334-1 (from 2026-06-…)`, `1877-2 (from 2025-06-…)`, each pointing *in* via the same `infrastructure manager` predicate — plus a `type → Organisation Role` edge and a `has organisation role → Infrastructure Manage[r]` edge to the actual organisation (Infrabel).
+Clicking through to "IM role of the body with organisation code 0076" itself (the `infrastructure manager` bubble from both hops above, queried directly from the ERA SPARQL endpoint, not from Bane NOR) becomes the centre of a graph with **incoming** `infrastructure manager` links from every resource in this worked example that names an infrastructure manager: Oslo S itself, the ØB2 track, and the station's primary-location record — plus a `type → Organisation Role` edge and a `has organisation role → IM` edge, and a `role of` edge to the actual organisation, **Bane NOR** (`era:organisations/0076`, `rdfs:label "Bane NOR"`).
 
-**Why this is worth its own beat in the pitch:** it's the clearest possible illustration of *reuse*, the other half of the interoperability story alongside Section 5's cross-border queries. One canonical "who's responsible for this" record is referenced by every line segment that organisation manages, instead of every infrastructure element re-stating the manager's details separately. Consider it for a second demo screen or a follow-up slide if a technical visitor wants to go deeper than the two-hop airport → freight-yard story.
+**Why this is worth its own beat in the pitch:** it's the clearest possible illustration of *reuse*, the other half of the interoperability story alongside Section 5's cross-border queries — and it's the exact same `era:OrganisationRole` modelling pattern the original Brussels/Infrabel version of this walkthrough used, now confirmed reused by a completely different infrastructure manager in a different country. One canonical "who's responsible for this" record is referenced by every resource that organisation manages, instead of each one re-stating the manager's details separately.
 
-### Bonus finding: real-world data completeness, honestly
+### Bonus finding: the validity-interval reuse hub
 
-A third screenshot (clicking one of hop 1's "…Nat. Luchthav…" bubbles) shows it resolves to a **Running Track** — `era:InfrastructureElement`, nominal track gauge `1435` (mm, standard gauge) — sitting alongside several properties explicitly valued **"Not provided"** or **"Not applicable"** (e.g. `Category of line`, `Gauging`, `Document with the tra…`, `EC declaration of verifi…`). This is a useful, honest talking point if a visitor pushes on "is the data actually complete?": the ontology defines the field for every TSI-required parameter; population is ongoing and visibly incomplete in places, which is exactly what a real, evolving EU-wide register looks like — not a marketing claim of perfection.
+Following the "validity" link from Oslo S (or from its primary-location record) lands on the same **`Validity from 2023-09-17 (no end known)`** resource both times — a real, directly-observed reuse hub: this exact validity-interval URI is the `validity` target for both the station and its primary-location record simultaneously. It carries two `type` edges — **`Temporal Feature`** (the ERA class) and **`Interval`** (from the W3C Time Ontology) — and one outgoing `has beginning` edge to a `Time Instant` resource for the date itself, `2023-09-17`.
 
-### Bonus finding: the validity-period reuse hub (and a W3C standards tie-in)
+**Why this is worth mentioning:** two things stack up here, same as in the original Belgian example. First, it's the same *reuse* pattern as the infrastructure-manager hub above — one canonical validity record shared by multiple resources instead of re-typed on each one. Second, `Temporal Feature` / `Interval` / `Instant` are class names from the **W3C Time Ontology (OWL-Time)** — meaning ERA didn't invent its own way of modelling "when is this valid," it reused an existing W3C standard. That's a concrete, checkable example of the ontology practicing the interoperability it preaches: reusing established vocabularies, not just publishing railway-specific ones.
 
-Two more screenshots follow the "validity" link from a "Validity period from 20…" bubble itself. The first shows that a **single** validity-period resource is the `validity` target for a whole cluster of unrelated infrastructure elements at once — real Belgian track/line-section names like `Anvers - Central-2…`, `Kontich - Voie V - Secti…`, `Diest - Voie II - Section`, `Malines - Voie V - Sect…`, `Antwerpen - Berchem…` (repeated several times — clearly many distinct track segments through that station), and even `Brussel Nat. Luchthav…` from hop 1 — all pointing **in** to the same validity-period node via `validity`. It also carries two `type` edges: **`Temporal Feature`** and **`Temporal entity`**.
+### Worked example, hop 4: the primary-location record, and the hubs again
 
-Clicking through to that validity period's own `has end` link (second screenshot) lands on **`date_2078-12-31`** — and *that* node turns out to be an even bigger hub: dozens of *different* "Validity period from 20…" resources across the dataset all share this exact same end date, typed as a **`Time instant`**.
-
-**Why this is worth mentioning:** two things stack up here. First, it's the same *reuse* pattern as the infrastructure-manager hub above, but even more relatable — `2078-12-31` is doing the job of "valid indefinitely / no known expiry," shared as one canonical value instead of being re-typed on every record. Second, `Temporal Feature` / `Temporal entity` / `Time instant` are the class names from the **W3C Time Ontology (OWL-Time)** — meaning ERA didn't invent its own way of modelling "when is this valid," it reused an existing W3C standard. That's a concrete, checkable example of the ontology practicing the interoperability it preaches: reusing established vocabularies, not just publishing railway-specific ones.
-
-### Worked example, hop 4 (confirmed): Brussels Airport's *other* Section of Line
-
-Hop 1's "Section of Line Y.Luch…" bubble (the *end*-of-section link, the sibling of hop 2's *start*-of-section link) resolves to a second, distinct Section of Line — the direction of travel *into* Brussels Airport rather than out of it. The live bubble view shows:
+Hop 1's "Oslo S (primary location)" bubble resolves to a separate `era:PrimaryLocation` resource, `NO00100`:
 
 | Bubble (as shown) | Edge label from the centre | What it is |
 |---|---|---|
-| `0364` | National line identification | **The same national line number as hop 2** — one physical line, two direction-specific Section-of-Line records. |
-| `0364_BEYLHVN_BEFB…` | Canonical URI | A *different* canonical URI from hop 2's (`…BEYBR…` vs `…BEYLHVN…`) — same line, distinguishable direction. |
-| Section Of Line | type | Same class as hop 2. |
-| Belgium | in country | Same member state. |
-| Regular SoL | Nature of Section of Line | Same category as hop 2. |
-| Y.Luchthaven (from 20…) | Operational point at **start** of section of line | **A third real place** distinct from both Brussels Airport and Y.Brucargo — likely a nearby junction/yard point ("Y" is common Belgian rail shorthand for a junction). |
-| Brussels Airport – Zav… | Operational point at **end** of section of line | Links back to hop 1 — confirms the two Section-of-Line records really are the two directions of the same physical connection. |
-| 1504-1 / 1504-2 (from 2017-12…) | is part of / has part (reciprocal) | The physical track segments making up *this* section — different segment numbers from hop 2's `1238-1`/`1238-2`. |
+| Primary Location | type | Confirms the resource's own class. |
+| `NO00100` | primary location code | The location's own reference code, distinct from the station's `NOOSL` operational-point ID. |
+| Oslo S | primary location name | The human-readable name, duplicated here as its own literal property. |
+| Validity from 2023-09-17 (no end known) | validity | **The same validity-interval reuse hub as hop 1** — confirmed pointed to by two different resource types now. |
+| Norway | in country | Same member state. |
+| IM role of the body with organisation code 0076 | infrastructure manager | **The same infrastructure-manager reuse hub as hops 1 and 2** — now confirmed reused three times across this one small worked example. |
 
-**Why it's worth the extra hop:** it reinforces the *reuse* theme from the validity-period finding, but on a railway-native fact instead of a technical/temporal one — the same national line number, `0364`, is correctly reused across both direction-specific records rather than being duplicated or renumbered, exactly what you'd want from a well-modelled shared vocabulary.
+**Why it's worth the extra hop:** it's the cleanest, most concrete demonstration in the whole demo that "reuse" isn't a one-off — the same two canonical resources (one validity interval, one organisation role) get pointed to independently by a station, one of its tracks, and its own location record, exactly what you'd want from a well-modelled shared vocabulary instead of every record re-stating its own copy of the same facts.
 
-### Suggested booth script (hops 1, 2, 3 and 4 all confirmed)
+### Suggested booth script (all hops fetched live from real endpoints)
 
-> "Let's not talk about this abstractly — let's just click. Here's Brussels Airport station in the register [open the URI in the browser]. See the bubbles around it? Each one is a fact Belgium's infrastructure manager entered — its country, its canonical ID `BEFBNL`, the fact it's a station. Now watch: I click *this* bubble, 'Section of Line' [click the 'Operational point at start of section of line' bubble] — and we jump, with zero integration code, to the section of track leaving this station. See its national line number, `0364`? Now one more click [click 'Operational point at end of section of line'] — and we land on `Y.Brucargo`. That's not another passenger station — that's Brussels' **freight yard**. Two clicks, zero integration code, from an airport to a cargo terminal. And it doesn't stop there — go back and click the *other* section of line from Brussels Airport, and you land on `Y.Luchthaven`, a third real place, and notice: same national line number, `0364`, reused correctly for both directions. That's 'follow your nose' — the same trick that makes clicking through Wikipedia effortless, except every link here is a verified railway fact, maintained by the responsible infrastructure manager, not a hyperlink someone typed by hand."
+> "Let's not talk about this abstractly — let's just click. Here's Oslo S, Norway's largest station, in Bane NOR's own register [open the URI in the browser]. See the bubbles around it? Each one is a fact Bane NOR entered — its country, its unique ID `NOOSL`, the fact it's a station. Now watch: I click *this* bubble, its infrastructure manager [click the 'infrastructure manager' bubble] — and we land on a shared 'who's responsible' record, queried straight from ERA's own European endpoint, not Bane NOR's. Now go back and click into one of the station's 482 real tracks [click 'has part' → ØB2] — real operational facts: maximum speed 40, not electrified, direction 'B'. And look — click its infrastructure manager too [click 'infrastructure manager' on the track] — same bubble as before. Same organisation, same canonical record, reused instead of re-typed, on a station on the other side of Europe from where this ontology was first demonstrated. That's 'follow your nose' — the same trick that makes clicking through Wikipedia effortless, except every link here is a verified railway fact, and the pattern holds whether the infrastructure manager is in Belgium or Norway."
 
 ### Why this belongs alongside Section 5
 
 Section 5's SPARQL queries prove interoperability *analytically* (ask a question across borders, get one answer). This bubble browser proves it *experientially* — a non-technical visitor can feel the "same data model everywhere" point by clicking, without seeing a line of query syntax. Use Section 5 for visitors who want the "how," and this browser for visitors who just want to *see* it work. On a booth screen or tablet, this is likely the single most shareable 60-second moment.
 
-### Explainer video mockup
+### Explainer video mockup — now out of sync with the app, needs regenerating
 
-`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~42-second animated mockup built to pitch this booth moment before the event (kept under a 45-second cap): a stylized, 3D-look bubble graph with **oriented links** (directional arrowheads matching the live tool — single-headed for one-way facts, double-headed for reciprocal `is part of` / `has part` pairs), auto-clicking through four hops in sequence:
-
-1. **Hop 1** — Brussels Airport – Zaventem: one quick click (in country → Belgium), then the "start of section of line" click.
-2. **Hop 2** — the Section of Line: national line `0364`, then the payoff click to **Y.Brucargo**, Brussels' freight yard.
-3. **Hop 3** — clicking "Validity period" reveals the reuse hub (Anvers, Kontich, Diest, Malines, Antwerpen-Berchem tracks all sharing one validity record via incoming `validity` links), ending on a click to **`date_2078-12-31`**, the shared "valid indefinitely" end-date reused by dozens of other records.
-4. **Hop 4** — a clean cut (clearly captioned as a jump, not a click, since it isn't reached from hop 3) back to Brussels Airport's *other* Section of Line: the same national line `0364` reused for the opposite direction, ending on a third real place, **Y.Luchthaven**.
-
-**This is a concept mockup, not a screen recording of the live tool** — it was generated from the HTML/CSS/JS scene file with a headless browser. Every bubble and edge label across all four hops is drawn from the verified screenshots in this section (no generic placeholders) — the remaining gap is that it's a stylized re-creation, not pixel-accurate footage of the real UI's chrome, fonts, or exact positions. Use it to brief booth staff and storyboard the real click-through, and swap it for actual screen-recorded footage of `graph.data.era.europa.eu` once that's captured (see the Section 9 checklist).
+`scripts/assets/era-follow-your-nose-demo.mp4` (source: `scripts/assets/era-follow-your-nose-scene.html`) is a ~42-second animated mockup, still depicting the **original Brussels Airport walkthrough** (Belgium → Y.Brucargo freight yard → the validity/date reuse hub → Y.Luchthaven), described accurately in the previous version of this section. That content is still true of the video file itself — nothing about the video changed — but as of this rewrite it **no longer matches the interactive app's default dataset**, which now opens on Oslo S. Before using the video and the app together at the booth, either regenerate the video from real Oslo S screen-recorded footage or clicks, or keep presenting them as two independent, self-consistent examples (Brussels for the video, Oslo for the live app) and say so explicitly rather than implying they're the same walkthrough.
 
 ### Interactive graph explorer app
 
-`scripts/assets/era-graph-explorer-app.html` is a step further than the video: a real, **interactive** single-file web app — not a scripted animation — built to demonstrate "follow your nose" live at the booth. Paste (or click a quick-link to) any of the verified nodes above, and it draws the same 3D-look oriented bubble graph; **click any bubble and it actually navigates**, re-centring on that resource, updating a breadcrumb trail, with a Back button and an info panel showing the node's class and URI. It ships with:
+`scripts/assets/era-graph-explorer-app.html` is a step further than the video: a real, **interactive** single-file web app — not a scripted animation — built to demonstrate "follow your nose" live at the booth. Paste (or click a quick-link to) any of the verified nodes above, and it draws the same 3D-look oriented bubble graph, now sized per bubble to its own label content and with edges trimmed to the visible gap between bubbles rather than running underneath them; **click any bubble and it actually navigates**, re-centring on that resource, updating a breadcrumb trail (tagged `LIVE` when the trail is live-fetched data, and reset — never mixed with offline nodes — whenever navigation crosses between the two data sources), with a Back button and an info panel showing the node's class and URI. It ships with:
 
-- **An offline dataset** covering every node documented in this section (all four hops plus both bonus finds) — genuinely clickable end-to-end, no network required, so it works even on flaky booth WiFi.
-- **A live SPARQL mode** against the real endpoint `https://rinf.data.era.europa.eu/api/v1/sparql/rinf` (supplied by the user; a prior attempt pointed at `https://graph.data.era.europa.eu/sparql`, now superseded by this RINF-scoped one — worth revisiting as a fallback if this endpoint turns out not to cover every ERA class, e.g. `Track` resources under `/949/track/`). Paste *any* ERA URI — including ones outside the curated dataset — switch "Data source" to "Try live SPARQL," and it queries the resource's real outgoing/incoming triples plus best-effort `rdfs:label`/`skos:prefLabel` lookups, rendering them the same way as the offline nodes. Clicking a live-fetched bubble lazily fetches *that* resource in turn — real "follow your nose" against the live graph, not just the offline dataset.
+- **An offline dataset**, rebuilt 2026-08-16 around Oslo S and covering every node documented in this section (both hops plus all three bonus finds) — genuinely clickable end-to-end, no network required, so it works even on flaky booth WiFi.
+- **A live SPARQL mode** against `https://graph.data.era.europa.eu/repositories/rinf-plus`, the real GraphDB repository behind ERA's own graph browser — verified working end-to-end in a real browser (confirmed CORS headers, confirmed matching data, confirmed multi-hop click-through). An earlier candidate endpoint, `rinf.data.era.europa.eu/api/v1/sparql/rinf`, does not work from a browser: GET requests to it hang with no response, and its CORS policy only allows its own app's origin. Paste *any* ERA URI — including ones outside the curated dataset — switch "Data source" to "Try live SPARQL," and it queries the resource's real outgoing/incoming triples plus best-effort `rdfs:label`/`skos:prefLabel` lookups (including the node's own label, not just its neighbours'), rendering them the same way as the offline nodes. Clicking a live-fetched bubble lazily fetches *that* resource in turn — real "follow your nose" against the live graph, not just the offline dataset. Note this live mode queries ERA's own SPARQL endpoint specifically — it does not reach non-ERA Linked Data servers like Bane NOR's, even though the offline Oslo S dataset above was sourced partly from there.
 - Basic keyboard accessibility (every bubble and breadcrumb entry is a focusable, `Enter`-activatable control) and a responsive mobile layout.
 
-Tested end-to-end with headless-browser click-throughs of every offline hop, the breadcrumb/back behaviour, and the unknown-URI fallback message. **The live SPARQL mode's parsing/rendering logic was also tested end-to-end against a mocked response** (fabricated but well-formed SPARQL JSON standing in for the real endpoint) to confirm the code path itself is bug-free — but the *real* `rinf.data.era.europa.eu/api/v1/sparql/rinf` endpoint has never actually been queried from this session, since that domain is blocked by this sandbox's network egress policy. Whether the real endpoint accepts GET queries and sends the CORS headers a browser requires is therefore still unverified — see the Section 9 checklist.
+Tested end-to-end in a real browser (Playwright + system Chrome, not just a headless mock): every offline hop, the breadcrumb/back behaviour and its live/offline separation, the unknown-URI fallback message, live-mode click-through against the real ERA endpoint, and bubble/edge sizing under a real 24-edge live node. Deployed and confirmed live at https://gatemezing.github.io/onto-dissemination/.
 
 ---
 
@@ -287,9 +273,9 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 - [ ] Confirm the exact GitLab/GitHub repository link to share with technical visitors (e.g., the ERA Ontology group repository).
 - [ ] Have a compliance-aware colleague sign off on the FAQ answer to "Is this mandatory?" — this is the question most likely to be pressed on by regulators/NSAs.
 - [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `data-interop.era.europa.eu` → Data stories (this session's network egress policy blocked that domain, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
-- [ ] Hop 1 and hop 2 of the Section 6 bubble view (Brussels Airport – Zaventem → Section of Line → Y.Brucargo) are confirmed from screenshots, plus two bonus finds (the infrastructure-manager reuse hub; a Track node with real/missing TSI parameters). Still needed: the full, untruncated text of a few labels cut off on a phone screen (e.g. "Validity period from 20…", the exact date), confirmed on a wider screen.
-- [ ] `scripts/assets/era-follow-your-nose-demo.mp4` is a generated mockup, not real screen-capture footage — all bubble content is now drawn from verified screenshots, but it's still a stylized re-creation, not pixel-accurate footage of the real UI. Before using it publicly: replace (or supplement) it with an actual screen recording of `graph.data.era.europa.eu`.
-- [ ] `scripts/assets/era-graph-explorer-app.html`'s live SPARQL mode now points at the real user-supplied endpoint (`https://rinf.data.era.europa.eu/api/v1/sparql/rinf`) and its parsing/rendering logic is tested against a mocked response, but the real endpoint has never actually been queried from this session (network egress policy blocks it here). Before demoing live mode: open the app on a normal network, switch Data source to "Try live," and confirm a real query succeeds (checks both that GET queries work and that the endpoint sends browser-compatible CORS headers). If it doesn't cover a resource you need (e.g. a `Track`), try reverting `LIVE_ENDPOINT` to `https://graph.data.era.europa.eu/sparql`, the prior candidate. The offline demo mode needs no such check and is already tested end-to-end.
+- [x] Section 6's Oslo S worked example (hops 1–4 plus all three bonus finds) is now fetched and confirmed directly over HTTP from Bane NOR's Linked Data server and the ERA SPARQL endpoint, not from screenshots — done 2026-08-16.
+- [ ] `scripts/assets/era-follow-your-nose-demo.mp4` still depicts the *original* Brussels Airport walkthrough and has not been regenerated to match Oslo S — see the "Explainer video mockup" note in Section 6. Before using it publicly: either regenerate it against Oslo S (real screen-recorded footage or clicks), or present it explicitly as a separate Brussels-based example rather than implying it matches the app.
+- [x] `scripts/assets/era-graph-explorer-app.html`'s live SPARQL mode now points at `https://graph.data.era.europa.eu/repositories/rinf-plus`, verified end-to-end in a real browser (real data returned, CORS headers confirmed, multi-hop click-through tested) — done 2026-08-16. The offline demo mode (now Oslo S) is also tested end-to-end.
 - [ ] Pilot the 3-minute booth talk and the FAQ live with 2–3 colleagues playing the "railway expert" role, and update Section 8 with real feedback once available.
 - [ ] Translate the elevator pitch (Section 2) into German for the Berlin venue, if booth staff will engage German-speaking visitors directly.
 
@@ -335,7 +321,8 @@ Use each script section as the source text for a specific deliverable:
 - InnoTrans 2026 dates and venue — [InnoTrans official site](https://www.innotrans.de/en) (22–25 September 2026, Berlin ExpoCenter City)
 - Section 5 query catalogue reconstructed from — [GitHub: VladimirAlexiev/RailDataForum2025-SPARQL](https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL) (Rail Data Forum 2025 SPARQL tutorial against `data-interop.era.europa.eu`, ERA ontology v3.0.1). **`data-interop.era.europa.eu` itself was not reachable from this session (blocked by network egress policy) — its actual "Data stories" section must be checked directly before the event.**
 - "Follow your nose" Linked Data principle — [W3C Design Issues: Linked Data, Tim Berners-Lee](https://www.w3.org/DesignIssues/LinkedData.html)
-- ERA graph browser (bubble visualization tool, built on **Ontotext GraphDB Workbench**'s Visual graph feature) — `graph.data.era.europa.eu/graphs-visualizations`. Not reachable from this session's own network access (blocked by network egress policy, same as the other `*.era.europa.eu` subdomains). **All of Section 6's worked examples and bonus findings (hop 1, hop 2, and the infrastructure-manager / Track / validity-period finds) are confirmed from user-supplied screenshots**, not independently re-browsed by this session.
+- ERA graph browser (bubble visualization tool, built on **Ontotext GraphDB Workbench**'s Visual graph feature) — `graph.data.era.europa.eu/graphs-visualizations`, backed by the SPARQL endpoint `graph.data.era.europa.eu/repositories/rinf-plus`. Reachable and queried directly as of 2026-08-16 — **all of Section 6's worked examples and bonus findings are confirmed by live HTTP requests during this session**, not from screenshots.
+- Bane NOR Linked Data — `https://data.banenor.no/data/`, a Fuseki-backed Linked Data server publishing Norwegian railway infrastructure (including Oslo S, Section 6's current worked example) using the ERA ontology alongside railML3/RailTopoModel. Supports standard content negotiation (`Accept: application/ld+json` / `text/turtle` / `application/rdf+xml`) and open CORS.
 - W3C Time Ontology (OWL-Time) — [W3C Recommendation](https://www.w3.org/TR/owl-time/), referenced for the `Temporal Feature` / `Time instant` classes seen in Section 6's validity-period bonus finding.
 
 **All version numbers, legal-status wording, endpoint URLs, the Section 5 "Top 5" data stories, and the Section 6 bubble-view walkthrough above should be re-verified close to the event date (see Section 9) — ontology versions, legal framing, and the site's content can change.**

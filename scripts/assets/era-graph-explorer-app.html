@@ -148,7 +148,7 @@
 <div id="app">
   <div id="topbar">
     <h1>ERA Ontology Explorer</h1>
-    <input id="uriInput" type="text" spellcheck="false" placeholder="Paste an ERA URI, e.g. http://data.europa.eu/949/operationalPoint/a8e453be0d">
+    <input id="uriInput" type="text" spellcheck="false" placeholder="Paste an ERA URI, e.g. https://data.banenor.no/data/_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c">
     <button class="btn primary" id="goBtn">Go</button>
     <button class="btn" id="backBtn" title="Back">← Back</button>
     <div id="modeToggle">
@@ -183,171 +183,220 @@
 <script>
 /* =========================================================================
    DATA MODEL — offline demo dataset
-   Every node/edge here is transcribed from real screenshots of
-   graph.data.era.europa.eu (Ontotext GraphDB Workbench "Visual graph"),
-   supplied by the user across this conversation and documented in
-   scripts/innotrans2026-era-ontology-script.md, Section 6. Where a node's
-   own dereferenceable URI wasn't visible in a screenshot, a synthetic
-   "demo:" id is used instead of guessing one — those are clearly marked.
-   "Not provided" / "Not applicable" values are kept verbatim, including
-   the honest gaps, rather than invented.
+   Every node/edge here was fetched directly over HTTP during this authoring
+   session — not screenshots, not invented — from two real, independent
+   Linked Data sources describing Oslo S (Oslo Central Station), Norway's
+   largest railway station:
+     1. https://data.banenor.no/data/_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c
+        — Bane NOR's own Fuseki-backed Linked Data server (station, track,
+        primary-location, validity, subnetwork and org resources below),
+        fetched with `Accept: application/ld+json` content negotiation.
+     2. https://graph.data.era.europa.eu/repositories/rinf-plus and
+        /repositories/ERA-Onto — the same ERA SPARQL endpoint the live mode
+        uses, queried for the shared http://data.europa.eu/949/ (era:) URIs
+        that Bane NOR's data itself points to (the infrastructure-manager
+        role/org, and the "station" operational-point-type concept).
+   Oslo S has 482 real era:hasPart tracks, 1045 signals, 52 stopping places,
+   etc. — far too many to render. As in the original Brussels Airport
+   dataset, only a small, clearly-labelled representative sample is
+   individually explored; every truncation is called out in a `note`
+   rather than silently hidden. Unresolved reference URIs (values this
+   session didn't independently dereference) are labelled from their own
+   URI and marked as such, never invented.
    ========================================================================= */
 const NODES = {
-  opBrusselsAirport: {
-    uri: 'http://data.europa.eu/949/operationalPoint/a8e453be0d',
-    label: 'Brussels Airport – Zaventem', cls: 'era:OperationalPoint', swatch:'center',
+  opOsloS: {
+    uri: 'https://data.banenor.no/data/_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c',
+    label: 'Oslo S', cls: 'era:OperationalPoint', swatch: 'center',
     edges: [
-      {pred:'Canonical URI', dir:'out', target:'litBEFBNL'},
-      {pred:'Primary location', dir:'out', target:'litBE00219'},
       {pred:'type', dir:'out', target:'classOperationalPoint'},
       {pred:'type', dir:'out', target:'classInfrastructureElement'},
-      {pred:'Type of operational point', dir:'out', target:'litStation'},
-      {pred:'in country', dir:'out', target:'countryBelgium'},
-      {pred:'validity', dir:'out', target:'validityPeriod1'},
-      {pred:'net reference', dir:'out', target:'railwayLocOP'},
-      {pred:'Op. point at start of section of line', dir:'out', target:'solBrucargo'},
-      {pred:'Op. point at end of section of line', dir:'out', target:'solYLuchthaven'},
-      {pred:'is part of / has part', dir:'reciprocal', target:'trackRunningTrack'},
-    ]
-  },
-  solBrucargo: {
-    uri: 'demo:sectionOfLine/0364-BEFBNL-BEYBR', label:'Section of Line Brussels…', cls:'era:SectionOfLine', swatch:'center',
-    edges: [
-      {pred:'Canonical URI', dir:'out', target:'litSoLUriBrucargo'},
-      {pred:'National line identification', dir:'out', target:'litLine0364'},
-      {pred:'type', dir:'out', target:'classSectionOfLine'},
-      {pred:'type', dir:'out', target:'classInfrastructureElement'},
-      {pred:'validity', dir:'out', target:'validityPeriod1'},
-      {pred:'in country', dir:'out', target:'countryBelgium'},
-      {pred:'Nature of Section of Line', dir:'out', target:'litRegularSoL'},
-      {pred:'Op. point at start of section of line', dir:'out', target:'opBrusselsAirport'},
-      {pred:'Op. point at end of section of line', dir:'out', target:'opYBrucargo'},
+      {pred:'Unique OP ID', dir:'out', target:'litUopidNOOSL'},
+      {pred:'Type of operational point', dir:'out', target:'opTypeStation'},
+      {pred:'Primary location', dir:'out', target:'primaryLocationNO00100'},
+      {pred:'in country', dir:'out', target:'countryNorway'},
+      {pred:'validity', dir:'out', target:'validityInterval2023'},
       {pred:'infrastructure manager', dir:'out', target:'imRoleHub'},
-      {pred:'is part of / has part', dir:'reciprocal', target:'track1238'},
-    ]
+      {pred:'has part', dir:'out', target:'trackOB2'},
+      {pred:'has part', dir:'out', target:'trackLeafOther'},
+      {pred:'is part of / has part', dir:'reciprocal', target:'subnetworkNationaltheatret'},
+      {pred:'schematic overview', dir:'out', target:'litSchematicUrl'},
+      {pred:'has designator', dir:'out', target:'designatorSjnOsl'},
+      {pred:'operation type', dir:'out', target:'opoperationStationPassenger'},
+    ],
+    note:'482 real era:hasPart tracks, 1045 signals and 52 stopping places exist for Oslo S — only one track (ØB2) is individually explored below; the rest are honestly out of scope for a readable demo, not hidden.'
   },
-  solYLuchthaven: {
-    uri: 'demo:sectionOfLine/0364-BEYLHVN-BEFB', label:'Section of Line Y.Luchthaven…', cls:'era:SectionOfLine', swatch:'center',
+  trackOB2: {
+    uri: 'https://data.banenor.no/data/_track_3992b0b1-1228-4033-b71e-4d64f9721182',
+    label: 'ØB2', cls: 'era:Track (secondaryTrack)', swatch: 'lgreen',
     edges: [
-      {pred:'National line identification', dir:'out', target:'litLine0364'},
-      {pred:'Canonical URI', dir:'out', target:'litSoLUriYLuchthaven'},
-      {pred:'type', dir:'out', target:'classSectionOfLine'},
-      {pred:'type', dir:'out', target:'classInfrastructureElement'},
-      {pred:'validity', dir:'out', target:'validityPeriod1'},
-      {pred:'in country', dir:'out', target:'countryBelgium'},
-      {pred:'Nature of Section of Line', dir:'out', target:'litRegularSoL'},
-      {pred:'Op. point at start of section of line', dir:'out', target:'opYLuchthaven'},
-      {pred:'Op. point at end of section of line', dir:'out', target:'opBrusselsAirport'},
-      {pred:'is part of / has part', dir:'reciprocal', target:'track1504'},
+      {pred:'type', dir:'out', target:'classTrack'},
+      {pred:'Track ID', dir:'out', target:'litTrackIdKOSPO'},
+      {pred:'Track direction', dir:'out', target:'trackDirB'},
+      {pred:'Maximum permitted speed', dir:'out', target:'litMaxSpeed40'},
+      {pred:'Contact line system', dir:'out', target:'litContactLineNotElectrified'},
+      {pred:'has track type', dir:'out', target:'litTrackType3'},
+      {pred:'infrastructure manager', dir:'out', target:'imRoleHub'},
+      {pred:'in country', dir:'out', target:'countryNorway'},
+      {pred:'is part of', dir:'out', target:'opOsloS'},
+      {pred:'refers to infrastructure manager (railML)', dir:'out', target:'baneNorRailml'},
     ]
   },
-  validityPeriod1: {
-    uri: 'demo:validityPeriod/shared-2020-hub', label:'Validity period from 20…', cls:'era:ValidityPeriod', swatch:'center',
+  primaryLocationNO00100: {
+    uri: 'https://data.banenor.no/data/_primaryLocation_NO00100',
+    label: 'Oslo S (primary location)', cls: 'era:PrimaryLocation', swatch: 'purple',
+    edges: [
+      {pred:'type', dir:'out', target:'classPrimaryLocation'},
+      {pred:'primary location code', dir:'out', target:'litNO00100'},
+      {pred:'primary location name', dir:'out', target:'litOsloSName'},
+      {pred:'validity', dir:'out', target:'validityInterval2023'},
+      {pred:'in country', dir:'out', target:'countryNorway'},
+      {pred:'infrastructure manager', dir:'out', target:'imRoleHub'},
+    ]
+  },
+  opTypeStation: {
+    uri: 'http://data.europa.eu/949/concepts/op-types/10',
+    label: 'station', cls: 'skos:Concept (ERA Operational Point Types)', swatch: 'orange',
+    edges: [
+      {pred:'type', dir:'out', target:'classSkosConcept'},
+      {pred:'prefLabel (es)', dir:'out', target:'litEstacion'},
+      {pred:'definition', dir:'out', target:'litStationDefinition'},
+      {pred:'notation', dir:'out', target:'lit10'},
+    ],
+    note:'The exact same concept URI (era:concepts/op-types/10) that classified Brussels Airport in the original version of this demo — a genuine cross-country interoperability example: Bane NOR (Norway) and Infrabel/RINF (Belgium) both reuse the one shared ERA vocabulary term for "station".'
+  },
+  validityInterval2023: {
+    uri: 'https://data.banenor.no/data/_validity_interval__timeinstant_2023-09-17_no_end_known',
+    label: 'Validity from 2023-09-17 (no end known)', cls: 'era:TemporalFeature / time:Interval', swatch: 'center',
     edges: [
       {pred:'type', dir:'out', target:'classTemporalFeature'},
-      {pred:'type', dir:'out', target:'classTemporalEntity'},
-      {pred:'has end', dir:'out', target:'date20781231'},
-      {pred:'validity', dir:'in', target:'opBrusselsAirport'},
-      {pred:'validity', dir:'in', target:'solBrucargo'},
-      {pred:'validity', dir:'in', target:'solYLuchthaven'},
-      {pred:'validity', dir:'in', target:'trackRunningTrack'},
-      {pred:'validity', dir:'in', target:'trackAnvers'},
-      {pred:'validity', dir:'in', target:'trackKontich'},
-      {pred:'validity', dir:'in', target:'trackDiest'},
-      {pred:'validity', dir:'in', target:'trackMalines'},
-      {pred:'validity', dir:'in', target:'trackAntwerpenBerchem'},
-    ]
+      {pred:'type', dir:'out', target:'classTimeInterval'},
+      {pred:'has beginning', dir:'out', target:'timeinstant2023'},
+      {pred:'validity', dir:'in', target:'opOsloS'},
+      {pred:'validity', dir:'in', target:'primaryLocationNO00100'},
+    ],
+    note:'A real reuse hub: this exact validity-interval URI is pointed to by both Oslo S and its primary-location resource — the same "shared node" pattern the original Brussels Airport demo highlighted.'
   },
-  date20781231: {
-    uri: 'demo:temporal/date_2078-12-31', label:'date_2078-12-31', cls:'time:Instant', swatch:'blue',
+  timeinstant2023: {
+    uri: 'https://data.banenor.no/data/_timeinstant_2023-09-17',
+    label: 'date_2023-09-17', cls: 'time:Instant', swatch: 'blue',
     edges: [
       {pred:'type', dir:'out', target:'classTimeInstant'},
-      {pred:'has end', dir:'in', target:'validityPeriod1'},
-    ],
-    note:'Confirmed as a reuse hub for "dozens" of other validity periods per the live screenshot — only this one incoming link is individually captured here; the rest were not enumerated.'
+      {pred:'in XSD date', dir:'out', target:'lit20230917'},
+      {pred:'has beginning', dir:'in', target:'validityInterval2023'},
+    ]
   },
   imRoleHub: {
-    uri: 'demo:organisationRole/im-role-hub', label:'IM role of the body wit…', cls:'era:OrganisationRole', swatch:'gold',
+    uri: 'http://data.europa.eu/949/organisations/0076_IM',
+    label: 'IM role of the body with organisation code 0076', cls: 'era:OrganisationRole', swatch: 'gold',
     edges: [
       {pred:'type', dir:'out', target:'classOrganisationRole'},
-      {pred:'has organisation role', dir:'out', target:'infrabelOrg'},
-      {pred:'infrastructure manager', dir:'in', target:'solBrucargo'},
-      {pred:'infrastructure manager', dir:'in', target:'solYLuchthaven'},
-      {pred:'infrastructure manager', dir:'in', target:'litLine1296'},
-      {pred:'infrastructure manager', dir:'in', target:'litLine1335'},
-      {pred:'infrastructure manager', dir:'in', target:'litLine1877'},
-      {pred:'infrastructure manager', dir:'in', target:'litLine334'},
+      {pred:'has organisation role', dir:'out', target:'litRoleIM'},
+      {pred:'role of', dir:'out', target:'baneNorEra'},
+      {pred:'infrastructure manager', dir:'in', target:'opOsloS'},
+      {pred:'infrastructure manager', dir:'in', target:'trackOB2'},
+      {pred:'infrastructure manager', dir:'in', target:'primaryLocationNO00100'},
     ],
-    note:'The live screenshot showed dozens of incoming "infrastructure manager" links from numbered line/section codes — only a representative handful are modelled here, not the full set.'
+    note:'Queried directly from the ERA SPARQL endpoint (graph.data.era.europa.eu/repositories/rinf-plus), not from Bane NOR — the exact same era:OrganisationRole pattern the original Infrabel imRoleHub used, reused here 3× by Oslo S, its track, and its primary location.'
   },
-  trackRunningTrack: {
-    uri: 'demo:infrastructureElement/brussel-nat-luchthaven-track', label:'Brussel Nat. Luchthav…', cls:'era:InfrastructureElement (Running Track)', swatch:'lgreen',
+  baneNorEra: {
+    uri: 'http://data.europa.eu/949/organisations/0076',
+    label: 'Bane NOR', cls: 'era:Body', swatch: 'gold',
     edges: [
-      {pred:'type', dir:'out', target:'classRunningTrack'},
-      {pred:'type', dir:'out', target:'classInfrastructureElement'},
-      {pred:'Canonical URI', dir:'out', target:'litTrackUri'},
-      {pred:'in country', dir:'out', target:'countryBelgium'},
-      {pred:'validity', dir:'out', target:'validityPeriod1'},
-      {pred:'Nominal track gauge', dir:'out', target:'litGauge1435'},
-      {pred:'Category of line', dir:'out', target:'litNotProvided1'},
-      {pred:'Gauging', dir:'out', target:'litNotProvided2'},
-      {pred:'Document with the tra…', dir:'out', target:'litNotProvided3'},
-      {pred:'EC declaration of verifi…', dir:'out', target:'litNotProvided4'},
-      {pred:'…rt of a Railway Freig…', dir:'out', target:'litNotApplicable1'},
-      {pred:'is part of / has part', dir:'reciprocal', target:'opBrusselsAirport'},
-      {pred:'has part', dir:'out', target:'bruxellesNatAerop'},
+      {pred:'type', dir:'out', target:'classBody'},
+      {pred:'organisation code', dir:'out', target:'lit0076'},
+      {pred:'role', dir:'out', target:'imRoleHub'},
+    ]
+  },
+  baneNorRailml: {
+    uri: 'https://data.banenor.no/data/_im01',
+    label: 'Bane NOR (railML organisational unit)', cls: 'railml3:OrganizationalUnit', swatch: 'gold',
+    edges: [
+      {pred:'type', dir:'out', target:'classOrganizationalUnit'},
+      {pred:'description', dir:'out', target:'litBaneNorDescription'},
+      {pred:'is infrastructure manager', dir:'out', target:'litTrueBoolean'},
+      {pred:'has code', dir:'out', target:'litBNCode'},
+    ],
+    note:'A second, independent description of the same real organisation (Bane NOR) — this one from Bane NOR\'s own railML-based ontology rather than the shared ERA vocabulary, reached via the track\'s railml3:refersToInfrastructureManager link.'
+  },
+  subnetworkNationaltheatret: {
+    uri: 'https://data.banenor.no/data/_subnetwork_bane_OSLS_Nationaltheatret',
+    label: 'OSLS_Nationaltheatret', cls: 'bno:BaneSubnetwork', swatch: 'purple',
+    edges: [
+      {pred:'type', dir:'out', target:'classBaneSubnetwork'},
+      {pred:'description', dir:'out', target:'litNationaltheatretDesc'},
+    ]
+  },
+  designatorSjnOsl: {
+    uri: 'https://data.banenor.no/data/_designator_sjn_OSL',
+    label: 'OSL (SJN register)', cls: 'railml3:Designator', swatch: 'blue',
+    edges: [
+      {pred:'type', dir:'out', target:'classDesignator'},
+      {pred:'has register', dir:'out', target:'litSJN'},
+      {pred:'has entry', dir:'out', target:'litOSL'},
+      {pred:'was derived from', dir:'out', target:'litProvenanceUrl'},
+    ]
+  },
+  opoperationStationPassenger: {
+    uri: 'https://data.banenor.no/data/_opoperation_station_passenger',
+    label: 'station / passenger operation', cls: 'bno:OpOperation', swatch: 'pink',
+    edges: [
+      {pred:'type', dir:'out', target:'classOpOperation'},
+      {pred:'traffic type', dir:'out', target:'litPassenger'},
+      {pred:'operational type', dir:'out', target:'litStationOpType'},
     ]
   },
 
   /* ---- leaves / literals / classes ---- */
-  litBEFBNL:{label:'BEFBNL',cls:'canonical identifier',swatch:'blue',edges:[]},
-  litBE00219:{label:'BE00219',cls:'reference location code',swatch:'green',edges:[]},
   classOperationalPoint:{label:'Operational Point',cls:'rdfs:Class',swatch:'pink',edges:[]},
   classInfrastructureElement:{label:'Infrastructure element',cls:'rdfs:Class',swatch:'purple',edges:[]},
-  litStation:{label:'station',cls:'operational-point category',swatch:'orange',edges:[]},
-  countryBelgium:{label:'Belgium',cls:'era:Country',swatch:'orange',edges:[]},
-  railwayLocOP:{label:'Railway location of OP…',cls:'era:RailwayLocation (leaf — not further explored)',swatch:'purple',edges:[]},
-  litSoLUriBrucargo:{label:'0364_BEFBNL_BEYBR…',cls:'canonical identifier',swatch:'blue',edges:[]},
-  litLine0364:{label:'0364',cls:'national line number (shared)',swatch:'green',edges:[]},
-  classSectionOfLine:{label:'Section Of Line',cls:'rdfs:Class',swatch:'pink',edges:[]},
-  litRegularSoL:{label:'Regular SoL',cls:'section-of-line category',swatch:'orange',edges:[]},
-  opYBrucargo:{label:'Y.Brucargo (from 2019…)',cls:'era:OperationalPoint (freight yard — leaf, not individually explored)',swatch:'lav',edges:[]},
-  track1238:{label:'Track 1238-1 / 1238-2 (2017-09…)',cls:'era:Track (leaf)',swatch:'lgreen',edges:[]},
-  litSoLUriYLuchthaven:{label:'0364_BEYLHVN_BEFB…',cls:'canonical identifier',swatch:'blue',edges:[]},
-  opYLuchthaven:{label:'Y.Luchthaven (from 20…)',cls:'era:OperationalPoint (junction — leaf, not individually explored)',swatch:'lav',edges:[]},
-  track1504:{label:'Track 1504-1 / 1504-2 (2017-12…)',cls:'era:Track (leaf)',swatch:'lgreen',edges:[]},
-  classTemporalFeature:{label:'Temporal Feature',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
-  classTemporalEntity:{label:'Temporal entity',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
+  classTrack:{label:'Track',cls:'rdfs:Class (era:)',swatch:'pink',edges:[]},
+  classPrimaryLocation:{label:'Primary Location',cls:'rdfs:Class (era:)',swatch:'pink',edges:[]},
+  classSkosConcept:{label:'Concept',cls:'rdfs:Class (skos:)',swatch:'pink',edges:[]},
+  classTemporalFeature:{label:'Temporal Feature',cls:'rdfs:Class (era:)',swatch:'orange',edges:[]},
+  classTimeInterval:{label:'Interval',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
   classTimeInstant:{label:'Time instant',cls:'rdfs:Class (W3C Time Ontology)',swatch:'orange',edges:[]},
-  trackAnvers:{label:'Anvers - Central-2…',cls:'track/line-section (leaf)',swatch:'lav',edges:[]},
-  trackKontich:{label:'Kontich - Voie V - Secti…',cls:'track/line-section (leaf)',swatch:'lav',edges:[]},
-  trackDiest:{label:'Diest - Voie II - Section',cls:'track/line-section (leaf)',swatch:'lav',edges:[]},
-  trackMalines:{label:'Malines - Voie V - Sect…',cls:'track/line-section (leaf)',swatch:'lav',edges:[]},
-  trackAntwerpenBerchem:{label:'Antwerpen - Berchem…',cls:'track/line-section (leaf; repeated many times in the live view)',swatch:'lav',edges:[]},
   classOrganisationRole:{label:'Organisation Role',cls:'rdfs:Class',swatch:'pink',edges:[]},
-  infrabelOrg:{label:'Infrastructure Manager (Infrabel)',cls:'era:InfrastructureManager (leaf)',swatch:'blue',edges:[]},
-  litLine1296:{label:'1296-1 (from 2026-0…)',cls:'line/section identifier (leaf)',swatch:'gold',edges:[]},
-  litLine1335:{label:'1335-1 (from 2023-12…)',cls:'line/section identifier (leaf)',swatch:'gold',edges:[]},
-  litLine1877:{label:'1877-2 (from 2025-06…)',cls:'line/section identifier (leaf)',swatch:'gold',edges:[]},
-  litLine334:{label:'334-2 (from 2026-06-…)',cls:'line/section identifier (leaf)',swatch:'gold',edges:[]},
-  classRunningTrack:{label:'Running track',cls:'rdfs:Class',swatch:'pink',edges:[]},
-  litTrackUri:{label:'0088_BEFBNL_Brusse…',cls:'canonical identifier',swatch:'blue',edges:[]},
-  litGauge1435:{label:'1435',cls:'nominal track gauge, mm (standard gauge)',swatch:'green',edges:[]},
-  litNotProvided1:{label:'Not provided',cls:'(TSI field defined, value absent)',swatch:'grey',edges:[]},
-  litNotProvided2:{label:'Not provided',cls:'(TSI field defined, value absent)',swatch:'grey',edges:[]},
-  litNotProvided3:{label:'Not provided',cls:'(TSI field defined, value absent)',swatch:'grey',edges:[]},
-  litNotProvided4:{label:'Not provided',cls:'(TSI field defined, value absent)',swatch:'grey',edges:[]},
-  litNotApplicable1:{label:'Not applicable',cls:'(TSI field defined, does not apply here)',swatch:'grey',edges:[]},
-  bruxellesNatAerop:{label:'Bruxelles Nat. Aérop.',cls:'French-language name variant (leaf)',swatch:'lgreen',edges:[]},
+  classBody:{label:'Body',cls:'rdfs:Class (era:)',swatch:'pink',edges:[]},
+  classOrganizationalUnit:{label:'Organizational Unit',cls:'rdfs:Class (railml3:)',swatch:'pink',edges:[]},
+  classBaneSubnetwork:{label:'Bane Subnetwork',cls:'rdfs:Class (bno:)',swatch:'pink',edges:[]},
+  classDesignator:{label:'Designator',cls:'rdfs:Class (railml3:)',swatch:'pink',edges:[]},
+  classOpOperation:{label:'Op Operation',cls:'rdfs:Class (bno:)',swatch:'pink',edges:[]},
+  litUopidNOOSL:{label:'NOOSL',cls:'unique operational-point ID (era:uopid)',swatch:'blue',edges:[]},
+  countryNorway:{label:'Norway',cls:'era:Country',swatch:'orange',edges:[]},
+  trackLeafOther:{uri:'https://data.banenor.no/data/_track_d3fca422-8aa9-4a31-b699-613949a864f6',label:'Track (unexplored)',cls:'era:Track (leaf — 1 of 482 hasPart tracks; not individually explored)',swatch:'lgreen',edges:[]},
+  litSchematicUrl:{label:'banenor.no/…/Oslo S (schematic overview)',cls:'external documentation URL (era:schematicOverviewOP)',swatch:'grey',edges:[]},
+  litTrackIdKOSPO:{label:'KO-SPO-003462',cls:'track ID (era:trackId)',swatch:'blue',edges:[]},
+  trackDirB:{label:'B',cls:'skos:Concept — running direction "B": both directions defined by the Section of Line',swatch:'teal',edges:[]},
+  litMaxSpeed40:{label:'40',cls:'maximum permitted speed, km/h (era:maximumPermittedSpeed)',swatch:'green',edges:[]},
+  litContactLineNotElectrified:{label:'not_electrified',cls:'contact line system (reference URI — not independently dereferenced in this curation)',swatch:'grey',edges:[]},
+  litTrackType3:{label:'3',cls:'track type code (bno:hasTrackType)',swatch:'green',edges:[]},
+  litNO00100:{label:'NO00100',cls:'primary location code (era:primaryLocationCode)',swatch:'blue',edges:[]},
+  litOsloSName:{label:'Oslo S',cls:'primary location name (era:primaryLocationName)',swatch:'green',edges:[]},
+  litEstacion:{label:'estación',cls:'skos:prefLabel @es',swatch:'orange',edges:[]},
+  litStationDefinition:{label:'large or major railway node with several functions, important for international traffic, basic for national railway system',cls:'skos:definition (from the ERA-Onto repository)',swatch:'grey',edges:[]},
+  lit10:{label:'10',cls:'skos:notation',swatch:'green',edges:[]},
+  lit20230917:{label:'2023-09-17',cls:'xsd:date (time:inXSDDate)',swatch:'blue',edges:[]},
+  litRoleIM:{label:'IM',cls:'organisation-role concept (era:concepts/organisation-roles/IM — Infrastructure Manager)',swatch:'orange',edges:[]},
+  lit0076:{label:'0076',cls:'organisation code (era:organisationCode)',swatch:'blue',edges:[]},
+  litBaneNorDescription:{label:'The Norwegian government agency responsible for the national railway infrastructure.',cls:'dcterms:description (bno:_im01)',swatch:'grey',edges:[]},
+  litTrueBoolean:{label:'true',cls:'xsd:boolean (bno:isInfrastructureManager)',swatch:'green',edges:[]},
+  litBNCode:{label:'BN',cls:'organisation code (railml3:hasCode)',swatch:'blue',edges:[]},
+  litNationaltheatretDesc:{label:'Nationaltheatret',cls:'dcterms:description',swatch:'green',edges:[]},
+  litSJN:{label:'SJN',cls:'designator register (railml3:hasRegister)',swatch:'blue',edges:[]},
+  litOSL:{label:'OSL',cls:'designator entry (railml3:hasEntry)',swatch:'blue',edges:[]},
+  litProvenanceUrl:{label:'orv.banenor.no/…/stedskoder (provenance)',cls:'external documentation URL (prov:wasDerivedFrom)',swatch:'grey',edges:[]},
+  litPassenger:{label:'passenger',cls:'traffic type (railml3:hasTrafficType)',swatch:'orange',edges:[]},
+  litStationOpType:{label:'station',cls:'operational type (railml3:hasOperationalType)',swatch:'orange',edges:[]},
 };
 
 const QUICK_LINKS = [
-  ['opBrusselsAirport','Brussels Airport – Zaventem (hop 1)'],
-  ['solBrucargo','Section of Line → Y.Brucargo (hop 2)'],
-  ['validityPeriod1','Validity period reuse hub (hop 3)'],
-  ['solYLuchthaven','Section of Line → Y.Luchthaven (hop 4)'],
-  ['imRoleHub','Infrastructure-manager reuse hub'],
-  ['trackRunningTrack','Track with real + "Not provided" fields'],
+  ['opOsloS','Oslo S (hop 1)'],
+  ['trackOB2','Track ØB2 — real speed + electrification fields (hop 2)'],
+  ['validityInterval2023','Validity-interval reuse hub (hop 3)'],
+  ['primaryLocationNO00100','Primary location → same reuse hubs again (hop 4)'],
+  ['imRoleHub','Infrastructure-manager reuse hub (Bane NOR)'],
+  ['opTypeStation','Shared "station" concept — same URI Brussels Airport used'],
 ];
 
 /* URI/id lookup: accept a real URI, a demo: id, or a bare key */
@@ -692,7 +741,7 @@ document.getElementById('goBtn').addEventListener('click', handleGo);
 document.getElementById('uriInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleGo(); });
 
 /* boot */
-const startId = 'opBrusselsAirport';
+const startId = 'opOsloS';
 history_.length = 0;
 currentId = startId;
 layout(startId);
