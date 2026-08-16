@@ -34,3 +34,11 @@ Notes & checklist
 - **Fixed 2026-08-17:** the bubble graph itself now scales to fit the available screen space (recalculated on window resize), instead of being silently clipped by `overflow:hidden` on narrow viewports — verified on a 375px-wide mobile viewport with zero bubbles left out of bounds. Also dereferenced the remaining leaves: `era:hasSequence` (a real single-element RDF List reusing the LinearElement node), both `era:kmPost` targets, and the `era:ContactLineSystem` instance (another large reuse hub — 2,873 real tracks share it).
 - Bubbles now size themselves to their label content and connecting edges trim to the visible gap between bubbles instead of running underneath them; the breadcrumb tags live-fetched nodes and never mixes a live trail with an offline one.
 - Verify remaining live queries (Section 5 of the script) and legal/version wording before publishing or printing — see the checklist inside `scripts/innotrans2026-era-ontology-script.md`.
+
+
+## Links
+- Oslo OP: https://data.banenor.no/data/_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c
+- Paris Nord: http://data.europa.eu/949/operationalPoint/e09280af18
+- http://data.europa.eu/949/tentCorridor/ada4f64a55 (track in France with TenT information)
+-  https://gatemezing.github.io/onto-dissemination/
+- https://graph.data.era.europa.eu/graphs-visualizations?uri=https:%2F%2Fdata.banenor.no%2Fdata%2F_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c&role=subject
