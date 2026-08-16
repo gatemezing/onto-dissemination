@@ -239,7 +239,7 @@ const NODES = {
       {pred:'Contact line system', dir:'out', target:'litContactLineNotElectrified'},
       {pred:'has track type', dir:'out', target:'litTrackType3'},
       {pred:'validity', dir:'out', target:'validityInterval2019'},
-      {pred:'net reference', dir:'out', target:'litTrackNetRef'},
+      {pred:'net reference', dir:'out', target:'netLinearRefTrackLL'},
       {pred:'Not applicable', dir:'out', target:'litNotApplicableEtcs'},
       {pred:'Not applicable', dir:'out', target:'litNotApplicableTentNetworkLevel'},
       {pred:'not yet available', dir:'out', target:'litNotYetAvailableTrainDetection'},
@@ -262,8 +262,8 @@ const NODES = {
       {pred:'validity', dir:'out', target:'validityInterval2023'},
       {pred:'in country', dir:'out', target:'countryNorway'},
       {pred:'infrastructure manager', dir:'out', target:'imRoleHub'},
-      {pred:'net reference', dir:'out', target:'litPrimaryLocNetRef1'},
-      {pred:'net reference', dir:'out', target:'litPrimaryLocNetRef2'},
+      {pred:'net reference', dir:'out', target:'netAreaRefArealocation'},
+      {pred:'net reference', dir:'out', target:'netPointRefSpotlocation'},
       {pred:'primary location', dir:'in', target:'opOsloS'},
     ],
     note:'Fixed 2026-08-17: this node was originally missing its era:netReference links entirely (24 real values exist — 2 representative ones shown here) plus two of its four rdf:type values, caught by comparing it directly against graph.data.era.europa.eu\'s own view of this exact URI.'
@@ -412,6 +412,52 @@ const NODES = {
     uri:'http://data.europa.eu/949/Feature', label:'Feature',cls:'owl:Class (era:)',swatch:'purple',
     edges:[{pred:'comment', dir:'out', target:'litCommentFeature'}]
   },
+  classNetBasicReference:{
+    uri:'http://data.europa.eu/949/NetBasicReference', label:'Net Basic Reference',cls:'owl:Class (era:)',swatch:'purple',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentNetBasicReference'},
+      {pred:'subClassOf', dir:'out', target:'classFeature'},
+    ]
+  },
+  classNetAreaReference:{
+    uri:'http://data.europa.eu/949/NetAreaReference', label:'Net Area Reference',cls:'owl:Class (era:)',swatch:'purple',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentNetAreaReference'},
+      {pred:'subClassOf', dir:'out', target:'classNetBasicReference'},
+    ]
+  },
+  classNetPointReference:{
+    uri:'http://data.europa.eu/949/NetPointReference', label:'Net Point Reference',cls:'owl:Class (era:)',swatch:'purple',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentNetPointReference'},
+      {pred:'subClassOf', dir:'out', target:'classNetBasicReference'},
+    ]
+  },
+  classNetLinearReference:{
+    uri:'http://data.europa.eu/949/NetLinearReference', label:'Net Linear Reference',cls:'owl:Class (era:)',swatch:'purple',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentNetLinearReference'},
+      {pred:'subClassOf', dir:'out', target:'classNetBasicReference'},
+    ]
+  },
+  classNetElement:{
+    uri:'http://data.europa.eu/949/NetElement', label:'Net element',cls:'owl:Class (era:)',swatch:'teal',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentNetElement'},
+      {pred:'subClassOf', dir:'out', target:'classFeature'},
+    ]
+  },
+  classLinearElement:{
+    uri:'http://data.europa.eu/949/LinearElement', label:'Linear Element',cls:'owl:Class (era:)',swatch:'teal',
+    edges:[
+      {pred:'comment', dir:'out', target:'litCommentLinearElement'},
+      {pred:'subClassOf', dir:'out', target:'classNetElement'},
+    ]
+  },
+  classTopologicalCoordinate:{
+    uri:'http://data.europa.eu/949/TopologicalCoordinate', label:'Topological Coordinate',cls:'owl:Class (era:)',swatch:'teal',
+    edges:[{pred:'comment', dir:'out', target:'litCommentTopologicalCoordinate'}]
+  },
   classSkosConcept:{label:'Concept',cls:'rdfs:Class (skos:)',swatch:'pink',edges:[]},
   classTemporalEntity:{label:'Temporal entity',cls:'rdfs:Class (W3C Time Ontology, time:TemporalEntity)',swatch:'orange',edges:[]},
   classTemporalFeature:{
@@ -440,6 +486,13 @@ const NODES = {
   litCommentTemporalFeature:{label:'The union of TemporalDuration that represents a time extent and TemporalEntity that represents a temporal interval or instant.',cls:'rdfs:comment (era:TemporalFeature)',swatch:'grey',edges:[]},
   litCommentOrganisationRole:{label:'Represents an n-ary relationship between a Body and a role',cls:'rdfs:comment (era:OrganisationRole)',swatch:'grey',edges:[]},
   litCommentRunningTrack:{label:'A running track means any track used for train service movements; passing loops and meeting loops on plain line or track connections only required for train operation are not published',cls:'rdfs:comment (era:RunningTrack)',swatch:'grey',edges:[]},
+  litCommentNetBasicReference:{label:'Basic positioning reference within the ERA ontology. It represents different types of geographical locations. Geographical coordinates are provided according to the standard World Geodetic System (WGS84).',cls:'rdfs:comment (era:NetBasicReference)',swatch:'grey',edges:[]},
+  litCommentNetAreaReference:{label:'Represents an area reference in the network.',cls:'rdfs:comment (era:NetAreaReference)',swatch:'grey',edges:[]},
+  litCommentNetPointReference:{label:'Represents a point reference in the network.',cls:'rdfs:comment (era:NetPointReference)',swatch:'grey',edges:[]},
+  litCommentNetLinearReference:{label:'Represents a linear reference in the network.',cls:'rdfs:comment (era:NetLinearReference)',swatch:'grey',edges:[]},
+  litCommentNetElement:{label:'It is a representation of all building blocks of the topology. It references an associated topological network element.',cls:'rdfs:comment (era:NetElement)',swatch:'grey',edges:[]},
+  litCommentLinearElement:{label:'Pieces of tracks composing the topology',cls:'rdfs:comment (era:LinearElement)',swatch:'grey',edges:[]},
+  litCommentTopologicalCoordinate:{label:'Represents a topological coordinate.',cls:'rdfs:comment (era:TopologicalCoordinate)',swatch:'grey',edges:[]},
   litCommentBody:{label:'Is an organisation or a physical person',cls:'rdfs:comment (era:Body)',swatch:'grey',edges:[]},
   litUopidNOOSL:{label:'NOOSL',cls:'unique operational-point ID (era:uopid)',swatch:'blue',edges:[]},
   countryNorway:{label:'Norway',cls:'era:Country',swatch:'orange',edges:[]},
@@ -488,19 +541,86 @@ const NODES = {
   /* ---- added 2026-08-17: fields caught missing by direct comparison against
      graph.data.era.europa.eu's own view of trackOB2 and primaryLocationNO00100 ---- */
   validityInterval2019:{uri:'https://data.banenor.no/data/_validity_interval__timeinstant_2019-01-01_no_end_known',label:'Validity from 2019-01-01 (no end known)',cls:'era:TemporalFeature (leaf — a distinct, older validity record from the track itself, not individually explored)',swatch:'lav',edges:[]},
-  litTrackNetRef:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182',label:'linear location (unexplored)',cls:'era:netReference target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
   litNotApplicableEtcs:{label:'Not applicable',cls:'era:notApplicable → era:etcs (TSI field defined, does not apply to this track)',swatch:'grey',edges:[]},
   litNotApplicableTentNetworkLevel:{label:'Not applicable',cls:'era:notApplicable → era:tentNetworkLevel (TSI field defined, does not apply to this track)',swatch:'grey',edges:[]},
   litNotYetAvailableTrainDetection:{label:'Not yet available',cls:'era:notYetAvailable → era:trainDetectionSystem (TSI field defined, value not yet published)',swatch:'grey',edges:[]},
-  litPrimaryLocNetRef1:{uri:'https://data.banenor.no/data/_arealocation_c0576848-8f76-4489-aa6e-ae95b98c1a1c',label:'area location (unexplored)',cls:'era:netReference target (leaf — 1 of 24; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
-  litPrimaryLocNetRef2:{uri:'https://data.banenor.no/data/_spotlocation_308f0e34-0e5f-42c1-a1a9-74e0a03fabda_0.11322439_0.04987069_direction_both',label:'spot location (unexplored)',cls:'era:netReference target (leaf — 1 of 24; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
   trackViaValidityHub:{uri:'https://data.banenor.no/data/_track_9f1c4062-1557-44eb-b90b-783b56e9f27c',label:'Track (unexplored, via validity hub)',cls:'era:Track (leaf — reached only via the shared validity-interval reuse hub, not individually explored)',swatch:'lgreen',edges:[]},
+
+  /* ---- added 2026-08-17: dereferenced the era:netReference targets that
+     were previously inert leaves, following the real chain through
+     NetLinearReference -> NetPointReference -> TopologicalCoordinate ->
+     LinearElement (all real, all fetched live from graph.data.era.europa.eu,
+     all genuinely connected to Track ØB2's own linear location) ---- */
+  netAreaRefArealocation:{
+    uri:'https://data.banenor.no/data/_arealocation_c0576848-8f76-4489-aa6e-ae95b98c1a1c',
+    label:'Area location (Oslo S)', cls:'era:NetAreaReference', swatch:'purple',
+    edges:[
+      {pred:'type', dir:'out', target:'classNetAreaReference'},
+      {pred:'includes', dir:'out', target:'netElementIncludesLeaf1'},
+      {pred:'includes', dir:'out', target:'netElementIncludesLeaf2'},
+    ],
+    note:'This is era:NetAreaReference, not era:NetPointReference — a sibling class under the same era:NetBasicReference family (see netPointRefSpotlocation and netLinearRefTrackLL for the point/linear siblings). 483 real "includes" edges exist; only 2 representative ones are shown here.'
+  },
+  netPointRefSpotlocation:{
+    uri:'https://data.banenor.no/data/_spotlocation_308f0e34-0e5f-42c1-a1a9-74e0a03fabda_0.11322439_0.04987069_direction_both',
+    label:'Spot location (Oslo S)', cls:'era:NetPointReference', swatch:'purple',
+    edges:[
+      {pred:'type', dir:'out', target:'classNetPointReference'},
+      {pred:'applies to direction', dir:'out', target:'litSpotDirectionLeaf'},
+    ]
+  },
+  netLinearRefTrackLL:{
+    uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182',
+    label:'Linear location (Track ØB2)', cls:'era:NetLinearReference', swatch:'purple',
+    edges:[
+      {pred:'type', dir:'out', target:'classNetLinearReference'},
+      {pred:'starts at', dir:'out', target:'netPointRefStartpoint'},
+      {pred:'ends at', dir:'out', target:'netRefEndpointLeaf'},
+      {pred:'has sequence', dir:'out', target:'netRefSequenceLeaf'},
+    ]
+  },
+  netPointRefStartpoint:{
+    uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_startpoint_netreference',
+    label:'Start point (Track ØB2 linear location)', cls:'era:NetPointReference', swatch:'purple',
+    edges:[
+      {pred:'type', dir:'out', target:'classNetPointReference'},
+      {pred:'has LRS coordinate', dir:'out', target:'litLrsCoordinateLeaf'},
+      {pred:'has topo coordinate', dir:'out', target:'topoCoordStartpoint'},
+    ]
+  },
+  topoCoordStartpoint:{
+    uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_startpoint_topo_coordinate',
+    label:'Topological coordinate (Track ØB2 start point)', cls:'era:TopologicalCoordinate', swatch:'teal',
+    edges:[
+      {pred:'type', dir:'out', target:'classTopologicalCoordinate'},
+      {pred:'offset from origin', dir:'out', target:'litOffsetFromOrigin'},
+      {pred:'on linear element', dir:'out', target:'linearElementNetElement'},
+    ]
+  },
+  linearElementNetElement:{
+    uri:'https://data.banenor.no/data/_netelement_16fccfec-a9ff-45a9-9363-4c9774c3d7de_0.0',
+    label:'Net element (linear element, Track ØB2)', cls:'era:LinearElement', swatch:'teal',
+    edges:[
+      {pred:'type', dir:'out', target:'classLinearElement'},
+      {pred:'validity', dir:'out', target:'validityInterval2019'},
+      {pred:'length of net linear element', dir:'out', target:'litLengthNetLinearElement'},
+    ],
+    note:'validity here points to the exact same 2019 validity-interval resource as Track ØB2 itself — a topology-level building block reusing its parent track\'s validity record, the same reuse pattern seen throughout this dataset.'
+  },
   litTrackDirBDefinition:{label:'The normal running direction is both directions defined by the Section of Line.',cls:'skos:definition (era:concepts/track-running-directions/30)',swatch:'grey',edges:[]},
   litTrackDirBNotation:{label:'B',cls:'skos:notation',swatch:'green',edges:[]},
   litTrackDirSchemeRef:{label:'TrackRunningDirections',cls:'skos:ConceptScheme (leaf — the scheme this concept belongs to)',swatch:'grey',edges:[]},
   litRoleIMDefinition:{label:'A body or firm responsible for the operation, maintenance and renewal of railway infrastructure on a network, as well as responsible for participating in its development as determined by the Member State within the framework of its general policy on development and financing of infrastructure',cls:'skos:definition (era:concepts/organisation-roles/IM)',swatch:'grey',edges:[]},
   litRoleIMNotation:{label:'IM',cls:'skos:notation',swatch:'green',edges:[]},
   litRoleIMSource:{label:'eli/dir/2012/34 (EU Directive 2012/34, the Single European Railway Area directive)',cls:'dcterms:source — external legal citation URL',swatch:'grey',edges:[]},
+  netElementIncludesLeaf1:{uri:'https://data.banenor.no/data/_associatednetelement_0094c625-e878-43ba-a905-1a55641400c2_0.0_0.0_1.0_',label:'Associated net element (unexplored)',cls:'era:includes target (leaf — 1 of 483; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  netElementIncludesLeaf2:{uri:'https://data.banenor.no/data/_associatednetelement_010bb6c8-0173-4e0a-88fd-4b45e198cf31_0.0_0.0_1.0_',label:'Associated net element (unexplored)',cls:'era:includes target (leaf — 1 of 483; reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  litSpotDirectionLeaf:{uri:'http://data.europa.eu/949/concepts/orientations/02',label:'orientation concept (unexplored)',cls:'era:appliesToDirection target (leaf — SKOS concept, not individually dereferenced here)',swatch:'grey',edges:[]},
+  netRefEndpointLeaf:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_endpoint_netreference',label:'End point (unexplored)',cls:'era:NetPointReference (leaf — the mirror of netPointRefStartpoint, not individually explored)',swatch:'grey',edges:[]},
+  netRefSequenceLeaf:{uri:'https://data.banenor.no/data/_linearlocation_3992b0b1-1228-4033-b71e-4d64f9721182_sequence_0',label:'Sequence (unexplored)',cls:'era:hasSequence target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  litLrsCoordinateLeaf:{uri:'https://data.banenor.no/data/_linear_coordinate_lps02_393.49',label:'LRS coordinate (unexplored)',cls:'era:hasLrsCoordinate target (leaf — reference URI, not independently dereferenced)',swatch:'grey',edges:[]},
+  litOffsetFromOrigin:{label:'0.0',cls:'era:offsetFromOrigin',swatch:'green',edges:[]},
+  litLengthNetLinearElement:{label:'156.9530147539468',cls:'era:lengthOfNetLinearElement (metres)',swatch:'green',edges:[]},
 };
 
 const QUICK_LINKS = [
@@ -510,6 +630,7 @@ const QUICK_LINKS = [
   ['primaryLocationNO00100','Primary location → same reuse hubs again (hop 4)'],
   ['imRoleHub','Infrastructure-manager reuse hub (Bane NOR)'],
   ['opTypeStation','Shared "station" concept — same URI Brussels Airport used'],
+  ['netLinearRefTrackLL','Net-reference chain: linear → point → topology → LinearElement'],
 ];
 
 /* URI/id lookup: accept a real URI, a demo: id, or a bare key */
