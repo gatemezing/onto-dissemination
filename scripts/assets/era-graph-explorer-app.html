@@ -155,7 +155,7 @@
       <label>Data source</label>
       <select id="modeSelect">
         <option value="demo" selected>Offline demo (verified)</option>
-        <option value="live">Try live SPARQL (experimental)</option>
+        <option value="live">Try live ERA SPARQL</option>
       </select>
     </div>
   </div>
@@ -673,6 +673,8 @@ QUICK_LINKS.forEach(([id,label])=>{
    ========================================================================= */
 const LIVE_ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
 const LIVE_EDGE_LIMIT = 30; // keep the graph readable; real hub nodes can have far more
+const ERA_NAMESPACE = 'http://data.europa.eu/949/';
+const ERA_ONTOLOGY_GRAPH = 'http://data.europa.eu/949/graph/rinf/ontology';
 
 async function sparqlSelect(query, timeoutMs){
   const url = LIVE_ENDPOINT + '?query=' + encodeURIComponent(query);
@@ -694,10 +696,25 @@ function liveLocalName(uri){
 }
 
 async function fetchLiveTriples(uri){
-  const query = `SELECT ?other ?p ?dir WHERE {
+  // For any resource in the ERA ontology namespace (http://data.europa.eu/949/),
+  // explicitly pull in what the ontology itself says about it — rdfs:comment,
+  // rdfs:subClassOf, owl:disjointWith, etc. — from ERA's own ontology named
+  // graph. Most useful when uri is a class (e.g. era:PrimaryLocation) reached
+  // via a 'type' edge from an instance; matches what graph.data.era.europa.eu's
+  // visual graph shows for that class URI as subject. This endpoint's default
+  // (GRAPH-less) query already includes that named graph — confirmed by direct
+  // testing, byte-identical either way — so this branch is explicit/robust
+  // rather than silently relying on that store-specific default, and
+  // SELECT DISTINCT means any resulting duplicate rows collapse before LIMIT
+  // is applied, so it can't shrink the results either.
+  const ontologyClause = uri.startsWith(ERA_NAMESPACE)
+    ? `UNION { GRAPH <${ERA_ONTOLOGY_GRAPH}> { <${uri}> ?p ?other } BIND("out" AS ?dir) }`
+    : '';
+  const query = `SELECT DISTINCT ?other ?p ?dir WHERE {
     { <${uri}> ?p ?other . BIND("out" AS ?dir) }
     UNION
     { ?other ?p <${uri}> . BIND("in" AS ?dir) }
+    ${ontologyClause}
   } LIMIT ${LIVE_EDGE_LIMIT}`;
   return sparqlSelect(query, 8000);
 }
@@ -787,7 +804,7 @@ async function handleGo(){
     }
     goTo(key);
   } else {
-    toast('That URI isn\'t in the offline demo set. Try one of the "Known demo nodes" on the right, or switch Data source to "Try live".', 4500);
+    toast('That URI isn\'t in the offline demo set. Try one of the "Known demo nodes" on the right, or switch Data source to "Try live ERA SPARQL".', 4500);
   }
 }
 
