@@ -97,3 +97,29 @@ recursing backwards would reintroduce the same explosion problem, since some
 resources in this graph have tens of thousands of incoming edges (see the
 `era-graph-explorer-app.html` dataset's own reuse-hub notes for concrete
 examples).
+
+## track-5de5041d49
+
+The same recursive-to-leaves export, but for a single track
+(`http://data.europa.eu/949/track/5de5041d49`, one of the 22 real tracks
+under the Paris-Gare-de-Lyon operational point above) — full detail on one
+representative track, without the bulk of pulling in and expanding all 21
+of its siblings too.
+
+- **Query:** [`track-5de5041d49-query.rq`](track-5de5041d49-query.rq)
+- **Result:** [`track-5de5041d49.rdf`](track-5de5041d49.rdf) — RDF/XML, fetched
+  2026-08-19, 222 `rdf:Description` blocks / ~450 triples, runs in well
+  under a second (POST, same as above).
+
+Same machinery as `operationalPoint-f317d4ae4b-recursive-query.rq`, plus one
+addition: a track's `era:isPartOf` edge leads back to its parent operational
+point (kept — real, useful context: station name, country, canonical URI,
+primary location), but the operational point's own `era:hasPart` edge fans
+back out to *every* track it contains, and recursing into each of those
+would regenerate a full copy of this query per sibling — exactly the bulk
+this query exists to avoid. `era:hasPart` is excluded at every level, both
+as a recursion path and as a captured triple, since the single reciprocal
+`era:isPartOf` fact (captured once, at the root, via the reverse-edge block)
+already conveys the relationship without the 21-way fan-out. Verified: the
+only two `track/...` URIs anywhere in the result are this track's own URI
+and its own canonical-URI variant — zero sibling leakage.

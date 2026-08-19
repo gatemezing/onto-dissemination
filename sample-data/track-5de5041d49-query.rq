@@ -1,0 +1,87 @@
+# Recursively exports one specific track down to real leaf values, without
+# pulling in its 21 sibling tracks under the same operational point.
+#
+# This is the same recursive-to-leaves machinery as
+# operationalPoint-f317d4ae4b-recursive-query.rq (see that file's header
+# for the full rationale on cycle detection, ontology/vocabulary-bleed
+# prevention, and English-only labels), starting from a track instead of
+# its parent station, plus one addition:
+#
+# 5. SIBLING FAN-OUT. A track's era:isPartOf edge leads back to its parent
+#    era:OperationalPoint — useful context (station name, country,
+#    canonical URI, primary location, ...), so that hop is kept. But the
+#    operational point's own era:hasPart edge fans back out to *every*
+#    track it contains (22, for this station), and recursing into each of
+#    those regenerates a full copy of this same query for every sibling —
+#    exactly the bulk this query exists to avoid. era:hasPart is excluded
+#    from every level, both as a recursion path and as a captured triple,
+#    since the single reciprocal era:isPartOf fact (captured once, at the
+#    root, via the reverse-edge block below) already conveys the
+#    same relationship without the 21-way fan-out.
+#
+# Verified: reaches 158 distinct subjects / ~450 triples in well under a
+# second, with real track-specific TSI/RINF data (18 real era:notApplicable
+# fields, GSM-R network coverage, gauging profile, TEN classification, the
+# full infrastructure-manager organisation-role chain, its net-reference
+# topology chain) and zero sibling-track leakage — grep for "track/" in
+# the result and the only two hits are this track's own URI and its own
+# canonical URI variant.
+
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX sh:   <http://www.w3.org/ns/shacl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX era:  <http://data.europa.eu/949/>
+
+CONSTRUCT {
+  ?s0 ?p1 ?s1 .
+  ?s1 ?p2 ?s2 .
+  ?s2 ?p3 ?s3 .
+  ?s3 ?p4 ?s4 .
+  ?s4 ?p5 ?s5 .
+  ?rev ?prev ?s0 .
+}
+WHERE {
+  BIND(<http://data.europa.eu/949/track/5de5041d49> AS ?s0)
+
+  # Block list: standard vocabulary-description namespaces, era:-specific
+  # administrative/SHACL predicates, and era:hasPart (the sibling-track
+  # fan-out predicate — see note 5 above).
+  VALUES ?neverRecurse {
+    "^(http://www.w3.org/1999/02/22-rdf-syntax-ns#|http://www.w3.org/2000/01/rdf-schema#|http://www.w3.org/2002/07/owl#|http://www.w3.org/2004/02/skos/core#|http://purl.org/dc/terms/|http://data.europa.eu/eli/ontology#|http://www.w3.org/ns/shacl#|http://data.europa.eu/949/shaclShapeValidationRule|http://data.europa.eu/949/affectedClass|http://data.europa.eu/949/affectedProperty|http://data.europa.eu/949/scope$|http://data.europa.eu/949/rinfIndex|http://data.europa.eu/949/eratvIndex|http://data.europa.eu/949/tsiOPEAppendixD2Index|http://data.europa.eu/949/isConfirmedBy|http://data.europa.eu/949/changeRequestPreventsService|http://data.europa.eu/949/hasPart$)"
+  }
+
+  ?s0 ?p1 ?s1 .
+  FILTER(?p1 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s1) || LANG(?s1) = "en" || LANG(?s1) = "")
+  FILTER(?p1 != era:hasPart)
+  OPTIONAL {
+    FILTER(!REGEX(STR(?p1), ?neverRecurse) && ?s1 != ?s0)
+    FILTER NOT EXISTS { ?s1 a ?t1 . FILTER(?t1 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
+    ?s1 ?p2 ?s2 .
+    FILTER(?p2 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s2) || LANG(?s2) = "en" || LANG(?s2) = "")
+    FILTER(?p2 != era:hasPart)
+    OPTIONAL {
+      FILTER(!REGEX(STR(?p2), ?neverRecurse) && ?s2 != ?s0 && ?s2 != ?s1)
+      FILTER NOT EXISTS { ?s2 a ?t2 . FILTER(?t2 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
+      ?s2 ?p3 ?s3 .
+      FILTER(?p3 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s3) || LANG(?s3) = "en" || LANG(?s3) = "")
+      FILTER(?p3 != era:hasPart)
+      OPTIONAL {
+        FILTER(!REGEX(STR(?p3), ?neverRecurse) && ?s3 != ?s0 && ?s3 != ?s1 && ?s3 != ?s2)
+        FILTER NOT EXISTS { ?s3 a ?t3 . FILTER(?t3 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
+        ?s3 ?p4 ?s4 .
+        FILTER(?p4 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s4) || LANG(?s4) = "en" || LANG(?s4) = "")
+        FILTER(?p4 != era:hasPart)
+        OPTIONAL {
+          FILTER(!REGEX(STR(?p4), ?neverRecurse) && ?s4 != ?s0 && ?s4 != ?s1 && ?s4 != ?s2 && ?s4 != ?s3)
+          FILTER NOT EXISTS { ?s4 a ?t4 . FILTER(?t4 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
+          ?s4 ?p5 ?s5 .
+          FILTER(?p5 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s5) || LANG(?s5) = "en" || LANG(?s5) = "")
+          FILTER(?p5 != era:hasPart)
+        }
+      }
+    }
+  }
+  OPTIONAL { ?rev ?prev ?s0 . }
+}
