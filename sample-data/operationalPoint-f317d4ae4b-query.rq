@@ -1,0 +1,9 @@
+CONSTRUCT {
+  <http://data.europa.eu/949/operationalPoint/f317d4ae4b> ?p ?o .
+  ?s ?p2 <http://data.europa.eu/949/operationalPoint/f317d4ae4b> .
+}
+WHERE {
+  { <http://data.europa.eu/949/operationalPoint/f317d4ae4b> ?p ?o . }
+  UNION
+  { ?s ?p2 <http://data.europa.eu/949/operationalPoint/f317d4ae4b> . }
+}

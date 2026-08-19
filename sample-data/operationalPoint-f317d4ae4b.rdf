@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+	xmlns:rdf4j="http://rdf4j.org/schema/rdf4j#"
+	xmlns:sesame="http://www.openrdf.org/schema/sesame#"
+	xmlns:owl="http://www.w3.org/2002/07/owl#"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+	xmlns:fn="http://www.w3.org/2005/xpath-functions#">
+
+<rdf:Description rdf:about="http://data.europa.eu/949/operationalPoint/f317d4ae4b">
+	<rdf:type rdf:resource="http://data.europa.eu/949/InfrastructureElement"/>
+	<rdf:type rdf:resource="http://data.europa.eu/949/OperationalPoint"/>
+	<rdfs:label xml:lang="en">Paris-Gare-de-Lyon (from 1800-01-01 until 2382-01-01)</rdfs:label>
+	<validity xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/temporalFeature/224028f39b"/>
+	<canonicalURI xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/FR0000003578"/>
+	<inCountry xmlns="http://data.europa.eu/949/" rdf:resource="http://publications.europa.eu/resource/authority/country/FRA"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/5de5041d49"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/f340a70049"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/f8c1c35d6c"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/75ee4ee85d"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/2db9ffca52"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/c0652c194d"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/45d1610735"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/26943db869"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/7119d39efe"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/326de20988"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/e74f15e519"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/5000a91f45"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/b66c035678"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/8c319c0f9a"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/d45db00d6d"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/bb3a14fdbe"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/ec4d4d54dc"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/f3709653e6"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/3c615a2846"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/57683a05fd"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/728ca5b085"/>
+	<hasPart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/track/07897f579d"/>
+	<primaryLocation xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/primaryLocation/FR05975"/>
+	<primaryLocation xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/primaryLocation/FR08998"/>
+	<netReference xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/netReference/fbc1a6842f"/>
+	<uopid xmlns="http://data.europa.eu/949/">FR0000003578</uopid>
+	<opName xmlns="http://data.europa.eu/949/" xml:lang="en">Paris-Gare-de-Lyon</opName>
+	<opType xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/concepts/op-types/10"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/f340a70049">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/f8c1c35d6c">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/75ee4ee85d">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/2db9ffca52">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/c0652c194d">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/45d1610735">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/26943db869">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/7119d39efe">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/326de20988">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/e74f15e519">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/5000a91f45">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/b66c035678">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/8c319c0f9a">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/d45db00d6d">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/bb3a14fdbe">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/ec4d4d54dc">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/f3709653e6">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/3c615a2846">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/57683a05fd">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/728ca5b085">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/track/07897f579d">
+	<isPartOf xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://data.europa.eu/949/sectionOfLine/cea9d2950d">
+	<opStart xmlns="http://data.europa.eu/949/" rdf:resource="http://data.europa.eu/949/operationalPoint/f317d4ae4b"/>
+</rdf:Description>
+
+</rdf:RDF>
