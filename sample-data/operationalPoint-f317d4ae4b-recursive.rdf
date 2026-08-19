@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
 	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
 	xmlns:owl="http://www.w3.org/2002/07/owl#"
 	xmlns:sh="http://www.w3.org/ns/shacl#"
-	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+	xmlns:skos="http://www.w3.org/2004/02/skos/core#"
 	xmlns:rdf4j="http://rdf4j.org/schema/rdf4j#"
 	xmlns:sesame="http://www.openrdf.org/schema/sesame#"
 	xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
@@ -139,101 +140,9 @@
 
 <rdf:Description rdf:about="http://publications.europa.eu/resource/authority/country/FRA">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://publications.europa.eu/resource/authority/country"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">France</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ar">فرنسا</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="be">Францыя</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="bg">Фpaнция</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="bs">Francuska</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ca">França</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="cs">Francie</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="da">Frankrig</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="de">Frankreich</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="el">Γαλλία</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="es">Francia</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="et">Prantsusmaa</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="eu">Frantzia</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="fi">Ranska</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="fo">Frakland</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="fr">France</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ga">An Fhrainc</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="gl">Francia</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="hr">Francuska</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="hu">Franciaország</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="is">Frakkland</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="it">Francia</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ja">フランス</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="lb">Frankräich</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="lt">Prancūzija</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="lv">Francija</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="mt">Franza</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="nl">Frankrijk</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="no">Frankrike</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="pl">Francja</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="pt">França</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="rm">Frantscha</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ro">Franţa</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ru">Франция</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sk">Francúzsko</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sl">Francija</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sq">Franca</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sv">Frankrike</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="tr">Fransa</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="uk">Франція</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="zh">法国</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="mk">Франција</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sr">Француска</prefLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="lt">Prancūzijos Respublika</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">French Republic</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ar">الجمهورية الفرنسية</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="be">Рэспу́бліка Францыя</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="bg">Френска република</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="bs">Republika Francuska</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ca">República Francesa</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="cs">Francouzská republika</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="da">Den Franske Republik</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="de">Französische Republik</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="el">Γαλλική Δημοκρατία</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="es">República Francesa</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="et">Prantsuse Vabariik</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="eu">Frantziako Errepublika</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="fi">Ranskan tasavalta</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="fo">Lýðveldið Frakland</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="fr">République française</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ga">Poblacht na Fraince</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="gl">República Francesa</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="hr">Republika Francuska</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="hu">Francia Köztársaság</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="is">Franska lýðveldið</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="it">Repubblica francese</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ja">フランス共和国</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="lb">Republik Frankräich</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="lv">Francijas Republika</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="mk">Република Франција</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="mt">Ir-Repubblika Franċiża</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="nl">Franse Republiek</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="no">Republikken Frankrike</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="pl">Republika Francuska</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="pt">República Francesa</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="rm">Republica da la Frantscha</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ro">Republica Franceză</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ru">Французская Республика</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sk">Francúzska republika</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sl">Francoska republika</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sq">Republika Franceze</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sr">Република Француска</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="sv">Republiken Frankrike</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="tr">Fransa Cumhuriyeti</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="uk">Французька Республіка</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="zh">法兰西共和国</altLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="bg">Франция</hiddenLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="et">Prantsuse</hiddenLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ga">an Fhrainc</hiddenLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="lt">Prancūzijos</hiddenLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="lv">Francijas</hiddenLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="ro">Franța</hiddenLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="hr">Francuska Republika</hiddenLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="mt">ir-Repubblika Franċiża</hiddenLabel>
+	<skos:inScheme rdf:resource="http://publications.europa.eu/resource/authority/country"/>
+	<skos:prefLabel xml:lang="en">France</skos:prefLabel>
+	<skos:altLabel xml:lang="en">French Republic</skos:altLabel>
 	<identifier xmlns="http://purl.org/dc/elements/1.1/">FRA</identifier>
 	<authority-code xmlns="http://publications.europa.eu/ontology/authority/">FRA</authority-code>
 	<op-mapped-code xmlns="http://publications.europa.eu/ontology/authority/" rdf:nodeID="genid-fbdcc4d3b03b4bf297176a55336aa657609010-425B536ED9DA1142F401821ED836E59B"/>
@@ -967,14 +876,14 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gaugings/350">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GI2</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">350</notation>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GI2 according EN 15273-2</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GI2 (lower part)</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GI2 - lower parts</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GI2 (Specific case Spain – lower parts)</altLabel>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
+	<skos:prefLabel xml:lang="en">GI2</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
+	<skos:notation>350</skos:notation>
+	<skos:altLabel xml:lang="en">GI2 according EN 15273-2</skos:altLabel>
+	<skos:altLabel xml:lang="en">GI2 (lower part)</skos:altLabel>
+	<skos:altLabel xml:lang="en">GI2 - lower parts</skos:altLabel>
+	<skos:altLabel xml:lang="en">GI2 (Specific case Spain – lower parts)</skos:altLabel>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -983,12 +892,12 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gaugings/120">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">FR-3.3</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">120</notation>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">3.3 (French network)</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Gauge 3.3</altLabel>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
+	<skos:prefLabel xml:lang="en">FR-3.3</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
+	<skos:notation>120</skos:notation>
+	<skos:altLabel xml:lang="en">3.3 (French network)</skos:altLabel>
+	<skos:altLabel xml:lang="en">Gauge 3.3</skos:altLabel>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -997,10 +906,10 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gaugings/70">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GB1</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">70</notation>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
+	<skos:prefLabel xml:lang="en">GB1</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gaugings/GaugingProfiles"/>
+	<skos:notation>70</skos:notation>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1009,9 +918,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/300">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R NL (Netherlands)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R NL (Netherlands)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1020,9 +929,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/190">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R I (Italy)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R I (Italy)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1031,9 +940,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/70">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R CH (Switzerland)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R CH (Switzerland)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1042,9 +951,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/90">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R D (Germany)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R D (Germany)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1053,9 +962,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/30">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R B (Belgium)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R B (Belgium)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1064,9 +973,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/130">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R F (France)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R F (France)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1075,9 +984,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/110">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R E (Spain)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R E (Spain)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1086,9 +995,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/150">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R GB (UK (Great Britain))</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R GB (UK (Great Britain))</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1097,9 +1006,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-networks/230">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">GSM-R L (Luxembourg)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
+	<skos:prefLabel xml:lang="en">GSM-R L (Luxembourg)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-networks/GSMRNetworks"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1111,10 +1020,10 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/magnetic-braking/40">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/magnetic-braking/MagneticBraking"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">allowed only for emergency brake</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/magnetic-braking/MagneticBraking"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">40</notation>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/magnetic-braking/MagneticBraking"/>
+	<skos:prefLabel xml:lang="en">allowed only for emergency brake</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/magnetic-braking/MagneticBraking"/>
+	<skos:notation>40</skos:notation>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1133,10 +1042,10 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/ten-classifications/10">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/ten-classifications/TENClassifications"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Part of the TEN-T Comprehensive Network</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/ten-classifications/TENClassifications"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">10</notation>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/ten-classifications/TENClassifications"/>
+	<skos:prefLabel xml:lang="en">Part of the TEN-T Comprehensive Network</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/ten-classifications/TENClassifications"/>
+	<skos:notation>10</skos:notation>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1145,10 +1054,10 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/ten-classifications/20">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/ten-classifications/TENClassifications"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Part of the TEN-T Core Freight Network</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/ten-classifications/TENClassifications"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">20</notation>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/ten-classifications/TENClassifications"/>
+	<skos:prefLabel xml:lang="en">Part of the TEN-T Core Freight Network</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/ten-classifications/TENClassifications"/>
+	<skos:notation>20</skos:notation>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1164,16 +1073,16 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/organisation-roles/IM">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/organisation-roles/OrgRoles"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Infrastructure Manager (IM)</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/organisation-roles/OrgRoles"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/organisation-roles/OrgRoles"/>
+	<skos:prefLabel xml:lang="en">Infrastructure Manager (IM)</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/organisation-roles/OrgRoles"/>
 	<source xmlns="http://purl.org/dc/terms/" rdf:resource="http://data.europa.eu/eli/dir/2012/34/2019-01-01"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">IM</notation>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Infrastructure Manager</altLabel>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">IM</altLabel>
-	<definition xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en"> A body or firm responsible for the operation, maintenance and renewal of railway infrastructure on a network, as well as responsible for participating in its development as determined by the Member State within the framework of its general policy on development and financing of infrastructure</definition>
-	<narrower xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/organisation-roles/IM-2"/>
-	<narrower xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/organisation-roles/IM-1"/>
+	<skos:notation>IM</skos:notation>
+	<skos:altLabel xml:lang="en">Infrastructure Manager</skos:altLabel>
+	<skos:altLabel xml:lang="en">IM</skos:altLabel>
+	<skos:definition xml:lang="en"> A body or firm responsible for the operation, maintenance and renewal of railway infrastructure on a network, as well as responsible for participating in its development as determined by the Member State within the framework of its general policy on development and financing of infrastructure</skos:definition>
+	<skos:narrower rdf:resource="http://data.europa.eu/949/concepts/organisation-roles/IM-2"/>
+	<skos:narrower rdf:resource="http://data.europa.eu/949/concepts/organisation-roles/IM-1"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/body/organisation/organisationRole/0087_IM">
@@ -1221,10 +1130,10 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/radio-system-compatibilities-voice/80">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/radio-system-compatibilities-voice/RadioSystemCompatibilitiesVoice"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">RSC-FR-01-V</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/radio-system-compatibilities-voice/RadioSystemCompatibilitiesVoice"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">RSC-FR-01-V</notation>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/radio-system-compatibilities-voice/RadioSystemCompatibilitiesVoice"/>
+	<skos:prefLabel xml:lang="en">RSC-FR-01-V</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/radio-system-compatibilities-voice/RadioSystemCompatibilitiesVoice"/>
+	<skos:notation>RSC-FR-01-V</skos:notation>
 	<created xmlns="http://purl.org/dc/terms/" rdf:datatype="http://www.w3.org/2001/XMLSchema#date">2020-06-19</created>
 </rdf:Description>
 
@@ -1272,11 +1181,11 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/platform-heights/70">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/platform-heights/PlatformHeights"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">580</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/platform-heights/PlatformHeights"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">580</notation>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">CCSTMS_PH_580mm_3</hiddenLabel>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/platform-heights/PlatformHeights"/>
+	<skos:prefLabel xml:lang="en">580</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/platform-heights/PlatformHeights"/>
+	<skos:notation>580</skos:notation>
+	<skos:hiddenLabel xml:lang="en">CCSTMS_PH_580mm_3</skos:hiddenLabel>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/platformEdge/bb54dc92aa">
@@ -1294,9 +1203,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/ten-t-network-levels/01">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/ten-t-network-levels/TENTNetworkLevels"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Core network</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/ten-t-network-levels/TENTNetworkLevels"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/ten-t-network-levels/TENTNetworkLevels"/>
+	<skos:prefLabel xml:lang="en">Core network</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/ten-t-network-levels/TENTNetworkLevels"/>
 	<source xmlns="http://purl.org/dc/terms/" rdf:resource="http://data.europa.eu/eli/reg/2024/1679/oj"/>
 </rdf:Description>
 
@@ -1306,9 +1215,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/traffic-types/02">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/traffic-types/TrafficTypes"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Freight</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/traffic-types/TrafficTypes"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/traffic-types/TrafficTypes"/>
+	<skos:prefLabel xml:lang="en">Freight</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/traffic-types/TrafficTypes"/>
 	<source xmlns="http://purl.org/dc/terms/" rdf:resource="http://data.europa.eu/eli/reg/2024/1679/oj"/>
 </rdf:Description>
 
@@ -1327,9 +1236,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/ten-t-network-levels/03">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/ten-t-network-levels/TENTNetworkLevels"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Comprehensive network</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/ten-t-network-levels/TENTNetworkLevels"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/ten-t-network-levels/TENTNetworkLevels"/>
+	<skos:prefLabel xml:lang="en">Comprehensive network</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/ten-t-network-levels/TENTNetworkLevels"/>
 	<source xmlns="http://purl.org/dc/terms/" rdf:resource="http://data.europa.eu/eli/reg/2024/1679/oj"/>
 </rdf:Description>
 
@@ -1344,12 +1253,12 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/nominal-track-gauges/30">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/nominal-track-gauges/NominalTrackGauges"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">1435</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/nominal-track-gauges/NominalTrackGauges"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">1435</notation>
-	<altLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">1435mm</altLabel>
-	<hiddenLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">CCSTMS_tg1435mm_3</hiddenLabel>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/nominal-track-gauges/NominalTrackGauges"/>
+	<skos:prefLabel xml:lang="en">1435</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/nominal-track-gauges/NominalTrackGauges"/>
+	<skos:notation>1435</skos:notation>
+	<skos:altLabel xml:lang="en">1435mm</skos:altLabel>
+	<skos:hiddenLabel xml:lang="en">CCSTMS_tg1435mm_3</skos:hiddenLabel>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1358,10 +1267,10 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/line-category/100">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/line-category/LineCategories"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">F2</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/line-category/LineCategories"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">F2</notation>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/line-category/LineCategories"/>
+	<skos:prefLabel xml:lang="en">F2</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/line-category/LineCategories"/>
+	<skos:notation>F2</skos:notation>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1370,10 +1279,10 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/line-category/60">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/line-category/LineCategories"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">P6</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/line-category/LineCategories"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">P6</notation>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/line-category/LineCategories"/>
+	<skos:prefLabel xml:lang="en">P6</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/line-category/LineCategories"/>
+	<skos:notation>P6</skos:notation>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1382,10 +1291,10 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/eddy-current-braking/50">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/eddy-current-braking/EddyCurrentBraking"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">not allowed</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/eddy-current-braking/EddyCurrentBraking"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">50</notation>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/eddy-current-braking/EddyCurrentBraking"/>
+	<skos:prefLabel xml:lang="en">not allowed</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/eddy-current-braking/EddyCurrentBraking"/>
+	<skos:notation>50</skos:notation>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -1395,9 +1304,9 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/gsmr-versions/50">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-versions/GSMRVersions"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">Baseline 1</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/gsmr-versions/GSMRVersions"/>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/gsmr-versions/GSMRVersions"/>
+	<skos:prefLabel xml:lang="en">Baseline 1</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/gsmr-versions/GSMRVersions"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://data.europa.eu/949/track/5de5041d49">
@@ -4082,12 +3991,11 @@
 
 <rdf:Description rdf:about="http://data.europa.eu/949/concepts/op-types/10">
 	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
-	<inScheme xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/op-types/OperationalPointTypes"/>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="es">estación</prefLabel>
-	<prefLabel xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">station</prefLabel>
-	<topConceptOf xmlns="http://www.w3.org/2004/02/skos/core#" rdf:resource="http://data.europa.eu/949/concepts/op-types/OperationalPointTypes"/>
-	<notation xmlns="http://www.w3.org/2004/02/skos/core#">10</notation>
-	<definition xmlns="http://www.w3.org/2004/02/skos/core#" xml:lang="en">large or major railway node with several functions, important for international traffic, basic for national railway system</definition>
+	<skos:inScheme rdf:resource="http://data.europa.eu/949/concepts/op-types/OperationalPointTypes"/>
+	<skos:prefLabel xml:lang="en">station</skos:prefLabel>
+	<skos:topConceptOf rdf:resource="http://data.europa.eu/949/concepts/op-types/OperationalPointTypes"/>
+	<skos:notation>10</skos:notation>
+	<skos:definition xml:lang="en">large or major railway node with several functions, important for international traffic, basic for national railway system</skos:definition>
 </rdf:Description>
 
 </rdf:RDF>

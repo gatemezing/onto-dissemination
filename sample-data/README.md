@@ -42,11 +42,20 @@ bounded to 5 hops.
 - **Result:** [`operationalPoint-f317d4ae4b-recursive.rdf`](operationalPoint-f317d4ae4b-recursive.rdf) — RDF/XML,
   fetched 2026-08-19 from `graph.data.era.europa.eu/repositories/rinf-plus`,
   475 `rdf:Description` blocks / ~2,700 triples, runs in ~6s.
+- **Must be POSTed, not GET-ed** — with the language filter (below) added,
+  the query text is long enough to exceed the endpoint's max HTTP header
+  size as a GET query string (`400 Request header is too large`). POST
+  puts it in the request body instead:
+  ```bash
+  curl -sS -X POST "https://graph.data.era.europa.eu/repositories/rinf-plus" \
+    -H "Content-Type: application/sparql-query" -H "Accept: application/rdf+xml" \
+    --data-binary @operationalPoint-f317d4ae4b-recursive-query.rq -o result.rdf
+  ```
 
 A plain "follow every edge, arbitrarily deep" recursive query doesn't work on
-this graph — two real problems were found and fixed while building this one
-(full rationale is in the query file's header comment, since it's the kind
-of thing a future re-run needs to know about, not just this README):
+this graph — several real problems were found and fixed while building this
+one (full rationale is in the query file's header comment, since it's the
+kind of thing a future re-run needs to know about, not just this README):
 
 1. **Cycles.** `era:hasPart`/`era:isPartOf` is bidirectional — operational
    point → track → back to the operational point — so an unguarded
@@ -63,6 +72,21 @@ of thing a future re-run needs to know about, not just this README):
    structural guard that never recurses into a node asserted
    `a owl:Class`/`rdf:Property`/`sh:NodeShape`/`sh:PropertyShape`,
    regardless of which predicate led there.
+3. **Language noise.** ERA's own SKOS concepts (`concepts/ten-classifications/20`,
+   `concepts/organisation-roles/IM`, etc.) only ever have English labels
+   here — but concepts from the EU Publications Office's shared authority
+   tables (e.g. the country vocabulary `era:inCountry` points into) carry
+   `prefLabel`/`altLabel` in all ~40 official/regional EU languages. One
+   country reference alone added ~90 near-useless literal triples
+   ("Francia", "Frankreich", "Франция", ...). Every `skos:prefLabel` /
+   `skos:altLabel` / `rdfs:label` / `skos:hiddenLabel` triple is now
+   restricted to English (or no language tag) — confirmed a no-op for
+   ERA's own concepts (`ten-classifications/20`'s `prefLabel`, `notation`,
+   `inScheme` are all still fully present; `organisationRole/0087_IM`'s
+   `type`/`label`/`hasOrganisationRole`/`roleOf` chain down to the
+   organisation and its `organisationCode` are all still fully present)
+   and a real reduction for anything sourced from a shared EU authority
+   table (country FRA now yields just "France" / "French Republic").
 
 Depth 5 was chosen empirically — tested at depths 2 through 5 against this
 exact URI; deep enough to reach genuine literal leaves on every real branch,

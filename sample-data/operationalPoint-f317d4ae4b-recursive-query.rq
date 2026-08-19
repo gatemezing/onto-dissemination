@@ -49,10 +49,25 @@
 # explosion problem cycle detection was added to solve (see sample-data's
 # earlier one-hop query/README for a concrete example: some resources here
 # have tens of thousands of incoming edges).
+#
+# 4. LANGUAGE NOISE. SKOS concepts defined by ERA itself (op-types,
+#    ten-classifications, organisation-roles, ...) only ever have English
+#    labels in this data — but concepts from the EU Publications Office's
+#    shared authority tables (e.g. the country vocabulary this resource's
+#    era:inCountry points to) carry prefLabel/altLabel in all ~40 official
+#    and regional EU languages. Left unfiltered, one country reference
+#    alone added ~90 near-useless literal triples ("Francia", "Frankreich",
+#    "Франция", ...). Every skos:prefLabel / skos:altLabel / rdfs:label /
+#    skos:hiddenLabel triple is now restricted to English (or no language
+#    tag, for the rare literal that has none) — a no-op for ERA's own
+#    concepts, and a real reduction for anything sourced from a shared EU
+#    authority table.
 
 PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX owl:  <http://www.w3.org/2002/07/owl#>
 PREFIX sh:   <http://www.w3.org/ns/shacl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
 CONSTRUCT {
   ?s0 ?p1 ?s1 .
@@ -71,24 +86,28 @@ WHERE {
   VALUES ?neverRecurse {
     "^(http://www.w3.org/1999/02/22-rdf-syntax-ns#|http://www.w3.org/2000/01/rdf-schema#|http://www.w3.org/2002/07/owl#|http://www.w3.org/2004/02/skos/core#|http://purl.org/dc/terms/|http://data.europa.eu/eli/ontology#|http://www.w3.org/ns/shacl#|http://data.europa.eu/949/shaclShapeValidationRule|http://data.europa.eu/949/affectedClass|http://data.europa.eu/949/affectedProperty|http://data.europa.eu/949/scope$|http://data.europa.eu/949/rinfIndex|http://data.europa.eu/949/eratvIndex|http://data.europa.eu/949/tsiOPEAppendixD2Index|http://data.europa.eu/949/isConfirmedBy|http://data.europa.eu/949/changeRequestPreventsService)"
   }
-
   ?s0 ?p1 ?s1 .
+  FILTER(?p1 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s1) || LANG(?s1) = "en" || LANG(?s1) = "")
   OPTIONAL {
     FILTER(!REGEX(STR(?p1), ?neverRecurse) && ?s1 != ?s0)
     FILTER NOT EXISTS { ?s1 a ?t1 . FILTER(?t1 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
     ?s1 ?p2 ?s2 .
+    FILTER(?p2 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s2) || LANG(?s2) = "en" || LANG(?s2) = "")
     OPTIONAL {
       FILTER(!REGEX(STR(?p2), ?neverRecurse) && ?s2 != ?s0 && ?s2 != ?s1)
       FILTER NOT EXISTS { ?s2 a ?t2 . FILTER(?t2 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
       ?s2 ?p3 ?s3 .
+      FILTER(?p3 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s3) || LANG(?s3) = "en" || LANG(?s3) = "")
       OPTIONAL {
         FILTER(!REGEX(STR(?p3), ?neverRecurse) && ?s3 != ?s0 && ?s3 != ?s1 && ?s3 != ?s2)
         FILTER NOT EXISTS { ?s3 a ?t3 . FILTER(?t3 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
         ?s3 ?p4 ?s4 .
+        FILTER(?p4 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s4) || LANG(?s4) = "en" || LANG(?s4) = "")
         OPTIONAL {
           FILTER(!REGEX(STR(?p4), ?neverRecurse) && ?s4 != ?s0 && ?s4 != ?s1 && ?s4 != ?s2 && ?s4 != ?s3)
           FILTER NOT EXISTS { ?s4 a ?t4 . FILTER(?t4 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
           ?s4 ?p5 ?s5 .
+          FILTER(?p5 NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s5) || LANG(?s5) = "en" || LANG(?s5) = "")
         }
       }
     }
