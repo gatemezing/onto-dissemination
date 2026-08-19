@@ -1,0 +1,97 @@
+# Recursively exports everything reachable from an ERA operational point,
+# down to real leaf values (literals) — not just its 1-hop neighbourhood.
+#
+# Engineering notes (why this isn't a plain "follow every edge" traversal):
+#
+# RINF/ERA is a real, large, densely-interlinked production graph, not a
+# tidy tree — a naive unbounded recursive CONSTRUCT over it either never
+# terminates or returns gigabytes of irrelevant data. Two concrete problems
+# were found and fixed here, empirically, against this exact endpoint:
+#
+# 1. CYCLES. era:hasPart / era:isPartOf is bidirectional: operational point
+#    -> hasPart -> track -> isPartOf -> operational point, right back to the
+#    start. Without cycle detection this regenerates the *entire* starting
+#    node's property set at every subsequent hop, growing combinatorially.
+#    Fixed with `?sN != ?s0 && ?sN != ?s1 && ...` guards at each level —
+#    each node may only be visited once per path (closed-world: we assume
+#    what we've already seen is everything there is to see about it).
+#
+# 2. ONTOLOGY/VOCABULARY BLEED. The moment traversal lands on a class,
+#    property, or SHACL shape (reached via rdf:type, rdfs:isDefinedBy,
+#    skos:inScheme, or even an era:notApplicable value that happens to
+#    *be* a property URI — a real, legitimate TSI pattern), continuing to
+#    follow ITS properties pulls in unrelated ontology/legal/validation
+#    metadata (SHACL shapes, ELI legal-document annotations, SKOS scheme
+#    version info — thousands of triples with nothing to do with this
+#    specific station). Fixed two ways: (a) block recursion through the
+#    standard vocabulary-description namespaces (rdf:, rdfs:, owl:, skos:,
+#    dcterms:) and a handful of era:-specific administrative predicates
+#    (shaclShapeValidationRule, affectedClass/Property, rinfIndex, etc.),
+#    and (b) a structural guard — never recurse into a node that is
+#    itself asserted `a owl:Class`, `a rdf:Property`, or `a sh:*Shape`,
+#    regardless of which predicate got us there. Facts ABOUT the class
+#    (e.g. "this is an era:OperationalPoint") are still captured — we
+#    just don't then explore the class's own definition.
+#
+# 3. BOUNDED DEPTH. 5 hops is enough to reach genuine literal leaves for
+#    every real branch in this data (validity -> hasBeginning -> date;
+#    infrastructureManager -> roleOf -> organisationCode; trackDirection
+#    -> prefLabel; etc.) — verified by testing depths 2 through 5 against
+#    this exact URI. Unbounded (Kleene-star) recursion was deliberately
+#    not used even with the guards above, since SPARQL property paths
+#    can't bind the intermediate predicates/nodes along the way (only
+#    reachability), which would lose the actual triple structure this
+#    query is meant to export.
+#
+# Reverse edges (?rev ?prev ?s0) are captured only for the root itself —
+# recursing backwards from deeper nodes was intentionally left out, since
+# for a hub-heavy graph like this it reintroduces exactly the same
+# explosion problem cycle detection was added to solve (see sample-data's
+# earlier one-hop query/README for a concrete example: some resources here
+# have tens of thousands of incoming edges).
+
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX sh:   <http://www.w3.org/ns/shacl#>
+
+CONSTRUCT {
+  ?s0 ?p1 ?s1 .
+  ?s1 ?p2 ?s2 .
+  ?s2 ?p3 ?s3 .
+  ?s3 ?p4 ?s4 .
+  ?s4 ?p5 ?s5 .
+  ?rev ?prev ?s0 .
+}
+WHERE {
+  BIND(<http://data.europa.eu/949/operationalPoint/f317d4ae4b> AS ?s0)
+
+  # Block list: standard vocabulary-description namespaces (lead into
+  # ontology/scheme definitions, not instance data) plus a few
+  # era:-specific administrative/SHACL predicates found by testing.
+  VALUES ?neverRecurse {
+    "^(http://www.w3.org/1999/02/22-rdf-syntax-ns#|http://www.w3.org/2000/01/rdf-schema#|http://www.w3.org/2002/07/owl#|http://www.w3.org/2004/02/skos/core#|http://purl.org/dc/terms/|http://data.europa.eu/eli/ontology#|http://www.w3.org/ns/shacl#|http://data.europa.eu/949/shaclShapeValidationRule|http://data.europa.eu/949/affectedClass|http://data.europa.eu/949/affectedProperty|http://data.europa.eu/949/scope$|http://data.europa.eu/949/rinfIndex|http://data.europa.eu/949/eratvIndex|http://data.europa.eu/949/tsiOPEAppendixD2Index|http://data.europa.eu/949/isConfirmedBy|http://data.europa.eu/949/changeRequestPreventsService)"
+  }
+
+  ?s0 ?p1 ?s1 .
+  OPTIONAL {
+    FILTER(!REGEX(STR(?p1), ?neverRecurse) && ?s1 != ?s0)
+    FILTER NOT EXISTS { ?s1 a ?t1 . FILTER(?t1 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
+    ?s1 ?p2 ?s2 .
+    OPTIONAL {
+      FILTER(!REGEX(STR(?p2), ?neverRecurse) && ?s2 != ?s0 && ?s2 != ?s1)
+      FILTER NOT EXISTS { ?s2 a ?t2 . FILTER(?t2 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
+      ?s2 ?p3 ?s3 .
+      OPTIONAL {
+        FILTER(!REGEX(STR(?p3), ?neverRecurse) && ?s3 != ?s0 && ?s3 != ?s1 && ?s3 != ?s2)
+        FILTER NOT EXISTS { ?s3 a ?t3 . FILTER(?t3 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
+        ?s3 ?p4 ?s4 .
+        OPTIONAL {
+          FILTER(!REGEX(STR(?p4), ?neverRecurse) && ?s4 != ?s0 && ?s4 != ?s1 && ?s4 != ?s2 && ?s4 != ?s3)
+          FILTER NOT EXISTS { ?s4 a ?t4 . FILTER(?t4 IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }
+          ?s4 ?p5 ?s5 .
+        }
+      }
+    }
+  }
+  OPTIONAL { ?rev ?prev ?s0 . }
+}
