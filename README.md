@@ -6,6 +6,8 @@ Contents
 - `scripts/innotrans2026-era-ontology-script.md`: booth/demo script, elevator pitch, demo queries, and checklist for InnoTrans 2026.
 - `scripts/assets/era-follow-your-nose-scene.html`: demo scene / explainer mockup (video/animation source).
 - `scripts/assets/era-graph-explorer-app.html`: interactive offline demo app (single-file HTML) for the bubble-graph explorer.
+- `scripts/assets/era-rdf-exporter.html`: single-file tool to export any ERA/RINF resource URI as RDF/XML, recursed to real leaf values — see the dedicated section below.
+- `sample-data/`: example SPARQL query + RDF/XML result pairs, with the engineering rationale behind them documented in `sample-data/README.md`.
 
 Live demo
 - **https://gatemezing.github.io/onto-dissemination/** — the GitHub Pages deployment of `era-graph-explorer-app.html`, rebuilt automatically by [.github/workflows/pages.yml](.github/workflows/pages.yml) on every push to `main` that touches the app file.
@@ -35,6 +37,30 @@ Notes & checklist
 - Bubbles now size themselves to their label content and connecting edges trim to the visible gap between bubbles instead of running underneath them; the breadcrumb tags live-fetched nodes and never mixes a live trail with an offline one.
 - Verify remaining live queries (Section 5 of the script) and legal/version wording before publishing or printing — see the checklist inside `scripts/innotrans2026-era-ontology-script.md`.
 
+## RDF Exporter tool
+
+`scripts/assets/era-rdf-exporter.html` — a small standalone UI wrapping the
+recursive-to-leaves export queries developed in `sample-data/`. Paste any
+ERA/RINF resource URI, pick an export mode (or leave it on the recommended
+"Smart" auto-detect), and download the result as RDF/XML directly from the
+browser — no server involved, queries `graph.data.era.europa.eu` directly
+(confirmed open CORS).
+
+- **Smart mode** detects `/track/` URIs and switches to track-centric
+  export automatically; everything else gets the full recursive export.
+  Both modes can be selected manually to override the detection.
+- **Generalizes beyond the two originally-built examples** — verified
+  against a `primaryLocation` URI (a resource type with no dedicated query
+  ever written for it) and a second, different operational point, both via
+  the same generic query builder.
+- Tested (Playwright, before committing): output triple/description counts
+  match the hand-verified `sample-data/*.rdf` files exactly; mode override
+  produces a real, verified difference (44 distinct track URIs pulled in
+  when forcing full-recursive on a track URI, vs. 2 in track-centric mode);
+  invalid/malformed/injection-shaped input is rejected before any network
+  call; a well-formed but nonexistent URI fails gracefully with a clear
+  message instead of a blank "success"; download produces valid, correctly-
+  named RDF/XML; no horizontal overflow at a 375px mobile viewport.
 
 ## Links
 - Oslo OP: https://data.banenor.no/data/_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c

@@ -1,0 +1,411 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERA RDF Exporter</title>
+<style>
+  :root{
+    --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
+    --blue:#5b9bd5; --green:#7ac36a; --teal:#5fd0ae; --orange:#f0a83a;
+    --paper:#eef2ff; --panel:rgba(16,22,38,.92); --line:rgba(255,255,255,.14);
+    --muted:#aebbdd; --danger:#f26d6d;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;
+    background:radial-gradient(1400px 900px at 50% 0%, var(--bg2), var(--bg1) 70%);
+    font-family:"Segoe UI",Arial,sans-serif;color:var(--paper);}
+  #app{max-width:760px;margin:0 auto;padding:28px 20px 60px;}
+
+  header h1{font-size:22px;margin:0 0 6px;font-weight:700;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  header p{margin:0 0 24px;color:var(--muted);font-size:13.5px;line-height:1.5;max-width:60ch;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);margin-bottom:18px;}
+
+  label.fieldLabel{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);margin-bottom:8px;}
+
+  #uriInput{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--paper);
+    padding:10px 12px;border-radius:8px;font-size:13.5px;font-family:"SF Mono",Consolas,monospace;}
+  #uriInput:focus-visible{outline:2px solid var(--blue);}
+  #uriInput.invalid{outline:2px solid var(--danger);}
+
+  #examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .exampleBtn{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
+    padding:5px 10px;border-radius:20px;font-size:11.5px;cursor:pointer;}
+  .exampleBtn:hover{background:rgba(255,255,255,.1);color:var(--paper);}
+
+  fieldset{border:none;padding:0;margin:18px 0 0;}
+  legend{padding:0;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;}
+  .modeOption{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:9px;
+    border:1px solid var(--line);margin-bottom:7px;cursor:pointer;transition:background .15s,border-color .15s;}
+  .modeOption:hover{background:rgba(255,255,255,.04);}
+  .modeOption input{margin-top:3px;flex:none;}
+  .modeOption.selected{border-color:var(--blue);background:rgba(91,155,213,.08);}
+  .modeOption .modeTitle{font-weight:600;font-size:13px;}
+  .modeOption .modeDesc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
+  .badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--teal);border:1px solid rgba(95,208,174,.5);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px;}
+
+  #detectHint{font-size:12px;color:var(--teal);margin-top:2px;min-height:16px;}
+
+  button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
+    padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;}
+  button.btn:hover:not(:disabled){background:linear-gradient(180deg,#33456b,#22304d);}
+  button.btn:disabled{opacity:.5;cursor:not-allowed;}
+  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);width:100%;margin-top:18px;padding:12px;font-size:14px;}
+  button.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#4a89e0,#3568b3);}
+  button.btn.secondary{background:linear-gradient(180deg,#2f6b52,#1f4a38);}
+  button.btn.secondary:hover:not(:disabled){background:linear-gradient(180deg,#37805f,#255a43);}
+  button:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+
+  #statusArea{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin:14px 0;min-height:20px;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);
+    animation:spin .8s linear infinite;flex:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #statusArea.error{color:var(--danger);}
+  #statusArea.success{color:var(--green);}
+
+  #resultArea{}
+  .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;}
+  .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+  .statTile .n{font-size:20px;font-weight:700;}
+  .statTile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+
+  .resultActions{display:flex;gap:10px;flex-wrap:wrap;}
+
+  details{margin-top:16px;}
+  summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
+  #preview{background:#050810;border:1px solid var(--line);border-radius:8px;padding:12px;
+    font-size:11px;font-family:"SF Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-all;
+    max-height:340px;overflow:auto;margin-top:10px;color:#b9c6ea;}
+
+  footer{font-size:11.5px;color:var(--muted);margin-top:22px;line-height:1.6;}
+  footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;}
+  a{color:var(--blue);}
+
+  @media (max-width:520px){
+    #app{padding:20px 14px 40px;}
+    .statGrid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>ERA RDF Exporter</h1>
+    <p>Paste any ERA / RINF resource URI and export its full RDF graph as RDF/XML — recursed down to real leaf values, with ontology/SHACL noise and sibling-track blowup automatically filtered out.</p>
+  </header>
+
+  <div class="panel">
+    <label class="fieldLabel" for="uriInput">Resource URI</label>
+    <input id="uriInput" type="text" spellcheck="false" placeholder="http://data.europa.eu/949/operationalPoint/f317d4ae4b" />
+    <div id="examples">
+      <button class="exampleBtn" type="button" data-uri="http://data.europa.eu/949/operationalPoint/f317d4ae4b">Paris-Gare-de-Lyon (operational point)</button>
+      <button class="exampleBtn" type="button" data-uri="http://data.europa.eu/949/track/5de5041d49">Track ØB2-style example (track)</button>
+      <button class="exampleBtn" type="button" data-uri="http://data.europa.eu/949/primaryLocation/FR05975">Primary location example</button>
+    </div>
+
+    <fieldset>
+      <legend>Export mode</legend>
+      <label class="modeOption" data-mode="smart">
+        <input type="radio" name="mode" value="smart" checked>
+        <span>
+          <span class="modeTitle">Smart (auto-detect)<span class="badge">Recommended</span></span>
+          <span class="modeDesc">Picks track-centric for <code>/track/</code> URIs, full recursive for everything else.</span>
+        </span>
+      </label>
+      <label class="modeOption" data-mode="track-centric">
+        <input type="radio" name="mode" value="track-centric">
+        <span>
+          <span class="modeTitle">Track-centric</span>
+          <span class="modeDesc">Full detail on one resource, but excludes <code>era:hasPart</code> so a track's parent station doesn't drag in all its sibling tracks.</span>
+        </span>
+      </label>
+      <label class="modeOption" data-mode="operational-recursive">
+        <input type="radio" name="mode" value="operational-recursive">
+        <span>
+          <span class="modeTitle">Full recursive</span>
+          <span class="modeDesc">Follows every real relationship, including <code>era:hasPart</code> — the right choice for stations, sections of line, and most other resources.</span>
+        </span>
+      </label>
+      <div id="detectHint"></div>
+    </fieldset>
+
+    <button id="exportBtn" class="btn primary" type="button">Export RDF/XML</button>
+  </div>
+
+  <div id="statusArea" role="status" aria-live="polite"></div>
+
+  <div id="resultArea" class="panel" hidden>
+    <div class="statGrid">
+      <div class="statTile"><div class="n" id="statDescriptions">–</div><div class="l">Descriptions</div></div>
+      <div class="statTile"><div class="n" id="statSize">–</div><div class="l">File size</div></div>
+      <div class="statTile"><div class="n" id="statTime">–</div><div class="l">Query time</div></div>
+      <div class="statTile"><div class="n" id="statMode">–</div><div class="l">Mode used</div></div>
+    </div>
+    <div class="resultActions">
+      <button id="downloadBtn" class="btn secondary" type="button">Download .rdf</button>
+    </div>
+    <details>
+      <summary>Preview raw RDF/XML</summary>
+      <pre id="preview"></pre>
+    </details>
+  </div>
+
+  <footer>
+    Queries <code>graph.data.era.europa.eu/repositories/rinf-plus</code> directly from your browser (open CORS, no
+    server involved). Cycle detection, ontology/SHACL-metadata exclusion, and English-only labels are always
+    applied — see <a href="../../sample-data/README.md">sample-data/README.md</a> for the full engineering
+    rationale behind these queries.
+  </footer>
+</div>
+
+<script>
+const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
+const DEPTH = 5;
+
+const NEVER_RECURSE_BASE = [
+  'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  'http://www.w3.org/2000/01/rdf-schema#',
+  'http://www.w3.org/2002/07/owl#',
+  'http://www.w3.org/2004/02/skos/core#',
+  'http://purl.org/dc/terms/',
+  'http://data.europa.eu/eli/ontology#',
+  'http://www.w3.org/ns/shacl#',
+  'http://data.europa.eu/949/shaclShapeValidationRule',
+  'http://data.europa.eu/949/affectedClass',
+  'http://data.europa.eu/949/affectedProperty',
+  'http://data.europa.eu/949/scope$',
+  'http://data.europa.eu/949/rinfIndex',
+  'http://data.europa.eu/949/eratvIndex',
+  'http://data.europa.eu/949/tsiOPEAppendixD2Index',
+  'http://data.europa.eu/949/isConfirmedBy',
+  'http://data.europa.eu/949/changeRequestPreventsService',
+];
+
+// Builds the same recursive-to-leaves CONSTRUCT query used in
+// sample-data/*-recursive-query.rq, parameterised by URI and by whether
+// era:hasPart should be excluded (both as a recursion path and as a
+// captured triple — see sample-data/README.md for why: it's the
+// sibling-track fan-out predicate for operational points).
+function buildExportQuery(uri, excludeHasPart){
+  const blockList = NEVER_RECURSE_BASE.concat(excludeHasPart ? ['http://data.europa.eu/949/hasPart$'] : []);
+  const neverRecurse = '^(' + blockList.join('|') + ')';
+  const labelFilter = n => `FILTER(?p${n} NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s${n}) || LANG(?s${n}) = "en" || LANG(?s${n}) = "")`;
+  const hasPartFilter = n => excludeHasPart ? `FILTER(?p${n} != era:hasPart)` : '';
+
+  const lines = [
+    'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>',
+    'PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>',
+    'PREFIX owl: <http://www.w3.org/2002/07/owl#>',
+    'PREFIX sh: <http://www.w3.org/ns/shacl#>',
+    'PREFIX skos: <http://www.w3.org/2004/02/skos/core#>',
+    'PREFIX era: <http://data.europa.eu/949/>',
+  ];
+  const constructLines = ['  ?s0 ?p1 ?s1 .'];
+  for(let i=2;i<=DEPTH;i++) constructLines.push(`  ?s${i-1} ?p${i} ?s${i} .`);
+  constructLines.push('  ?rev ?prev ?s0 .');
+  lines.push('CONSTRUCT {\n' + constructLines.join('\n') + '\n}');
+  lines.push('WHERE {');
+  lines.push(`  BIND(<${uri}> AS ?s0)`);
+  lines.push(`  VALUES ?neverRecurse { "${neverRecurse}" }`);
+  lines.push('  ?s0 ?p1 ?s1 .');
+  lines.push('  ' + labelFilter(1));
+  if(excludeHasPart) lines.push('  ' + hasPartFilter(1));
+
+  let indent = '  ';
+  for(let i=2;i<=DEPTH;i++){
+    const prev = i-1;
+    indent += '  ';
+    lines.push(`${indent}OPTIONAL {`);
+    indent += '  ';
+    const seen = [];
+    for(let j=0;j<prev;j++) seen.push(`?s${prev} != ?s${j}`);
+    lines.push(`${indent}FILTER(!REGEX(STR(?p${prev}), ?neverRecurse) && ${seen.join(' && ')})`);
+    lines.push(`${indent}FILTER NOT EXISTS { ?s${prev} a ?t${prev} . FILTER(?t${prev} IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }`);
+    lines.push(`${indent}?s${prev} ?p${i} ?s${i} .`);
+    lines.push(`${indent}` + labelFilter(i));
+    if(excludeHasPart) lines.push(`${indent}` + hasPartFilter(i));
+  }
+  for(let i=2;i<=DEPTH;i++){
+    indent = indent.slice(0,-2);
+    lines.push(`${indent}}`);
+    indent = indent.slice(0,-2);
+  }
+  lines.push('  OPTIONAL { ?rev ?prev ?s0 . }');
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// Smart default: track URIs get the sibling-fan-out exclusion, anything
+// else (operational points, sections of line, primary locations, ...)
+// gets the unrestricted full recursive export.
+function detectMode(uri){
+  return /\/track\//i.test(uri) ? 'track-centric' : 'operational-recursive';
+}
+
+function isPlausibleUri(raw){
+  const s = raw.trim();
+  if(!s) return false;
+  if(/[<>"\s]/.test(s)) return false;
+  return /^https?:\/\/\S+$/i.test(s);
+}
+
+const uriInput = document.getElementById('uriInput');
+const exportBtn = document.getElementById('exportBtn');
+const statusArea = document.getElementById('statusArea');
+const resultArea = document.getElementById('resultArea');
+const detectHint = document.getElementById('detectHint');
+const downloadBtn = document.getElementById('downloadBtn');
+const previewEl = document.getElementById('preview');
+
+let lastResultText = '';
+let lastResultUri = '';
+
+function selectedMode(){
+  return document.querySelector('input[name="mode"]:checked').value;
+}
+
+function updateModeVisuals(){
+  document.querySelectorAll('.modeOption').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.mode === selectedMode());
+  });
+  if(selectedMode() === 'smart'){
+    const uri = uriInput.value.trim();
+    if(uri && isPlausibleUri(uri)){
+      const detected = detectMode(uri);
+      detectHint.textContent = `Will use: ${detected === 'track-centric' ? 'Track-centric' : 'Full recursive'} (detected from the URI path)`;
+    } else {
+      detectHint.textContent = '';
+    }
+  } else {
+    detectHint.textContent = '';
+  }
+}
+
+document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', updateModeVisuals));
+document.querySelectorAll('.modeOption').forEach(el => el.addEventListener('click', (e)=>{
+  if(e.target.tagName !== 'INPUT'){ el.querySelector('input').checked = true; updateModeVisuals(); }
+}));
+uriInput.addEventListener('input', ()=>{ uriInput.classList.remove('invalid'); updateModeVisuals(); });
+
+document.querySelectorAll('.exampleBtn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    uriInput.value = b.dataset.uri;
+    uriInput.classList.remove('invalid');
+    updateModeVisuals();
+    uriInput.focus();
+  });
+});
+
+function setStatus(msg, kind){
+  statusArea.className = kind || '';
+  if(kind === 'loading'){
+    statusArea.innerHTML = '<span class="spinner"></span><span>' + msg + '</span>';
+  } else {
+    statusArea.textContent = msg;
+  }
+}
+
+function humanBytes(n){
+  if(n < 1024) return n + ' B';
+  if(n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/1024/1024).toFixed(2) + ' MB';
+}
+
+async function runExport(){
+  const raw = uriInput.value.trim();
+  if(!isPlausibleUri(raw)){
+    uriInput.classList.add('invalid');
+    setStatus('Enter a valid absolute http(s) URI (no spaces, quotes, or angle brackets).', 'error');
+    uriInput.focus();
+    return;
+  }
+  uriInput.classList.remove('invalid');
+
+  const mode = selectedMode();
+  const effectiveMode = mode === 'smart' ? detectMode(raw) : mode;
+  const excludeHasPart = effectiveMode === 'track-centric';
+  const query = buildExportQuery(raw, excludeHasPart);
+
+  exportBtn.disabled = true;
+  resultArea.hidden = true;
+  setStatus('Querying graph.data.era.europa.eu…', 'loading');
+
+  const start = performance.now();
+  const ctrl = new AbortController();
+  const timeout = setTimeout(()=>ctrl.abort(), 30000);
+  try{
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/sparql-query',
+        'Accept': 'application/rdf+xml',
+      },
+      body: query,
+      signal: ctrl.signal,
+    });
+    clearTimeout(timeout);
+    if(!res.ok){
+      const bodyText = await res.text().catch(()=> '');
+      throw new Error(`HTTP ${res.status}${bodyText ? ' — ' + bodyText.slice(0,200) : ''}`);
+    }
+    const text = await res.text();
+    const elapsed = performance.now() - start;
+
+    const descCount = (text.match(/<rdf:Description[\s>]/g) || []).length;
+    lastResultText = text;
+    lastResultUri = raw;
+
+    document.getElementById('statDescriptions').textContent = descCount;
+    document.getElementById('statSize').textContent = humanBytes(new Blob([text]).size);
+    document.getElementById('statTime').textContent = (elapsed/1000).toFixed(1) + 's';
+    document.getElementById('statMode').textContent = effectiveMode === 'track-centric' ? 'Track-centric' : 'Full recursive';
+    previewEl.textContent = text.length > 20000 ? text.slice(0, 20000) + '\n\n… (truncated preview — download for the full file)' : text;
+
+    resultArea.hidden = false;
+    if(descCount === 0){
+      setStatus('Query succeeded but returned no data — this URI may not exist in the graph, or has no outgoing/incoming triples.', 'error');
+    } else {
+      setStatus(`Done — ${descCount} resources described.`, 'success');
+    }
+  } catch(err){
+    clearTimeout(timeout);
+    if(err.name === 'AbortError'){
+      setStatus('Timed out after 30s. The endpoint may be slow or unreachable right now — try again.', 'error');
+    } else {
+      setStatus('Export failed: ' + err.message, 'error');
+    }
+  } finally {
+    exportBtn.disabled = false;
+  }
+}
+
+function localNameFor(uri){
+  const m = uri.match(/([^/#]+)\/?$/);
+  return m ? decodeURIComponent(m[1]) : 'export';
+}
+
+downloadBtn.addEventListener('click', ()=>{
+  if(!lastResultText) return;
+  const blob = new Blob([lastResultText], {type:'application/rdf+xml'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = localNameFor(lastResultUri) + '.rdf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+exportBtn.addEventListener('click', runExport);
+uriInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runExport(); });
+
+updateModeVisuals();
+</script>
+</body>
+</html>
