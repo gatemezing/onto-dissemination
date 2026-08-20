@@ -8,6 +8,7 @@ on:
     paths:
       - 'scripts/assets/era-graph-explorer-app.html'
       - 'scripts/assets/era-rdf-exporter.html'
+      - 'scripts/assets/era-rinf-value-explorer.html'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -35,6 +36,7 @@ jobs:
           mkdir -p _site
           cp scripts/assets/era-graph-explorer-app.html _site/index.html
           cp scripts/assets/era-rdf-exporter.html _site/exporter.html
+          cp scripts/assets/era-rinf-value-explorer.html _site/values.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
