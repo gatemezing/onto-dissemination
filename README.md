@@ -7,10 +7,16 @@ Contents
 - `scripts/assets/era-follow-your-nose-scene.html`: demo scene / explainer mockup (video/animation source).
 - `scripts/assets/era-graph-explorer-app.html`: interactive offline demo app (single-file HTML) for the bubble-graph explorer.
 - `scripts/assets/era-rdf-exporter.html`: single-file tool to export any ERA/RINF resource URI as RDF/XML, recursed to real leaf values — see the dedicated section below.
+- `scripts/assets/era-rinf-value-explorer.html`: single-file tool that lists every distinct value reported for any RINF parameter, per country or across all of RINF, and downloads it as CSV or Excel — see the dedicated section below.
+- `scripts/build-rinf-parameter-catalog.py`: regenerates the parameter/country snapshot embedded in that tool; run nightly by [.github/workflows/refresh-rinf-catalog.yml](.github/workflows/refresh-rinf-catalog.yml).
 - `sample-data/`: example SPARQL query + RDF/XML result pairs, with the engineering rationale behind them documented in `sample-data/README.md`.
 
 Live demo
 - **https://gatemezing.github.io/onto-dissemination/** — the GitHub Pages deployment of `era-graph-explorer-app.html`, rebuilt automatically by [.github/workflows/pages.yml](.github/workflows/pages.yml) on every push to `main` that touches the app file.
+- **https://gatemezing.github.io/onto-dissemination/exporter.html** — the RDF Exporter.
+- **https://gatemezing.github.io/onto-dissemination/values.html** — the RINF Parameter Values explorer.
+
+All three cross-link: the landing page carries a tools nav in its top bar, and each tool links back.
 
 Quick start
 - To view the offline interactive demo, open [scripts/assets/era-graph-explorer-app.html](scripts/assets/era-graph-explorer-app.html) in a modern browser. For best results run a local HTTP server from the repository root and open the file URL in your browser:
@@ -61,6 +67,119 @@ browser — no server involved, queries `graph.data.era.europa.eu` directly
   call; a well-formed but nonexistent URI fails gracefully with a clear
   message instead of a blank "success"; download produces valid, correctly-
   named RDF/XML; no horizontal overflow at a 375px mobile viewport.
+
+## RINF Parameter Values explorer
+
+`scripts/assets/era-rinf-value-explorer.html` — pick any RINF parameter (any
+ERA property carrying an `era:rinfIndex`), choose one country or all of RINF,
+and get every distinct value actually reported, with how many resources carry
+each. Downloads as CSV or as a real `.xlsx` workbook. Single file, no build
+step, no server: it queries `graph.data.era.europa.eu` straight from the
+browser.
+
+Why a railway expert would reach for it: the distinct-value list for a
+parameter is what exposes national practice and data-quality drift. Running
+`opType` across all countries, for instance, shows Croatia publishing
+`concepts/op-types/OperationalPointTypes/70` where every other country
+publishes `concepts/op-types/70` — a different concept scheme for the same
+RINF parameter, with typos in the labels ("Tehnical change", "Shuting yard")
+to match.
+
+**What "country" means here — and why.** RINF is published as national
+datasets, one named graph per infrastructure manager, so a country's scope is
+the union of its IMs' graphs (27 countries over 54 datasets, from 1 for
+Belgium to 9 for Italy). The obvious alternative — filtering on the
+per-resource `era:inCountry` property — is *wrong* for a large share of
+parameters, because many of them sit on sub-objects that carry no country of
+their own: `era:maximumPermittedSpeed` for Austria returns **zero** values by
+`era:inCountry`, against the real 43 by dataset. It is also far slower (a
+dataset-scoped query on the largest parameter runs in ~2 s; the `inCountry`
+join with a fallback took 40 s, and an unbounded reverse-edge variant timed
+out server-side at 120 s).
+
+Honest limits, all stated in the app and on the Excel *About* sheet:
+
+- Austria's dataset `0081` is 99.76 % Austrian — 13 of 5,402 country-tagged
+  resources are Liechtenstein, Swiss or German border objects.
+- Liechtenstein and the United Kingdom appear in the data but publish no
+  dataset of their own, so they get no country entry.
+- Two operational points are genuinely registered by two countries at once
+  (the Sweden–Finland border at Tornio, and the France–Italy border at
+  Menton/Ventimiglia). The per-country columns credit each register, so they
+  can sum to more than the de-duplicated total; the app says so on screen
+  whenever that happens rather than quietly reconciling it.
+
+Design notes for the booth: parameter search matches RINF index, property
+name, label text or full URI; the 104 parameters that RINF defines but nobody
+populates are hidden by default and one tick away; parameters that are really
+identifiers rather than code lists (`gradientProfile` has 482,326 distinct
+values) are flagged, capped, and have the per-country matrix disabled; every
+result carries the exact SPARQL that produced it, and "Copy shareable link"
+reproduces a query for a colleague.
+
+Tested before committing — 93 Playwright checks plus 26 that re-verify the
+app's numbers against independent SPARQL queries:
+
+- Counts match direct SPARQL for 11 parameter/country pairs across 10
+  countries, including the empty case (Poland reports no GSM-R coverage).
+- Per-country counts sum exactly to the RINF-wide statement count for every
+  parameter checked, so the country partition is complete and non-overlapping;
+  single-country runs return values identical to the all-countries matrix.
+- Two bugs were caught this way and fixed: the matrix grouped by dataset
+  rather than country, double-counting the ~7,400 German stations that appear
+  in both `0080` and `1080`; and values were rendered by local name only, so
+  Croatia's `.../OperationalPointTypes/70` and everyone else's `.../70` both
+  showed as "70".
+- Downloads verified as artefacts, not just as clicks: the CSV parsed for BOM,
+  CRLF, RFC 4180 quoting and non-ASCII round-trip; the `.xlsx` opened with
+  openpyxl and checked sheet by sheet (numeric cells really numeric, frozen
+  bold header, autofilter, the matrix's Total column equal to its row sum, and
+  the full query on the About sheet).
+- Malformed and injection-shaped property URIs are refused before any request
+  is built; a 500 and a dropped connection both surface a readable message and
+  leave the app usable; no horizontal overflow at 375 px, 768 px or 1440 px.
+
+### Keeping the snapshot fresh
+
+`python3 scripts/build-rinf-parameter-catalog.py` re-derives the whole block
+from the live endpoint in about 80 s and rewrites it in place. Verified
+reproducible: re-running it against an unchanged endpoint reproduces the
+committed file byte for byte.
+
+[.github/workflows/refresh-rinf-catalog.yml](.github/workflows/refresh-rinf-catalog.yml)
+runs it nightly at **19:00 UTC — 21:00 Europe/Paris while CEST is in force**.
+GitHub cron has no timezone field, so from the October changeover it lands at
+20:00 Paris until spring; add a second `0 20 * * *` line if that hour matters,
+since the job is idempotent and an extra firing costs nothing. Scheduled runs
+are also queued best-effort and can start a few minutes late.
+
+The job **only commits when the parameter list or the country/dataset map
+actually changed** — the snapshot date moves every night by construction, and
+committing that alone would mean a commit and a Pages redeploy every day for
+no real change. Quiet nights still leave a "checked — no change" note in the
+run summary, so there is an audit trail without repo noise. When there is a
+real change it commits, then explicitly triggers `pages.yml`, because a push
+made with `GITHUB_TOKEN` deliberately does not trigger other workflows and the
+deploy would otherwise never see the commit.
+
+Because it runs unattended, the script refuses to write a bad snapshot rather
+than failing quietly — the failure mode that matters here is a half-answered
+endpoint silently marking most parameters "no data". All three guards were
+tested by injecting the fault:
+
+- **Non-200 responses.** `curl` exits 0 for an HTTP 500 that carries a body, so
+  the status code is checked explicitly (verified: a bad repository name is
+  refused with `HTTP 401`, not parsed as an empty result).
+- **Right status, wrong shape.** Every query declares the columns it must get
+  back and fails if they are missing.
+- **Material shrink.** A drop of more than 20 % in properties, populated
+  properties or countries aborts *before* writing (verified: a crippled run
+  returning a tenth of the parameters was refused with "properties fell from
+  331 to 33", and the committed file was left untouched). Pass
+  `--allow-shrink`, or tick the box on a manual run, when the drop is real.
+
+Failures retry twice with a two-minute pause before giving up, since the
+endpoint occasionally times out a batch under load.
 
 ## Links
 - Oslo OP: https://data.banenor.no/data/_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c
