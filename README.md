@@ -70,9 +70,10 @@ browser — no server involved, queries `graph.data.era.europa.eu` directly
 
 ## RINF Parameter Values explorer
 
-`scripts/assets/era-rinf-value-explorer.html` — pick any RINF parameter (any
-ERA property carrying an `era:rinfIndex`), pick any set of countries, and get
-every distinct value actually reported, with how many resources carry each.
+`scripts/assets/era-rinf-value-explorer.html` — pick any set of RINF
+parameters (ERA properties carrying an `era:rinfIndex`, up to 15 at a time),
+pick any set of countries, and get every distinct value actually reported,
+with how many resources carry each.
 Downloads as CSV or as a real `.xlsx` workbook, optionally with a **full-data
 sheet**: one row per location, carrying country, start operational point, end
 operational point and the value. Single file, no build step, no server: it
@@ -85,6 +86,23 @@ parameter is what exposes national practice and data-quality drift. Running
 publishes `concepts/op-types/70` — a different concept scheme for the same
 RINF parameter, with typos in the labels ("Tehnical change", "Shuting yard")
 to match.
+
+**Several parameters at once.** Each parameter is queried separately rather
+than batched into one `VALUES ?prop` query, which is the faster arrangement by
+a wide margin — five parameters over all 27 countries took 12.1 s batched
+against 1.1 s as separate parallel queries. Results and exports gain a
+Parameter column, rows never interleave between parameters, and a share
+percentage is always computed against its own parameter's total rather than a
+meaningless mixed denominator. Queries run through a pool capped at six in
+flight, since a 15-parameter run is around 45 of them.
+
+**Labels are their own query.** Profiling the batched form showed the cost was
+not the parameters at all but the inline label join: 12.1 s with
+`OPTIONAL { ?value skos:prefLabel ?l }` against 2.6 s without it. Labels
+resolve over a small fixed set of SKOS concepts, so they are now fetched in one
+`VALUES`-bounded query over the distinct URI values that came back — 0.07 s for
+the 51 concepts behind those five parameters. That change made the
+single-parameter path faster too.
 
 **The full-data sheet, and how it stays fast.** Reaching a start/end
 operational point depends on what the parameter hangs off, and the naive
@@ -143,7 +161,7 @@ values) are flagged, capped, and have the per-country matrix disabled; every
 result carries the exact SPARQL that produced it, and "Copy shareable link"
 reproduces a query for a colleague.
 
-Tested before committing — 146 Playwright checks, 26 that re-verify the app's
+Tested before committing — 177 Playwright checks, 26 that re-verify the app's
 aggregate numbers against independent SPARQL, and 13 that re-verify individual
 full-data rows the same way (every start/end OP checked against the endpoint
 per row, and a small scope confirmed complete at 98 rows = 98 resources):
@@ -153,13 +171,16 @@ per row, and a small scope confirmed complete at 98 rows = 98 resources):
 - Per-country counts sum exactly to the RINF-wide statement count for every
   parameter checked, so the country partition is complete and non-overlapping;
   single-country runs return values identical to the all-countries matrix.
-- Four bugs were caught this way and fixed: the matrix grouped by dataset
+- Six bugs were caught this way and fixed: the matrix grouped by dataset
   rather than country, double-counting the ~7,400 German stations that appear
   in both `0080` and `1080`; values were rendered by local name only, so
   Croatia's `.../OperationalPointTypes/70` and everyone else's `.../70` both
   showed as "70"; the capped full-data export dropped whole countries (above);
-  and a breakdown box auto-disabled for a single country stayed unticked after
-  more countries were selected, silently omitting the matrix.
+  a breakdown box auto-disabled for a single country stayed unticked after
+  more countries were selected, silently omitting the matrix; an open
+  suggestion list covered the parameter chips below it, so clicking a chip's
+  remove button selected a parameter instead of removing one; and the
+  full-data sheet kept its single-parameter header in multi-parameter runs.
 - Downloads verified as artefacts, not just as clicks: the CSV parsed for BOM,
   CRLF, RFC 4180 quoting and non-ASCII round-trip; the `.xlsx` opened with
   openpyxl and checked sheet by sheet (numeric cells really numeric, frozen
