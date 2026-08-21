@@ -71,11 +71,12 @@ browser — no server involved, queries `graph.data.era.europa.eu` directly
 ## RINF Parameter Values explorer
 
 `scripts/assets/era-rinf-value-explorer.html` — pick any RINF parameter (any
-ERA property carrying an `era:rinfIndex`), choose one country or all of RINF,
-and get every distinct value actually reported, with how many resources carry
-each. Downloads as CSV or as a real `.xlsx` workbook. Single file, no build
-step, no server: it queries `graph.data.era.europa.eu` straight from the
-browser.
+ERA property carrying an `era:rinfIndex`), pick any set of countries, and get
+every distinct value actually reported, with how many resources carry each.
+Downloads as CSV or as a real `.xlsx` workbook, optionally with a **full-data
+sheet**: one row per location, carrying country, start operational point, end
+operational point and the value. Single file, no build step, no server: it
+queries `graph.data.era.europa.eu` straight from the browser.
 
 Why a railway expert would reach for it: the distinct-value list for a
 parameter is what exposes national practice and data-quality drift. Running
@@ -84,6 +85,31 @@ parameter is what exposes national practice and data-quality drift. Running
 publishes `concepts/op-types/70` — a different concept scheme for the same
 RINF parameter, with typos in the labels ("Tehnical change", "Shuting yard")
 to match.
+
+**The full-data sheet, and how it stays fast.** Reaching a start/end
+operational point depends on what the parameter hangs off, and the naive
+generic form is what kills the endpoint: walking back through an *unbound*
+predicate (`?parent ?anyPred ?res`) was killed server-side at 120 s. So
+`build-rinf-parameter-catalog.py` resolves the path once, offline, and stores
+it per parameter — `self` for a section of line, `part` for a track, or
+`via:<predicate>` for a value on a shared sub-object. The app then emits only
+that one bound-predicate shape, and every case returns in about two seconds
+across all 27 countries. 216 of the 227 populated parameters have such a path;
+the remaining 11 have the option greyed out rather than silently returning
+nothing.
+
+A single reverse step covers two situations at once: a running track hangs off
+a section of line (giving start and end OP), a station track hangs off an
+operational point (which is named instead). Where the value sits on a shared
+sub-object — a contact line system reused across thousands of tracks — the row
+reports the *track*, since the sub-object has no location of its own.
+
+The row budget is split evenly across the countries selected, which is not a
+cosmetic choice: a single `LIMIT` over the whole scope returned a DEU+FRA+ITA
+export **containing no Italian rows at all**, because the endpoint filled the
+cap before reaching them. Anyone comparing countries would have read that as
+"Italy reports nothing". Each country now gets its own slice, and the app names
+which countries filled theirs.
 
 **What "country" means here — and why.** RINF is published as national
 datasets, one named graph per infrastructure manager, so a country's scope is
@@ -117,19 +143,23 @@ values) are flagged, capped, and have the per-country matrix disabled; every
 result carries the exact SPARQL that produced it, and "Copy shareable link"
 reproduces a query for a colleague.
 
-Tested before committing — 93 Playwright checks plus 26 that re-verify the
-app's numbers against independent SPARQL queries:
+Tested before committing — 146 Playwright checks, 26 that re-verify the app's
+aggregate numbers against independent SPARQL, and 13 that re-verify individual
+full-data rows the same way (every start/end OP checked against the endpoint
+per row, and a small scope confirmed complete at 98 rows = 98 resources):
 
 - Counts match direct SPARQL for 11 parameter/country pairs across 10
   countries, including the empty case (Poland reports no GSM-R coverage).
 - Per-country counts sum exactly to the RINF-wide statement count for every
   parameter checked, so the country partition is complete and non-overlapping;
   single-country runs return values identical to the all-countries matrix.
-- Two bugs were caught this way and fixed: the matrix grouped by dataset
+- Four bugs were caught this way and fixed: the matrix grouped by dataset
   rather than country, double-counting the ~7,400 German stations that appear
-  in both `0080` and `1080`; and values were rendered by local name only, so
+  in both `0080` and `1080`; values were rendered by local name only, so
   Croatia's `.../OperationalPointTypes/70` and everyone else's `.../70` both
-  showed as "70".
+  showed as "70"; the capped full-data export dropped whole countries (above);
+  and a breakdown box auto-disabled for a single country stayed unticked after
+  more countries were selected, silently omitting the matrix.
 - Downloads verified as artefacts, not just as clicks: the CSV parsed for BOM,
   CRLF, RFC 4180 quoting and non-ASCII round-trip; the `.xlsx` opened with
   openpyxl and checked sheet by sheet (numeric cells really numeric, frozen

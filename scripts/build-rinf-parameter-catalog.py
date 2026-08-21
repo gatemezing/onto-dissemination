@@ -12,6 +12,7 @@ It rewrites the `const META/COUNTRIES/CATALOG` block in place and prints a
 diff summary. Nothing else in the file is touched.
 """
 import csv, io, json, re, subprocess, sys, collections, datetime, pathlib
+import concurrent.futures as futures
 
 EP = "https://graph.data.era.europa.eu/repositories/rinf-plus"
 APP = pathlib.Path(__file__).resolve().parent / "assets" / "era-rinf-value-explorer.html"
@@ -43,11 +44,58 @@ def query(expect, q, timeout=400):
     body, _, code = p.stdout.decode("utf-8", "replace").rpartition("\n")
     if code.strip() != "200":
         sys.exit(f"endpoint returned HTTP {code.strip()}: {body.strip()[:300]}")
-    rows = list(csv.DictReader(io.StringIO(body)))
-    missing = [c for c in expect if not rows or c not in rows[0]]
+    # Check the header, not the first row: a query that legitimately matches
+    # nothing still returns its header, and an empty result is not a fault.
+    reader = csv.reader(io.StringIO(body))
+    header = next(reader, None)
+    if header is None:
+        sys.exit(f"empty response where CSV was expected: {body.strip()[:300]}")
+    missing = [c for c in expect if c not in header]
     if missing:
-        sys.exit(f"unexpected response shape, missing column(s) {missing}: {body.strip()[:300]}")
-    return rows
+        sys.exit(f"unexpected response shape, missing column(s) {missing} "
+                 f"(got {header}): {body.strip()[:300]}")
+    return list(csv.DictReader(io.StringIO(body)))
+
+
+# How a parameter's subject reaches a location. Resolved once, here, so the
+# app never has to emit an unbound-predicate reverse join at query time — that
+# is what times the endpoint out (a `?parent ?anyPred ?s` variant died at 120s
+# server-side, while the bound-predicate lookups below run in ~2s over all 27
+# countries). Each parameter stores the single pattern that applies to it.
+#   self       subject is the section of line itself
+#   part       ?parent era:hasPart ?subject
+#   via:<pred> ?parent era:hasPart ?mid . ?mid era:<pred> ?subject
+#   ''         no known path to a location
+SUB_OBJECT_LINK = {
+    "ETCS": "etcs",
+    "TrainDetectionSystem": "trainDetectionSystem",
+    "ContactLineSystem": "contactLineSystem",
+    "HABD": "tracksideHabd",
+}
+PART_OF_PARENT = {"RunningTrack", "Track", "Siding", "Tunnel", "PlatformEdge",
+                  "Signal", "OperationalPoint"}
+
+
+def location_path(types):
+    """Map a parameter's sampled subject types onto one location pattern."""
+    if "SectionOfLine" in types:
+        return "self"
+    for t, pred in SUB_OBJECT_LINK.items():
+        if t in types:
+            return "via:" + pred
+    if PART_OF_PARENT & set(types):
+        return "part"
+    return ""
+
+
+def sample_subject_types(prop):
+    """Types of a sample of this property's subjects, for location_path()."""
+    rows = query(["type"], f"""PREFIX era: <http://data.europa.eu/949/>
+SELECT DISTINCT ?type WHERE {{
+  {{ SELECT ?s WHERE {{ ?s <{prop}> ?v }} LIMIT 120 }}
+  ?s a ?type . FILTER(STRSTARTS(STR(?type), "http://data.europa.eu/949/"))
+}}""", timeout=120)
+    return prop, sorted({r["type"].rsplit("/", 1)[-1] for r in rows})
 
 
 def const_of(block, name):
@@ -60,7 +108,7 @@ def const_of(block, name):
 
 
 def main():
-    print("1/5  properties carrying an era:rinfIndex …")
+    print("1/6  properties carrying an era:rinfIndex …")
     base = query(["prop", "indexes", "kinds", "label", "comment"], """
 PREFIX era: <http://data.europa.eu/949/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -78,7 +126,7 @@ WHERE {
     props = [r["prop"] for r in base]
     print(f"     {len(props)} properties")
 
-    print("2/5  statement / distinct-value counts (batched) …")
+    print("2/6  statement / distinct-value counts (batched) …")
     stats = {}
     for i in range(0, len(props), 25):
         chunk = props[i:i + 25]
@@ -90,12 +138,20 @@ WHERE {{ VALUES ?p {{ {vals} }} ?s ?p ?v }} GROUP BY ?p""")
             stats[r["p"]] = r
         print(f"     batch {i//25 + 1}: {len(stats)} populated so far", flush=True)
 
-    print("3/5  which graphs hold rinfIndex data …")
+    print("3/6  which graphs hold rinfIndex data …")
     used = " ".join(f"<{p}>" for p in stats)
     datagraphs = {r["g"] for r in query(
         ["g"], f"SELECT ?g WHERE {{ VALUES ?p {{ {used} }} GRAPH ?g {{ ?s ?p ?v }} }} GROUP BY ?g")}
 
-    print("4/5  graph -> country, from the countries the graph's resources declare …")
+    print("4/6  how each populated parameter reaches a start/end operational point …")
+    shapes = {}
+    with futures.ThreadPoolExecutor(max_workers=6) as pool:
+        for prop, types in pool.map(sample_subject_types, list(stats)):
+            shapes[prop] = location_path(types)
+    tally = collections.Counter(v or "(none)" for v in shapes.values())
+    print("     " + ", ".join(f"{k}={n}" for k, n in tally.most_common()))
+
+    print("5/6  graph -> country, from the countries the graph's resources declare …")
     dist = collections.defaultdict(dict)
     for r in query(["g", "country", "n"], """PREFIX era: <http://data.europa.eu/949/>
 SELECT ?g ?country (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s era:inCountry ?country } }
@@ -125,7 +181,7 @@ SELECT ?c ?label WHERE {
         print(f"     NOTE dataset {code} -> {cc} is {n/tot*100:.2f}% single-country "
               f"({tot - n} of {tot} resources are elsewhere)")
 
-    print("5/5  writing the data block …")
+    print("6/6  writing the data block …")
     catalog = []
     for r in base:
         u = r["prop"]
@@ -139,9 +195,10 @@ SELECT ?c ?label WHERE {
             e["d"] = com[:400]
         if s:
             e.update(s=int(s["stmts"]), v=int(s["dv"]), r=int(s["ds"]),
-                     lit=round(int(s["lit"]) / int(s["stmts"]), 3))
+                     lit=round(int(s["lit"]) / int(s["stmts"]), 3),
+                     loc=shapes.get(u, ""))
         else:
-            e.update(s=0, v=0, r=0, lit=None)
+            e.update(s=0, v=0, r=0, lit=None, loc="")
         catalog.append(e)
     catalog.sort(key=lambda e: ([int(p) if p.isdigit() else 0 for p in (e["i"][0] if e["i"] else "9").split(".")], e["n"]))
 
