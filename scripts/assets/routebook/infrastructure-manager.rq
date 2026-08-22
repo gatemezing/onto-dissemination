@@ -1,0 +1,20 @@
+# D2 1.1 — who is the infrastructure manager for this line?
+#
+# Nothing on a SectionOfLine or an OperationalPoint points at an era:Body, so
+# the manager cannot be reached by traversal. It is recoverable a different
+# way: each named graph IS one manager's RINF submission, so the manager is the
+# organisation holding the Infrastructure Manager role inside the graph that
+# publishes the line. The role is matched on the SKOS concept -- which carries
+# dcterms:source <http://data.europa.eu/eli/dir/2012/34/2019-01-01> -- rather
+# than on the shape of the role URI.
+#
+# Against rinf-plus. 0.12 s for DEU line 4000, which returns two datasets:
+# graph/0080 (DB InfraGO) and graph/1080 (Deutsche Bahn AG).
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX eu:  <http://publications.europa.eu/resource/authority/country/>
+SELECT DISTINCT ?graph ?body ?code WHERE {
+  GRAPH ?graph { ?sol a era:SectionOfLine ; era:inCountry eu:DEU ; era:nationalLine/era:lineId "4000" }
+  GRAPH ?graph { ?body a era:Body ; era:organisationCode ?code ;
+                       era:role/era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/IM> }
+}
+ORDER BY ?code

@@ -1,0 +1,28 @@
+# ...and their names, from the Organisation Codes Register.
+#
+# RINF knows which organisation publishes a line but holds no name for it: all
+# 660 era:Body resources in rinf-plus carry zero foaf:name. The name, short
+# name, country and full role list live in OCR-KG, and are reached with the
+# very same body URIs the query above returned -- no code column, no join key,
+# no matching by hand. That is the concrete payoff of one identifier reused
+# across registers.
+#
+# Against https://graph.data.era.europa.eu/repositories/OCR-KG -- 0.15 s.
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+SELECT ?body ?code ?name ?nick ?country
+       (GROUP_CONCAT(DISTINCT ?roleNotation; separator=", ") AS ?roles)
+WHERE {
+  VALUES ?body { <http://data.europa.eu/949/body/organisation/0080>
+                 <http://data.europa.eu/949/body/organisation/1080> }   # … from the query above
+  ?body era:organisationCode ?code .
+  OPTIONAL { ?body foaf:name ?name }
+  OPTIONAL { ?body foaf:nick ?nick }
+  OPTIONAL { ?body org:hasSite/org:siteAddress/locn:adminUnitL1 ?country }
+  OPTIONAL { ?body era:role/era:hasOrganisationRole/skos:notation ?roleNotation }
+}
+GROUP BY ?body ?code ?name ?nick ?country
+ORDER BY ?code

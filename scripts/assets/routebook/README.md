@@ -1,6 +1,6 @@
 # Route book elements (TSI OPE Appendix D2) — verified query set
 
-The query set behind [`era-route-book.html`](../../scripts/assets/era-route-book.html)
+The query set behind [`era-route-book.html`](../era-route-book.html)
 (published as `/routebook.html`). All measurements against
 `graph.data.era.europa.eu/repositories/rinf-plus` on 2026-08-22.
 
@@ -8,6 +8,7 @@ The query set behind [`era-route-book.html`](../../scripts/assets/era-route-book
 |---|---|---|
 | `d2-catalogue.rq` | the 46 D2 elements, and whether any manager publishes each at all | **0.15 s** |
 | `infrastructure-manager.rq` | D2 1.1 — which manager publishes this line | **0.12 s** |
+| `infrastructure-manager-names.rq` | …and their names, from OCR-KG | **0.15 s** |
 | `sections-for-line.rq` | phase 1: sections of line with position, latest window per stretch | **0.45 s**, 167 sections for DEU `4000` |
 | `ops-for-line.rq` | phase 1: operational points with position, latest resource per `uopid` | **0.23 s**, 168 points for the same line |
 | `d2-elements-for-place.rq` | phase 2: the D2 elements on those places, one query per access path | **1.4 s** for all five line-side branches |
@@ -83,15 +84,37 @@ The tool chunks the `VALUES` list at 250 URIs and runs at most six requests in
 flight, so a French line of 570 sections and 327 points stays within one round
 of the pool.
 
-## D2 1.1 has no path from a line, and that is not a bug
+## D2 1.1 takes two registers, and the same URI opens both
 
 Nothing on a `SectionOfLine` or an `OperationalPoint` points at an `era:Body`,
 so the manager cannot be reached by traversal. It is recoverable a different
 way: each named graph **is** one manager's RINF submission, so the manager is
-the `era:Body` with an `_IM` role inside the graph that publishes the line.
-`infrastructure-manager.rq` does exactly that, and it also surfaces something a
-traversal never would — German line `4000` is published in **two** datasets
-(`graph/0080` and `graph/1080`), each carrying both organisation codes.
+the organisation holding the **Infrastructure Manager** role inside the graph
+that publishes the line. The role is matched on the SKOS concept
+`concepts/organisation-roles/IM` — which carries
+`dcterms:source <http://data.europa.eu/eli/dir/2012/34/2019-01-01>`, an ELI
+reference to the Directive that defines the term — rather than on the shape of
+the role URI.
+
+That answers *which* organisation but not *who*: *all 660 `era:Body` resources
+in `rinf-plus` carry zero `foaf:name`.* The names live in the **Organisation
+Codes Register**, and are fetched with the very same body URIs RINF returned:
+
+| Register | What it knows about `body/organisation/0080` |
+|---|---|
+| `rinf-plus` | it publishes line `4000`, and it holds the IM role |
+| `OCR-KG` | it is **DB InfraGO Aktiengesellschaft**, short name DB InfraGO, in DEU, holding roles RU, IM, ECM, Keeper, Owner, CB |
+
+No code column, no join key, no matching by hand — the identifier *is* the join.
+This is the clearest demonstration in the repository of why one persistent URI
+reused across registers beats a shared numeric code.
+
+The lookup also surfaces something traversal never would: German line `4000` is
+published in **two** datasets, `graph/0080` (DB InfraGO) and `graph/1080`
+(Deutsche Bahn AG), each carrying both organisation codes.
+
+Resolved end to end: `0071` → Administrador de Infraestructuras Ferroviarias
+(ADIF), `0084` → ProRail, `0087` → SNCF Réseau.
 
 ## Validity
 

@@ -1,7 +1,0 @@
-PREFIX era: <http://data.europa.eu/949/>
-PREFIX eu:  <http://publications.europa.eu/resource/authority/country/>
-SELECT DISTINCT ?graph ?code WHERE {
-  GRAPH ?graph { ?sol a era:SectionOfLine ; era:inCountry eu:DEU ; era:nationalLine/era:lineId "4000" }
-  GRAPH ?graph { ?b a era:Body ; era:organisationCode ?code ; era:role ?role }
-  FILTER(STRENDS(STR(?role), "_IM"))
-} ORDER BY ?code

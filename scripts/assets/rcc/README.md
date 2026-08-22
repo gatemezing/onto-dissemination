@@ -1,6 +1,6 @@
 # RCC parameters with location — verified query set
 
-The query set behind [`era-rcc-parameters.html`](../../scripts/assets/era-rcc-parameters.html)
+The query set behind [`era-rcc-parameters.html`](../era-rcc-parameters.html)
 (published as `/rcc.html`): the two supplied Data Stories queries, corrected and
 tuned, plus the country → line lookup that drives its cascade. All three were run against
 `graph.data.era.europa.eu/repositories/rinf-plus` on 2026-08-22.

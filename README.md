@@ -323,7 +323,7 @@ returning data. Only `energySupplySystemTSICompliant` (`1.1.1.2.2.1.2.1`) has no
 successor — it is genuinely withdrawn.
 
 The full query set, with the measurements behind each correction, is in
-[`interop-europe/rcc/README.md`](interop-europe/rcc/README.md).
+[`scripts/assets/rcc/README.md`](scripts/assets/rcc/README.md).
 
 ## Route Book tool (TSI OPE Appendix D2)
 
@@ -363,12 +363,23 @@ re-resolves the line's sections and recomputes the validity aggregate. Resolving
 the places **once** and pinning them into each branch with `VALUES` takes the
 same 5,193 rows down to **1.9 s**.
 
-**D2 1.1 needs a different move.** Nothing on a line points at an `era:Body`, so
-the manager cannot be reached by traversal — but each named graph *is* one
-manager's RINF submission, so it is the `era:Body` with an `_IM` role inside the
-graph publishing the line. That also surfaces something traversal never would:
-German line `4000` is published in two datasets, `graph/0080` and `graph/1080`.
+**D2 1.1 takes two registers, and the same URI opens both.** Nothing on a line
+points at an `era:Body`, so the manager cannot be reached by traversal — but each
+named graph *is* one manager's RINF submission, so it is the organisation holding
+the Infrastructure Manager role inside the graph publishing the line, matched on
+the SKOS concept `concepts/organisation-roles/IM` (which carries an ELI reference
+to Directive 2012/34/EU) rather than on the shape of the role URI.
+
+That gives *which* organisation but not *who*: all 660 `era:Body` resources in
+`rinf-plus` carry zero `foaf:name`. The names come from the **Organisation Codes
+Register** (`OCR-KG`), queried with the very same body URIs RINF returned — no
+code column, no join key, no matching by hand. `body/organisation/0080` is a line
+publisher in one register and *DB InfraGO Aktiengesellschaft* in the other, and
+the identifier is the join. It is the clearest demonstration here of why one
+persistent URI reused across registers beats a shared numeric code. The lookup
+also surfaces what traversal would not: German line `4000` is published in two
+datasets, `graph/0080` (DB InfraGO) and `graph/1080` (Deutsche Bahn AG).
 
 Validity handling is identical to the RCC tool, and retired (`owl:deprecated`)
 properties are excluded. The full query set with the measurements behind each
-decision is in [`interop-europe/routebook/README.md`](interop-europe/routebook/README.md).
+decision is in [`scripts/assets/routebook/README.md`](scripts/assets/routebook/README.md).
