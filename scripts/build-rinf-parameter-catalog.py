@@ -108,7 +108,7 @@ def const_of(block, name):
 
 
 def main():
-    print("1/6  properties carrying an era:rinfIndex …")
+    print("1/7  properties (excluding owl:deprecated) carrying an era:rinfIndex …")
     base = query(["prop", "indexes", "kinds", "label", "comment"], """
 PREFIX era: <http://data.europa.eu/949/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -120,13 +120,17 @@ SELECT ?prop (GROUP_CONCAT(DISTINCT ?idx; separator=" | ") AS ?indexes)
 WHERE {
   ?prop era:rinfIndex ?idx ; a ?kind .
   FILTER(?kind IN (owl:DatatypeProperty, owl:ObjectProperty, rdf:Property))
+  # Retired parameters are no longer permitted, so they must not be offered
+  # for selection. They are still reported separately (step 6) because some
+  # national datasets continue to publish them.
+  FILTER NOT EXISTS { ?prop owl:deprecated true }
   OPTIONAL { ?prop rdfs:label ?lab FILTER(LANG(?lab)="en" || LANG(?lab)="") }
   OPTIONAL { ?prop rdfs:comment ?com FILTER(LANG(?com)="en" || LANG(?com)="") }
 } GROUP BY ?prop ORDER BY ?prop""")
     props = [r["prop"] for r in base]
     print(f"     {len(props)} properties")
 
-    print("2/6  statement / distinct-value counts (batched) …")
+    print("2/7  statement / distinct-value counts (batched) …")
     stats = {}
     for i in range(0, len(props), 25):
         chunk = props[i:i + 25]
@@ -138,12 +142,12 @@ WHERE {{ VALUES ?p {{ {vals} }} ?s ?p ?v }} GROUP BY ?p""")
             stats[r["p"]] = r
         print(f"     batch {i//25 + 1}: {len(stats)} populated so far", flush=True)
 
-    print("3/6  which graphs hold rinfIndex data …")
+    print("3/7  which graphs hold rinfIndex data …")
     used = " ".join(f"<{p}>" for p in stats)
     datagraphs = {r["g"] for r in query(
         ["g"], f"SELECT ?g WHERE {{ VALUES ?p {{ {used} }} GRAPH ?g {{ ?s ?p ?v }} }} GROUP BY ?g")}
 
-    print("4/6  how each populated parameter reaches a start/end operational point …")
+    print("4/7  how each populated parameter reaches a start/end operational point …")
     shapes = {}
     with futures.ThreadPoolExecutor(max_workers=6) as pool:
         for prop, types in pool.map(sample_subject_types, list(stats)):
@@ -151,7 +155,20 @@ WHERE {{ VALUES ?p {{ {vals} }} ?s ?p ?v }} GROUP BY ?p""")
     tally = collections.Counter(v or "(none)" for v in shapes.values())
     print("     " + ", ".join(f"{k}={n}" for k, n in tally.most_common()))
 
-    print("5/6  graph -> country, from the countries the graph's resources declare …")
+    print("5/7  retired parameters still being published …")
+    depr_rows = query(["g", "p", "n"], """PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX era: <http://data.europa.eu/949/>
+SELECT ?g ?p (COUNT(*) AS ?n) WHERE {
+  ?p owl:deprecated true ; era:rinfIndex ?i .
+  GRAPH ?g { ?s ?p ?o }
+} GROUP BY ?g ?p""")
+    depr_total = query(["n"], """PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX era: <http://data.europa.eu/949/>
+SELECT (COUNT(*) AS ?n) WHERE {
+  ?p owl:deprecated true ; era:rinfIndex ?i . ?s ?p ?o }""")
+    print(f"     {len(depr_rows)} dataset/parameter pairs still carry retired parameters")
+
+    print("6/7  graph -> country, from the countries the graph's resources declare …")
     dist = collections.defaultdict(dict)
     for r in query(["g", "country", "n"], """PREFIX era: <http://data.europa.eu/949/>
 SELECT ?g ?country (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s era:inCountry ?country } }
@@ -181,7 +198,7 @@ SELECT ?c ?label WHERE {
         print(f"     NOTE dataset {code} -> {cc} is {n/tot*100:.2f}% single-country "
               f"({tot - n} of {tot} resources are elsewhere)")
 
-    print("6/6  writing the data block …")
+    print("7/7  writing the data block …")
     catalog = []
     for r in base:
         u = r["prop"]
@@ -202,12 +219,41 @@ SELECT ?c ?label WHERE {
         catalog.append(e)
     catalog.sort(key=lambda e: ([int(p) if p.isdigit() else 0 for p in (e["i"][0] if e["i"] else "9").split(".")], e["n"]))
 
+    # Which countries still publish parameters the specification has retired.
+    by_country, by_prop = collections.defaultdict(
+        lambda: {"stmts": 0, "props": set(), "datasets": set()}), collections.Counter()
+    # invert the country -> datasets map built above
+    ds2cc = {ds: c[len(COUNTRY_PREFIX):] for c, gs in bycountry.items() for ds in gs}
+    for r in depr_rows:
+        ds = r["g"][len(GRAPH_PREFIX):]
+        cc = ds2cc.get(ds)
+        if not cc:
+            continue
+        n = int(r["n"]); pn = r["p"].rsplit("/", 1)[-1]
+        by_country[cc]["stmts"] += n
+        by_country[cc]["props"].add(pn)
+        by_country[cc]["datasets"].add(ds)
+        by_prop[pn] += n
+    deprecated = {
+        "distinctStatements": int(depr_total[0]["n"]) if depr_total else 0,
+        "datasetStatements": sum(by_prop.values()),
+        "parameters": [{"n": n, "s": c} for n, c in by_prop.most_common()],
+        "countries": sorted(
+            ({"c": c, "l": labels.get(COUNTRY_PREFIX + c, c), "s": v["stmts"],
+              "p": sorted(v["props"]), "g": sorted(v["datasets"])}
+             for c, v in by_country.items()),
+            key=lambda x: -x["s"]),
+    }
+    print(f"     {deprecated['distinctStatements']:,} statements still on retired parameters, "
+          f"in {len(deprecated['countries'])} countries")
+
     meta = {"endpoint": EP, "snapshot": datetime.date.today().isoformat(),
             "graphPrefix": GRAPH_PREFIX, "countryPrefix": COUNTRY_PREFIX,
             "datasets": sum(len(c["g"]) for c in countries),
             "sharedExcluded": sorted(SHARED_GRAPHS)}
     block = ("const META = " + json.dumps(meta, separators=(",", ":")) + ";\n"
              "const COUNTRIES = " + json.dumps(countries, separators=(",", ":"), ensure_ascii=False) + ";\n"
+             "const DEPRECATED = " + json.dumps(deprecated, separators=(",", ":"), ensure_ascii=False) + ";\n"
              "const CATALOG = " + json.dumps(catalog, separators=(",", ":"), ensure_ascii=False) + ";\n")
 
     html = APP.read_text()

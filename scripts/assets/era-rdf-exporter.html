@@ -96,7 +96,7 @@
 <div id="app">
   <header>
     <h1>ERA RDF Exporter</h1>
-    <p>Paste any ERA / RINF resource URI and export its full RDF graph as RDF/XML — recursed down to real leaf values, with ontology/SHACL noise and sibling-track blowup automatically filtered out.</p>
+    <p>Paste any ERA / RINF resource URI and export its full RDF graph as RDF/XML — recursed down to real leaf values, with ontology/SHACL noise and sibling-track blowup automatically filtered out. Parameters the ERA ontology marks <code>owl:deprecated</code> are dropped too, so the export carries only what the current specification permits.</p>
   </header>
 
   <div class="panel">
@@ -157,8 +157,8 @@
 
   <footer>
     Queries <code>graph.data.era.europa.eu/repositories/rinf-plus</code> directly from your browser (open CORS, no
-    server involved). Cycle detection, ontology/SHACL-metadata exclusion, and English-only labels are always
-    applied — see <a href="https://github.com/gatemezing/onto-dissemination/blob/main/sample-data/README.md">sample-data/README.md</a>
+    server involved). Cycle detection, ontology/SHACL-metadata exclusion, retired-parameter removal
+    (<code>owl:deprecated</code>), and English-only labels are always applied — see <a href="https://github.com/gatemezing/onto-dissemination/blob/main/sample-data/README.md">sample-data/README.md</a>
     for the full engineering rationale behind these queries.
     <br>← Back to the <a href="./">ERA Graph Explorer</a> (bubble-graph "follow your nose" demo)
     · <a href="./values.html">RINF Parameter Values</a> (distinct values per parameter, by country, as CSV/Excel).
@@ -198,6 +198,11 @@ function buildExportQuery(uri, excludeHasPart){
   const neverRecurse = '^(' + blockList.join('|') + ')';
   const labelFilter = n => `FILTER(?p${n} NOT IN (skos:prefLabel, skos:altLabel, rdfs:label, skos:hiddenLabel) || !isLiteral(?s${n}) || LANG(?s${n}) = "en" || LANG(?s${n}) = "")`;
   const hasPartFilter = n => excludeHasPart ? `FILTER(?p${n} != era:hasPart)` : '';
+  /* Parameters the ERA ontology marks owl:deprecated are no longer permitted, so
+     they are dropped from the export at every level. The endpoint carries the
+     deprecation flags itself, so one NOT EXISTS per level does it — no need to
+     enumerate the retired URIs, and the query text stays short. */
+  const deprFilter = n => `FILTER NOT EXISTS { ?p${n} owl:deprecated true }`;
 
   const lines = [
     'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>',
@@ -216,6 +221,7 @@ function buildExportQuery(uri, excludeHasPart){
   lines.push(`  VALUES ?neverRecurse { "${neverRecurse}" }`);
   lines.push('  ?s0 ?p1 ?s1 .');
   lines.push('  ' + labelFilter(1));
+  lines.push('  ' + deprFilter(1));
   if(excludeHasPart) lines.push('  ' + hasPartFilter(1));
 
   let indent = '  ';
@@ -230,6 +236,7 @@ function buildExportQuery(uri, excludeHasPart){
     lines.push(`${indent}FILTER NOT EXISTS { ?s${prev} a ?t${prev} . FILTER(?t${prev} IN (owl:Class, rdf:Property, owl:ObjectProperty, owl:DatatypeProperty, sh:NodeShape, sh:PropertyShape)) }`);
     lines.push(`${indent}?s${prev} ?p${i} ?s${i} .`);
     lines.push(`${indent}` + labelFilter(i));
+    lines.push(`${indent}` + deprFilter(i));
     if(excludeHasPart) lines.push(`${indent}` + hasPartFilter(i));
   }
   for(let i=2;i<=DEPTH;i++){
@@ -237,7 +244,7 @@ function buildExportQuery(uri, excludeHasPart){
     lines.push(`${indent}}`);
     indent = indent.slice(0,-2);
   }
-  lines.push('  OPTIONAL { ?rev ?prev ?s0 . }');
+  lines.push('  OPTIONAL { ?rev ?prev ?s0 . FILTER NOT EXISTS { ?prev owl:deprecated true } }');
   lines.push('}');
   return lines.join('\n');
 }

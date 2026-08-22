@@ -56,6 +56,14 @@ ERA/RINF resource URI, pick an export mode (or leave it on the recommended
 browser — no server involved, queries `graph.data.era.europa.eu` directly
 (confirmed open CORS).
 
+- **Retired parameters are dropped.** Anything the ERA ontology marks
+  `owl:deprecated` is filtered out at every level of the recursion, so an export
+  carries only what the current specification permits. The endpoint holds the
+  deprecation flags itself, so this is one `FILTER NOT EXISTS` per level rather
+  than a list of retired URIs. Verified against a track that does carry a retired
+  parameter: `TSITractionHarmonics` appeared twice before the change and zero
+  times after, while the three `sample-data` reference exports are unchanged at
+  475, 222 and 136 descriptions.
 - **Smart mode** detects `/track/` URIs and switches to track-centric
   export automatically; everything else gets the full recursive export.
   Both modes can be selected manually to override the detection.
@@ -90,6 +98,16 @@ parameter is what exposes national practice and data-quality drift. Running
 publishes `concepts/op-types/70` — a different concept scheme for the same
 RINF parameter, with typos in the labels ("Tehnical change", "Shuting yard")
 to match.
+
+**Retired parameters are excluded, and the fallout is reported.** The catalogue
+now omits every property marked `owl:deprecated` — 37 of the 331 RINF-indexed
+properties — so a retired parameter cannot be selected by accident; the list is
+**294 properties, 210 of them populated**. Excluding them is not the whole story,
+though, because the data has not caught up: **9 countries still publish 17
+retired parameters, 265,599 statements in total**, led by Germany's `1080`
+dataset (156,064) and Switzerland's `0085`/`3915` (86,002). The app names them in
+a panel rather than quietly dropping them, since a reuser querying only current
+parameters would otherwise never learn that this data exists.
 
 **Several parameters at once.** Each parameter is queried separately rather
 than batched into one `VALUES ?prop` query, which is the faster arrangement by
