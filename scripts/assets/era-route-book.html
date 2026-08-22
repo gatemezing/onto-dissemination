@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ERA RCC Parameters</title>
+<title>ERA Route Book Elements</title>
 <style>
   :root{
     --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
@@ -33,11 +33,11 @@
 
   label.fieldLabel{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;
     color:var(--muted);margin-bottom:7px;}
-  input[type=text],input[type=number],select{width:100%;background:rgba(255,255,255,.06);
+  input[type=text],input[type=number],input[type=search],select{width:100%;background:rgba(255,255,255,.06);
     border:1px solid var(--line);color:var(--paper);padding:10px 12px;border-radius:8px;font-size:13.5px;
     font-family:inherit;}
   input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
-  select option{background:#141d33;color:var(--paper);}
+  select option,select optgroup{background:#141d33;color:var(--paper);}
   input:disabled,select:disabled{opacity:.45;cursor:not-allowed;}
 
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
@@ -72,6 +72,10 @@
   .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
   .statTile .n{font-size:20px;font-weight:700;}
   .statTile .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+  .statTile.hero{background:linear-gradient(180deg,rgba(95,208,174,.14),rgba(95,208,174,.05));border-color:rgba(95,208,174,.42);}
+  .statTile.hero .n{color:var(--teal);}
+  .bar{height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:8px;overflow:hidden;}
+  .bar i{display:block;height:100%;background:var(--teal);}
 
   .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
   .tab{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
@@ -79,16 +83,29 @@
   .tab.on{background:rgba(91,155,213,.16);border-color:rgba(91,155,213,.5);color:var(--paper);}
   .tab .c{color:var(--dim);font-variant-numeric:tabular-nums;}
 
-  .tableWrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;max-height:460px;overflow-y:auto;}
+  .filterBar{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto;gap:10px;margin-bottom:12px;align-items:center;}
+  .filterBar .clr{white-space:nowrap;}
+
+  .tableWrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;max-height:470px;overflow-y:auto;}
   table{border-collapse:collapse;width:100%;font-size:12.5px;}
   th,td{text-align:left;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap;}
   th{position:sticky;top:0;background:#141d33;font-size:11px;text-transform:uppercase;
     letter-spacing:.4px;color:var(--muted);z-index:2;}
   td.pos{font-family:"SF Mono",Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--teal);}
-  td.ix{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--dim);}
-  td.val{white-space:normal;max-width:360px;}
-  td.nm{max-width:280px;overflow:hidden;text-overflow:ellipsis;}
+  td.ix{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--blue);}
+  td.sub{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--dim);}
+  td.val{white-space:normal;max-width:340px;}
+  td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis;}
   tbody tr:hover{background:rgba(255,255,255,.035);}
+
+  /* coverage view */
+  .chapRow td{background:rgba(91,155,213,.09);font-weight:700;color:var(--paper);
+    text-transform:uppercase;font-size:11px;letter-spacing:.5px;}
+  .pill{display:inline-block;padding:2px 9px;border-radius:11px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .pill.here{background:rgba(122,195,106,.18);color:#9ede8c;border:1px solid rgba(122,195,106,.45);}
+  .pill.elsewhere{background:rgba(240,168,58,.15);color:#f3c073;border:1px solid rgba(240,168,58,.42);}
+  .pill.nowhere{background:rgba(255,255,255,.06);color:var(--dim);border:1px solid var(--line);}
+
   .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
   .resultActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
   .resultActions .grow{flex:1;}
@@ -104,11 +121,10 @@
   footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11px;}
   footer p{margin:0 0 9px;}
   a{color:var(--blue);}
-  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
 
   @media (max-width:640px){
     #app{padding:20px 13px 44px;}
-    .grid2,.grid3{grid-template-columns:1fr;}
+    .grid2,.grid3,.filterBar{grid-template-columns:1fr;}
     .statGrid{grid-template-columns:repeat(2,1fr);}
   }
 </style>
@@ -116,12 +132,14 @@
 <body>
 <div id="app">
   <header>
-    <h1>ERA RCC Parameters</h1>
-    <p>Route-compatibility parameters for one national line, positioned by kilometre post. Pick a country, then a
-       line published by that country, and the tool returns the RINF parameters flagged
-       <code>era:usedInRCCCalculations</code> — those along the line (index&nbsp;1.1) and those at its operational
-       points (index&nbsp;1.2). Only the latest validity window is used, and retired parameters are excluded.
-       Export to CSV or Excel. Queries <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a> live from your browser.</p>
+    <h1>ERA Route Book Elements</h1>
+    <p>The elements an infrastructure manager owes a railway undertaking for the <strong>Route Book</strong>, as listed
+       in Appendix&nbsp;D2 of the TSI&nbsp;OPE (Commission Implementing Regulation (EU)&nbsp;2019/773). Pick a country
+       and one of its national lines: the tool collects every property carrying
+       <code>era:tsiOPEAppendixD2Index</code> along that line and at its operational points, in kilometre order, and
+       reports which of the 46&nbsp;D2 elements the line actually covers. Export to CSV or Excel. Queries
+       <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>
+       live from your browser.</p>
   </header>
 
   <div class="panel">
@@ -144,7 +162,7 @@
 
   <div class="panel">
     <h2><span class="step">2</span> Narrow it down <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--dim)">— optional</span></h2>
-    <div class="grid3">
+    <div class="grid2">
       <div>
         <label class="fieldLabel" for="kmFrom">From kilometre</label>
         <input id="kmFrom" type="number" step="0.1" placeholder="whole line">
@@ -153,29 +171,33 @@
         <label class="fieldLabel" for="kmTo">To kilometre</label>
         <input id="kmTo" type="number" step="0.1" placeholder="whole line">
       </div>
-      <div>
-        <label class="fieldLabel" for="paramSel">Parameter</label>
-        <select id="paramSel"><option value="">All RCC parameters</option></select>
-      </div>
     </div>
     <div class="opts">
-      <label class="chk"><input type="checkbox" id="wantTrack" checked> Along the line — sections and their tracks (1.1…)</label>
-      <label class="chk"><input type="checkbox" id="wantOp" checked> At operational points (1.2…)</label>
+      <label class="chk"><input type="checkbox" id="wantLine" checked> Along the route — sections of line and their tracks</label>
+      <label class="chk"><input type="checkbox" id="wantOp" checked> Operational points</label>
       <label class="chk"><input type="checkbox" id="wantSidings" checked> Include sidings</label>
     </div>
-    <button class="btn primary" id="runBtn" disabled>Get RCC parameters</button>
+    <button class="btn primary" id="runBtn" disabled>Collect route book elements</button>
     <div id="statusArea"></div>
   </div>
 
   <div class="panel" id="resultPanel" hidden>
     <h2><span class="step">3</span> Results</h2>
     <div class="statGrid">
+      <div class="statTile hero"><div class="n" id="statCover">–</div><div class="l">D2 elements on this line</div>
+        <div class="bar"><i id="coverBar" style="width:0"></i></div></div>
       <div class="statTile"><div class="n" id="statRows">–</div><div class="l">Rows</div></div>
-      <div class="statTile"><div class="n" id="statPlaces">–</div><div class="l" id="statPlacesLabel">Sections / points</div></div>
-      <div class="statTile"><div class="n" id="statParams">–</div><div class="l">Parameters</div></div>
+      <div class="statTile"><div class="n" id="statSections">–</div><div class="l">Sections of line</div></div>
+      <div class="statTile"><div class="n" id="statOps">–</div><div class="l">Operational points</div></div>
       <div class="statTile"><div class="n" id="statTime">–</div><div class="l">Query time</div></div>
     </div>
+    <div class="moreNote" id="mgrNote" style="margin:0 0 14px"></div>
     <div class="tabs" id="tabs"></div>
+    <div class="filterBar">
+      <input type="search" id="textFilter" placeholder="Filter by element, value, track or place…" autocomplete="off">
+      <select id="d2Filter"><option value="">All D2 elements</option></select>
+      <button class="btn clr" id="clearFilter">Clear filters</button>
+    </div>
     <div class="tableWrap"><table id="resultTable"><thead></thead><tbody></tbody></table></div>
     <div class="moreNote" id="moreNote"></div>
     <div class="moreNote" id="validityNote"></div>
@@ -192,44 +214,47 @@
   </div>
 
   <footer>
-    <p><strong>Superseded descriptions are dropped, and the comparison is made place by place — never line by
-      line.</strong> Some managers republish the same stretch every year under a new validity window: German line
-      <code>4000</code> returns 16,615 rows unfiltered and 8,281 once each stretch keeps only its own latest window.
-      Others date a section by the day it opened: French line <code>830000-1</code> spreads 25 different beginnings
-      across its 570 sections, so a line-wide "newest date" would keep two sections and delete the rest. The newest
-      window is therefore picked per stretch of line, and at operational points per <code>era:uopid</code> and then
-      per track within the point — France repeats tracks <em>inside</em> a point, Germany repeats the whole station
-      as separate resources sharing one <code>uopid</code>, and both rules run.</p>
-    <p><strong>Countries that publish no dates are untouched.</strong> Ten of the countries offered here — Sweden,
-      Spain, Ireland, Estonia, Greece, Finland, Romania, Croatia, Austria and Luxembourg — carry no dated validity
-      at all, and Liechtenstein publishes no sections of line to date. Filtering on the newest date would delete
-      every one of their rows, so a resource with no validity is always kept.</p>
-    <p><strong>Retired parameters are excluded.</strong> 4 of the 87 properties flagged
-      <code>era:usedInRCCCalculations</code> are <code>owl:deprecated</code> and are left out, as in the other tools
-      here — three of them are replaced by a live property under the same RINF number, so only
-      <code>1.1.1.2.2.1.2.1</code> disappears entirely. Values that are concepts are resolved to their English label
-      where one exists, and a track carrying several values for one parameter has them joined with
-      &ldquo;&nbsp;|&nbsp;&rdquo;.</p>
+    <p><strong>Appendix D2 numbers the route book; the ontology carries the numbers but not the headings.</strong>
+      ERA annotates each property with <code>era:tsiOPEAppendixD2Index</code> — the index of that term in
+      &ldquo;Appendix D2: Elements the infrastructure manager has to provide to the railway undertaking for the Route
+      Book&rdquo; — but publishes no title for each index. Elements are therefore named here by their ontology labels,
+      with the D2 number kept as the legal cross-reference. One D2 element is often several properties, and one
+      property often serves several D2 elements.</p>
+    <p><strong>Five D2 elements cannot be filled by anyone today.</strong> <code>3.2.4</code>, <code>3.2.6</code>,
+      <code>3.3.5</code> and <code>3.3.6</code> are carried only by <code>era:SpecialArea</code>, and
+      <code>3.4.7</code> only by <code>era:RadioBlockCenter</code>; neither class has a single instance in the live
+      endpoint. The coverage view separates that case — <em>not published by anyone</em> — from an element that other
+      managers do publish but this line does not, because they mean very different things to a route-book compiler.</p>
+    <p><strong>Superseded descriptions are dropped, place by place.</strong> The same validity rule as the RCC tool:
+      the newest window per stretch of line, and per <code>era:uopid</code> then per track at operational points.
+      Ten countries publish no dated validity at all, and a resource with no validity is always kept.
+      Retired (<code>owl:deprecated</code>) properties are excluded.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
-      <a href="./values.html">RINF Parameter Values</a> · <a href="./routebook.html">Route Book</a></p>
+      <a href="./values.html">RINF Parameter Values</a> · <a href="./rcc.html">RCC Parameters</a></p>
   </footer>
 </div>
 <script>
 /* ------------------------------------------------------------------ *
- * ERA RCC Parameters — route-compatibility parameters for one line
+ * ERA Route Book Elements — TSI OPE Appendix D2 for one national line
  * ------------------------------------------------------------------ */
 const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
-const CPREFIX  = 'http://publications.europa.eu/resource/authority/country/';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => Number(n).toLocaleString('en-GB');
-const localName = u => String(u).replace(/^.*[\/#]/, '') || u;
 const shortName = n => String(n).replace(/\s*\(from \d{4}-\d{2}-\d{2} until \d{4}-\d{2}-\d{2}\)\s*$/, '');
+/* Names carry their validity window inline, which is the same string on every
+   row of a result already restricted to one window. It is dropped from the
+   cell — per part, since several values arrive joined — and kept in the
+   tooltip and in both exports. */
+const shortValue = v => String(v).split(' | ').map(shortName).join(' | ');
+const d2sort = a => a.split('.').map(Number);
+const byD2 = (a, b) => { const x = d2sort(a), y = d2sort(b);
+  for(let i = 0; i < Math.max(x.length, y.length); i++){ const d = (x[i] || 0) - (y[i] || 0); if(d) return d; } return 0; };
 
-/* Countries that publish sections of line, with their labels. Kept inline so
-   the first paint needs no network round trip; the line list is fetched per
-   country because the largest (Germany, 1,482 lines) is far too big to bundle. */
+/* Countries that publish sections of line. Inline so the first paint needs no
+   round trip; the line list is fetched per country because Germany's 1,482
+   would dwarf the page. */
 const COUNTRIES = [
   ['AUT','Austria'],['BEL','Belgium'],['BGR','Bulgaria'],['HRV','Croatia'],['CZE','Czechia'],
   ['DNK','Denmark'],['EST','Estonia'],['FIN','Finland'],['FRA','France'],['DEU','Germany'],
@@ -238,14 +263,27 @@ const COUNTRIES = [
   ['PRT','Portugal'],['ROU','Romania'],['SVK','Slovakia'],['SVN','Slovenia'],['ESP','Spain'],
   ['SWE','Sweden'],['CHE','Switzerland'],
 ];
-/* No dated validity anywhere in these datasets — the latest-window filter must
-   never be allowed to empty them. Measured, not assumed. */
+/* Measured, not assumed: no dated validity anywhere in these datasets, so the
+   latest-window rule must never be allowed to empty them. */
 const UNDATED = new Set(['SWE','ESP','IRL','EST','GRC','FIN','ROU','HRV','AUT','LUX']);
 
-let lines = [];        // [{line, sections, fromKm, toKm}] for the chosen country
-let params = [];       // [{index, label}] RCC parameters
+/* The three chapters of Appendix D2, named from what the elements in each
+   demonstrably describe. The regulation's own headings are not published in
+   the ontology, so no wording is put in its mouth. */
+const CHAPTERS = {
+  '1': 'Infrastructure manager',
+  '2': 'Operational points',
+  '3': 'The route: sections of line and their tracks',
+};
+
+const CHUNK = 250;      // URIs per VALUES clause
+const POOL  = 6;        // concurrent requests
+const TABLE_LIMIT = 300;
+
+let lines = [];         // [{line, sections, fromKm, toKm}] for the chosen country
+let d2Catalog = [];     // [{d2, params:[], anywhere:bool}] all 46 elements
 let lastRun = null;
-let activeTab = 'track';
+let activeTab = 'line';
 
 /* ------------------------------------------------------------------ *
  * SPARQL
@@ -263,17 +301,33 @@ async function sparql(query, signal){
   return (await res.json()).results.bindings;
 }
 
+/* Runs jobs with a bounded number in flight. A French line is 570 sections and
+   327 points, which is a dozen chunk queries; letting them all go at once just
+   makes the endpoint queue them for us. */
+async function pooled(jobs, limit, signal){
+  const out = new Array(jobs.length);
+  let next = 0;
+  await Promise.all(Array.from({length: Math.min(limit, jobs.length)}, async () => {
+    while(next < jobs.length){
+      const i = next++;
+      if(signal && signal.aborted) throw new DOMException('aborted', 'AbortError');
+      out[i] = await jobs[i]();
+    }
+  }));
+  return out;
+}
+
 const PREFIXES = [
   'PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>',
   'PREFIX era:  <http://data.europa.eu/949/>',
   'PREFIX owl:  <http://www.w3.org/2002/07/owl#>',
   'PREFIX time: <http://www.w3.org/2006/time#>',
   'PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>',
-  'PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>',
   'PREFIX skos: <http://www.w3.org/2004/02/skos/core#>',
+  'PREFIX geo:  <http://www.opengis.net/ont/geosparql#>',
 ].join('\n');
 
-/* Line IDs come from the data and are echoed into a query, so they are
+/* Line identifiers come from the data and are echoed into a query, so they are
    restricted to what a line identifier can actually contain. */
 function safeLine(s){
   if(!/^[A-Za-z0-9 ._\/+()-]{1,60}$/.test(s)) throw new Error('That line identifier contains characters this tool will not put in a query.');
@@ -283,6 +337,18 @@ function safeCountry(c){
   if(!/^[A-Z]{3}$/.test(c)) throw new Error('Bad country code.');
   return c;
 }
+
+/* The D2 property set, resolved once so the predicate is bound before any data
+   is touched. An unbound-predicate scan is what makes these queries slow. */
+const D2_PARAMS = `  { SELECT DISTINCT ?p ?d2 ?paramLabel WHERE {
+      ?p era:tsiOPEAppendixD2Index ?d2 ; rdfs:label ?paramLabel .
+      FILTER(LANG(?paramLabel) = "" || LANGMATCHES(LANG(?paramLabel), "en"))
+      FILTER NOT EXISTS { ?p owl:deprecated true }
+  } }`;
+
+const VALUE_LABEL = `  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "en") }
+  OPTIONAL { ?value0 rdfs:label ?lb }
+  BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)`;
 
 function linesQuery(cc){
   return `${PREFIXES}
@@ -294,33 +360,36 @@ WHERE {
 GROUP BY ?line ORDER BY ?line`;
 }
 
-function paramsQuery(){
+/* Every D2 element, and whether any manager publishes it at all. Cheap because
+   EXISTS short-circuits on the first statement it finds. */
+function catalogQuery(){
   return `${PREFIXES}
-SELECT DISTINCT ?rinfIndex ?parameterLabel WHERE {
-  ?p era:usedInRCCCalculations "true"^^xsd:boolean ; era:rinfIndex ?rinfIndex ; rdfs:label ?parameterLabel .
-  FILTER(LANG(?parameterLabel) = "" || LANGMATCHES(LANG(?parameterLabel), "en"))
-  FILTER NOT EXISTS { ?p owl:deprecated true }
-} ORDER BY ?rinfIndex`;
+SELECT ?d2 (GROUP_CONCAT(DISTINCT ?paramLabel; separator=" · ") AS ?params)
+       (MAX(IF(?has, 1, 0)) AS ?anywhere)
+WHERE {
+  { SELECT DISTINCT ?p ?d2 ?paramLabel (EXISTS { ?s ?p ?o } AS ?has) WHERE {
+      ?p era:tsiOPEAppendixD2Index ?d2 ; rdfs:label ?paramLabel .
+      FILTER(LANG(?paramLabel) = "" || LANGMATCHES(LANG(?paramLabel), "en"))
+      FILTER NOT EXISTS { ?p owl:deprecated true }
+  } }
+}
+GROUP BY ?d2`;
 }
 
-/* The RCC parameter set, resolved in a subquery so the predicate is bound
-   before the data is touched — an unbound ?parameter scan is what made the
-   original Data Stories query take 25 s. Retired parameters are excluded. */
-function paramBlock(prefix, only){
-  return `  { SELECT DISTINCT ?parameter ?rinfIndex ?parameterLabel WHERE {
-      ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ;
-                 era:rinfIndex ?rinfIndex ; rdfs:label ?parameterLabel .
-      FILTER(LANG(?parameterLabel) = "" || LANGMATCHES(LANG(?parameterLabel), "en"))
-      FILTER(STRSTARTS(?rinfIndex, "${prefix}"))
-      ${only ? `FILTER(?rinfIndex = "${only}")` : ''}
-      FILTER NOT EXISTS { ?parameter owl:deprecated true }
-  } }`;
+/* D2 chapter 1 is "who is the infrastructure manager", and nothing on a line
+   points at a Body — the answer is which dataset publishes the line, since
+   each named graph is one manager's RINF submission. */
+function managersQuery(cc, line){
+  const L = safeLine(line), C = safeCountry(cc);
+  return `${PREFIXES}
+SELECT DISTINCT ?graph ?code WHERE {
+  GRAPH ?graph { ?sol a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" }
+  GRAPH ?graph { ?b a era:Body ; era:organisationCode ?code ; era:role ?role }
+  FILTER(STRENDS(STR(?role), "_IM"))
 }
-function valueBlock(){
-  return `  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "en") }
-  OPTIONAL { ?value0 rdfs:label ?lb }
-  BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)`;
+ORDER BY ?code`;
 }
+
 function kmFilter(varName){
   const a = $('kmFrom').value.trim(), b = $('kmTo').value.trim();
   const out = [];
@@ -329,14 +398,15 @@ function kmFilter(varName){
   return out.length ? '  ' + out.join('\n  ') : '';
 }
 
-/* ---- along the line: sections and their tracks, RINF 1.1… ---- */
-function trackQuery(cc, line, only){
+/* ---- phase 1: which places are on this line, and where ----
+   Resolving these once and pinning them into phase 2 with VALUES is the whole
+   performance story: German line 4000 goes from 30 s to under 2 s, because the
+   section lookup and its validity aggregate stop being repeated per branch. */
+function sectionsQuery(cc, line){
   const L = safeLine(line), C = safeCountry(cc);
   return `${PREFIXES}
-SELECT ?sol ?startKp ?startOffset ?startPosition ?endPosition ?trackName ?rinfIndex ?parameterLabel
-       (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
+SELECT DISTINCT ?sol ?startKp ?startPosition ?endPosition
 WHERE {
-${paramBlock('1.1', only)}
   ?sol a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" ;
        era:netReference/era:startsAt/era:hasLrsCoordinate
          [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] ;
@@ -345,10 +415,9 @@ ${paramBlock('1.1', only)}
 ${kmFilter('startKp')}
   BIND(CONCAT(STR(?startKp), "+", STR(?startOffset)) AS ?startPosition)
   BIND(CONCAT(STR(?endKp),   "+", STR(?endOffset))   AS ?endPosition)
-  # Latest validity window per stretch of line, not per line. Germany republishes
-  # the same stretch once a year, so unfiltered it comes back twice. France gives
-  # each section its own commissioning date, so a line-wide maximum would throw
-  # away every section except the handful opened most recently.
+  # Newest validity window per stretch of line, not per line. Some managers
+  # republish a stretch every year; others date each section by the day it
+  # opened, and a line-wide maximum would delete all but the newest of those.
   OPTIONAL { ?sol era:validity/time:hasBeginning/time:inXSDDate ?b }
   OPTIONAL { { SELECT ?startPosition ?endPosition (MAX(?bb) AS ?latest) WHERE {
       ?s2 a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" ;
@@ -361,50 +430,100 @@ ${kmFilter('startKp')}
       BIND(CONCAT(STR(?ek2), "+", STR(?eo2)) AS ?endPosition)
   } GROUP BY ?startPosition ?endPosition } }
   FILTER(!BOUND(?b) || !BOUND(?latest) || ?b = ?latest)
-  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; ?parameter ?value0 .
-${valueBlock()}
 }
-GROUP BY ?sol ?startKp ?startOffset ?startPosition ?endPosition ?trackName ?rinfIndex ?parameterLabel
-ORDER BY ?startKp ?startOffset ?trackName ?rinfIndex`;
+ORDER BY ?startKp ?startPosition`;
 }
 
-/* ---- at operational points, RINF 1.2… ---- */
-function opQuery(cc, line, only, sidings){
+function opsQuery(cc, line){
   const L = safeLine(line), C = safeCountry(cc);
   return `${PREFIXES}
-SELECT ?op ?startKp ?startOffset ?opid ?opName ?railwayLocation ?trackName ?rinfIndex ?parameterLabel
-       (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
+SELECT DISTINCT ?op ?opid ?opName ?startKp ?position
 WHERE {
-${paramBlock('1.2', only)}
   ?op a era:OperationalPoint ; era:inCountry eu:${C} ; era:opName ?opName ; era:uopid ?opid ;
       era:netReference/era:hasLrsCoordinate
         [ era:kmPost [ era:kilometer ?startKp ; era:hasLRS/era:lineId "${L}" ] ;
           era:offsetFromKilometricPost ?startOffset ] .
 ${kmFilter('startKp')}
-  BIND(CONCAT(STR(?startKp), "+", STR(?startOffset)) AS ?railwayLocation)
-  ?track era:isPartOf ?op ; rdfs:label ?trackName ; ?parameter ?value0 .
-  VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }
-  ?track a ?type .
-  # Two duplications, two rules. Germany repeats the whole station as separate
-  # OP resources sharing a uopid, each internally single-window; France repeats
-  # tracks inside one point. A per-point rule alone misses Germany, a line-wide
-  # maximum alone cuts France to a single row.
+  BIND(CONCAT(STR(?startKp), "+", STR(?startOffset)) AS ?position)
+  # Germany republishes a whole station as separate resources sharing one
+  # uopid, so the newest resource per uopid is the rule here; the per-track
+  # window, which is what France repeats, is applied in phase 2.
   OPTIONAL { ?op era:validity/time:hasBeginning/time:inXSDDate ?ob }
   OPTIONAL { { SELECT ?opid (MAX(?ob2) AS ?opLatest) WHERE {
       ?opU a era:OperationalPoint ; era:inCountry eu:${C} ; era:uopid ?opid ;
            era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "${L}" ;
            era:validity/time:hasBeginning/time:inXSDDate ?ob2 } GROUP BY ?opid } }
   FILTER(!BOUND(?ob) || !BOUND(?opLatest) || ?ob = ?opLatest)
-  OPTIONAL { ?track era:validity/time:hasBeginning/time:inXSDDate ?tb }
-  OPTIONAL { { SELECT ?op (MAX(?bb) AS ?latest) WHERE {
-      ?op a era:OperationalPoint ; era:inCountry eu:${C} ;
-          era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "${L}" .
-      ?t2 era:isPartOf ?op ; era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }
-  FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)
-${valueBlock()}
 }
-GROUP BY ?op ?startKp ?startOffset ?opid ?opName ?railwayLocation ?trackName ?rinfIndex ?parameterLabel
-ORDER BY ?startKp ?startOffset ?opName ?trackName ?rinfIndex`;
+ORDER BY ?startKp ?position`;
+}
+
+/* ---- phase 2: the D2 elements hanging off those places ----
+   D2 properties sit on a dozen classes, reached from a section of line or an
+   operational point by a handful of paths. Each path is its own query so they
+   run in parallel; a UNION of them all runs as one long serial plan. */
+const LINE_BRANCHES = {
+  section: '  ?sol ?p ?value0 .\n  BIND("" AS ?trackName) BIND("" AS ?featureName)',
+  track:   '  ?track era:isPartOf ?sol ; rdfs:label ?trackName .\n  ?track ?p ?value0 .\n  BIND("" AS ?featureName)',
+  feature: '  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; era:hasPart ?f .\n  ?f ?p ?value0 .\n' +
+           '  OPTIONAL { ?f rdfs:label ?fl }\n  BIND(COALESCE(?fl, REPLACE(STR(?f), "^.*/", "")) AS ?featureName)',
+  power:   '  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; era:contactLineSystem ?c .\n  ?c ?p ?value0 .\n  BIND("" AS ?featureName)',
+  etcs:    '  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; era:etcs ?e .\n  ?e ?p ?value0 .\n  BIND("" AS ?featureName)',
+};
+const OP_BRANCHES = {
+  point:    '  ?op ?p ?value0 .\n  BIND("" AS ?trackName) BIND("" AS ?featureName)',
+  geometry: '  ?op era:netReference/geo:hasGeometry ?g .\n  ?g ?p ?value0 .\n  BIND("" AS ?trackName) BIND("" AS ?featureName)',
+  location: '  ?op era:primaryLocation ?pl .\n  ?pl ?p ?value0 .\n  BIND("" AS ?trackName) BIND("" AS ?featureName)',
+  track:    '@TRACK@  ?track ?p ?value0 .\n  BIND("" AS ?featureName)',
+  feature:  '@TRACK@  ?track era:hasPart ?f .\n  ?f ?p ?value0 .\n' +
+            '  OPTIONAL { ?f rdfs:label ?fl }\n  BIND(COALESCE(?fl, REPLACE(STR(?f), "^.*/", "")) AS ?featureName)',
+  power:    '@TRACK@  ?track era:contactLineSystem ?c .\n  ?c ?p ?value0 .\n  BIND("" AS ?featureName)',
+  etcs:     '@TRACK@  ?track era:etcs ?e .\n  ?e ?p ?value0 .\n  BIND("" AS ?featureName)',
+};
+
+function values(varName, uris){
+  return `  VALUES ?${varName} { ${uris.map(u => '<' + u + '>').join(' ')} }`;
+}
+
+function lineBranchQuery(branch, sols){
+  return `${PREFIXES}
+SELECT ?sol ?d2 ?paramLabel ?trackName ?featureName
+       (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
+WHERE {
+${D2_PARAMS}
+${values('sol', sols)}
+${LINE_BRANCHES[branch]}
+${VALUE_LABEL}
+}
+GROUP BY ?sol ?d2 ?paramLabel ?trackName ?featureName`;
+}
+
+function opBranchQuery(branch, ops, sidings){
+  /* France repeats tracks inside one point, so the newest track window is
+     applied per point — pinned to the same VALUES so the aggregate stays small. */
+  const trackBlock = `  ?op era:hasPart ?track .\n  ?track rdfs:label ?trackName .\n` +
+    `  VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }\n  ?track a ?type .\n` +
+    `  OPTIONAL { ?track era:validity/time:hasBeginning/time:inXSDDate ?tb }\n` +
+    `  OPTIONAL { { SELECT ?op (MAX(?bb) AS ?latest) WHERE {\n` +
+    `${values('op', ops)}\n` +
+    `      ?t2 era:isPartOf ?op ; era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }\n` +
+    `  FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)\n`;
+  return `${PREFIXES}
+SELECT ?op ?d2 ?paramLabel ?trackName ?featureName
+       (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
+WHERE {
+${D2_PARAMS}
+${values('op', ops)}
+${OP_BRANCHES[branch].replace('@TRACK@', trackBlock)}
+${VALUE_LABEL}
+}
+GROUP BY ?op ?d2 ?paramLabel ?trackName ?featureName`;
+}
+
+function chunk(arr, n){
+  const out = [];
+  for(let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
 }
 
 /* ------------------------------------------------------------------ *
@@ -427,7 +546,7 @@ async function loadLines(cc){
   $('lineList').innerHTML = '';
   $('lineHint').textContent = '';
   if(!cc){ $('lineInput').placeholder = 'Choose a country first…'; updateRun(); return; }
-  const name = (COUNTRIES.find(x => x[0] === cc) || [,cc])[1];
+  const name = (COUNTRIES.find(x => x[0] === cc) || [, cc])[1];
   $('countryHint').className = 'hint';
   $('countryHint').textContent = 'Loading lines for ' + name + '…';
   try{
@@ -459,7 +578,7 @@ function currentLine(){
 }
 function updateRun(){
   const l = currentLine();
-  const any = $('wantTrack').checked || $('wantOp').checked;
+  const any = $('wantLine').checked || $('wantOp').checked;
   $('runBtn').disabled = !l || !any;
   if($('lineInput').value.trim() && !l){
     $('lineHint').className = 'hint';
@@ -475,97 +594,163 @@ function updateRun(){
 
 $('countrySel').addEventListener('change', e => { loadLines(e.target.value); $('resultPanel').hidden = true; });
 $('lineInput').addEventListener('input', () => { updateRun(); $('resultPanel').hidden = true; });
-['wantTrack','wantOp','wantSidings'].forEach(id => $(id).addEventListener('change', () => { updateRun(); $('resultPanel').hidden = true; }));
+['wantLine','wantOp','wantSidings'].forEach(id =>
+  $(id).addEventListener('change', () => { updateRun(); $('resultPanel').hidden = true; }));
 
-/* parameter picker */
-(async function loadParams(){
+/* The 46 D2 elements, loaded once. The coverage view needs them all, including
+   the ones this line will turn out not to have. */
+(async function loadCatalog(){
   try{
-    const rows = await sparql(paramsQuery());
-    /* One entry per RINF number. Three of them — 1.1.1.2.3.4, 1.1.1.3.4.2.1 and
-       1.2.1.1.3.2.1 — are implemented by two ontology properties with different
-       names, and selecting the number returns both, so both names are shown. */
-    const byIndex = new Map();
-    rows.forEach(b => {
-      const i = b.rinfIndex.value;
-      if(!byIndex.has(i)) byIndex.set(i, []);
-      byIndex.get(i).push(b.parameterLabel.value);
-    });
-    params = [...byIndex].map(([index, labels]) => ({index, label: labels.join(' / ')}));
-    $('paramSel').innerHTML = '<option value="">All RCC parameters (' + params.length + ')</option>' +
-      params.map(p => `<option value="${esc(p.index)}">${esc(p.index)} — ${esc(p.label)}</option>`).join('');
-  } catch { /* the picker is a convenience; the tool works without it */ }
+    const rows = await sparql(catalogQuery());
+    d2Catalog = rows.map(b => ({
+      d2: b.d2.value,
+      params: b.params.value,
+      anywhere: b.anywhere.value === '1' || b.anywhere.value === 'true',
+    })).sort((a, b) => byD2(a.d2, b.d2));
+    const groups = {};
+    d2Catalog.forEach(e => { const c = e.d2.split('.')[0]; (groups[c] = groups[c] || []).push(e); });
+    $('d2Filter').innerHTML = '<option value="">All D2 elements</option>' +
+      Object.keys(groups).sort().map(c =>
+        `<optgroup label="${esc(c + ' — ' + (CHAPTERS[c] || ''))}">` +
+        groups[c].map(e => `<option value="${esc(e.d2)}">${esc(e.d2)} — ${esc(e.params.slice(0, 60))}</option>`).join('') +
+        '</optgroup>').join('');
+  } catch { /* the filter is a convenience; the tool works without it */ }
 })();
 
 /* ------------------------------------------------------------------ *
  * Running it
  * ------------------------------------------------------------------ */
-const TABLE_LIMIT = 300;
-
 async function run(){
   const l = currentLine();
   if(!l) return;
   const cc = $('countrySel').value;
-  const only = $('paramSel').value || null;
   const sidings = $('wantSidings').checked;
-  const wantTrack = $('wantTrack').checked, wantOp = $('wantOp').checked;
+  const wantLine = $('wantLine').checked, wantOp = $('wantOp').checked;
 
-  let qTrack = null, qOp = null;
+  let qSections = null, qOps = null;
   try{
-    if(wantTrack) qTrack = trackQuery(cc, l.line, only);
-    if(wantOp)    qOp    = opQuery(cc, l.line, only, sidings);
+    if(wantLine) qSections = sectionsQuery(cc, l.line);
+    if(wantOp)   qOps      = opsQuery(cc, l.line);
   } catch(err){ setStatus(err.message, 'error'); return; }
 
   $('runBtn').disabled = true;
   $('resultPanel').hidden = true;
-  setStatus('Querying ' + new URL(ENDPOINT).host + ' — a whole line can take up to half a minute…', 'loading');
+  setStatus('Finding the places on line ' + l.line + '…', 'loading');
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 180000);
   const started = performance.now();
+  const shown = [];
   try{
-    const [tr, op] = await Promise.all([
-      qTrack ? sparql(qTrack, ctrl.signal) : Promise.resolve(null),
-      qOp    ? sparql(qOp,    ctrl.signal) : Promise.resolve(null),
+    const qMgr = managersQuery(cc, l.line);
+    const [secRows, opRows, mgrRows] = await Promise.all([
+      qSections ? sparql(qSections, ctrl.signal) : Promise.resolve([]),
+      qOps      ? sparql(qOps,      ctrl.signal) : Promise.resolve([]),
+      sparql(qMgr, ctrl.signal).catch(() => []),
     ]);
+    if(qSections) shown.push('/* === phase 1: sections of line === */\n' + qSections);
+    if(qOps)      shown.push('/* === phase 1: operational points === */\n' + qOps);
+    shown.push('/* === D2 1.1: the infrastructure manager publishing this line === */\n' + qMgr);
+
+    const managers = [...new Set(mgrRows.map(b => b.code.value))].sort();
+    const graphs   = [...new Set(mgrRows.map(b => b.graph.value.replace(/^.*\//, '')))].sort();
+
+    /* Position and name live in phase 1; phase 2 returns only the place URI,
+       so the two are joined here rather than repeated down the wire. */
+    const sections = new Map(), ops = new Map();
+    secRows.forEach(b => sections.set(b.sol.value, {
+      km: +b.startKp.value, start: b.startPosition.value, end: b.endPosition.value }));
+    opRows.forEach(b => { if(!ops.has(b.op.value)) ops.set(b.op.value, {
+      km: +b.startKp.value, position: b.position.value, opid: b.opid.value, name: b.opName.value }); });
+
+    if(!sections.size && !ops.size){
+      clearTimeout(timer);
+      setStatus('Line ' + l.line + ' has no sections or operational points' +
+        ($('kmFrom').value || $('kmTo').value ? ' in that kilometre range' : '') + '.', 'warn');
+      return;
+    }
+
+    setStatus(`Collecting D2 elements from ${fmt(sections.size)} section${sections.size === 1 ? '' : 's'} and ` +
+      `${fmt(ops.size)} operational point${ops.size === 1 ? '' : 's'}…`, 'loading');
+
+    const jobs = [], kinds = [];
+    if(sections.size) for(const br of Object.keys(LINE_BRANCHES))
+      for(const c of chunk([...sections.keys()], CHUNK)){
+        const q = lineBranchQuery(br, c);
+        jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'line', branch:br, q});
+      }
+    if(ops.size) for(const br of Object.keys(OP_BRANCHES))
+      for(const c of chunk([...ops.keys()], CHUNK)){
+        const q = opBranchQuery(br, c, sidings);
+        jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'op', branch:br, q});
+      }
+
+    const results = await pooled(jobs, POOL, ctrl.signal);
     clearTimeout(timer);
     const elapsed = (performance.now() - started) / 1000;
 
-    const track = (tr || []).map(b => ({
-      sol: b.sol.value, start: b.startPosition.value, end: b.endPosition.value,
-      trackName: b.trackName.value, index: b.rinfIndex.value,
-      param: b.parameterLabel.value, value: b.value.value,
-    }));
-    const ops = (op || []).map(b => ({
-      op: b.op.value, opid: b.opid.value, opName: b.opName.value,
-      location: b.railwayLocation.value, trackName: b.trackName.value,
-      index: b.rinfIndex.value, param: b.parameterLabel.value, value: b.value.value,
-    }));
+    /* One query per access path means the same element can arrive twice — a
+       platform reached as a track feature and as part of the point. Keyed
+       de-duplication keeps the row once. */
+    const lineRows = [], opRowsOut = [], seen = new Set();
+    results.forEach((rows, i) => {
+      const k = kinds[i];
+      rows.forEach(b => {
+        const d2 = b.d2.value, param = b.paramLabel.value, value = b.value.value;
+        const track = b.trackName ? b.trackName.value : '';
+        const feature = b.featureName ? b.featureName.value : '';
+        if(k.side === 'line'){
+          const s = sections.get(b.sol.value); if(!s) return;
+          const key = ['L', b.sol.value, track, feature, d2, param, value].join('');
+          if(seen.has(key)) return; seen.add(key);
+          lineRows.push({sol:b.sol.value, km:s.km, start:s.start, end:s.end,
+                         track, feature, d2, param, value, path:k.branch});
+        } else {
+          const o = ops.get(b.op.value); if(!o) return;
+          const key = ['O', b.op.value, track, feature, d2, param, value].join('');
+          if(seen.has(key)) return; seen.add(key);
+          opRowsOut.push({op:b.op.value, km:o.km, position:o.position, opid:o.opid, opName:o.name,
+                          track, feature, d2, param, value, path:k.branch});
+        }
+      });
+    });
+    const order = (a, b) => a.km - b.km || byD2(a.d2, b.d2) || a.param.localeCompare(b.param);
+    lineRows.sort(order); opRowsOut.sort(order);
 
+    /* One example query per access path — seven near-identical 30 KB VALUES
+       blocks would make the panel unreadable. */
+    const byPath = new Map();
+    kinds.forEach(k => { const key = k.side + '/' + k.branch; if(!byPath.has(key)) byPath.set(key, k.q); });
+    byPath.forEach((q, key) => shown.push('/* === phase 2: ' + key + ' === */\n' + q));
+
+    const covered = new Set([...lineRows, ...opRowsOut].map(r => r.d2));
+    if(managers.length) covered.add('1.1');
     lastRun = {
-      country: cc, countryLabel: (COUNTRIES.find(x => x[0] === cc) || [,cc])[1],
-      line: l.line, sections: l.sections,
-      kmFrom: $('kmFrom').value.trim(), kmTo: $('kmTo').value.trim(),
-      only, sidings, track, ops, elapsed,
-      query: [qTrack && '/* === along the line (RINF 1.1…) === */\n' + qTrack,
-              qOp && '/* === at operational points (RINF 1.2…) === */\n' + qOp]
-             .filter(Boolean).join('\n\n'),
+      managers, graphs,
+      country: cc, countryLabel: (COUNTRIES.find(x => x[0] === cc) || [, cc])[1],
+      line: l.line, kmFrom: $('kmFrom').value.trim(), kmTo: $('kmTo').value.trim(),
+      sidings, wantLine, wantOp,
+      sections: sections.size, ops: ops.size,
+      lineRows, opRows: opRowsOut, covered, elapsed,
+      queries: jobs.length + (qSections ? 1 : 0) + (qOps ? 1 : 0),
+      query: shown.join('\n\n'),
       fetched: new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z',
     };
-    activeTab = track.length || !ops.length ? 'track' : 'op';
-    if(!wantTrack) activeTab = 'op';
+    activeTab = lineRows.length || !opRowsOut.length ? 'line' : 'op';
+    if(!wantLine) activeTab = 'op';
+    $('textFilter').value = ''; $('d2Filter').value = '';
     render();
 
-    const total = track.length + ops.length;
+    const total = lineRows.length + opRowsOut.length;
     if(!total){
-      setStatus('No RCC parameters found for line ' + l.line + ' in ' + lastRun.countryLabel +
-        (only ? ' for parameter ' + only : '') +
-        ($('kmFrom').value || $('kmTo').value ? ' within that kilometre range' : '') + '.', 'warn');
+      setStatus('No route book elements found on line ' + l.line + ' in ' + lastRun.countryLabel + '.', 'warn');
     } else {
-      setStatus('Done — ' + fmt(total) + ' rows in ' + elapsed.toFixed(1) + 's.', 'success');
+      setStatus(`Done — ${fmt(total)} rows covering ${covered.size} of ${d2Catalog.length || 46} ` +
+        `D2 elements, in ${elapsed.toFixed(1)}s.`, 'success');
     }
   } catch(err){
     clearTimeout(timer);
-    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Narrow the kilometre range, or pick a single parameter.', 'error');
+    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Narrow the kilometre range, or take the line and the points separately.', 'error');
     else setStatus('Query failed: ' + err.message, 'error');
   } finally {
     $('runBtn').disabled = false;
@@ -575,63 +760,125 @@ async function run(){
 /* ------------------------------------------------------------------ *
  * Rendering
  * ------------------------------------------------------------------ */
-function rows(){ return activeTab === 'track' ? lastRun.track : lastRun.ops; }
+function baseRows(){ return activeTab === 'line' ? lastRun.lineRows : lastRun.opRows; }
+
+function filtered(){
+  if(activeTab === 'cover') return [];
+  const d2 = $('d2Filter').value;
+  const t = $('textFilter').value.trim().toLowerCase();
+  return baseRows().filter(r =>
+    (!d2 || r.d2 === d2) &&
+    (!t || (r.param + ' ' + r.value + ' ' + r.track + ' ' + r.feature + ' ' + r.d2 +
+            ' ' + (r.opName || '') + ' ' + (r.opid || '')).toLowerCase().includes(t)));
+}
 
 function render(){
   const r = lastRun;
-  const rs = rows();
-  const places = activeTab === 'track'
-    ? new Set(r.track.map(x => x.sol)).size
-    : new Set(r.ops.map(x => x.opid)).size;
+  const total = d2Catalog.length || 46;
 
-  $('statRows').textContent   = fmt(rs.length);
-  $('statPlaces').textContent = fmt(places);
-  $('statPlacesLabel').textContent = activeTab === 'track' ? 'Sections of line' : 'Operational points';
-  $('statParams').textContent = fmt(new Set(rs.map(x => x.index)).size);
+  $('statCover').textContent  = r.covered.size + ' / ' + total;
+  $('coverBar').style.width   = Math.round(100 * r.covered.size / total) + '%';
+  $('statRows').textContent   = fmt(r.lineRows.length + r.opRows.length);
+  $('statSections').textContent = fmt(r.sections);
+  $('statOps').textContent    = fmt(r.ops);
   $('statTime').textContent   = r.elapsed.toFixed(1) + 's';
 
-  $('tabs').innerHTML =
-    (r.track.length || $('wantTrack').checked
-      ? `<button class="tab${activeTab === 'track' ? ' on' : ''}" data-t="track">Along the line <span class="c">${fmt(r.track.length)}</span></button>` : '') +
-    (r.ops.length || $('wantOp').checked
-      ? `<button class="tab${activeTab === 'op' ? ' on' : ''}" data-t="op">At operational points <span class="c">${fmt(r.ops.length)}</span></button>` : '');
+  $('mgrNote').innerHTML = r.managers.length
+    ? `<strong>D2&nbsp;1.1 — infrastructure manager:</strong> organisation code ` +
+      r.managers.map(c => `<code>${esc(c)}</code>`).join(', ') +
+      `, from dataset${r.graphs.length === 1 ? '' : 's'} ` + r.graphs.map(g => `<code>${esc(g)}</code>`).join(', ') +
+      (r.graphs.length > 1 ? '. This line is published in more than one dataset.' : '.')
+    : 'No infrastructure manager could be resolved for this line.';
 
-  const head = activeTab === 'track'
-    ? ['From', 'To', 'Track', 'RINF', 'Parameter', 'Value']
-    : ['At km', 'Operational point', 'UOPID', 'Track', 'RINF', 'Parameter', 'Value'];
+  $('tabs').innerHTML =
+    (r.wantLine ? `<button class="tab${activeTab === 'line' ? ' on' : ''}" data-t="line">Along the route <span class="c">${fmt(r.lineRows.length)}</span></button>` : '') +
+    (r.wantOp   ? `<button class="tab${activeTab === 'op' ? ' on' : ''}" data-t="op">Operational points <span class="c">${fmt(r.opRows.length)}</span></button>` : '') +
+    `<button class="tab${activeTab === 'cover' ? ' on' : ''}" data-t="cover">D2 coverage <span class="c">${r.covered.size}/${total}</span></button>`;
+
+  const isCover = activeTab === 'cover';
+  $('textFilter').disabled = isCover;
+  $('d2Filter').disabled = isCover;
+  isCover ? renderCoverage() : renderRows();
+
+  $('validityNote').textContent = UNDATED.has(r.country)
+    ? `${r.countryLabel} publishes no validity dates, so no rows were filtered out on that basis.`
+    : 'Superseded descriptions are excluded — each place keeps only its newest validity window.';
+  $('sparqlOut').textContent = r.query;
+  $('csvBtn').disabled = $('xlsBtn').disabled = !(r.lineRows.length + r.opRows.length);
+  $('resultPanel').hidden = false;
+}
+
+function renderRows(){
+  const rs = filtered();
+  const head = activeTab === 'line'
+    ? ['From', 'To', 'D2', 'Element', 'Value', 'Track', 'Feature']
+    : ['At km', 'Operational point', 'UOPID', 'D2', 'Element', 'Value', 'Track', 'Feature'];
   $('resultTable').querySelector('thead').innerHTML =
     '<tr>' + head.map(h => `<th>${esc(h)}</th>`).join('') + '</tr>';
 
-  $('resultTable').querySelector('tbody').innerHTML = rs.slice(0, TABLE_LIMIT).map(x => activeTab === 'track'
+  $('resultTable').querySelector('tbody').innerHTML = rs.slice(0, TABLE_LIMIT).map(x => activeTab === 'line'
     ? `<tr><td class="pos">${esc(x.start)}</td><td class="pos">${esc(x.end)}</td>` +
-      `<td class="nm" title="${esc(x.trackName)}">${esc(shortName(x.trackName))}</td>` +
-      `<td class="ix">${esc(x.index)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
-      `<td class="val">${esc(x.value)}</td></tr>`
-    : `<tr><td class="pos">${esc(x.location)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
-      `<td class="ix">${esc(x.opid)}</td><td class="nm" title="${esc(x.trackName)}">${esc(shortName(x.trackName))}</td>` +
-      `<td class="ix">${esc(x.index)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
-      `<td class="val">${esc(x.value)}</td></tr>`
-  ).join('') || `<tr><td colspan="${head.length}" style="padding:22px;text-align:center;color:var(--muted)">Nothing in this view.</td></tr>`;
+      `<td class="ix">${esc(x.d2)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
+      `<td class="val" title="${esc(x.value)}">${esc(shortValue(x.value))}</td>` +
+      `<td class="nm" title="${esc(x.track)}">${esc(shortName(x.track))}</td>` +
+      `<td class="sub" title="${esc(x.feature)}">${esc(x.feature)}</td></tr>`
+    : `<tr><td class="pos">${esc(x.position)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
+      `<td class="sub">${esc(x.opid)}</td>` +
+      `<td class="ix">${esc(x.d2)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
+      `<td class="val" title="${esc(x.value)}">${esc(shortValue(x.value))}</td>` +
+      `<td class="nm" title="${esc(x.track)}">${esc(shortName(x.track))}</td>` +
+      `<td class="sub" title="${esc(x.feature)}">${esc(x.feature)}</td></tr>`
+  ).join('') || `<tr><td colspan="${head.length}" style="padding:22px;text-align:center;color:var(--muted)">Nothing matches these filters.</td></tr>`;
 
-  $('moreNote').textContent = rs.length > TABLE_LIMIT
-    ? `Showing the first ${TABLE_LIMIT} of ${fmt(rs.length)} rows — the download has all of them.`
-    : '';
-  const windows = [...new Set(rs.map(x => (/\(from (\d{4}-\d{2}-\d{2}) until/.exec(x.trackName) || [])[1]).filter(Boolean))].sort();
-  $('validityNote').textContent = UNDATED.has(r.country)
-    ? `${r.countryLabel} publishes no validity dates, so no rows were filtered out on that basis.`
-    : 'Superseded descriptions are excluded — each place keeps only its newest validity window' +
-      (windows.length === 1 ? `, here ${windows[0]}. ` : windows.length > 1
-        ? `, and these run from ${windows[0]} to ${windows[windows.length - 1]}. ` : '. ') +
-      'Track names carry their window in full in the download.';
+  const base = baseRows().length;
+  $('moreNote').textContent =
+    (rs.length < base ? `${fmt(rs.length)} of ${fmt(base)} rows match the filters. ` : '') +
+    (rs.length > TABLE_LIMIT ? `Showing the first ${TABLE_LIMIT} — the download has all of them.` : '');
+}
 
-  $('sparqlOut').textContent = r.query;
-  $('csvBtn').disabled = $('xlsBtn').disabled = !(r.track.length + r.ops.length);
-  $('resultPanel').hidden = false;
+/* Three states, because they mean different things to whoever has to compile
+   the route book: on this line, published elsewhere but not here, or carried
+   only by a class no manager has populated. */
+function renderCoverage(){
+  const r = lastRun;
+  const counts = new Map();
+  [...r.lineRows, ...r.opRows].forEach(x => counts.set(x.d2, (counts.get(x.d2) || 0) + 1));
+  if(r.managers.length) counts.set('1.1', r.managers.length);
+  $('resultTable').querySelector('thead').innerHTML =
+    '<tr><th>D2</th><th>Element</th><th>On this line</th><th>Rows</th></tr>';
+
+  let html = '', chapter = null;
+  d2Catalog.forEach(e => {
+    const c = e.d2.split('.')[0];
+    if(c !== chapter){
+      chapter = c;
+      html += `<tr class="chapRow"><td colspan="4">${esc(c)} — ${esc(CHAPTERS[c] || '')}</td></tr>`;
+    }
+    const n = counts.get(e.d2) || 0;
+    const pill = n ? '<span class="pill here">on this line</span>'
+      : e.anywhere ? '<span class="pill elsewhere">published elsewhere</span>'
+                   : '<span class="pill nowhere">not published by anyone</span>';
+    html += `<tr><td class="ix">${esc(e.d2)}</td><td class="val">${esc(e.params)}</td>` +
+            `<td>${pill}</td><td class="sub">${n ? fmt(n) : '—'}</td></tr>`;
+  });
+  $('resultTable').querySelector('tbody').innerHTML = html;
+
+  const nowhere = d2Catalog.filter(e => !e.anywhere).length;
+  const elsewhere = d2Catalog.filter(e => e.anywhere && !counts.has(e.d2)).length;
+  $('moreNote').textContent =
+    `${r.covered.size} of ${d2Catalog.length} D2 elements are on this line. ` +
+    `${elsewhere} are published by other managers but not here` +
+    (nowhere ? `, and ${nowhere} are carried only by classes no manager has populated yet.` : '.');
 }
 
 $('tabs').addEventListener('click', e => {
   const t = e.target.closest('.tab');
   if(t){ activeTab = t.dataset.t; render(); }
+});
+['textFilter','d2Filter'].forEach(id => $(id).addEventListener('input', () => { if(lastRun && activeTab !== 'cover') renderRows(); }));
+$('clearFilter').addEventListener('click', () => {
+  $('textFilter').value = ''; $('d2Filter').value = '';
+  if(lastRun && activeTab !== 'cover') renderRows();
 });
 $('runBtn').addEventListener('click', run);
 $('lineInput').addEventListener('keydown', e => { if(e.key === 'Enter' && !$('runBtn').disabled) run(); });
@@ -639,23 +886,40 @@ $('lineInput').addEventListener('keydown', e => { if(e.key === 'Enter' && !$('ru
 /* ------------------------------------------------------------------ *
  * Export
  * ------------------------------------------------------------------ */
-const TRACK_HEAD = ['Country', 'Line', 'From (km+m)', 'To (km+m)', 'Track', 'RINF index', 'Parameter', 'Value', 'Section of line'];
-const OP_HEAD    = ['Country', 'Line', 'At (km+m)', 'Operational point', 'UOPID', 'Track', 'RINF index', 'Parameter', 'Value', 'Operational point URI'];
+const LINE_HEAD  = ['Country', 'Line', 'From (km+m)', 'To (km+m)', 'D2 index', 'D2 chapter', 'Element', 'Value', 'Track', 'Feature', 'Access path', 'Section of line'];
+const OP_HEAD    = ['Country', 'Line', 'At (km+m)', 'Operational point', 'UOPID', 'D2 index', 'D2 chapter', 'Element', 'Value', 'Track', 'Feature', 'Access path', 'Operational point URI'];
+const COVER_HEAD = ['D2 index', 'D2 chapter', 'Element', 'Status', 'Rows on this line'];
 
-function trackTable(){
+const chapterOf = d2 => CHAPTERS[d2.split('.')[0]] || '';
+
+function lineTable(){
   const r = lastRun;
-  return {head: TRACK_HEAD, body: r.track.map(x =>
-    [r.countryLabel, r.line, x.start, x.end, x.trackName, x.index, x.param, x.value, x.sol])};
+  return {head: LINE_HEAD, body: r.lineRows.map(x =>
+    [r.countryLabel, r.line, x.start, x.end, x.d2, chapterOf(x.d2), x.param, x.value, x.track, x.feature, x.path, x.sol])};
 }
 function opTable(){
   const r = lastRun;
-  return {head: OP_HEAD, body: r.ops.map(x =>
-    [r.countryLabel, r.line, x.location, x.opName, x.opid, x.trackName, x.index, x.param, x.value, x.op])};
+  return {head: OP_HEAD, body: r.opRows.map(x =>
+    [r.countryLabel, r.line, x.position, x.opName, x.opid, x.d2, chapterOf(x.d2), x.param, x.value, x.track, x.feature, x.path, x.op])};
+}
+function coverTable(){
+  const r = lastRun;
+  const counts = new Map();
+  [...r.lineRows, ...r.opRows].forEach(x => counts.set(x.d2, (counts.get(x.d2) || 0) + 1));
+  if(r.managers.length) counts.set('1.1', r.managers.length);
+  return {head: COVER_HEAD, body: d2Catalog.map(e => {
+    const n = counts.get(e.d2) || 0;
+    return [e.d2, chapterOf(e.d2), e.params,
+      n ? 'on this line' : e.anywhere ? 'published elsewhere' : 'not published by anyone', n];
+  })};
+}
+function activeTable(){
+  return activeTab === 'cover' ? coverTable() : activeTab === 'line' ? lineTable() : opTable();
 }
 function fileBase(){
   const r = lastRun;
   const km = (r.kmFrom || r.kmTo) ? `_km${r.kmFrom || '0'}-${r.kmTo || 'end'}` : '';
-  return ('RINF_RCC_' + r.country + '_' + r.line + km + '_' + r.fetched.slice(0, 10))
+  return ('RouteBook_D2_' + r.country + '_' + r.line + km + '_' + r.fetched.slice(0, 10))
     .replace(/[^A-Za-z0-9._-]/g, '_');
 }
 function download(blob, name){
@@ -670,52 +934,76 @@ function csvCell(v){
   return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-/* CSV covers whichever view is on screen, so what you see is what you get. */
+/* CSV covers whichever view is on screen, filters included, so what you see is
+   what you get. The workbook carries everything. */
 $('csvBtn').addEventListener('click', () => {
   if(!lastRun) return;
-  const t = activeTab === 'track' ? trackTable() : opTable();
+  let t = activeTable();
+  if(activeTab !== 'cover'){
+    const keep = new Set(filtered());
+    const rows = activeTab === 'line' ? lastRun.lineRows : lastRun.opRows;
+    t = {head: t.head, body: t.body.filter((_, i) => keep.has(rows[i]))};
+  }
   const text = '﻿' + [t.head, ...t.body].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
   download(new Blob([text], {type:'text/csv;charset=utf-8'}),
-           fileBase() + (activeTab === 'track' ? '_along-line' : '_operational-points') + '.csv');
+    fileBase() + (activeTab === 'cover' ? '_coverage' : activeTab === 'line' ? '_along-route' : '_operational-points') + '.csv');
 });
 
 $('xlsBtn').addEventListener('click', () => {
   if(!lastRun) return;
   const r = lastRun;
   const specs = [];
-  if(r.track.length){ const t = trackTable(); specs.push({name:'Along the line', rows:[t.head, ...t.body], opts:{autoFilter:true, maxWidth:46}}); }
-  if(r.ops.length){   const o = opTable();    specs.push({name:'Operational points', rows:[o.head, ...o.body], opts:{autoFilter:true, maxWidth:46}}); }
+  const cov = coverTable();
+  specs.push({name:'D2 coverage', rows:[cov.head, ...cov.body], opts:{autoFilter:true, maxWidth:70}});
+  if(r.lineRows.length){ const t = lineTable(); specs.push({name:'Along the route', rows:[t.head, ...t.body], opts:{autoFilter:true, maxWidth:46}}); }
+  if(r.opRows.length){   const o = opTable();   specs.push({name:'Operational points', rows:[o.head, ...o.body], opts:{autoFilter:true, maxWidth:46}}); }
+  const nowhere = d2Catalog.filter(e => !e.anywhere);
   const about = [
-    ['ERA RCC Parameters — extraction record', ''],
+    ['ERA Route Book Elements — extraction record', ''],
     [],
     ['Country', r.countryLabel + ' (' + r.country + ')'],
     ['National line', r.line],
-    ['Sections on this line', r.sections],
+    ['Infrastructure manager (D2 1.1)', r.managers.join(', ') || 'not resolved'],
+    ['Published in dataset', r.graphs.join(', ') || '—'],
     ['Kilometre range', (r.kmFrom || r.kmTo) ? `${r.kmFrom || 'start'} to ${r.kmTo || 'end'}` : 'whole line'],
-    ['Parameter filter', r.only || 'all RCC parameters'],
     ['Sidings included', r.sidings ? 'yes' : 'no'],
     [],
-    ['Rows — along the line (RINF 1.1…)', r.track.length],
-    ['Rows — at operational points (RINF 1.2…)', r.ops.length],
-    ['Sections of line', new Set(r.track.map(x => x.sol)).size],
-    ['Operational points', new Set(r.ops.map(x => x.opid)).size],
+    ['D2 elements on this line', r.covered.size],
+    ['D2 elements in the ontology', d2Catalog.length],
+    ['Sections of line', r.sections],
+    ['Operational points', r.ops],
+    ['Rows — along the route', r.lineRows.length],
+    ['Rows — at operational points', r.opRows.length],
     [],
     ['SPARQL endpoint', ENDPOINT],
     ['Extracted at (UTC)', r.fetched],
     ['Query time', r.elapsed.toFixed(2) + ' s'],
+    ['Queries issued', r.queries],
+    [],
+    ['What Appendix D2 is', 'Appendix D2 of the TSI OPE — Commission Implementing Regulation (EU) 2019/773 —'],
+    ['', 'lists the elements an infrastructure manager has to provide to a railway undertaking'],
+    ['', 'for the Route Book. ERA annotates each ontology property with its D2 index via'],
+    ['', 'era:tsiOPEAppendixD2Index, but publishes no heading per index, so elements are named'],
+    ['', 'here by their ontology labels and the D2 number is kept as the legal cross-reference.'],
+    ['', 'One D2 element is often several properties, and one property often serves several elements.'],
     [],
     ['Method — validity', UNDATED.has(r.country)
       ? r.countryLabel + ' publishes no dated validity, so no rows were filtered out on that basis.'
-      : 'Only the latest validity window is included, compared place by place rather than line by line.'],
-    ['', 'Along the line, the newest window is chosen per stretch: some managers republish the same stretch'],
-    ['', 'every year, while others date each section by the day it opened, so a line-wide maximum would'],
-    ['', 'delete real sections. At operational points the rule runs twice — newest resource per era:uopid,'],
-    ['', 'then that point\'s newest track window. France repeats tracks inside a point; Germany repeats the'],
-    ['', 'whole station as separate resources sharing one uopid.'],
+      : 'Only the newest validity window is included, compared place by place rather than line by line.'],
+    ['', 'Along the route the newest window is chosen per stretch; at operational points the rule'],
+    ['', 'runs twice — newest resource per era:uopid, then that point\'s newest track window.'],
     ['', 'A resource with no validity at all is always kept.'],
     [],
-    ['Method — parameters', 'Properties flagged era:usedInRCCCalculations. Retired (owl:deprecated) parameters are excluded.'],
-    ['', 'Concept values are resolved to their English label where one exists; multiple values are joined with " | ".'],
+    ['Method — collection', 'D2 properties sit on a dozen classes reached from a section of line or an operational'],
+    ['', 'point by a handful of paths (the track itself, its features, its contact line system, its'],
+    ['', 'ETCS, the point\'s geometry and primary location). Each path is queried separately so they'],
+    ['', 'run in parallel, and the places are resolved once and pinned into those queries.'],
+    ['', 'The Access path column records which path produced each row.'],
+    ['', 'Retired (owl:deprecated) properties are excluded.'],
+    [],
+    ['Not published by anyone', nowhere.length
+      ? nowhere.map(e => e.d2).join(', ') + ' — carried only by classes with no instances in the endpoint.'
+      : 'none'],
     [],
     ['SPARQL', ''],
   ];
@@ -733,7 +1021,8 @@ $('linkBtn').addEventListener('click', async () => {
   p.set('l', $('lineInput').value.trim());
   if($('kmFrom').value.trim()) p.set('from', $('kmFrom').value.trim());
   if($('kmTo').value.trim())   p.set('to', $('kmTo').value.trim());
-  if($('paramSel').value)      p.set('p', $('paramSel').value);
+  if(!$('wantLine').checked)    p.set('line', '0');
+  if(!$('wantOp').checked)      p.set('op', '0');
   if(!$('wantSidings').checked) p.set('sid', '0');
   const url = location.origin + location.pathname + '#' + p.toString();
   const btn = $('linkBtn');
@@ -751,8 +1040,9 @@ async function applyHash(){
   if(p.get('l')) $('lineInput').value = p.get('l');
   if(p.get('from')) $('kmFrom').value = p.get('from');
   if(p.get('to'))   $('kmTo').value = p.get('to');
-  if(p.get('p'))    $('paramSel').value = p.get('p');
-  if(p.get('sid') === '0') $('wantSidings').checked = false;
+  $('wantLine').checked    = p.get('line') !== '0';
+  $('wantOp').checked      = p.get('op') !== '0';
+  $('wantSidings').checked = p.get('sid') !== '0';
   updateRun();
 }
 applyHash();
@@ -763,8 +1053,8 @@ updateRun();
 window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; applyHash(); });
 
 /* ------------------------------------------------------------------ *
- * XLSX writer — store-only ZIP, no dependencies. Same one the RINF
- * Parameter Values explorer uses, so both tools produce identical books.
+ * XLSX writer — store-only ZIP, no dependencies. The same one the other
+ * tools here use, so every workbook comes out identical in shape.
  * ------------------------------------------------------------------ */
 let CRC_TABLE = null;
 function crc32(bytes){

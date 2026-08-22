@@ -9,6 +9,7 @@ Contents
 - `scripts/assets/era-rdf-exporter.html`: single-file tool to export any ERA/RINF resource URI as RDF/XML, recursed to real leaf values — see the dedicated section below.
 - `scripts/assets/era-rinf-value-explorer.html`: single-file tool that lists every distinct value reported for any RINF parameter, per country or across all of RINF, and downloads it as CSV or Excel — see the dedicated section below.
 - `scripts/assets/era-rcc-parameters.html`: single-file tool that returns the route-compatibility parameters for one national line, positioned by kilometre post, along the line and at its operational points — see the dedicated section below.
+- `scripts/assets/era-route-book.html`: single-file tool that collects the TSI OPE Appendix D2 route book elements for one national line and reports which of the 46 D2 elements it covers — see the dedicated section below.
 - `scripts/build-rinf-parameter-catalog.py`: regenerates the parameter/country snapshot embedded in that tool; run nightly by [.github/workflows/refresh-rinf-catalog.yml](.github/workflows/refresh-rinf-catalog.yml).
 - `scripts/build-era-answers-pptx.py`: regenerates `interop-europe/ERA-ontology-reusability.pptx`, a five-slide summary of the assessment answers in the ERA template (needs `python-pptx`).
 - `scripts/assets/era-interop-answers.html`: the ERA reusability answers for the Interoperable Europe assessment, as a standalone page (source text in `interop-europe/answers.md`).
@@ -20,6 +21,7 @@ Live demo
 - **https://gatemezing.github.io/onto-dissemination/exporter.html** — the RDF Exporter.
 - **https://gatemezing.github.io/onto-dissemination/values.html** — the RINF Parameter Values explorer.
 - **https://gatemezing.github.io/onto-dissemination/rcc.html** — the RCC Parameters tool.
+- **https://gatemezing.github.io/onto-dissemination/routebook.html** — the Route Book (Appendix D2) tool.
 - **https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html** — the Interoperable Europe reusability answers.
 
 The tools cross-link: the landing page carries a tools nav in its top bar, and each tool links back.
@@ -322,3 +324,51 @@ successor — it is genuinely withdrawn.
 
 The full query set, with the measurements behind each correction, is in
 [`interop-europe/rcc/README.md`](interop-europe/rcc/README.md).
+
+## Route Book tool (TSI OPE Appendix D2)
+
+`scripts/assets/era-route-book.html` — pick a country and one of its national
+lines, and get every property carrying `era:tsiOPEAppendixD2Index`: the elements
+an infrastructure manager owes a railway undertaking for the **Route Book**
+under Appendix D2 of Commission Implementing Regulation (EU) 2019/773. Results
+come back in kilometre order, split into *along the route* and *at operational
+points*, with a client-side filter by D2 element or free text. CSV and `.xlsx`
+export, the workbook leading with the coverage sheet.
+
+Why a railway expert would reach for it: the route book is the driver-facing
+document, and its legal contents list is a different axis from RINF's. The two
+indices are many-to-many in both directions — `organisationCode` is D2 1.1 and
+carries seven RINF indices, while D2 3.2.3 is served by ten properties — so
+neither can be derived from the other, and nothing else answers "what does this
+line actually publish for the route book".
+
+**The coverage view is the point.** Every run reports how many of the 46 D2
+elements the line carries, in three states that mean different things to whoever
+has to compile the book: *on this line*, *published elsewhere but not here*, and
+*not published by anyone*. That last state is real and measurable: `3.2.4`,
+`3.2.6`, `3.3.5` and `3.3.6` are carried only by `era:SpecialArea` and `3.4.7`
+only by `era:RadioBlockCenter`, and neither class has a single instance in the
+live endpoint. Measured coverage: Spain `ESL740874000` 25/46, France `830000-1`
+27/46, Germany `4000` 29/46.
+
+**ERA publishes the D2 index but no heading for it.** There is no label or
+definition for "3.2.3" anywhere in the endpoint or the vocabulary docs, so
+elements are named by their ontology labels and the D2 number is kept as the
+legal cross-reference rather than inventing wording for the regulation.
+
+**Two phases, because one UNION is 21× slower.** D2 properties sit on eighteen
+classes reached by seven access paths. Querying them as one `UNION` takes 64 s
+for German line 4000; as separate parallel queries, 30 s, because each branch
+re-resolves the line's sections and recomputes the validity aggregate. Resolving
+the places **once** and pinning them into each branch with `VALUES` takes the
+same 5,193 rows down to **1.9 s**.
+
+**D2 1.1 needs a different move.** Nothing on a line points at an `era:Body`, so
+the manager cannot be reached by traversal — but each named graph *is* one
+manager's RINF submission, so it is the `era:Body` with an `_IM` role inside the
+graph publishing the line. That also surfaces something traversal never would:
+German line `4000` is published in two datasets, `graph/0080` and `graph/1080`.
+
+Validity handling is identical to the RCC tool, and retired (`owl:deprecated`)
+properties are excluded. The full query set with the measurements behind each
+decision is in [`interop-europe/routebook/README.md`](interop-europe/routebook/README.md).

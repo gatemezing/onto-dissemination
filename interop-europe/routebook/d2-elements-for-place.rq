@@ -1,0 +1,33 @@
+# Phase 2 of the route book collection: the D2 elements hanging off places
+# already resolved by sections-for-line.rq / ops-for-line.rq and pinned here
+# with VALUES. This is the "track" branch; the tool issues one query per
+# access path (section/point itself, its tracks, those tracks' features,
+# contact line system, ETCS, and — for a point — its geometry and primary
+# location) so they run in parallel.
+#
+# Pinning the places is the whole performance story: for DEU line 4000 the
+# five line-side branches take 30 s as standalone queries that each re-resolve
+# the sections, and 1.4 s once the sections are resolved one time and pinned.
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?sol ?d2 ?paramLabel ?trackName ?featureName
+       (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
+WHERE {
+  # The D2 property set, bound before any data is touched. An unbound-predicate
+  # scan is what makes these queries slow. Retired properties are excluded.
+  { SELECT DISTINCT ?p ?d2 ?paramLabel WHERE {
+      ?p era:tsiOPEAppendixD2Index ?d2 ; rdfs:label ?paramLabel .
+      FILTER(LANG(?paramLabel) = "" || LANGMATCHES(LANG(?paramLabel), "en"))
+      FILTER NOT EXISTS { ?p owl:deprecated true }
+  } }
+  VALUES ?sol { <http://data.europa.eu/949/sectionOfLine/8cfa1fcc33> }   # … from phase 1
+  ?track era:isPartOf ?sol ; rdfs:label ?trackName .
+  ?track ?p ?value0 .
+  BIND("" AS ?featureName)
+  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "en") }
+  OPTIONAL { ?value0 rdfs:label ?lb }
+  BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)
+}
+GROUP BY ?sol ?d2 ?paramLabel ?trackName ?featureName

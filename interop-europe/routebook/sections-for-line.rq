@@ -1,0 +1,19 @@
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>
+SELECT ?sol ?startKp ?startPosition ?endPosition WHERE {
+  ?sol a era:SectionOfLine ; era:inCountry eu:DEU ; era:nationalLine/era:lineId "4000" ;
+       era:netReference/era:startsAt/era:hasLrsCoordinate [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] ;
+       era:netReference/era:endsAt/era:hasLrsCoordinate   [ era:kmPost/era:kilometer ?endKp   ; era:offsetFromKilometricPost ?endOffset ] .
+  BIND(CONCAT(STR(?startKp),"+",STR(?startOffset)) AS ?startPosition)
+  BIND(CONCAT(STR(?endKp),  "+",STR(?endOffset))   AS ?endPosition)
+  OPTIONAL { ?sol era:validity/time:hasBeginning/time:inXSDDate ?b }
+  OPTIONAL { { SELECT ?startPosition ?endPosition (MAX(?bb) AS ?latest) WHERE {
+      ?s2 a era:SectionOfLine ; era:inCountry eu:DEU ; era:nationalLine/era:lineId "4000" ;
+          era:netReference/era:startsAt/era:hasLrsCoordinate [ era:kmPost/era:kilometer ?sk2 ; era:offsetFromKilometricPost ?so2 ] ;
+          era:netReference/era:endsAt/era:hasLrsCoordinate   [ era:kmPost/era:kilometer ?ek2 ; era:offsetFromKilometricPost ?eo2 ] ;
+          era:validity/time:hasBeginning/time:inXSDDate ?bb .
+      BIND(CONCAT(STR(?sk2),"+",STR(?so2)) AS ?startPosition)
+      BIND(CONCAT(STR(?ek2),"+",STR(?eo2)) AS ?endPosition) } GROUP BY ?startPosition ?endPosition } }
+  FILTER(!BOUND(?b) || !BOUND(?latest) || ?b = ?latest)
+} ORDER BY ?startKp

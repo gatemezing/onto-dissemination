@@ -1,0 +1,9 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+SELECT ?d2 (COUNT(DISTINCT ?p) AS ?props) (SUM(IF(?has,1,0)) AS ?withData) WHERE {
+  { SELECT DISTINCT ?p ?d2 (EXISTS { ?s ?p ?o } AS ?has) WHERE {
+      ?p era:tsiOPEAppendixD2Index ?d2 ; rdfs:label ?l .
+      FILTER(LANG(?l)="" || LANGMATCHES(LANG(?l),"en"))
+      FILTER NOT EXISTS { ?p owl:deprecated true } } }
+} GROUP BY ?d2 ORDER BY ?d2

@@ -1,0 +1,17 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>
+SELECT DISTINCT ?op ?opid ?opName ?startKp ?position WHERE {
+  ?op a era:OperationalPoint ; era:inCountry eu:DEU ; era:opName ?opName ; era:uopid ?opid ;
+      era:netReference/era:hasLrsCoordinate
+        [ era:kmPost [ era:kilometer ?startKp ; era:hasLRS/era:lineId "4000" ] ;
+          era:offsetFromKilometricPost ?startOffset ] .
+  BIND(CONCAT(STR(?startKp),"+",STR(?startOffset)) AS ?position)
+  OPTIONAL { ?op era:validity/time:hasBeginning/time:inXSDDate ?ob }
+  OPTIONAL { { SELECT ?opid (MAX(?ob2) AS ?opLatest) WHERE {
+      ?opU a era:OperationalPoint ; era:inCountry eu:DEU ; era:uopid ?opid ;
+           era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "4000" ;
+           era:validity/time:hasBeginning/time:inXSDDate ?ob2 } GROUP BY ?opid } }
+  FILTER(!BOUND(?ob) || !BOUND(?opLatest) || ?ob = ?opLatest)
+} ORDER BY ?startKp
