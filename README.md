@@ -9,6 +9,7 @@ Contents
 - `scripts/assets/era-rdf-exporter.html`: single-file tool to export any ERA/RINF resource URI as RDF/XML, recursed to real leaf values — see the dedicated section below.
 - `scripts/assets/era-rinf-value-explorer.html`: single-file tool that lists every distinct value reported for any RINF parameter, per country or across all of RINF, and downloads it as CSV or Excel — see the dedicated section below.
 - `scripts/build-rinf-parameter-catalog.py`: regenerates the parameter/country snapshot embedded in that tool; run nightly by [.github/workflows/refresh-rinf-catalog.yml](.github/workflows/refresh-rinf-catalog.yml).
+- `scripts/build-era-answers-pptx.py`: regenerates `interop-europe/ERA-ontology-reusability.pptx`, a five-slide summary of the assessment answers in the ERA template (needs `python-pptx`).
 - `scripts/assets/era-interop-answers.html`: the ERA reusability answers for the Interoperable Europe assessment, as a standalone page (source text in `interop-europe/answers.md`).
 - `interop-europe/`: the assessment questions, the drafted answers, and the extracted Data Stories query catalogue.
 - `sample-data/`: example SPARQL query + RDF/XML result pairs, with the engineering rationale behind them documented in `sample-data/README.md`.
