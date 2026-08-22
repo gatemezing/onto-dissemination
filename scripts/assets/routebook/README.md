@@ -7,8 +7,9 @@ The query set behind [`era-route-book.html`](../era-route-book.html)
 | File | What it does | Measured |
 |---|---|---|
 | `d2-catalogue.rq` | the 46 D2 elements, and whether any manager publishes each at all | **0.15 s** |
-| `infrastructure-manager.rq` | D2 1.1 — which manager publishes this line | **0.12 s** |
+| `infrastructure-manager.rq` | D2 1.1 — the manager each section of line declares | **0.11 s** |
 | `infrastructure-manager-names.rq` | …and their names, from OCR-KG | **0.15 s** |
+| `country-gap-diagnosis.rq` | why a country returned no national lines | **0.15–0.21 s** |
 | `sections-for-line.rq` | phase 1: sections of line with position, latest window per stretch | **0.45 s**, 167 sections for DEU `4000` |
 | `ops-for-line.rq` | phase 1: operational points with position, latest resource per `uopid` | **0.23 s**, 168 points for the same line |
 | `d2-elements-for-place.rq` | phase 2: the D2 elements on those places, one query per access path | **1.4 s** for all five line-side branches |
@@ -86,15 +87,19 @@ of the pool.
 
 ## D2 1.1 takes two registers, and the same URI opens both
 
-Nothing on a `SectionOfLine` or an `OperationalPoint` points at an `era:Body`,
-so the manager cannot be reached by traversal. It is recoverable a different
-way: each named graph **is** one manager's RINF submission, so the manager is
-the organisation holding the **Infrastructure Manager** role inside the graph
-that publishes the line. The role is matched on the SKOS concept
-`concepts/organisation-roles/IM` — which carries
-`dcterms:source <http://data.europa.eu/eli/dir/2012/34/2019-01-01>`, an ELI
-reference to the Directive that defines the term — rather than on the shape of
-the role URI.
+Every section of line declares its manager. `era:infrastructureManager` points
+at an `era:OrganisationRole` such as `.../organisationRole/0080_IM`, and
+`era:roleOf` resolves that to the organisation — 1,111,592 statements
+graph-wide, and 334 of 334 sections on DEU line `4000`.
+
+**An earlier version of this tool answered it from the named graph instead**,
+on the reasoning that each graph is one manager's RINF submission, so the
+manager must be the `era:Body` holding the IM role inside it. That looks
+equivalent and is not: both German bodies sit in both German graphs, so the
+graph route named DB InfraGO **and** Deutsche Bahn AG for line 4000, where the
+declared property names DB InfraGO alone. The graph is still worth reporting as
+the separate fact it is — line `4000` really is published in two datasets — but
+it is not the answer to "who is the infrastructure manager".
 
 That answers *which* organisation but not *who*: *all 660 `era:Body` resources
 in `rinf-plus` carry zero `foaf:name`.* The names live in the **Organisation
@@ -102,19 +107,46 @@ Codes Register**, and are fetched with the very same body URIs RINF returned:
 
 | Register | What it knows about `body/organisation/0080` |
 |---|---|
-| `rinf-plus` | it publishes line `4000`, and it holds the IM role |
+| `rinf-plus` | it is the declared infrastructure manager of every section of line `4000` |
 | `OCR-KG` | it is **DB InfraGO Aktiengesellschaft**, short name DB InfraGO, in DEU, holding roles RU, IM, ECM, Keeper, Owner, CB |
 
 No code column, no join key, no matching by hand — the identifier *is* the join.
 This is the clearest demonstration in the repository of why one persistent URI
 reused across registers beats a shared numeric code.
 
-The lookup also surfaces something traversal never would: German line `4000` is
-published in **two** datasets, `graph/0080` (DB InfraGO) and `graph/1080`
-(Deutsche Bahn AG), each carrying both organisation codes.
-
 Resolved end to end: `0071` → Administrador de Infraestructuras Ferroviarias
-(ADIF), `0084` → ProRail, `0087` → SNCF Réseau.
+(ADIF), `0080` → DB InfraGO, `0084` → ProRail, `0087` → SNCF Réseau, `1080` →
+Deutsche Bahn AG.
+
+## Croatia and Norway: sections of line with no line identifiers
+
+The tool keys a route book to `era:lineId` and finds operational points by
+`era:inCountry`. Two of the 27 countries publishing sections of line populate
+neither, so the country → line cascade comes back empty:
+
+| Country | Sections | National lines | `era:lineId` | Labels instead | OPs referenced | OPs with `era:inCountry` |
+|---|---|---|---|---|---|---|
+| **HRV** | 583 | 55 | **0** | 110, e.g. `NationalRailwayLine_M604` | 533 | **0** |
+| **NOR** | 375 | 32 | **0** | 64, e.g. `Kongsberg - Flesberg` | 235 | 235 |
+| ESP *(for contrast)* | 2,520 | 466 | 466 | 466 | 2,153 | 2,153 |
+
+Croatia's national lines are typed `era:LinearPositioningSystem` and carry only
+an `rdfs:label` and a geometry. Its operational points are otherwise sound —
+correctly typed, carrying `era:uopid` — but without `era:inCountry` they cannot
+be found by country either, so both halves of the route book are unreachable.
+Norway has only the first gap; its operational points are complete.
+
+The other 25 countries populate `era:lineId`, from Liechtenstein's 1 to
+Germany's 1,482.
+
+**The identifier is visible in both cases, and the tool still does not use it.**
+`NationalRailwayLine_M604` plainly contains `M604`, and a regular expression
+would produce a line list for Croatia. That would be the wrong call: a label is
+not an identifier, the pattern differs between the two countries (Norway's
+labels are endpoint pairs, not codes), and parsing it would hide a reporting gap
+that a route-book compiler needs to see. The tool asks for the property the
+ontology defines, and when it is absent it says so — `country-gap-diagnosis.rq`
+runs automatically and the figures above appear in the page.
 
 ## Validity
 

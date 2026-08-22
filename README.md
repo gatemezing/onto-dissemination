@@ -363,22 +363,27 @@ re-resolves the line's sections and recomputes the validity aggregate. Resolving
 the places **once** and pinning them into each branch with `VALUES` takes the
 same 5,193 rows down to **1.9 s**.
 
-**D2 1.1 takes two registers, and the same URI opens both.** Nothing on a line
-points at an `era:Body`, so the manager cannot be reached by traversal — but each
-named graph *is* one manager's RINF submission, so it is the organisation holding
-the Infrastructure Manager role inside the graph publishing the line, matched on
-the SKOS concept `concepts/organisation-roles/IM` (which carries an ELI reference
-to Directive 2012/34/EU) rather than on the shape of the role URI.
-
-That gives *which* organisation but not *who*: all 660 `era:Body` resources in
+**D2 1.1 takes two registers, and the same URI opens both.** Every section of
+line declares its manager: `era:infrastructureManager` points at an
+`era:OrganisationRole`, which `era:roleOf` resolves to the organisation. That
+gives *which* organisation but not *who* — all 660 `era:Body` resources in
 `rinf-plus` carry zero `foaf:name`. The names come from the **Organisation Codes
 Register** (`OCR-KG`), queried with the very same body URIs RINF returned — no
-code column, no join key, no matching by hand. `body/organisation/0080` is a line
-publisher in one register and *DB InfraGO Aktiengesellschaft* in the other, and
-the identifier is the join. It is the clearest demonstration here of why one
-persistent URI reused across registers beats a shared numeric code. The lookup
-also surfaces what traversal would not: German line `4000` is published in two
-datasets, `graph/0080` (DB InfraGO) and `graph/1080` (Deutsche Bahn AG).
+code column, no join key, no matching by hand. `body/organisation/0080` is a
+declared line manager in one register and *DB InfraGO Aktiengesellschaft* in the
+other, and the identifier is the join. It is the clearest demonstration here of
+why one persistent URI reused across registers beats a shared numeric code.
+
+**Croatia and Norway get an explanation, not an empty box.** The tool keys a
+route book to `era:lineId` and finds operational points by `era:inCountry`. Two
+of the 27 countries publishing sections of line populate neither: Croatia has
+583 sections whose national lines carry only an `rdfs:label` such as
+`NationalRailwayLine_M604`, plus 533 operational points with no
+`era:inCountry`; Norway has 375 sections labelled `Kongsberg - Flesberg` and the
+like. Picking either country runs a diagnostic query and states exactly what is
+missing. The identifier is visible in both labels and the tool deliberately does
+not parse it — a label is not an identifier, the two countries' patterns differ,
+and guessing would hide a reporting gap a route-book compiler needs to see.
 
 Validity handling is identical to the RCC tool, and retired (`owl:deprecated`)
 properties are excluded. The full query set with the measurements behind each

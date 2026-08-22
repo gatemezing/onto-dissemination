@@ -1,20 +1,27 @@
-# D2 1.1 — who is the infrastructure manager for this line?
+# D2 1.1 -- who is the infrastructure manager for this line?
 #
-# Nothing on a SectionOfLine or an OperationalPoint points at an era:Body, so
-# the manager cannot be reached by traversal. It is recoverable a different
-# way: each named graph IS one manager's RINF submission, so the manager is the
-# organisation holding the Infrastructure Manager role inside the graph that
-# publishes the line. The role is matched on the SKOS concept -- which carries
-# dcterms:source <http://data.europa.eu/eli/dir/2012/34/2019-01-01> -- rather
-# than on the shape of the role URI.
+# Every section of line declares one: era:infrastructureManager points at an
+# era:OrganisationRole (.../organisationRole/0080_IM), which era:roleOf
+# resolves to the organisation itself. 1,111,592 statements graph-wide, and
+# 334 of 334 sections on DEU line 4000 carry it.
 #
-# Against rinf-plus. 0.12 s for DEU line 4000, which returns two datasets:
-# graph/0080 (DB InfraGO) and graph/1080 (Deutsche Bahn AG).
+# Answering this from the named graph instead -- "the Body holding the IM role
+# inside the graph that publishes the line" -- looks equivalent and is not.
+# Both German bodies sit in both German graphs, so that route names DB InfraGO
+# *and* Deutsche Bahn AG for line 4000, where the declared property names
+# DB InfraGO alone. The graph is still worth reporting, as the separate fact it
+# is: line 4000 is published in two datasets.
+#
+# Operational points do not carry era:infrastructureManager -- 0 of the 308 on
+# DEU line 4000 -- so the section side is the one to ask.
+#
+# Against rinf-plus. 0.11 s.
 PREFIX era: <http://data.europa.eu/949/>
 PREFIX eu:  <http://publications.europa.eu/resource/authority/country/>
-SELECT DISTINCT ?graph ?body ?code WHERE {
-  GRAPH ?graph { ?sol a era:SectionOfLine ; era:inCountry eu:DEU ; era:nationalLine/era:lineId "4000" }
-  GRAPH ?graph { ?body a era:Body ; era:organisationCode ?code ;
-                       era:role/era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/IM> }
+SELECT DISTINCT ?body ?code ?graph WHERE {
+  GRAPH ?graph { ?sol a era:SectionOfLine ; era:inCountry eu:DEU ; era:nationalLine/era:lineId "4000" ;
+                      era:infrastructureManager ?role }
+  ?role era:roleOf ?body .
+  ?body era:organisationCode ?code .
 }
 ORDER BY ?code

@@ -106,6 +106,11 @@
   .pill.elsewhere{background:rgba(240,168,58,.15);color:#f3c073;border:1px solid rgba(240,168,58,.42);}
   .pill.nowhere{background:rgba(255,255,255,.06);color:var(--dim);border:1px solid var(--line);}
 
+  .note{font-size:12px;line-height:1.6;border-radius:9px;padding:12px 14px;margin-top:14px;}
+  .note[hidden]{display:none;}
+  .note.warn{background:rgba(240,168,58,.10);border:1px solid rgba(240,168,58,.38);color:#f3d8a8;}
+  .note.warn code{background:rgba(0,0,0,.28);}
+  .note a{color:#f0a83a;}
   .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
   .resultActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
   .resultActions .grow{flex:1;}
@@ -158,6 +163,7 @@
         <div class="hint" id="lineHint"></div>
       </div>
     </div>
+    <div class="note warn" id="gapNote" hidden></div>
   </div>
 
   <div class="panel">
@@ -225,15 +231,30 @@
       <code>3.4.7</code> only by <code>era:RadioBlockCenter</code>; neither class has a single instance in the live
       endpoint. The coverage view separates that case — <em>not published by anyone</em> — from an element that other
       managers do publish but this line does not, because they mean very different things to a route-book compiler.</p>
-    <p><strong>D2 1.1 takes two registers, and the same URI opens both.</strong> Nothing on a line points at an
-      <code>era:Body</code>, so the manager is instead the organisation holding the
-      <a href="http://data.europa.eu/949/concepts/organisation-roles/IM" target="_blank" rel="noopener">Infrastructure
-      Manager</a> role inside the dataset that publishes the line — a SKOS concept defined against Directive
-      2012/34/EU, not a string match on the role URI. RINF knows <em>which</em> organisation but not its name: all 660
-      <code>era:Body</code> resources in <code>rinf-plus</code> carry zero <code>foaf:name</code>. The name comes from
-      the <a href="https://graph.data.era.europa.eu/repositories/OCR-KG" target="_blank" rel="noopener">Organisation
+    <p><strong>D2 1.1 takes two registers, and the same URI opens both.</strong> Every section of line declares its
+      manager: <code>era:infrastructureManager</code> points at an <code>era:OrganisationRole</code>, which
+      <code>era:roleOf</code> resolves to the organisation. RINF knows <em>which</em> organisation but not its name —
+      all 660 <code>era:Body</code> resources in <code>rinf-plus</code> carry zero <code>foaf:name</code>. The name
+      comes from the <a href="https://graph.data.era.europa.eu/repositories/OCR-KG" target="_blank" rel="noopener">Organisation
       Codes Register</a>, queried with the very same URIs RINF returned — no code column, no join key, no matching by
-      hand. That is what a shared identifier buys.</p>
+      hand. That is what a shared identifier buys. The dataset a line is published in is reported alongside, as the
+      separate fact it is: German line <code>4000</code> appears in two of them.</p>
+    <p id="gapFootnote"><strong>Two countries publish sections of line but no line identifiers, so this tool can
+      offer them nothing.</strong> <em>Croatia</em> has 583 sections of line, every one pointing at a national line —
+      but those resources are typed <code>era:LinearPositioningSystem</code> and carry only an
+      <code>rdfs:label</code> such as <code>NationalRailwayLine_M604</code>; not one carries
+      <code>era:lineId</code>. Croatia compounds it: its 533 operational points are correctly typed and carry
+      <code>era:uopid</code>, yet none carries <code>era:inCountry</code>, so they cannot be reached by country
+      either. <em>Norway</em> has the same missing <code>era:lineId</code> across its 375 sections, labelled
+      <code>Kongsberg&nbsp;-&nbsp;Flesberg</code> and the like, though its operational points are complete. The other
+      25 countries publishing sections of line all populate <code>era:lineId</code>, from Liechtenstein's 1 to
+      Germany's 1,482.</p>
+    <p>Both are properties the ontology defines and the rest of Europe populates, so the tool asks for them rather
+      than parsing identifiers out of free-text labels — a label is not an identifier, and guessing would hide a
+      reporting gap that a route-book compiler needs to see. Pick either country above and the exact figures are
+      measured live and shown; the query is
+      <a href="https://github.com/gatemezing/onto-dissemination/blob/main/scripts/assets/routebook/country-gap-diagnosis.rq"
+         target="_blank" rel="noopener"><code>country-gap-diagnosis.rq</code></a>.</p>
     <p><strong>Superseded descriptions are dropped, place by place.</strong> The same validity rule as the RCC tool:
       the newest window per stretch of line, and per <code>era:uopid</code> then per track at operational points.
       Ten countries publish no dated validity at all, and a resource with no validity is always kept.
@@ -395,20 +416,48 @@ WHERE {
 GROUP BY ?d2`;
 }
 
-/* D2 chapter 1 is "who is the infrastructure manager", and nothing on a line
-   points at a Body — the answer is which dataset publishes the line, since
-   each named graph is one manager's RINF submission. The role is matched on
-   the SKOS concept, which is defined against Directive 2012/34/EU, rather than
-   on the shape of the role URI. */
+/* D2 chapter 1 — who is the infrastructure manager. Every section of line
+   declares one: era:infrastructureManager points at an era:OrganisationRole,
+   which era:roleOf resolves to the organisation itself. Answering it from the
+   named graph instead looks equivalent and is not — both German bodies sit in
+   both German graphs, so the graph route names DB InfraGO *and* Deutsche Bahn
+   AG for line 4000 where the declared property names DB InfraGO alone.
+   The publishing dataset is reported too, as the separate fact it is. */
 function managersQuery(cc, line){
   const L = safeLine(line), C = safeCountry(cc);
   return `${PREFIXES}
-SELECT DISTINCT ?graph ?body ?code WHERE {
-  GRAPH ?graph { ?sol a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" }
-  GRAPH ?graph { ?body a era:Body ; era:organisationCode ?code ;
-                       era:role/era:hasOrganisationRole <${IM_ROLE}> }
+SELECT DISTINCT ?body ?code ?graph WHERE {
+  GRAPH ?graph { ?sol a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" ;
+                      era:infrastructureManager ?role }
+  ?role era:roleOf ?body .
+  ?body era:organisationCode ?code .
 }
 ORDER BY ?code`;
+}
+
+/* Why a country came back with no lines. The tool asks for era:lineId, the
+   property the ontology defines for a line identifier, and for era:inCountry
+   on an operational point; a manager can publish neither and still publish
+   sections. Run only when the line list is empty, so it costs nothing in the
+   normal case. */
+function gapQuery(cc){
+  const C = safeCountry(cc);
+  return `${PREFIXES}
+SELECT (COUNT(DISTINCT ?sol) AS ?sections)
+       (COUNT(DISTINCT ?nl) AS ?withNationalLine)
+       (COUNT(DISTINCT ?lid) AS ?lineIds)
+       (COUNT(DISTINCT ?lbl) AS ?nationalLineLabels)
+       (COUNT(DISTINCT ?op) AS ?opsReferenced)
+       (COUNT(DISTINCT ?opInC) AS ?opsWithInCountry)
+       (SAMPLE(?lbl) AS ?exampleLabel)
+WHERE {
+  ?sol a era:SectionOfLine ; era:inCountry eu:${C} .
+  OPTIONAL { ?sol era:nationalLine ?nl
+             OPTIONAL { ?nl era:lineId ?lid }
+             OPTIONAL { ?nl rdfs:label ?lbl } }
+  OPTIONAL { ?sol era:opStart ?op
+             OPTIONAL { ?op era:inCountry ?c BIND(?op AS ?opInC) } }
+}`;
 }
 
 /* …and the names, from the register that holds them. Run against OCR-KG with
@@ -584,6 +633,7 @@ async function loadLines(cc){
   $('lineInput').disabled = true;
   $('lineList').innerHTML = '';
   $('lineHint').textContent = '';
+  $('gapNote').hidden = true;
   if(!cc){ $('lineInput').placeholder = 'Choose a country first…'; updateRun(); return; }
   const name = (COUNTRIES.find(x => x[0] === cc) || [, cc])[1];
   $('countryHint').className = 'hint';
@@ -600,6 +650,7 @@ async function loadLines(cc){
       const span = (l.fromKm !== null && l.toKm !== null) ? `km ${l.fromKm}–${l.toKm}` : '';
       return `<option value="${esc(l.line)}">${l.sections} section${l.sections === 1 ? '' : 's'}${span ? ' · ' + span : ''}</option>`;
     }).join('');
+    if(!lines.length){ await explainGap(cc, name); return; }
     $('lineInput').disabled = false;
     $('lineInput').placeholder = `Type or pick one of ${fmt(lines.length)} lines…`;
     $('countryHint').className = 'hint on';
@@ -655,6 +706,42 @@ $('lineInput').addEventListener('input', () => { updateRun(); $('resultPanel').h
         '</optgroup>').join('');
   } catch { /* the filter is a convenience; the tool works without it */ }
 })();
+
+/* ------------------------------------------------------------------ *
+ * When a country has no lines to offer
+ * ------------------------------------------------------------------ */
+async function explainGap(cc, name){
+  $('countryHint').className = 'hint';
+  $('countryHint').textContent = 'No national lines — checking why…';
+  $('lineInput').placeholder = 'This country publishes no line identifiers';
+  let g;
+  try{ g = (await sparql(gapQuery(cc)))[0]; }
+  catch { $('countryHint').textContent = name + ' returned no national lines.'; return; }
+  const n = k => g && g[k] ? +g[k].value : 0;
+  const sections = n('sections'), lineIds = n('lineIds'), labels = n('nationalLineLabels');
+  const ops = n('opsReferenced'), opsInC = n('opsWithInCountry');
+  const example = g && g.exampleLabel ? g.exampleLabel.value : '';
+
+  const gaps = [];
+  if(sections && !lineIds) gaps.push(
+    `its ${fmt(sections)} sections of line reference ${fmt(n('withNationalLine'))} national lines, but not one ` +
+    `carries <code>era:lineId</code>` +
+    (labels ? ` — the identifier is only in an <code>rdfs:label</code>${example ? `, such as <code>${esc(example)}</code>` : ''}` : ''));
+  if(ops && !opsInC) gaps.push(
+    `its ${fmt(ops)} operational points carry no <code>era:inCountry</code>, so they cannot be found by country either`);
+
+  $('countryHint').className = 'hint';
+  $('gapNote').innerHTML = gaps.length
+    ? `<strong>${esc(name)} publishes sections of line, but nothing this tool can key a route book to.</strong> ` +
+      gaps.join('; ').replace(/^./, m => m.toUpperCase()) +
+      `. ${gaps.length > 1 ? 'Both are properties' : 'That is a property'} the ontology defines and other managers ` +
+      `populate, so the tool asks for ${gaps.length > 1 ? 'them' : 'it'} rather than guessing from labels. ` +
+      `<a href="#gapFootnote">How this was measured</a>.`
+    : `<strong>${esc(name)} returned no national lines.</strong> Its ${fmt(sections)} sections of line ` +
+      `carry ${fmt(lineIds)} line identifiers.`;
+  $('gapNote').hidden = false;
+  $('countryHint').textContent = fmt(sections) + ' sections of line, but no line identifiers';
+}
 
 /* ------------------------------------------------------------------ *
  * Running it

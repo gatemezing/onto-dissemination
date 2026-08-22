@@ -1,0 +1,41 @@
+# Why does a country return no national lines?
+#
+# The tool keys a route book to era:lineId, the property the ontology defines
+# for a line identifier, and finds operational points by era:inCountry. A
+# manager can publish sections of line while populating neither, and the result
+# is an empty line list that looks like a tool failure and is not. This query
+# runs only when the cascade comes back empty, and reports exactly what is
+# missing. 0.15-0.21 s.
+#
+# Measured 2026-08-22 -- two of the 27 countries publishing sections of line
+# carry no era:lineId at all:
+#
+#   HRV  583 sections, 55 national lines, 0 lineIds, 110 rdfs:labels
+#        (e.g. "NationalRailwayLine_M604"); 533 operational points referenced,
+#        0 with era:inCountry
+#   NOR  375 sections, 32 national lines, 0 lineIds, 64 rdfs:labels
+#        (e.g. "Kongsberg - Flesberg"); operational points complete
+#   ESP  2,520 sections, 466 national lines, 466 lineIds -- healthy, for contrast
+#
+# The other 25 populate era:lineId, from Liechtenstein's 1 to Germany's 1,482.
+# The identifier is present in both gap cases, but only inside a free-text
+# label. Parsing it out would paper over a reporting gap that a route-book
+# compiler needs to see, so the tool reports the gap instead.
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>
+SELECT (COUNT(DISTINCT ?sol) AS ?sections)
+       (COUNT(DISTINCT ?nl) AS ?withNationalLine)
+       (COUNT(DISTINCT ?lid) AS ?lineIds)
+       (COUNT(DISTINCT ?lbl) AS ?nationalLineLabels)
+       (COUNT(DISTINCT ?op) AS ?opsReferenced)
+       (COUNT(DISTINCT ?opInC) AS ?opsWithInCountry)
+       (SAMPLE(?lbl) AS ?exampleLabel)
+WHERE {
+  ?sol a era:SectionOfLine ; era:inCountry eu:HRV .
+  OPTIONAL { ?sol era:nationalLine ?nl
+             OPTIONAL { ?nl era:lineId ?lid }
+             OPTIONAL { ?nl rdfs:label ?lbl } }
+  OPTIONAL { ?sol era:opStart ?op
+             OPTIONAL { ?op era:inCountry ?c BIND(?op AS ?opInC) } }
+}
