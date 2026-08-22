@@ -8,6 +8,7 @@ Contents
 - `scripts/assets/era-graph-explorer-app.html`: interactive offline demo app (single-file HTML) for the bubble-graph explorer.
 - `scripts/assets/era-rdf-exporter.html`: single-file tool to export any ERA/RINF resource URI as RDF/XML, recursed to real leaf values — see the dedicated section below.
 - `scripts/assets/era-rinf-value-explorer.html`: single-file tool that lists every distinct value reported for any RINF parameter, per country or across all of RINF, and downloads it as CSV or Excel — see the dedicated section below.
+- `scripts/assets/era-rcc-parameters.html`: single-file tool that returns the route-compatibility parameters for one national line, positioned by kilometre post, along the line and at its operational points — see the dedicated section below.
 - `scripts/build-rinf-parameter-catalog.py`: regenerates the parameter/country snapshot embedded in that tool; run nightly by [.github/workflows/refresh-rinf-catalog.yml](.github/workflows/refresh-rinf-catalog.yml).
 - `scripts/build-era-answers-pptx.py`: regenerates `interop-europe/ERA-ontology-reusability.pptx`, a five-slide summary of the assessment answers in the ERA template (needs `python-pptx`).
 - `scripts/assets/era-interop-answers.html`: the ERA reusability answers for the Interoperable Europe assessment, as a standalone page (source text in `interop-europe/answers.md`).
@@ -18,9 +19,10 @@ Live demo
 - **https://gatemezing.github.io/onto-dissemination/** — the GitHub Pages deployment of `era-graph-explorer-app.html`, rebuilt automatically by [.github/workflows/pages.yml](.github/workflows/pages.yml) on every push to `main` that touches the app file.
 - **https://gatemezing.github.io/onto-dissemination/exporter.html** — the RDF Exporter.
 - **https://gatemezing.github.io/onto-dissemination/values.html** — the RINF Parameter Values explorer.
+- **https://gatemezing.github.io/onto-dissemination/rcc.html** — the RCC Parameters tool.
 - **https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html** — the Interoperable Europe reusability answers.
 
-The three tools cross-link: the landing page carries a tools nav in its top bar, and each tool links back. The answers page links to all three.
+The tools cross-link: the landing page carries a tools nav in its top bar, and each tool links back.
 
 Quick start
 - To view the offline interactive demo, open [scripts/assets/era-graph-explorer-app.html](scripts/assets/era-graph-explorer-app.html) in a modern browser. For best results run a local HTTP server from the repository root and open the file URL in your browser:
@@ -260,3 +262,63 @@ endpoint occasionally times out a batch under load.
 - http://data.europa.eu/949/tentCorridor/ada4f64a55 (track in France with TenT information)
 -  https://gatemezing.github.io/onto-dissemination/
 - https://graph.data.era.europa.eu/graphs-visualizations?uri=https:%2F%2Fdata.banenor.no%2Fdata%2F_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c&role=subject
+
+## RCC Parameters tool
+
+`scripts/assets/era-rcc-parameters.html` — pick a country, pick one of its
+national lines, and get every RINF parameter flagged
+`era:usedInRCCCalculations`, positioned by kilometre post: those along the line
+(index `1.1…`, per section and track) and those at its operational points
+(index `1.2…`, per station track and siding). Optional narrowing by kilometre
+range and by single parameter. Downloads as CSV or as a real `.xlsx` workbook
+whose *About* sheet records the country, line, filters, counts, endpoint,
+timestamp and the exact SPARQL. Same single-file, no-build, no-server shape as
+the other two tools.
+
+Why a railway expert would reach for it: route compatibility checking is
+per-line and per-kilometre, and the Data Stories queries that produce these
+figures are not runnable without editing SPARQL by hand. The country → line
+cascade is a live query (0.2–2.3 s; Germany publishes 1,482 lines, France 895)
+and reports each line's section count and kilometre span before you commit to
+it.
+
+**Superseded descriptions are dropped, and the scope of that rule is the whole
+problem.** The supplied queries have no validity filter, so they mix current and
+superseded descriptions of the same place. German line `4000` carries 167
+sections valid `2025-01-01→2025-12-31` and another 167 valid
+`2026-01-01→2026-12-31` over the identical kilometre range — 16,615 rows
+unfiltered, 8,281 filtered.
+
+The obvious fix, *keep rows matching the line's latest date*, is wrong. France
+does not republish sections; it dates each one by the day it opened, spreading
+25 distinct beginnings across the 702 section resources of line `830000-1`. A
+line-wide maximum keeps the 2 sections commissioned on `2025-10-31` and deletes
+the other 568 — reporting a tidy "132 rows" that looks like successful
+deduplication and is 99.6% data loss. The comparison is therefore made **per
+place**: per stretch of line along the line, and per `era:uopid` then per track
+at operational points. France and Germany duplicate differently — France repeats
+tracks *inside* one operational point (149 of the 327 points on that line),
+Germany repeats the whole station as separate resources sharing one `uopid`
+(`DE95070` resolves to three) — so both operational-point rules run.
+
+**Countries publishing no dates are left alone.** Ten of the countries with line
+data carry no dated validity anywhere — Sweden, Spain, Ireland, Estonia, Greece,
+Finland, Romania, Croatia, Austria and Luxembourg; Liechtenstein publishes no
+sections of line at all. Any "keep only the newest"
+filter would delete every one of their rows, so a resource with no validity at
+all is always kept. Verified end to end: FRA `830000-1` returns 67,281 + 2,596
+rows in 20 s, DEU `4000` 8,281 + 4,404 in 33 s, and a Spanish line 1,272 + 174
+in 0.8 s.
+
+**Retired parameters are excluded**, consistently with the other tools. Of the 87
+properties flagged `era:usedInRCCCalculations`, 4 are `owl:deprecated`, leaving 79
+that carry both a RINF index and a label — offered in the picker as **110 RINF
+numbers**, since three numbers are implemented by two properties each. Dropping
+the retired four costs almost nothing: `loadCapability`, `maximumTemperature` and
+`minimumTemperature` are each `dcterms:isReplacedBy` a live, still-flagged
+property under the same RINF number, so `1.1.1.1.2.4` and `1.1.1.1.2.6` keep
+returning data. Only `energySupplySystemTSICompliant` (`1.1.1.2.2.1.2.1`) has no
+successor — it is genuinely withdrawn.
+
+The full query set, with the measurements behind each correction, is in
+[`interop-europe/rcc/README.md`](interop-europe/rcc/README.md).

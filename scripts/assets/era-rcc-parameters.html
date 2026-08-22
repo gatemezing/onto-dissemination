@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERA RCC Parameters</title>
+<style>
+  :root{
+    --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
+    --blue:#5b9bd5; --green:#7ac36a; --teal:#5fd0ae; --orange:#f0a83a;
+    --paper:#eef2ff; --panel:rgba(16,22,38,.92); --line:rgba(255,255,255,.14);
+    --muted:#aebbdd; --danger:#f26d6d; --dim:#7d8bb0;
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--bg1);}
+  body{margin:0;padding:0;min-height:100vh;background-color:var(--bg1);
+    background-image:radial-gradient(1400px 900px at 50% 0%, var(--bg2), var(--bg1) 70%);
+    background-repeat:no-repeat;
+    font-family:"Segoe UI",Arial,sans-serif;color:var(--paper);}
+  #app{max-width:1120px;margin:0 auto;padding:28px 20px 70px;}
+
+  header h1{font-size:23px;margin:0 0 6px;font-weight:700;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  header p{margin:0 0 22px;color:var(--muted);font-size:13.5px;line-height:1.55;max-width:78ch;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);margin-bottom:16px;}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+    margin:0 0 14px;font-weight:700;display:flex;align-items:center;gap:9px;}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;flex:none;
+    border-radius:50%;background:rgba(91,155,213,.18);border:1px solid rgba(91,155,213,.5);
+    color:var(--blue);font-size:11px;font-weight:700;}
+
+  label.fieldLabel{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);margin-bottom:7px;}
+  input[type=text],input[type=number],select{width:100%;background:rgba(255,255,255,.06);
+    border:1px solid var(--line);color:var(--paper);padding:10px 12px;border-radius:8px;font-size:13.5px;
+    font-family:inherit;}
+  input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+  select option{background:#141d33;color:var(--paper);}
+  input:disabled,select:disabled{opacity:.45;cursor:not-allowed;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+  .hint{font-size:11.5px;color:var(--dim);margin-top:6px;min-height:15px;}
+  .hint.on{color:var(--teal);}
+
+  .chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .chk input{flex:none;margin:0;}
+  .opts{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;}
+
+  button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
+    padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  button.btn:hover:not(:disabled){background:linear-gradient(180deg,#33456b,#22304d);}
+  button.btn:disabled{opacity:.45;cursor:not-allowed;}
+  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);width:100%;padding:13px;font-size:14.5px;margin-top:16px;}
+  button.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#4a89e0,#3568b3);}
+  button.btn.csv{background:linear-gradient(180deg,#2f6b52,#1f4a38);}
+  button.btn.csv:hover:not(:disabled){background:linear-gradient(180deg,#37805f,#255a43);}
+  button.btn.xls{background:linear-gradient(180deg,#1f6b4a,#12503a);}
+  button.btn.xls:hover:not(:disabled){background:linear-gradient(180deg,#268057,#186445);}
+  button:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+
+  #statusArea{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-top:14px;min-height:20px;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);
+    animation:spin .8s linear infinite;flex:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #statusArea.error{color:var(--danger);} #statusArea.success{color:var(--green);} #statusArea.warn{color:var(--orange);}
+
+  #resultPanel[hidden]{display:none;}
+  .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:10px;margin-bottom:14px;}
+  .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+  .statTile .n{font-size:20px;font-weight:700;}
+  .statTile .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+
+  .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .tab{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
+    padding:7px 14px;border-radius:20px;font-size:12.5px;cursor:pointer;font-family:inherit;}
+  .tab.on{background:rgba(91,155,213,.16);border-color:rgba(91,155,213,.5);color:var(--paper);}
+  .tab .c{color:var(--dim);font-variant-numeric:tabular-nums;}
+
+  .tableWrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;max-height:460px;overflow-y:auto;}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  th,td{text-align:left;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap;}
+  th{position:sticky;top:0;background:#141d33;font-size:11px;text-transform:uppercase;
+    letter-spacing:.4px;color:var(--muted);z-index:2;}
+  td.pos{font-family:"SF Mono",Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--teal);}
+  td.ix{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--dim);}
+  td.val{white-space:normal;max-width:360px;}
+  td.nm{max-width:280px;overflow:hidden;text-overflow:ellipsis;}
+  tbody tr:hover{background:rgba(255,255,255,.035);}
+  .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
+  .resultActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+  .resultActions .grow{flex:1;}
+
+  details{margin-top:14px;}
+  summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
+  summary:hover{color:var(--paper);}
+  pre.code{background:#050810;border:1px solid var(--line);border-radius:8px;padding:12px;
+    font-size:11px;font-family:"SF Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word;
+    max-height:320px;overflow:auto;margin:10px 0 0;color:#b9c6ea;}
+
+  footer{font-size:11.5px;color:var(--muted);margin-top:24px;line-height:1.65;}
+  footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11px;}
+  footer p{margin:0 0 9px;}
+  a{color:var(--blue);}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+
+  @media (max-width:640px){
+    #app{padding:20px 13px 44px;}
+    .grid2,.grid3{grid-template-columns:1fr;}
+    .statGrid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>ERA RCC Parameters</h1>
+    <p>Route-compatibility parameters for one national line, positioned by kilometre post. Pick a country, then a
+       line published by that country, and the tool returns the RINF parameters flagged
+       <code>era:usedInRCCCalculations</code> — those along the line (index&nbsp;1.1) and those at its operational
+       points (index&nbsp;1.2). Only the latest validity window is used, and retired parameters are excluded.
+       Export to CSV or Excel. Queries <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a> live from your browser.</p>
+  </header>
+
+  <div class="panel">
+    <h2><span class="step">1</span> Country and line</h2>
+    <div class="grid2">
+      <div>
+        <label class="fieldLabel" for="countrySel">Country</label>
+        <select id="countrySel"></select>
+        <div class="hint" id="countryHint"></div>
+      </div>
+      <div>
+        <label class="fieldLabel" for="lineInput">National line</label>
+        <input id="lineInput" list="lineList" type="text" spellcheck="false" autocomplete="off"
+               placeholder="Choose a country first…" disabled>
+        <datalist id="lineList"></datalist>
+        <div class="hint" id="lineHint"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="step">2</span> Narrow it down <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--dim)">— optional</span></h2>
+    <div class="grid3">
+      <div>
+        <label class="fieldLabel" for="kmFrom">From kilometre</label>
+        <input id="kmFrom" type="number" step="0.1" placeholder="whole line">
+      </div>
+      <div>
+        <label class="fieldLabel" for="kmTo">To kilometre</label>
+        <input id="kmTo" type="number" step="0.1" placeholder="whole line">
+      </div>
+      <div>
+        <label class="fieldLabel" for="paramSel">Parameter</label>
+        <select id="paramSel"><option value="">All RCC parameters</option></select>
+      </div>
+    </div>
+    <div class="opts">
+      <label class="chk"><input type="checkbox" id="wantTrack" checked> Along the line — sections and their tracks (1.1…)</label>
+      <label class="chk"><input type="checkbox" id="wantOp" checked> At operational points (1.2…)</label>
+      <label class="chk"><input type="checkbox" id="wantSidings" checked> Include sidings</label>
+    </div>
+    <button class="btn primary" id="runBtn" disabled>Get RCC parameters</button>
+    <div id="statusArea"></div>
+  </div>
+
+  <div class="panel" id="resultPanel" hidden>
+    <h2><span class="step">3</span> Results</h2>
+    <div class="statGrid">
+      <div class="statTile"><div class="n" id="statRows">–</div><div class="l">Rows</div></div>
+      <div class="statTile"><div class="n" id="statPlaces">–</div><div class="l" id="statPlacesLabel">Sections / points</div></div>
+      <div class="statTile"><div class="n" id="statParams">–</div><div class="l">Parameters</div></div>
+      <div class="statTile"><div class="n" id="statTime">–</div><div class="l">Query time</div></div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="tableWrap"><table id="resultTable"><thead></thead><tbody></tbody></table></div>
+    <div class="moreNote" id="moreNote"></div>
+    <div class="moreNote" id="validityNote"></div>
+    <div class="resultActions">
+      <button class="btn csv" id="csvBtn">Download CSV</button>
+      <button class="btn xls" id="xlsBtn">Download Excel (.xlsx)</button>
+      <span class="grow"></span>
+      <button class="btn" id="linkBtn" title="Copy a link that reopens this exact query">Copy shareable link</button>
+    </div>
+    <details>
+      <summary>Show the SPARQL that produced this</summary>
+      <pre class="code" id="sparqlOut"></pre>
+    </details>
+  </div>
+
+  <footer>
+    <p><strong>Superseded descriptions are dropped, and the comparison is made place by place — never line by
+      line.</strong> Some managers republish the same stretch every year under a new validity window: German line
+      <code>4000</code> returns 16,615 rows unfiltered and 8,281 once each stretch keeps only its own latest window.
+      Others date a section by the day it opened: French line <code>830000-1</code> spreads 25 different beginnings
+      across its 570 sections, so a line-wide "newest date" would keep two sections and delete the rest. The newest
+      window is therefore picked per stretch of line, and at operational points per <code>era:uopid</code> and then
+      per track within the point — France repeats tracks <em>inside</em> a point, Germany repeats the whole station
+      as separate resources sharing one <code>uopid</code>, and both rules run.</p>
+    <p><strong>Countries that publish no dates are untouched.</strong> Ten of the countries offered here — Sweden,
+      Spain, Ireland, Estonia, Greece, Finland, Romania, Croatia, Austria and Luxembourg — carry no dated validity
+      at all, and Liechtenstein publishes no sections of line to date. Filtering on the newest date would delete
+      every one of their rows, so a resource with no validity is always kept.</p>
+    <p><strong>Retired parameters are excluded.</strong> 4 of the 87 properties flagged
+      <code>era:usedInRCCCalculations</code> are <code>owl:deprecated</code> and are left out, as in the other tools
+      here — three of them are replaced by a live property under the same RINF number, so only
+      <code>1.1.1.2.2.1.2.1</code> disappears entirely. Values that are concepts are resolved to their English label
+      where one exists, and a track carrying several values for one parameter has them joined with
+      &ldquo;&nbsp;|&nbsp;&rdquo;.</p>
+    <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
+      <a href="./values.html">RINF Parameter Values</a></p>
+  </footer>
+</div>
+<script>
+/* ------------------------------------------------------------------ *
+ * ERA RCC Parameters — route-compatibility parameters for one line
+ * ------------------------------------------------------------------ */
+const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
+const CPREFIX  = 'http://publications.europa.eu/resource/authority/country/';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString('en-GB');
+const localName = u => String(u).replace(/^.*[\/#]/, '') || u;
+const shortName = n => String(n).replace(/\s*\(from \d{4}-\d{2}-\d{2} until \d{4}-\d{2}-\d{2}\)\s*$/, '');
+
+/* Countries that publish sections of line, with their labels. Kept inline so
+   the first paint needs no network round trip; the line list is fetched per
+   country because the largest (Germany, 1,482 lines) is far too big to bundle. */
+const COUNTRIES = [
+  ['AUT','Austria'],['BEL','Belgium'],['BGR','Bulgaria'],['HRV','Croatia'],['CZE','Czechia'],
+  ['DNK','Denmark'],['EST','Estonia'],['FIN','Finland'],['FRA','France'],['DEU','Germany'],
+  ['GRC','Greece'],['HUN','Hungary'],['IRL','Ireland'],['ITA','Italy'],['LVA','Latvia'],
+  ['LTU','Lithuania'],['LUX','Luxembourg'],['NLD','Netherlands'],['NOR','Norway'],['POL','Poland'],
+  ['PRT','Portugal'],['ROU','Romania'],['SVK','Slovakia'],['SVN','Slovenia'],['ESP','Spain'],
+  ['SWE','Sweden'],['CHE','Switzerland'],
+];
+/* No dated validity anywhere in these datasets — the latest-window filter must
+   never be allowed to empty them. Measured, not assumed. */
+const UNDATED = new Set(['SWE','ESP','IRL','EST','GRC','FIN','ROU','HRV','AUT','LUX']);
+
+let lines = [];        // [{line, sections, fromKm, toKm}] for the chosen country
+let params = [];       // [{index, label}] RCC parameters
+let lastRun = null;
+let activeTab = 'track';
+
+/* ------------------------------------------------------------------ *
+ * SPARQL
+ * ------------------------------------------------------------------ */
+async function sparql(query, signal){
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: {'Content-Type':'application/sparql-query', 'Accept':'application/sparql-results+json'},
+    body: query, signal,
+  });
+  if(!res.ok){
+    const body = await res.text().catch(() => '');
+    throw new Error('HTTP ' + res.status + (body ? ' — ' + body.slice(0, 200) : ''));
+  }
+  return (await res.json()).results.bindings;
+}
+
+const PREFIXES = [
+  'PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>',
+  'PREFIX era:  <http://data.europa.eu/949/>',
+  'PREFIX owl:  <http://www.w3.org/2002/07/owl#>',
+  'PREFIX time: <http://www.w3.org/2006/time#>',
+  'PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>',
+  'PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>',
+  'PREFIX skos: <http://www.w3.org/2004/02/skos/core#>',
+].join('\n');
+
+/* Line IDs come from the data and are echoed into a query, so they are
+   restricted to what a line identifier can actually contain. */
+function safeLine(s){
+  if(!/^[A-Za-z0-9 ._\/+()-]{1,60}$/.test(s)) throw new Error('That line identifier contains characters this tool will not put in a query.');
+  return s;
+}
+function safeCountry(c){
+  if(!/^[A-Z]{3}$/.test(c)) throw new Error('Bad country code.');
+  return c;
+}
+
+function linesQuery(cc){
+  return `${PREFIXES}
+SELECT ?line (COUNT(DISTINCT ?sol) AS ?sections) (MIN(?kp) AS ?fromKm) (MAX(?kp) AS ?toKm)
+WHERE {
+  ?sol a era:SectionOfLine ; era:inCountry eu:${safeCountry(cc)} ; era:nationalLine/era:lineId ?line .
+  OPTIONAL { ?sol era:netReference/era:startsAt/era:hasLrsCoordinate/era:kmPost/era:kilometer ?kp }
+}
+GROUP BY ?line ORDER BY ?line`;
+}
+
+function paramsQuery(){
+  return `${PREFIXES}
+SELECT DISTINCT ?rinfIndex ?parameterLabel WHERE {
+  ?p era:usedInRCCCalculations "true"^^xsd:boolean ; era:rinfIndex ?rinfIndex ; rdfs:label ?parameterLabel .
+  FILTER(LANG(?parameterLabel) = "" || LANGMATCHES(LANG(?parameterLabel), "en"))
+  FILTER NOT EXISTS { ?p owl:deprecated true }
+} ORDER BY ?rinfIndex`;
+}
+
+/* The RCC parameter set, resolved in a subquery so the predicate is bound
+   before the data is touched — an unbound ?parameter scan is what made the
+   original Data Stories query take 25 s. Retired parameters are excluded. */
+function paramBlock(prefix, only){
+  return `  { SELECT DISTINCT ?parameter ?rinfIndex ?parameterLabel WHERE {
+      ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ;
+                 era:rinfIndex ?rinfIndex ; rdfs:label ?parameterLabel .
+      FILTER(LANG(?parameterLabel) = "" || LANGMATCHES(LANG(?parameterLabel), "en"))
+      FILTER(STRSTARTS(?rinfIndex, "${prefix}"))
+      ${only ? `FILTER(?rinfIndex = "${only}")` : ''}
+      FILTER NOT EXISTS { ?parameter owl:deprecated true }
+  } }`;
+}
+function valueBlock(){
+  return `  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "en") }
+  OPTIONAL { ?value0 rdfs:label ?lb }
+  BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)`;
+}
+function kmFilter(varName){
+  const a = $('kmFrom').value.trim(), b = $('kmTo').value.trim();
+  const out = [];
+  if(a !== '') out.push(`FILTER(?${varName} >= ${Number(a)})`);
+  if(b !== '') out.push(`FILTER(?${varName} <= ${Number(b)})`);
+  return out.length ? '  ' + out.join('\n  ') : '';
+}
+
+/* ---- along the line: sections and their tracks, RINF 1.1… ---- */
+function trackQuery(cc, line, only){
+  const L = safeLine(line), C = safeCountry(cc);
+  return `${PREFIXES}
+SELECT ?sol ?startKp ?startOffset ?startPosition ?endPosition ?trackName ?rinfIndex ?parameterLabel
+       (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
+WHERE {
+${paramBlock('1.1', only)}
+  ?sol a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" ;
+       era:netReference/era:startsAt/era:hasLrsCoordinate
+         [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] ;
+       era:netReference/era:endsAt/era:hasLrsCoordinate
+         [ era:kmPost/era:kilometer ?endKp   ; era:offsetFromKilometricPost ?endOffset ] .
+${kmFilter('startKp')}
+  BIND(CONCAT(STR(?startKp), "+", STR(?startOffset)) AS ?startPosition)
+  BIND(CONCAT(STR(?endKp),   "+", STR(?endOffset))   AS ?endPosition)
+  # Latest validity window per stretch of line, not per line. Germany republishes
+  # the same stretch once a year, so unfiltered it comes back twice. France gives
+  # each section its own commissioning date, so a line-wide maximum would throw
+  # away every section except the handful opened most recently.
+  OPTIONAL { ?sol era:validity/time:hasBeginning/time:inXSDDate ?b }
+  OPTIONAL { { SELECT ?startPosition ?endPosition (MAX(?bb) AS ?latest) WHERE {
+      ?s2 a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" ;
+          era:netReference/era:startsAt/era:hasLrsCoordinate
+            [ era:kmPost/era:kilometer ?sk2 ; era:offsetFromKilometricPost ?so2 ] ;
+          era:netReference/era:endsAt/era:hasLrsCoordinate
+            [ era:kmPost/era:kilometer ?ek2 ; era:offsetFromKilometricPost ?eo2 ] ;
+          era:validity/time:hasBeginning/time:inXSDDate ?bb .
+      BIND(CONCAT(STR(?sk2), "+", STR(?so2)) AS ?startPosition)
+      BIND(CONCAT(STR(?ek2), "+", STR(?eo2)) AS ?endPosition)
+  } GROUP BY ?startPosition ?endPosition } }
+  FILTER(!BOUND(?b) || !BOUND(?latest) || ?b = ?latest)
+  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; ?parameter ?value0 .
+${valueBlock()}
+}
+GROUP BY ?sol ?startKp ?startOffset ?startPosition ?endPosition ?trackName ?rinfIndex ?parameterLabel
+ORDER BY ?startKp ?startOffset ?trackName ?rinfIndex`;
+}
+
+/* ---- at operational points, RINF 1.2… ---- */
+function opQuery(cc, line, only, sidings){
+  const L = safeLine(line), C = safeCountry(cc);
+  return `${PREFIXES}
+SELECT ?op ?startKp ?startOffset ?opid ?opName ?railwayLocation ?trackName ?rinfIndex ?parameterLabel
+       (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
+WHERE {
+${paramBlock('1.2', only)}
+  ?op a era:OperationalPoint ; era:inCountry eu:${C} ; era:opName ?opName ; era:uopid ?opid ;
+      era:netReference/era:hasLrsCoordinate
+        [ era:kmPost [ era:kilometer ?startKp ; era:hasLRS/era:lineId "${L}" ] ;
+          era:offsetFromKilometricPost ?startOffset ] .
+${kmFilter('startKp')}
+  BIND(CONCAT(STR(?startKp), "+", STR(?startOffset)) AS ?railwayLocation)
+  ?track era:isPartOf ?op ; rdfs:label ?trackName ; ?parameter ?value0 .
+  VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }
+  ?track a ?type .
+  # Two duplications, two rules. Germany repeats the whole station as separate
+  # OP resources sharing a uopid, each internally single-window; France repeats
+  # tracks inside one point. A per-point rule alone misses Germany, a line-wide
+  # maximum alone cuts France to a single row.
+  OPTIONAL { ?op era:validity/time:hasBeginning/time:inXSDDate ?ob }
+  OPTIONAL { { SELECT ?opid (MAX(?ob2) AS ?opLatest) WHERE {
+      ?opU a era:OperationalPoint ; era:inCountry eu:${C} ; era:uopid ?opid ;
+           era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "${L}" ;
+           era:validity/time:hasBeginning/time:inXSDDate ?ob2 } GROUP BY ?opid } }
+  FILTER(!BOUND(?ob) || !BOUND(?opLatest) || ?ob = ?opLatest)
+  OPTIONAL { ?track era:validity/time:hasBeginning/time:inXSDDate ?tb }
+  OPTIONAL { { SELECT ?op (MAX(?bb) AS ?latest) WHERE {
+      ?op a era:OperationalPoint ; era:inCountry eu:${C} ;
+          era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "${L}" .
+      ?t2 era:isPartOf ?op ; era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }
+  FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)
+${valueBlock()}
+}
+GROUP BY ?op ?startKp ?startOffset ?opid ?opName ?railwayLocation ?trackName ?rinfIndex ?parameterLabel
+ORDER BY ?startKp ?startOffset ?opName ?trackName ?rinfIndex`;
+}
+
+/* ------------------------------------------------------------------ *
+ * Country → line cascade
+ * ------------------------------------------------------------------ */
+$('countrySel').innerHTML = '<option value="">Choose a country…</option>' +
+  COUNTRIES.map(([c, l]) => `<option value="${c}">${esc(l)}</option>`).join('');
+
+function setStatus(msg, kind){
+  const el = $('statusArea');
+  el.className = kind || '';
+  if(kind === 'loading') el.innerHTML = '<span class="spinner"></span><span>' + esc(msg) + '</span>';
+  else el.textContent = msg;
+}
+
+async function loadLines(cc){
+  lines = [];
+  $('lineInput').value = '';
+  $('lineInput').disabled = true;
+  $('lineList').innerHTML = '';
+  $('lineHint').textContent = '';
+  if(!cc){ $('lineInput').placeholder = 'Choose a country first…'; updateRun(); return; }
+  const name = (COUNTRIES.find(x => x[0] === cc) || [,cc])[1];
+  $('countryHint').className = 'hint';
+  $('countryHint').textContent = 'Loading lines for ' + name + '…';
+  try{
+    const rows = await sparql(linesQuery(cc));
+    lines = rows.map(b => ({
+      line: b.line.value,
+      sections: +b.sections.value,
+      fromKm: b.fromKm ? Math.round(+b.fromKm.value) : null,
+      toKm:   b.toKm   ? Math.round(+b.toKm.value)   : null,
+    }));
+    $('lineList').innerHTML = lines.map(l => {
+      const span = (l.fromKm !== null && l.toKm !== null) ? `km ${l.fromKm}–${l.toKm}` : '';
+      return `<option value="${esc(l.line)}">${l.sections} section${l.sections === 1 ? '' : 's'}${span ? ' · ' + span : ''}</option>`;
+    }).join('');
+    $('lineInput').disabled = false;
+    $('lineInput').placeholder = `Type or pick one of ${fmt(lines.length)} lines…`;
+    $('countryHint').className = 'hint on';
+    $('countryHint').textContent = fmt(lines.length) + ' national lines' +
+      (UNDATED.has(cc) ? ' · this country publishes no validity dates, so nothing is filtered out' : '');
+  } catch(err){
+    $('countryHint').textContent = 'Could not load lines: ' + err.message;
+  }
+  updateRun();
+}
+
+function currentLine(){
+  const v = $('lineInput').value.trim();
+  return lines.find(l => l.line === v) || null;
+}
+function updateRun(){
+  const l = currentLine();
+  const any = $('wantTrack').checked || $('wantOp').checked;
+  $('runBtn').disabled = !l || !any;
+  if($('lineInput').value.trim() && !l){
+    $('lineHint').className = 'hint';
+    $('lineHint').textContent = 'No such line in this country — pick one from the list.';
+  } else if(l){
+    $('lineHint').className = 'hint on';
+    $('lineHint').textContent = `${l.sections} section${l.sections === 1 ? '' : 's'}` +
+      (l.fromKm !== null ? ` · km ${l.fromKm}–${l.toKm}` : '');
+  } else {
+    $('lineHint').textContent = '';
+  }
+}
+
+$('countrySel').addEventListener('change', e => { loadLines(e.target.value); $('resultPanel').hidden = true; });
+$('lineInput').addEventListener('input', () => { updateRun(); $('resultPanel').hidden = true; });
+['wantTrack','wantOp','wantSidings'].forEach(id => $(id).addEventListener('change', () => { updateRun(); $('resultPanel').hidden = true; }));
+
+/* parameter picker */
+(async function loadParams(){
+  try{
+    const rows = await sparql(paramsQuery());
+    /* One entry per RINF number. Three of them — 1.1.1.2.3.4, 1.1.1.3.4.2.1 and
+       1.2.1.1.3.2.1 — are implemented by two ontology properties with different
+       names, and selecting the number returns both, so both names are shown. */
+    const byIndex = new Map();
+    rows.forEach(b => {
+      const i = b.rinfIndex.value;
+      if(!byIndex.has(i)) byIndex.set(i, []);
+      byIndex.get(i).push(b.parameterLabel.value);
+    });
+    params = [...byIndex].map(([index, labels]) => ({index, label: labels.join(' / ')}));
+    $('paramSel').innerHTML = '<option value="">All RCC parameters (' + params.length + ')</option>' +
+      params.map(p => `<option value="${esc(p.index)}">${esc(p.index)} — ${esc(p.label)}</option>`).join('');
+  } catch { /* the picker is a convenience; the tool works without it */ }
+})();
+
+/* ------------------------------------------------------------------ *
+ * Running it
+ * ------------------------------------------------------------------ */
+const TABLE_LIMIT = 300;
+
+async function run(){
+  const l = currentLine();
+  if(!l) return;
+  const cc = $('countrySel').value;
+  const only = $('paramSel').value || null;
+  const sidings = $('wantSidings').checked;
+  const wantTrack = $('wantTrack').checked, wantOp = $('wantOp').checked;
+
+  let qTrack = null, qOp = null;
+  try{
+    if(wantTrack) qTrack = trackQuery(cc, l.line, only);
+    if(wantOp)    qOp    = opQuery(cc, l.line, only, sidings);
+  } catch(err){ setStatus(err.message, 'error'); return; }
+
+  $('runBtn').disabled = true;
+  $('resultPanel').hidden = true;
+  setStatus('Querying ' + new URL(ENDPOINT).host + ' — a whole line can take up to half a minute…', 'loading');
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 180000);
+  const started = performance.now();
+  try{
+    const [tr, op] = await Promise.all([
+      qTrack ? sparql(qTrack, ctrl.signal) : Promise.resolve(null),
+      qOp    ? sparql(qOp,    ctrl.signal) : Promise.resolve(null),
+    ]);
+    clearTimeout(timer);
+    const elapsed = (performance.now() - started) / 1000;
+
+    const track = (tr || []).map(b => ({
+      sol: b.sol.value, start: b.startPosition.value, end: b.endPosition.value,
+      trackName: b.trackName.value, index: b.rinfIndex.value,
+      param: b.parameterLabel.value, value: b.value.value,
+    }));
+    const ops = (op || []).map(b => ({
+      op: b.op.value, opid: b.opid.value, opName: b.opName.value,
+      location: b.railwayLocation.value, trackName: b.trackName.value,
+      index: b.rinfIndex.value, param: b.parameterLabel.value, value: b.value.value,
+    }));
+
+    lastRun = {
+      country: cc, countryLabel: (COUNTRIES.find(x => x[0] === cc) || [,cc])[1],
+      line: l.line, sections: l.sections,
+      kmFrom: $('kmFrom').value.trim(), kmTo: $('kmTo').value.trim(),
+      only, sidings, track, ops, elapsed,
+      query: [qTrack && '/* === along the line (RINF 1.1…) === */\n' + qTrack,
+              qOp && '/* === at operational points (RINF 1.2…) === */\n' + qOp]
+             .filter(Boolean).join('\n\n'),
+      fetched: new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z',
+    };
+    activeTab = track.length || !ops.length ? 'track' : 'op';
+    if(!wantTrack) activeTab = 'op';
+    render();
+
+    const total = track.length + ops.length;
+    if(!total){
+      setStatus('No RCC parameters found for line ' + l.line + ' in ' + lastRun.countryLabel +
+        (only ? ' for parameter ' + only : '') +
+        ($('kmFrom').value || $('kmTo').value ? ' within that kilometre range' : '') + '.', 'warn');
+    } else {
+      setStatus('Done — ' + fmt(total) + ' rows in ' + elapsed.toFixed(1) + 's.', 'success');
+    }
+  } catch(err){
+    clearTimeout(timer);
+    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Narrow the kilometre range, or pick a single parameter.', 'error');
+    else setStatus('Query failed: ' + err.message, 'error');
+  } finally {
+    $('runBtn').disabled = false;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Rendering
+ * ------------------------------------------------------------------ */
+function rows(){ return activeTab === 'track' ? lastRun.track : lastRun.ops; }
+
+function render(){
+  const r = lastRun;
+  const rs = rows();
+  const places = activeTab === 'track'
+    ? new Set(r.track.map(x => x.sol)).size
+    : new Set(r.ops.map(x => x.opid)).size;
+
+  $('statRows').textContent   = fmt(rs.length);
+  $('statPlaces').textContent = fmt(places);
+  $('statPlacesLabel').textContent = activeTab === 'track' ? 'Sections of line' : 'Operational points';
+  $('statParams').textContent = fmt(new Set(rs.map(x => x.index)).size);
+  $('statTime').textContent   = r.elapsed.toFixed(1) + 's';
+
+  $('tabs').innerHTML =
+    (r.track.length || $('wantTrack').checked
+      ? `<button class="tab${activeTab === 'track' ? ' on' : ''}" data-t="track">Along the line <span class="c">${fmt(r.track.length)}</span></button>` : '') +
+    (r.ops.length || $('wantOp').checked
+      ? `<button class="tab${activeTab === 'op' ? ' on' : ''}" data-t="op">At operational points <span class="c">${fmt(r.ops.length)}</span></button>` : '');
+
+  const head = activeTab === 'track'
+    ? ['From', 'To', 'Track', 'RINF', 'Parameter', 'Value']
+    : ['At km', 'Operational point', 'UOPID', 'Track', 'RINF', 'Parameter', 'Value'];
+  $('resultTable').querySelector('thead').innerHTML =
+    '<tr>' + head.map(h => `<th>${esc(h)}</th>`).join('') + '</tr>';
+
+  $('resultTable').querySelector('tbody').innerHTML = rs.slice(0, TABLE_LIMIT).map(x => activeTab === 'track'
+    ? `<tr><td class="pos">${esc(x.start)}</td><td class="pos">${esc(x.end)}</td>` +
+      `<td class="nm" title="${esc(x.trackName)}">${esc(shortName(x.trackName))}</td>` +
+      `<td class="ix">${esc(x.index)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
+      `<td class="val">${esc(x.value)}</td></tr>`
+    : `<tr><td class="pos">${esc(x.location)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
+      `<td class="ix">${esc(x.opid)}</td><td class="nm" title="${esc(x.trackName)}">${esc(shortName(x.trackName))}</td>` +
+      `<td class="ix">${esc(x.index)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
+      `<td class="val">${esc(x.value)}</td></tr>`
+  ).join('') || `<tr><td colspan="${head.length}" style="padding:22px;text-align:center;color:var(--muted)">Nothing in this view.</td></tr>`;
+
+  $('moreNote').textContent = rs.length > TABLE_LIMIT
+    ? `Showing the first ${TABLE_LIMIT} of ${fmt(rs.length)} rows — the download has all of them.`
+    : '';
+  const windows = [...new Set(rs.map(x => (/\(from (\d{4}-\d{2}-\d{2}) until/.exec(x.trackName) || [])[1]).filter(Boolean))].sort();
+  $('validityNote').textContent = UNDATED.has(r.country)
+    ? `${r.countryLabel} publishes no validity dates, so no rows were filtered out on that basis.`
+    : 'Superseded descriptions are excluded — each place keeps only its newest validity window' +
+      (windows.length === 1 ? `, here ${windows[0]}. ` : windows.length > 1
+        ? `, and these run from ${windows[0]} to ${windows[windows.length - 1]}. ` : '. ') +
+      'Track names carry their window in full in the download.';
+
+  $('sparqlOut').textContent = r.query;
+  $('csvBtn').disabled = $('xlsBtn').disabled = !(r.track.length + r.ops.length);
+  $('resultPanel').hidden = false;
+}
+
+$('tabs').addEventListener('click', e => {
+  const t = e.target.closest('.tab');
+  if(t){ activeTab = t.dataset.t; render(); }
+});
+$('runBtn').addEventListener('click', run);
+$('lineInput').addEventListener('keydown', e => { if(e.key === 'Enter' && !$('runBtn').disabled) run(); });
+
+/* ------------------------------------------------------------------ *
+ * Export
+ * ------------------------------------------------------------------ */
+const TRACK_HEAD = ['Country', 'Line', 'From (km+m)', 'To (km+m)', 'Track', 'RINF index', 'Parameter', 'Value', 'Section of line'];
+const OP_HEAD    = ['Country', 'Line', 'At (km+m)', 'Operational point', 'UOPID', 'Track', 'RINF index', 'Parameter', 'Value', 'Operational point URI'];
+
+function trackTable(){
+  const r = lastRun;
+  return {head: TRACK_HEAD, body: r.track.map(x =>
+    [r.countryLabel, r.line, x.start, x.end, x.trackName, x.index, x.param, x.value, x.sol])};
+}
+function opTable(){
+  const r = lastRun;
+  return {head: OP_HEAD, body: r.ops.map(x =>
+    [r.countryLabel, r.line, x.location, x.opName, x.opid, x.trackName, x.index, x.param, x.value, x.op])};
+}
+function fileBase(){
+  const r = lastRun;
+  const km = (r.kmFrom || r.kmTo) ? `_km${r.kmFrom || '0'}-${r.kmTo || 'end'}` : '';
+  return ('RINF_RCC_' + r.country + '_' + r.line + km + '_' + r.fetched.slice(0, 10))
+    .replace(/[^A-Za-z0-9._-]/g, '_');
+}
+function download(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function csvCell(v){
+  const s = v === null || v === undefined ? '' : String(v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+/* CSV covers whichever view is on screen, so what you see is what you get. */
+$('csvBtn').addEventListener('click', () => {
+  if(!lastRun) return;
+  const t = activeTab === 'track' ? trackTable() : opTable();
+  const text = '﻿' + [t.head, ...t.body].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+  download(new Blob([text], {type:'text/csv;charset=utf-8'}),
+           fileBase() + (activeTab === 'track' ? '_along-line' : '_operational-points') + '.csv');
+});
+
+$('xlsBtn').addEventListener('click', () => {
+  if(!lastRun) return;
+  const r = lastRun;
+  const specs = [];
+  if(r.track.length){ const t = trackTable(); specs.push({name:'Along the line', rows:[t.head, ...t.body], opts:{autoFilter:true, maxWidth:46}}); }
+  if(r.ops.length){   const o = opTable();    specs.push({name:'Operational points', rows:[o.head, ...o.body], opts:{autoFilter:true, maxWidth:46}}); }
+  const about = [
+    ['ERA RCC Parameters — extraction record', ''],
+    [],
+    ['Country', r.countryLabel + ' (' + r.country + ')'],
+    ['National line', r.line],
+    ['Sections on this line', r.sections],
+    ['Kilometre range', (r.kmFrom || r.kmTo) ? `${r.kmFrom || 'start'} to ${r.kmTo || 'end'}` : 'whole line'],
+    ['Parameter filter', r.only || 'all RCC parameters'],
+    ['Sidings included', r.sidings ? 'yes' : 'no'],
+    [],
+    ['Rows — along the line (RINF 1.1…)', r.track.length],
+    ['Rows — at operational points (RINF 1.2…)', r.ops.length],
+    ['Sections of line', new Set(r.track.map(x => x.sol)).size],
+    ['Operational points', new Set(r.ops.map(x => x.opid)).size],
+    [],
+    ['SPARQL endpoint', ENDPOINT],
+    ['Extracted at (UTC)', r.fetched],
+    ['Query time', r.elapsed.toFixed(2) + ' s'],
+    [],
+    ['Method — validity', UNDATED.has(r.country)
+      ? r.countryLabel + ' publishes no dated validity, so no rows were filtered out on that basis.'
+      : 'Only the latest validity window is included, compared place by place rather than line by line.'],
+    ['', 'Along the line, the newest window is chosen per stretch: some managers republish the same stretch'],
+    ['', 'every year, while others date each section by the day it opened, so a line-wide maximum would'],
+    ['', 'delete real sections. At operational points the rule runs twice — newest resource per era:uopid,'],
+    ['', 'then that point\'s newest track window. France repeats tracks inside a point; Germany repeats the'],
+    ['', 'whole station as separate resources sharing one uopid.'],
+    ['', 'A resource with no validity at all is always kept.'],
+    [],
+    ['Method — parameters', 'Properties flagged era:usedInRCCCalculations. Retired (owl:deprecated) parameters are excluded.'],
+    ['', 'Concept values are resolved to their English label where one exists; multiple values are joined with " | ".'],
+    [],
+    ['SPARQL', ''],
+  ];
+  r.query.split('\n').forEach(line => about.push(['', line]));
+  specs.push({name:'About', rows:about, opts:{headerRows:1, boldFirstCol:true, maxWidth:110}});
+  download(buildXlsx(specs), fileBase() + '.xlsx');
+});
+
+/* ------------------------------------------------------------------ *
+ * Shareable link
+ * ------------------------------------------------------------------ */
+$('linkBtn').addEventListener('click', async () => {
+  const p = new URLSearchParams();
+  p.set('c', $('countrySel').value);
+  p.set('l', $('lineInput').value.trim());
+  if($('kmFrom').value.trim()) p.set('from', $('kmFrom').value.trim());
+  if($('kmTo').value.trim())   p.set('to', $('kmTo').value.trim());
+  if($('paramSel').value)      p.set('p', $('paramSel').value);
+  if(!$('wantSidings').checked) p.set('sid', '0');
+  const url = location.origin + location.pathname + '#' + p.toString();
+  const btn = $('linkBtn');
+  try{ await navigator.clipboard.writeText(url); btn.textContent = 'Link copied'; }
+  catch { location.hash = '#' + p.toString(); btn.textContent = 'Link is in the address bar'; }
+  setTimeout(() => { btn.textContent = 'Copy shareable link'; }, 2200);
+});
+
+async function applyHash(){
+  const p = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const c = p.get('c');
+  if(!c || !COUNTRIES.some(x => x[0] === c)) return;
+  $('countrySel').value = c;
+  await loadLines(c);
+  if(p.get('l')) $('lineInput').value = p.get('l');
+  if(p.get('from')) $('kmFrom').value = p.get('from');
+  if(p.get('to'))   $('kmTo').value = p.get('to');
+  if(p.get('p'))    $('paramSel').value = p.get('p');
+  if(p.get('sid') === '0') $('wantSidings').checked = false;
+  updateRun();
+}
+applyHash();
+updateRun();
+
+/* Pasting a shared link while already on the page is a same-document
+   navigation, so the form has to be reapplied by hand. */
+window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; applyHash(); });
+
+/* ------------------------------------------------------------------ *
+ * XLSX writer — store-only ZIP, no dependencies. Same one the RINF
+ * Parameter Values explorer uses, so both tools produce identical books.
+ * ------------------------------------------------------------------ */
+let CRC_TABLE = null;
+function crc32(bytes){
+  if(!CRC_TABLE){
+    CRC_TABLE = new Uint32Array(256);
+    for(let i = 0; i < 256; i++){
+      let c = i;
+      for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      CRC_TABLE[i] = c >>> 0;
+    }
+  }
+  let c = 0xFFFFFFFF;
+  for(let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function zip(files){
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  const now = new Date();
+  const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+  const dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+  for(const f of files){
+    const name = enc.encode(f.name);
+    const data = enc.encode(f.data);
+    const crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(8, 0, true); lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+    lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true);
+    ch.setUint16(28, name.length, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + data.length;
+  }
+  const cdSize = central.reduce((s, a) => s + a.length, 0);
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true);
+  eo.setUint16(8, files.length, true); eo.setUint16(10, files.length, true);
+  eo.setUint32(12, cdSize, true); eo.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(eo.buffer)],
+                  {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+const xesc = s => String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+                           .replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+function colName(i){
+  let s = '';
+  for(i += 1; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s;
+  return s;
+}
+/* A shared-string table. The full-data sheet repeats country and station
+   names thousands of times, and this ZIP is stored uncompressed, so interning
+   them is the difference between a lean workbook and a bloated one. */
+function newStrings(){
+  const map = new Map(), list = [];
+  return {
+    list,
+    id(v){
+      let i = map.get(v);
+      if(i === undefined){ i = list.length; map.set(v, i); list.push(v); }
+      return i;
+    },
+  };
+}
+
+/* rows: array of arrays; finite numbers become numeric cells, everything
+   else becomes a shared string. headerRows get the bold style. */
+function sheetXml(rows, opts, ss){
+  opts = opts || {};
+  const headerRows = opts.headerRows === undefined ? 1 : opts.headerRows;
+  const widths = [];
+  const sample = Math.min(rows.length, 400);   // width from a sample: 50k rows need not all be measured
+  for(let ri = 0; ri < sample; ri++){
+    rows[ri].forEach((c, i) => {
+      const len = String(c === null || c === undefined ? '' : c).length;
+      widths[i] = Math.min(opts.maxWidth || 52, Math.max(widths[i] || 9, len + 2));
+    });
+  }
+  rows.forEach(r => { while(widths.length < r.length) widths.push(12); });
+  const cols = widths.length
+    ? '<cols>' + widths.map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>'
+    : '';
+  const out = [];
+  for(let ri = 0; ri < rows.length; ri++){
+    const r = rows[ri];
+    let cells = '';
+    for(let ci = 0; ci < r.length; ci++){
+      const v = r[ci];
+      const ref = colName(ci) + (ri + 1);
+      const style = ri < headerRows ? ' s="1"' : (opts.boldFirstCol && ci === 0 ? ' s="1"' : '');
+      if(typeof v === 'number' && Number.isFinite(v)){
+        cells += '<c r="' + ref + '"' + style + '><v>' + v + '</v></c>';
+      } else {
+        const str = v === null || v === undefined ? '' : String(v);
+        if(str) cells += '<c r="' + ref + '" t="s"' + style + '><v>' + ss.id(str) + '</v></c>';
+      }
+    }
+    out.push('<row r="' + (ri + 1) + '">' + cells + '</row>');
+  }
+  const nCols = widths.length || 1;
+  const freeze = headerRows > 0
+    ? '<sheetViews><sheetView workbookViewId="0"><pane ySplit="' + headerRows + '" topLeftCell="A' + (headerRows + 1) +
+      '" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
+    : '';
+  const filter = opts.autoFilter && rows.length > 1
+    ? '<autoFilter ref="A1:' + colName(nCols - 1) + rows.length + '"/>' : '';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<dimension ref="A1:' + colName(nCols - 1) + Math.max(1, rows.length) + '"/>' +
+    freeze + cols + '<sheetData>' + out.join('') + '</sheetData>' + filter + '</worksheet>';
+}
+
+/* specs: [{name, rows, opts}] — sheets are rendered here so they can all
+   share one string table. */
+function buildXlsx(specs){
+  const ss = newStrings();
+  const sheets = specs.map(sp => ({name: sp.name, xml: sheetXml(sp.rows, sp.opts, ss)}));
+  const ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>' +
+    sheets.map((s, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) +
+      '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') +
+    '</Types>';
+  const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>';
+  const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+    sheets.map((s, i) => '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') +
+    '</sheets></workbook>';
+  const wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    sheets.map((s, i) => '<Relationship Id="rId' + (i + 1) +
+      '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>').join('') +
+    '<Relationship Id="rId' + (sheets.length + 1) +
+    '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+    '<Relationship Id="rId' + (sheets.length + 2) +
+    '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>' +
+    '</Relationships>';
+  const sst = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="' + ss.list.length +
+    '" uniqueCount="' + ss.list.length + '">' +
+    ss.list.map(v => '<si><t xml:space="preserve">' + xesc(v) + '</t></si>').join('') + '</sst>';
+  const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>' +
+    '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+    '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>' +
+    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return zip([
+    {name:'[Content_Types].xml', data:ct},
+    {name:'_rels/.rels', data:rels},
+    {name:'xl/workbook.xml', data:wb},
+    {name:'xl/_rels/workbook.xml.rels', data:wbRels},
+    {name:'xl/styles.xml', data:styles},
+    {name:'xl/sharedStrings.xml', data:sst},
+    ...sheets.map((s, i) => ({name:'xl/worksheets/sheet' + (i + 1) + '.xml', data:s.xml})),
+  ]);
+}
+</script>
+</body>
+</html>
