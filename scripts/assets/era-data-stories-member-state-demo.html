@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ERA Data Stories Member State Reuse Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #eef2f6;
+      color: #182231;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: #dfe6ef;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #ffffff;
+      border-bottom: 1px solid #c8d2df;
+      box-shadow: 0 2px 8px rgba(24, 34, 49, 0.08);
+      z-index: 2;
+    }
+
+    .toolbar strong {
+      margin-right: auto;
+      font-size: 14px;
+    }
+
+    button {
+      border: 1px solid #aab7c6;
+      background: #f8fafc;
+      color: #182231;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    button.primary {
+      border-color: #0f6b9d;
+      background: #0f6b9d;
+      color: white;
+    }
+
+    button.recording {
+      border-color: #b42318;
+      background: #b42318;
+      color: white;
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      min-width: 0;
+    }
+
+    canvas {
+      width: min(100%, 1280px, calc((100vh - 94px) * 16 / 9));
+      aspect-ratio: 16 / 9;
+      background: #ffffff;
+      border: 1px solid #aab7c6;
+      box-shadow: 0 18px 40px rgba(24, 34, 49, 0.2);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #536273;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong>ERA Data Stories: Member State Reuse Demo</strong>
+    <button id="play" class="primary">Play</button>
+    <button id="restart">Restart</button>
+    <button id="record">Record WebM</button>
+    <button id="download" disabled>Download</button>
+    <span id="status" class="hint">Ready, 2:08 runtime.</span>
+  </div>
+  <main class="stage">
+    <canvas id="demo" width="1920" height="1080" aria-label="Recorded demo animation"></canvas>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("demo");
+    const ctx = canvas.getContext("2d");
+    const playButton = document.getElementById("play");
+    const restartButton = document.getElementById("restart");
+    const recordButton = document.getElementById("record");
+    const downloadButton = document.getElementById("download");
+    const statusEl = document.getElementById("status");
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const DURATION = 128;
+    const FPS = 30;
+    let startTime = null;
+    let pausedAt = 0;
+    let playing = false;
+    let recorder = null;
+    let chunks = [];
+    let downloadUrl = null;
+
+    const colors = {
+      ink: "#1f2937",
+      muted: "#667085",
+      blue: "#0f6b9d",
+      rail: "#214d80",
+      green: "#16843f",
+      amber: "#b7791f",
+      red: "#b42318",
+      line: "#c8d2df",
+      panel: "#ffffff",
+      bg: "#eef2f6",
+      dark: "#132238",
+      code: "#172033"
+    };
+
+    const scenes = [
+      {
+        start: 0,
+        end: 12,
+        title: "1. Open the reusable assessment kit",
+        caption: "The ERA Data Stories catalogue becomes a reusable Member State interoperability assessment kit: 38 SPARQL queries and 3 notebooks."
+      },
+      {
+        start: 12,
+        end: 30,
+        title: "2. Run four inventory queries",
+        caption: "Start with coverage: operational points, sections of line, line kilometres and tunnel kilometres represented in the European graph."
+      },
+      {
+        start: 30,
+        end: 43,
+        title: "3. Inspect one Member State",
+        caption: "Each Member State can run the same query over the same public graph, using the same ERA definitions."
+      },
+      {
+        start: 43,
+        end: 62,
+        title: "4. Move from coverage to completeness",
+        caption: "Completeness and investigator queries show which parameters are present, missing or ready for data-steward follow-up."
+      },
+      {
+        start: 62,
+        end: 77,
+        title: "5. Check SKOS concept-scheme discipline",
+        caption: "For era:opType, values must come from Operational Point Types, not from a similar-looking national or legacy scheme."
+      },
+      {
+        start: 77,
+        end: 88,
+        title: "6. Filter deprecated ontology properties",
+        caption: "Live SPARQL may still contain legacy triples. Deprecated properties are migration evidence, not current conformance."
+      },
+      {
+        start: 88,
+        end: 103,
+        title: "7. Run TEN-T and track-location checks",
+        caption: "Route-relevant queries expose gauge, energy system, ETCS level and baseline, and track properties with location."
+      },
+      {
+        start: 103,
+        end: 115,
+        title: "8. Open Route Compatibility Check",
+        caption: "RCC connects RINF infrastructure data and ERATV vehicle-type data, while making current topology limits explicit."
+      },
+      {
+        start: 115,
+        end: 128,
+        title: "9. Package as reusable Member State notebooks",
+        caption: "The notebooks let Member States rerun, compare, improve and contribute back to the European interoperability layer."
+      }
+    ];
+
+    function activeScene(t) {
+      return scenes.find(scene => t >= scene.start && t < scene.end) || scenes[scenes.length - 1];
+    }
+
+    function localT(t, scene) {
+      return Math.max(0, Math.min(1, (t - scene.start) / (scene.end - scene.start)));
+    }
+
+    function ease(x) {
+      return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    }
+
+    function lerp(a, b, x) {
+      return a + (b - a) * x;
+    }
+
+    function rect(x, y, w, h, r, fill, stroke = null, line = 2) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = line;
+        ctx.stroke();
+      }
+    }
+
+    function text(value, x, y, size = 28, color = colors.ink, weight = 500, maxWidth = 1000, align = "left") {
+      ctx.fillStyle = color;
+      ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
+      ctx.textAlign = align;
+      ctx.textBaseline = "top";
+      ctx.fillText(value, x, y, maxWidth);
+    }
+
+    function wrapText(value, x, y, maxWidth, lineHeight, size = 28, color = colors.ink, weight = 500) {
+      ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
+      ctx.fillStyle = color;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      const words = value.split(" ");
+      let line = "";
+      let yy = y;
+      for (const word of words) {
+        const next = line ? `${line} ${word}` : word;
+        if (ctx.measureText(next).width > maxWidth && line) {
+          ctx.fillText(line, x, yy);
+          line = word;
+          yy += lineHeight;
+        } else {
+          line = next;
+        }
+      }
+      if (line) ctx.fillText(line, x, yy);
+    }
+
+    function browserFrame(url) {
+      rect(70, 62, 1780, 900, 14, "#f8fafc", "#aab7c6", 2);
+      rect(70, 62, 1780, 66, 14, "#ffffff", "#c8d2df", 1);
+      ctx.fillStyle = "#d92d20";
+      ctx.beginPath();
+      ctx.arc(102, 95, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#f79009";
+      ctx.beginPath();
+      ctx.arc(130, 95, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#12b76a";
+      ctx.beginPath();
+      ctx.arc(158, 95, 9, 0, Math.PI * 2);
+      ctx.fill();
+      rect(205, 78, 760, 34, 8, "#eef2f6", "#d0d7e2", 1);
+      text(url, 224, 84, 20, colors.muted, 550, 700);
+    }
+
+    function drawHeader(t, scene) {
+      rect(0, 0, W, H, 0, colors.bg);
+      rect(0, 0, W, 56, 0, colors.dark);
+      text("ERA Ontology Data Stories Demo", 48, 14, 24, "#ffffff", 700, 900);
+      text("Member State reusability assessment", W - 250, 16, 20, "#d7e2ee", 500, 700, "right");
+
+      const progressX = 48;
+      const progressY = H - 28;
+      rect(progressX, progressY, W - 96, 8, 4, "#d4dce7");
+      rect(progressX, progressY, (W - 96) * Math.min(1, t / DURATION), 8, 4, colors.blue);
+
+      const label = `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")} / 2:08`;
+      rect(W - 210, 13, 162, 30, 15, "rgba(255,255,255,0.12)");
+      text(label, W - 68, 18, 18, "#e7edf5", 700, 140, "right");
+    }
+
+    function drawCaption(scene) {
+      rect(70, 940, 1780, 92, 12, "rgba(19, 34, 56, 0.93)");
+      text(scene.title, 96, 958, 26, "#ffffff", 750, 780);
+      wrapText(scene.caption, 96, 994, 1680, 28, 22, "#e7edf5", 500);
+    }
+
+    function drawFileCatalogue(t) {
+      browserFrame("https://rinf.data.era.europa.eu/data-stories");
+      text("RINF Data Stories Queries", 112, 158, 44, colors.ink, 800, 900);
+      wrapText(
+        "Extracted from the JavaScript bundles loaded by https://rinf.data.era.europa.eu/data-stories",
+        114,
+        218,
+        760,
+        30,
+        24,
+        colors.muted,
+        500
+      );
+
+      const sections = [
+        ["Visible Query Catalogue", "38 queries", colors.blue],
+        ["SPARQL Notebooks", "3 files", colors.green],
+        ["Internal Computed Story Queries", "2 queries", colors.amber]
+      ];
+      sections.forEach((row, i) => {
+        const y = 292 + i * 92;
+        rect(112, y, 780, 66, 8, "#ffffff", "#c8d2df");
+        rect(112, y, 10, 66, 4, row[2]);
+        text(row[0], 146, y + 17, 26, colors.ink, 750, 500);
+        text(row[1], 790, y + 20, 22, row[2], 750, 120, "right");
+      });
+
+      rect(1000, 250, 690, 382, 8, "#111827");
+      text("Reusable queries", 1036, 282, 26, "#ffffff", 750, 600);
+      const names = [
+        "operational-points-per-member-state.sparql",
+        "sections-of-line-per-member-state.sparql",
+        "length-of-lines-per-member-state.sparql",
+        "length-of-tunnels-per-member-state.sparql",
+        "completeness-load-capability-1-v2.sparql",
+        "track-completeness-investigator-v2.sparql"
+      ];
+      names.forEach((name, i) => text(name, 1036, 336 + i * 42, 21, "#d1e9ff", 500, 620));
+      drawPointer(870, 322 + Math.sin(t * 4) * 4);
+    }
+
+    function drawEndpointInventory(t) {
+      browserFrame("https://rinf.data.era.europa.eu/endpoint");
+      text("SPARQL endpoint", 112, 152, 40, colors.ink, 800, 600);
+      rect(112, 220, 980, 420, 8, colors.code);
+      const code = [
+        "PREFIX era: <http://data.europa.eu/949/>",
+        "PREFIX skos: <http://www.w3.org/2004/02/skos/core#>",
+        "",
+        "SELECT DISTINCT ?country",
+        "       (COUNT(DISTINCT ?OPCanonURI) AS ?count)",
+        "WHERE {",
+        "  ?OP a era:OperationalPoint .",
+        "  ?OP era:canonicalURI ?OPCanonURI .",
+        "  ?OP era:inCountry ?inCountry .",
+        "}",
+        "GROUP BY ?country"
+      ];
+      code.forEach((line, i) => text(line, 146, 248 + i * 31, 21, i === 3 ? "#a7f3d0" : "#e2e8f0", 500, 900));
+      rect(1120, 220, 590, 420, 8, "#ffffff", "#c8d2df");
+      text("Inventory result", 1150, 250, 28, colors.ink, 800, 400);
+      const rows = [
+        ["Belgium", "705", "118", "3,642 km", "94 km"],
+        ["France", "6,146", "1,622", "31,880 km", "1,208 km"],
+        ["Italy", "2,814", "1,004", "16,792 km", "612 km"],
+        ["Poland", "2,953", "1,272", "19,730 km", "104 km"]
+      ];
+      ["Country", "OP", "SoL", "Line", "Tunnel"].forEach((h, i) => text(h, 1150 + i * 104, 306, 18, colors.muted, 750, 95));
+      rows.forEach((row, r) => {
+        const y = 348 + r * 58;
+        rect(1140, y - 10, 540, 46, 6, r === 0 ? "#e6f4ff" : "#f8fafc", r === 0 ? "#0f6b9d" : "#e2e8f0", 1);
+        row.forEach((cell, c) => text(cell, 1150 + c * 104, y, 18, c === 0 ? colors.ink : colors.muted, c === 0 ? 750 : 600, 95));
+      });
+      drawPointer(1590, 362 + Math.sin(t * 4) * 5);
+    }
+
+    function drawCompleteness(t) {
+      browserFrame("https://rinf.data.era.europa.eu/data-stories#completeness");
+      text("Coverage becomes completeness", 112, 152, 40, colors.ink, 800, 900);
+      const labels = [
+        ["Tracks", 92],
+        ["Sections of line", 76],
+        ["Operational points", 84],
+        ["Tunnels", 68],
+        ["Platforms", 71],
+        ["Contact line systems", 63],
+        ["Train detection systems", 58]
+      ];
+      labels.forEach((row, i) => {
+        const x = 160 + (i % 4) * 405;
+        const y = 246 + Math.floor(i / 4) * 180;
+        rect(x, y, 330, 126, 10, "#ffffff", "#c8d2df");
+        text(row[0], x + 24, y + 22, 24, colors.ink, 750, 280);
+        rect(x + 24, y + 72, 250, 16, 8, "#e2e8f0");
+        rect(x + 24, y + 72, 250 * (row[1] / 100), 16, 8, row[1] > 80 ? colors.green : row[1] > 65 ? colors.amber : colors.red);
+        text(`${row[1]}%`, x + 284, y + 66, 22, colors.muted, 700, 60);
+      });
+      rect(190, 645, 1540, 120, 10, "#111827");
+      text("Investigator query", 224, 670, 26, "#ffffff", 800, 500);
+      text("track-completeness-investigator-v2.sparql  ->  country + property + exact percentages", 224, 715, 24, "#a7f3d0", 600, 1300);
+      drawPointer(1485, 725 + Math.sin(t * 3) * 4);
+    }
+
+    function drawSkos(t) {
+      browserFrame("https://rinf.data.era.europa.eu/era-vocabulary/era-skos");
+      text("Semantic quality: SKOS concept schemes", 112, 152, 40, colors.ink, 800, 900);
+      rect(140, 250, 730, 310, 10, "#ffffff", "#0f6b9d", 3);
+      text("Correct value", 176, 284, 30, colors.green, 800, 500);
+      text("era:opType", 176, 342, 28, colors.ink, 800, 400);
+      wrapText("http://data.europa.eu/949/concepts/op-types/OperationalPointTypes", 176, 392, 620, 34, 26, colors.blue, 700);
+      rect(1040, 250, 730, 310, 10, "#fff7ed", "#b7791f", 3);
+      text("Divergent scheme", 1076, 284, 30, colors.amber, 800, 500);
+      text("Similar code, wrong scheme", 1076, 342, 28, colors.ink, 800, 540);
+      wrapText("Looks readable to a person, but breaks cross-border comparison for applications.", 1076, 392, 590, 34, 26, colors.muted, 600);
+      rect(290, 650, 1340, 82, 10, "#e6f4ff", "#0f6b9d");
+      text("Validation rule: value exists AND belongs to the expected SKOS concept scheme", 330, 674, 28, colors.ink, 760, 1260);
+    }
+
+    function drawDeprecated(t) {
+      browserFrame("https://rinf.data.era.europa.eu/era-vocabulary/");
+      text("Deprecated properties: do not count legacy triples as current conformance", 112, 152, 34, colors.ink, 800, 1500);
+      rect(150, 235, 760, 430, 10, colors.code);
+      const query = [
+        "PREFIX owl: <http://www.w3.org/2002/07/owl#>",
+        "PREFIX era: <http://data.europa.eu/949/>",
+        "",
+        "?property owl:deprecated true .",
+        "?resource ?property ?legacyValue .",
+        "",
+        "# Use for migration/audit reports",
+        "# Exclude from current conformance counts"
+      ];
+      query.forEach((line, i) => text(line, 190, 270 + i * 40, 24, i > 5 ? "#fcd34d" : "#e2e8f0", 500, 690));
+      rect(1020, 275, 690, 150, 10, "#fff7ed", "#b7791f", 2);
+      text("Legacy data can still exist in live SPARQL", 1056, 302, 30, colors.amber, 800, 600);
+      wrapText("Useful for migration. Not valid current conformance unless explicitly justified.", 1056, 356, 570, 34, 26, colors.ink, 600);
+      rect(1020, 475, 690, 150, 10, "#ecfdf3", "#16843f", 2);
+      text("Current assessment uses non-deprecated terms", 1056, 502, 30, colors.green, 800, 610);
+      wrapText("Follow replacement terms and publish corrections through governed channels.", 1056, 556, 570, 34, 26, colors.ink, 600);
+    }
+
+    function drawTent(t) {
+      browserFrame("https://rinf.data.era.europa.eu/data-stories#ten-t");
+      text("TEN-T and track-location checks support services", 112, 152, 38, colors.ink, 800, 1100);
+      const cards = [
+        ["Wheel set gauge", "ten-t-5-wheelSetGauge.sparql", colors.blue],
+        ["Energy supply system", "ten-t-6-energySupplySystem.sparql", colors.green],
+        ["ETCS level and baseline", "ten-t-11-etcsBaselineAndLevel.sparql", colors.amber],
+        ["Track properties with location", "track_rinf_properties_with_location.sparql", colors.rail]
+      ];
+      cards.forEach((card, i) => {
+        const x = 150 + (i % 2) * 820;
+        const y = 250 + Math.floor(i / 2) * 220;
+        rect(x, y, 720, 150, 10, "#ffffff", "#c8d2df");
+        rect(x, y, 12, 150, 4, card[2]);
+        text(card[0], x + 36, y + 28, 30, colors.ink, 800, 600);
+        text(card[1], x + 36, y + 84, 23, card[2], 700, 650);
+      });
+      ctx.strokeStyle = colors.blue;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(260, 725);
+      ctx.bezierCurveTo(620, 640, 900, 800, 1290, 700);
+      ctx.stroke();
+      ["OP A", "Gauge", "Energy", "ETCS", "OP B"].forEach((label, i) => {
+        const x = 260 + i * 260;
+        const y = [725, 665, 735, 690, 700][i];
+        ctx.fillStyle = i === 0 || i === 4 ? colors.blue : colors.green;
+        ctx.beginPath();
+        ctx.arc(x, y, 24, 0, Math.PI * 2);
+        ctx.fill();
+        text(label, x - 42, y + 34, 20, colors.ink, 750, 100);
+      });
+    }
+
+    function drawRcc(t) {
+      browserFrame("https://rinf.data.era.europa.eu/route-compatibility");
+      text("Route Compatibility Check: data quality becomes a service", 112, 152, 38, colors.ink, 800, 1200);
+      rect(120, 230, 500, 520, 10, "#ffffff", "#c8d2df");
+      text("Search route", 154, 262, 30, colors.ink, 800, 300);
+      ["From: Bruxelles-Midi", "Via: Namur", "To: Luxembourg", "Vehicle type: ERATV type"].forEach((line, i) => {
+        rect(154, 322 + i * 78, 410, 48, 6, "#f8fafc", "#c8d2df");
+        text(line, 174, 334 + i * 78, 22, colors.ink, 650, 360);
+      });
+      rect(154, 660, 190, 52, 7, colors.blue);
+      text("Check route", 188, 674, 22, "#ffffff", 760, 130);
+
+      rect(720, 230, 960, 520, 10, "#eff6ff", "#0f6b9d");
+      ctx.strokeStyle = colors.rail;
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(820, 610);
+      ctx.lineTo(1000, 480);
+      ctx.lineTo(1220, 520);
+      ctx.lineTo(1480, 360);
+      ctx.stroke();
+      ["RINF infrastructure", "ERATV vehicle type", "Compatibility screening"].forEach((label, i) => {
+        rect(790 + i * 280, 280, 245, 74, 8, "#ffffff", "#c8d2df");
+        wrapText(label, 810 + i * 280, 300, 205, 26, 21, i === 1 ? colors.green : colors.blue, 800);
+      });
+      rect(820, 650, 770, 74, 8, "#fff7ed", "#b7791f");
+      text("Proof of concept: production RCC needs explicit track connectivity and navigability", 846, 674, 23, colors.ink, 700, 720);
+    }
+
+    function drawNotebooks(t) {
+      browserFrame("file:///interop-europe/data-stories-queries.md#notebooks");
+      text("Reusable Member State notebooks", 112, 152, 42, colors.ink, 800, 900);
+      const books = [
+        ["completeness.sparqlbook", "Completeness assessment by country", colors.green],
+        ["otherqueries.sparqlbook", "Operational and topology-oriented checks", colors.blue],
+        ["tentqueries.sparqlbook", "TEN-T and corridor checks", colors.amber]
+      ];
+      books.forEach((book, i) => {
+        const x = 180 + i * 540;
+        rect(x, 260, 420, 360, 12, "#ffffff", "#c8d2df");
+        rect(x + 30, 310, 360, 210, 8, "#f8fafc", "#c8d2df");
+        text("{ SPARQL", x + 72, 354, 32, book[2], 800, 300);
+        text("BOOK }", x + 72, 406, 32, book[2], 800, 300);
+        text(book[0], x + 36, 552, 24, colors.ink, 800, 350);
+        wrapText(book[1], x + 36, 592, 340, 29, 22, colors.muted, 600);
+      });
+      rect(240, 720, 1440, 94, 12, colors.dark);
+      wrapText("Open SPARQL over a public ERA Knowledge Graph, grounded in ERA ontology terms, SKOS vocabularies and SHACL validation.", 282, 746, 1360, 34, 28, "#ffffff", 700);
+    }
+
+    function drawPointer(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = "#111827";
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(38, 86);
+      ctx.lineTo(58, 48);
+      ctx.lineTo(98, 42);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw(t) {
+      const scene = activeScene(t);
+      drawHeader(t, scene);
+      const lt = localT(t, scene);
+      if (scene.start === 0) drawFileCatalogue(t);
+      if (scene.start === 12 || scene.start === 30) drawEndpointInventory(t);
+      if (scene.start === 43) drawCompleteness(t);
+      if (scene.start === 62) drawSkos(t);
+      if (scene.start === 77) drawDeprecated(t);
+      if (scene.start === 88) drawTent(t);
+      if (scene.start === 103) drawRcc(t);
+      if (scene.start === 115) drawNotebooks(t);
+      drawCaption(scene);
+
+      if (lt > 0 && lt < 0.08) {
+        ctx.globalAlpha = 1 - ease(lt / 0.08);
+        rect(0, 56, W, 884, 0, colors.bg);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function frame(now) {
+      if (!playing) return;
+      if (startTime === null) startTime = now - pausedAt * 1000;
+      const t = Math.min(DURATION, (now - startTime) / 1000);
+      draw(t);
+      statusEl.textContent = `Playing ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")} / 2:08`;
+      if (t >= DURATION) {
+        playing = false;
+        pausedAt = DURATION;
+        playButton.textContent = "Play";
+        statusEl.textContent = "Finished.";
+        if (recorder && recorder.state === "recording") recorder.stop();
+        return;
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function play() {
+      if (playing) {
+        playing = false;
+        pausedAt = startTime === null ? 0 : Math.min(DURATION, (performance.now() - startTime) / 1000);
+        playButton.textContent = "Play";
+        statusEl.textContent = "Paused.";
+        return;
+      }
+      if (pausedAt >= DURATION) {
+        pausedAt = 0;
+      }
+      playing = true;
+      startTime = null;
+      playButton.textContent = "Pause";
+      requestAnimationFrame(frame);
+    }
+
+    function restart() {
+      playing = false;
+      pausedAt = 0;
+      startTime = null;
+      playButton.textContent = "Play";
+      draw(0);
+      statusEl.textContent = "Ready, 2:08 runtime.";
+    }
+
+    async function record() {
+      if (recorder && recorder.state === "recording") {
+        recorder.stop();
+        return;
+      }
+      chunks = [];
+      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+      downloadUrl = null;
+      downloadButton.disabled = true;
+
+      const stream = canvas.captureStream(FPS);
+      recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        downloadUrl = URL.createObjectURL(blob);
+        downloadButton.disabled = false;
+        recordButton.textContent = "Record WebM";
+        recordButton.classList.remove("recording");
+        statusEl.textContent = "Recording ready to download.";
+      };
+      recorder.start();
+      recordButton.textContent = "Stop recording";
+      recordButton.classList.add("recording");
+      pausedAt = 0;
+      startTime = null;
+      playing = true;
+      playButton.textContent = "Pause";
+      requestAnimationFrame(frame);
+    }
+
+    function download() {
+      if (!downloadUrl) return;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = "era-data-stories-member-state-demo.webm";
+      link.click();
+    }
+
+    playButton.addEventListener("click", play);
+    restartButton.addEventListener("click", restart);
+    recordButton.addEventListener("click", record);
+    downloadButton.addEventListener("click", download);
+
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        this.moveTo(x + radius, y);
+        this.arcTo(x + w, y, x + w, y + h, radius);
+        this.arcTo(x + w, y + h, x, y + h, radius);
+        this.arcTo(x, y + h, x, y, radius);
+        this.arcTo(x, y, x + w, y, radius);
+      };
+    }
+
+    draw(0);
+  </script>
+</body>
+</html>
