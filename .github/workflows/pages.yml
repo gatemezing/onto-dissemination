@@ -9,6 +9,7 @@ on:
       - 'scripts/assets/era-graph-explorer-app.html'
       - 'scripts/assets/era-rdf-exporter.html'
       - 'scripts/assets/era-rinf-value-explorer.html'
+      - 'scripts/assets/era-interop-answers.html'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -37,6 +38,7 @@ jobs:
           cp scripts/assets/era-graph-explorer-app.html _site/index.html
           cp scripts/assets/era-rdf-exporter.html _site/exporter.html
           cp scripts/assets/era-rinf-value-explorer.html _site/values.html
+          cp scripts/assets/era-interop-answers.html _site/interopable-eu-portal-answers.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

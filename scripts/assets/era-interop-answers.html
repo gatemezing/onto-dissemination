@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reusing the ERA Ontology — ERA reusability answers</title>
+<meta name="description" content="Seven answers on the reusability of the ERA rail ontology for the Interoperable Europe assessment, with every figure measured against the published artefacts and the live knowledge graph.">
+<meta name="author" content="European Union Agency for Railways">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+  :root{
+    --ground:#f6f7f9;
+    --surface:#ffffff;
+    --sunken:#eef1f5;
+    --ink:#10161f;
+    --muted:#535e6d;
+    --faint:#7b8695;
+    --rule:#d7dde5;
+    --rail:#2b4a6f;
+    --rail-soft:#e5ecf4;
+    --signal:#8a5610;
+    --signal-soft:#fbf1e0;
+    --verify:#255c45;
+    --verify-soft:#e6f0eb;
+    --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+    --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0e1319;
+      --surface:#151c25;
+      --sunken:#111821;
+      --ink:#e7ecf3;
+      --muted:#a3aebd;
+      --faint:#7d8899;
+      --rule:#28323f;
+      --rail:#8fb5dd;
+      --rail-soft:#1a2634;
+      --signal:#e0a955;
+      --signal-soft:#2a2113;
+      --verify:#7ec9a6;
+      --verify-soft:#132520;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1319;
+    --surface:#151c25;
+    --sunken:#111821;
+    --ink:#e7ecf3;
+    --muted:#a3aebd;
+    --faint:#7d8899;
+    --rule:#28323f;
+    --rail:#8fb5dd;
+    --rail-soft:#1a2634;
+    --signal:#e0a955;
+    --signal-soft:#2a2113;
+    --verify:#7ec9a6;
+    --verify-soft:#132520;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16.5px;
+    line-height:1.62;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px;}
+
+  /* ---------- masthead ---------- */
+  header.mast{padding:64px 0 40px;border-bottom:2px solid var(--ink);}
+  .eyebrow{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--rail);margin:0 0 20px;
+  }
+  h1{
+    font-family:var(--serif);font-weight:700;font-size:clamp(2.3rem,5.4vw,3.5rem);
+    line-height:1.06;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance;
+  }
+  .standfirst{
+    font-family:var(--serif);font-size:clamp(1.05rem,2vw,1.3rem);line-height:1.5;
+    color:var(--muted);margin:0;max-width:60ch;
+  }
+  dl.ident{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px 28px;
+    margin:34px 0 0;padding:22px 0 0;border-top:1px solid var(--rule);
+  }
+  dl.ident div{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  dl.ident dt{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--faint);
+  }
+  dl.ident dd{margin:0;font-size:14px;line-height:1.45;overflow-wrap:anywhere;}
+
+  /* ---------- provenance note ---------- */
+  .provenance{
+    margin:34px 0 0;padding:18px 20px;background:var(--verify-soft);
+    border-left:3px solid var(--verify);border-radius:0 4px 4px 0;
+    font-size:14.5px;line-height:1.55;color:var(--ink);
+  }
+  .provenance strong{color:var(--verify);}
+
+  /* ---------- measured figures strip ---------- */
+  section.figures{padding:44px 0 8px;}
+  .figgrid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(162px,1fr));gap:10px;
+  }
+  .fig{
+    background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+    padding:16px 18px;display:flex;flex-direction:column;gap:4px;
+  }
+  .fig b{
+    font-family:var(--mono);font-weight:500;font-size:1.42rem;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;color:var(--ink);
+  }
+  .fig span{font-size:12.5px;line-height:1.35;color:var(--muted);}
+
+  /* ---------- question sections ---------- */
+  section.q{
+    display:grid;grid-template-columns:88px minmax(0,1fr);gap:0 32px;
+    padding:52px 0;border-bottom:1px solid var(--rule);
+  }
+  .qnum{
+    font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--rail);
+    padding-top:10px;position:sticky;top:22px;align-self:start;
+  }
+  .qbody{min-width:0;max-width:68ch;}
+  h2{
+    font-family:var(--serif);font-weight:600;font-size:clamp(1.42rem,2.9vw,1.9rem);
+    line-height:1.2;letter-spacing:-.012em;margin:0 0 22px;text-wrap:balance;
+  }
+  .lede{
+    font-family:var(--serif);font-size:1.12rem;line-height:1.5;color:var(--ink);
+    margin:0 0 20px;border-left:3px solid var(--rail);padding-left:18px;
+  }
+  p{margin:0 0 18px;}
+  h3{
+    font-family:var(--mono);font-weight:500;font-size:11.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--faint);margin:34px 0 14px;
+  }
+  ul,ol{margin:0 0 18px;padding-left:22px;display:flex;flex-direction:column;gap:11px;}
+  li{padding-left:2px;}
+  li::marker{color:var(--faint);}
+  strong{font-weight:600;}
+  a{color:var(--rail);text-underline-offset:2px;text-decoration-thickness:1px;}
+  a:hover{text-decoration-thickness:2px;}
+  a:focus-visible,summary:focus-visible{outline:2px solid var(--rail);outline-offset:3px;border-radius:2px;}
+  code{
+    font-family:var(--mono);font-size:.86em;background:var(--sunken);
+    padding:1px 5px;border-radius:3px;overflow-wrap:anywhere;
+  }
+
+  /* measured figure inline */
+  .m{
+    font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;
+    color:var(--verify);background:var(--verify-soft);padding:1px 6px;border-radius:3px;
+    white-space:nowrap;
+  }
+  /* stated limitation */
+  .caveat{
+    background:var(--signal-soft);border-left:3px solid var(--signal);
+    padding:16px 18px;margin:0 0 18px;border-radius:0 4px 4px 0;font-size:15px;line-height:1.55;
+  }
+  .caveat b{color:var(--signal);}
+
+  /* ---------- tables ---------- */
+  .scroll{overflow-x:auto;margin:0 0 20px;border:1px solid var(--rule);border-radius:4px;}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;}
+  caption{
+    caption-side:top;text-align:left;font-family:var(--mono);font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+    padding:14px 16px 10px;background:var(--surface);
+  }
+  th,td{padding:9px 16px;text-align:left;border-bottom:1px solid var(--rule);background:var(--surface);}
+  thead th{
+    font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--faint);background:var(--sunken);
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;}
+
+  /* ---------- code block ---------- */
+  pre{
+    margin:0 0 18px;padding:18px 20px;background:var(--sunken);border:1px solid var(--rule);
+    border-radius:4px;overflow-x:auto;font-family:var(--mono);font-size:12.8px;
+    line-height:1.62;color:var(--ink);
+  }
+  pre code{background:none;padding:0;font-size:inherit;}
+
+  /* ---------- sources ---------- */
+  footer.src{padding:48px 0 0;}
+  footer.src h2{font-size:1.2rem;margin-bottom:18px;}
+  footer.src ul{list-style:none;padding:0;gap:9px;}
+  footer.src li{font-size:14px;line-height:1.45;padding-left:16px;position:relative;overflow-wrap:anywhere;}
+  footer.src li::before{
+    content:"";position:absolute;left:0;top:.62em;width:7px;height:1px;background:var(--rail);
+  }
+
+  @media (max-width:760px){
+    .wrap{padding:0 20px 64px;}
+    header.mast{padding:40px 0 30px;}
+    section.q{grid-template-columns:1fr;gap:0;padding:40px 0;}
+    .qnum{position:static;padding:0 0 12px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Interoperable Europe &#183; Reusability assessment</p>
+  <h1>Reusing the ERA Ontology</h1>
+  <p class="standfirst">Seven answers on whether the European rail vocabulary is worth reusing &#8212; argued from one idea, that a thing gets one identifier everyone can point at, from figures anyone can re-measure, and from the defects it has not yet fixed.</p>
+
+  <dl class="ident">
+    <div><dt>Solution</dt><dd>ERA Vocabulary (ERA Ontology)</dd></div>
+    <div><dt>Version</dt><dd>v3.3.4 &#8212; 10 August 2026</dd></div>
+    <div><dt>Licence</dt><dd>EUPL 1.2</dd></div>
+    <div><dt>Maintainer</dt><dd>European Union Agency for Railways</dd></div>
+    <div><dt>Identifier</dt><dd><a href="https://doi.org/10.5281/zenodo.15089005">10.5281/zenodo.15089005</a></dd></div>
+    <div><dt>Repository</dt><dd><a href="https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology">GitLab &#8212; public</a></dd></div>
+  </dl>
+
+  <p class="provenance"><strong>On the figures.</strong> Every quantitative claim below is either a legal reference, a measurement of the <strong>published artefacts</strong> (ontology v3.3.4, <code>era-shapes</code>, <code>era-skos</code>, <code>era-telem-skos</code>), or a measurement against the <strong>live knowledge graph</strong> on 22&nbsp;August&nbsp;2026. The two are distinguished wherever they differ, because in places they do. Parameter counts <strong>exclude <code>owl:deprecated</code> terms</strong> unless stated &#8212; 100 terms are deprecated and several still carry live data, so including them overstates coverage.</p>
+</header>
+
+<section class="figures" aria-label="Measured scale of the knowledge graph">
+  <div class="figgrid">
+    <div class="fig"><b>47,413,498</b><span>Triples in the live graph</span></div>
+    <div class="fig"><b>27</b><span>Countries publishing</span></div>
+    <div class="fig"><b>54</b><span>National datasets</span></div>
+    <div class="fig"><b>60,562</b><span>Operational points</span></div>
+    <div class="fig"><b>69,448</b><span>Sections of line</span></div>
+    <div class="fig"><b>725,637</b><span>Running tracks</span></div>
+    <div class="fig"><b>18,279</b><span>SKOS concepts published, in 423 schemes</span></div>
+    <div class="fig"><b>1,352</b><span>SHACL shapes and constraints published</span></div>
+    <div class="fig"><b>292</b><span>Live RINF parameters (37 more deprecated)</span></div>
+  </div>
+</section>
+
+<section class="q">
+  <div class="qnum">Q1</div>
+  <div class="qbody">
+    <h2>Would it make sense for public authorities to look at the reusability of this solution when implementing the assessed decision?</h2>
+    <p class="lede">Yes &#8212; and the strongest argument is that the ontology is not an interpretation of the law. It is the law in machine-readable form.</p>
+    <p>Commission Implementing Regulation (EU) 2019/777, as amended by (EU) 2023/1694, lays down the common specification for the Register of Infrastructure as a numbered parameter list. The ERA ontology annotates each property with its matching legal index through <code>era:rinfIndex</code>: parameter <strong>1.1.1.1.4.1 &#8220;Nominal track gauge&#8221;</strong> <em>is</em> <code>era:wheelSetGauge</code>. <span class="m">292</span> live properties carry such an index (329 in total, of which 37 are <code>owl:deprecated</code>), so the trace from legal text to data field is machine-checkable rather than a matter of documentation discipline.</p>
+    <p>That matters for an interoperability assessment because it converts a recurring, expensive problem into a solved one. The pattern is domain-neutral: <em>a legal act mandates a register with numbered parameters and coded values, and the register must be comparable across 27 jurisdictions.</em> Whether the domain is rail, energy metering or building permits, the reusable design is the same &#8212; annotate each property with its legal index, ship the code lists as SKOS, ship SHACL shapes so conformance is testable, and publish over open query standards.</p>
+    <p>Reuse here is demonstrated rather than projected: the figures above are not a pilot. They are what 27 Member States have already published through this vocabulary.</p>
+    <h3>One vocabulary, four registers</h3>
+    <p>An authority reusing this is not buying into a single-register design. The same ontology carries the application guides for four distinct legal registers, each with its own basis in EU law.</p>
+    <div class="scroll">
+      <table>
+        <caption>The four registers the vocabulary covers</caption>
+        <thead><tr><th>Register</th><th>Covers</th><th>Legal basis</th></tr></thead>
+        <tbody>
+          <tr><td><strong>RINF</strong></td><td>Infrastructure &#8212; lines, tracks, operational points</td><td>Reg. (EU) 2019/777, amended by (EU) 2023/1694</td></tr>
+          <tr><td><strong>ERATV</strong></td><td>Authorised vehicle <em>types</em></td><td>Decision 2011/665/EU; Reg. (EU) 2019/776; Decision (EU) 2021/701; Dir. (EU) 2016/797; Reg. (EU) 2018/545</td></tr>
+          <tr><td><strong>EVR</strong></td><td>Individual registered <em>vehicles</em></td><td>Reg. (EU) 2023/1695; Decision (EU) 2018/1614; Dir. (EU) 2016/797</td></tr>
+          <tr><td><strong>ERADIS</strong></td><td>Safety and interoperability certification</td><td>Dir. (EU) 2016/798; Dir. (EU) 2016/797; Reg. (EU) 2016/796</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The legal-index annotation is not RINF-only either. Counting live (non-deprecated) properties in the published ontology: <span class="m">292</span> carry <code>era:rinfIndex</code>, <span class="m">174</span> carry <code>era:eratvIndex</code> and <span class="m">67</span> carry <code>era:tsiOPEAppendixD2Index</code>. The same design decision was applied across registers rather than retrofitted to one.</p>
+
+    <h3>The legal trace goes further than an index string</h3>
+    <p>ERA also publishes the legislation itself as linked data. A separate <code>era-lex</code> dataset holds <span class="m">208,517</span> triples describing <span class="m">7,317</span> legal resources and <span class="m">7,198</span> work subdivisions in the EU&#8217;s own ELI (European Legislation Identifier) vocabulary &#8212; and <span class="m">420</span> ontology terms cite <span class="m">79</span> legal acts directly through <code>dcterms:source</code>.</p>
+    <p>So the chain is machine-followable end to end. <code>era:tsiMagneticFields</code> carries RINF index <code>1.1.1.3.9.1</code> <em>and</em> points at <code>data.europa.eu/eli/reg_impl/2023/1695/oj</code> &#8212; the act in the Official Journal. A reuser can go from a data field to the numbered parameter to the legal provision without a human in the loop. <strong>This is the part we would most encourage other domains to copy</strong>, and it is entirely domain-neutral.</p>
+    <h3>One URI, reusable everywhere</h3>
+    <p class="lede">A thing gets one identifier, and everyone points at it instead of describing it again. This is the single idea that carries the most weight, because it is what makes the rest work.</p>
+    <p>ERA applies it in both directions. <strong>Reusing what already exists, rather than minting alternatives:</strong> across the legislation dataset alone there are <span class="m">90,235</span> references to ELI legal-act URIs, <span class="m">6,688</span> to Publications Office corporate bodies, <span class="m">1,863</span> to its language authority, <span class="m">1,092</span> to EuroVoc subject concepts, <span class="m">186</span> to resource types and <span class="m">93</span> to treaties. Countries in RINF are Publications Office URIs, not ERA codes. Nothing in that list was re-invented.</p>
+    <p><strong>Minting once, then reusing across registers:</strong> the organisation register <code>OCR-KG</code> (<span class="m">280,339</span> triples) holds <span class="m">5,528</span> organisations, of which <span class="m">2,909</span> &#8212; 53% &#8212; hold more than one role. One URI, <code>.../body/organisation/0080</code>, is DB InfraGO, carrying Infrastructure Manager, Railway Undertaking, Entity in Charge of Maintenance, Keeper, Owner and ECM Certification Body at once. Those roles belong to <em>different registers</em> &#8212; IM to RINF, Keeper/Owner/ECM to EVR, certification body to ERADIS &#8212; so the single identifier is what joins them. Inside RINF, <span class="m">665,487</span> infrastructure elements name that one URI as their manager.</p>
+    <p><strong>And it reaches into the law:</strong> <code>era-lex</code> holds <span class="m">7,317</span> legal acts plus <span class="m">7,198</span> individually addressable subdivisions &#8212; down to <code>.../dec-2008-217/annex-C/section-3.1</code>, a numbered section inside an annex. Each act carries machine-readable force status, its treaty basis, its amendment chain and EuroVoc subjects, across <span class="m">1,861</span> language expressions in <span class="m">24</span> languages. A requirement can be cited by URI rather than quoted, and the citation survives translation and consolidation.</p>
+    <p>For a reusing authority the instruction is short: <strong>reuse an identifier before minting one, and where you must mint, mint once and publish it so others can point at it.</strong> It is the cheapest interoperability decision available, and the most expensive one to retrofit.</p>
+
+    <h3>A working query library, not just a vocabulary</h3>
+    <p>A reuser does not start at a blank query editor. ERA publishes <span class="m">85</span> SPARQL queries against this graph &#8212; <span class="m">38</span> in the visible Data Stories catalogue plus <span class="m">47</span> across three downloadable <code>.sparqlbook</code> notebooks &#8212; and the balance of them says something about what a register is actually <em>for</em>.</p>
+    <div class="scroll">
+      <table>
+        <caption>What the published catalogue is for</caption>
+        <thead><tr><th>Theme</th><th class="num">Visible queries</th></tr></thead>
+        <tbody>
+          <tr><td>Completeness auditing, per element type and country</td><td class="num">18</td></tr>
+          <tr><td>TEN-T corridor compliance</td><td class="num">9</td></tr>
+          <tr><td>Inventory and scale per member state</td><td class="num">4</td></tr>
+          <tr><td>Network topology quality</td><td class="num">3</td></tr>
+          <tr><td>Cross-border and TSI compliance</td><td class="num">2</td></tr>
+          <tr><td>Located property extraction</td><td class="num">2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Nearly half the catalogue exists to ask <em>how complete is this register</em> &#8212; the honest centre of gravity for any public data programme. The notebooks are literate rather than bare: <code>completeness.sparqlbook</code> (29 queries), <code>tentqueries.sparqlbook</code> (14) and <code>otherqueries.sparqlbook</code> (4) each pair every query with a narrative cell, so the artefact explains itself as it runs.</p>
+    <p>I ran five unchanged against the live endpoint while drafting this: operational points per member state (23 rows, 4.5&nbsp;s), unreachable operational points (<span class="m">5</span>), sink operational points (<span class="m">36</span>), disconnected operational points (<span class="m">2,244</span>) and gauging profiles in Ukraine&#8217;s neighbours (12 rows, 24.9&nbsp;s).</p>
+    <p>Those topology queries are worth dwelling on: ERA publishes, openly, the queries that expose <strong>2,244 operational points not connected to the network</strong> in its own register. A programme confident enough to ship its own audit tooling is one whose data can be trusted to be checkable.</p>
+
+    <div class="caveat">
+      <b>One limitation, stated plainly.</b> The vocabulary spans four registers, but at the public endpoint only <strong>RINF data</strong> is currently published as open linked data. The five readable repositories are <code>rinf</code>, <code>rinf-plus</code>, <code>ERA-Onto</code>, <code>era-lex</code> and <code>OCR-KG</code>; there is no open ERATV, EVR or ERADIS <em>data</em> repository today. <code>rinf-plus</code> also still describes itself as built on the &#8220;ERA Ontology 3.1.x model&#8221; while the vocabulary is at v3.3.4 &#8212; a version lag a reuser should know about.
+    </div>
+  </div>
+</section>
+
+<section class="q">
+  <div class="qnum">Q2</div>
+  <div class="qbody">
+    <h2>What was the main challenge, and what were the main lessons learnt?</h2>
+    <p class="lede">The main challenge was not building the vocabulary. It was that a shared vocabulary does not by itself produce comparable data.</p>
+    <p>Publication and convergence are different problems, and the second is much harder. This is best shown with real defects still observable in the production graph today &#8212; included deliberately, because an assessment is worth more when it is honest.</p>
+
+    <h3>A conformance check that the data can talk its way past</h3>
+    <p><code>era:opType</code> (RINF index 1.2.0.0.0.4) is bound to one concept scheme, <strong>Operational Point Types</strong>, issued 2020-09-01 under CC-BY 4.0 and actively maintained &#8212; the 28 May 2026 revision added types 20, 110 and 150. In the <strong>published</strong> SKOS artefact that scheme has exactly <span class="m">15</span> members, <code>.../concepts/op-types/{notation}</code>, each with a <code>skos:notation</code> and a lower-case English label.</p>
+    <p>The published shapes do constrain it. <code>shapes/OpTypeSKOS</code> is a SHACL <code>SPARQLConstraint</code> whose test is, in essence:</p>
+<pre><code>$this era:opType ?concept .
+era:opType era:inSkosConceptScheme ?conceptScheme .
+FILTER NOT EXISTS { ?concept skos:inScheme ?conceptScheme }</code></pre>
+    <p>Yet the <strong>deployed</strong> graph contains <span class="m">8</span> further concepts, <code>.../op-types/OperationalPointTypes/{n}</code> &#8212; the scheme IRI mistaken for a path prefix &#8212; with no <code>skos:notation</code>, Title-Case labels, the typos &#8220;Shuting yard&#8221; and &#8220;Tehnical change&#8221;, and a trailing newline inside &#8220;Switch&#8221;. One publisher uses them, on 582 operational points.</p>
+    <div class="caveat">
+      <b>Why the check does not catch them &#8212; and this is the transferable part.</b> Those 8 concepts assert <code>skos:inScheme</code> the real scheme. The constraint asks whether a value is in the scheme <em>as the graph reports it</em>, so data that declares its own membership extends the very vocabulary it is being validated against, and passes. The published vocabulary is clean; the working graph is not. <strong>A value-set check must resolve the value set from a trusted, published source &#8212; a protected named graph, a versioned artefact &#8212; never from the same graph the data under test can write into. Otherwise conformance is self-certified.</strong>
+    </div>
+    <p>Two related observations, both checkable. <strong>Nothing validates the vocabulary itself:</strong> the suite has shapes targeting <code>skos:Concept</code>, but none targeting <code>skos:ConceptScheme</code>. Constraints such as &#8220;every member carries a <code>skos:notation</code>&#8221;, &#8220;no two members share a notation&#8221; or &#8220;member IRIs match the scheme&#8217;s pattern&#8221; would have caught this at load time. And <strong>the deployed validation lags the published specification:</strong> published <code>era-shapes</code> carries <span class="m">147</span> node shapes, <span class="m">882</span> property shapes and <span class="m">323</span> SPARQL constraints; the repository serving the live data carries <span class="m">76</span>, <span class="m">393</span> and <span class="m">211</span> &#8212; roughly half. Shipping a rule and enforcing it are different acts.</p>
+
+    <h3>Retired parameters that still carry data</h3>
+    <p>Of the <span class="m">329</span> properties carrying a <code>rinfIndex</code>, <span class="m">37</span> are <code>owl:deprecated</code>, leaving <span class="m">292</span> live parameters. Deprecation has not reached the data: <strong>17 of those deprecated properties still carry <span class="m">237,781</span> statements</strong> in the live endpoint.</p>
+    <div class="caveat">
+      <b>Only one of the 17 declares a replacement.</b> Via <code>dcterms:isReplacedBy</code> &#8212; and in that one case both spellings are populated: <code>TSITractionHarmonics</code> (deprecated) holds 27,818 statements while its successor <code>tsiTractionHarmonics</code> holds 31,387. Query only the live property and you miss 47% of the parameter. The other 16 offer no machine-readable route to their successor at all &#8212; and retired and current terms can differ only by capitalisation (<code>TSIMagneticFields</code> / <code>tsiMagneticFields</code>), which is easy to read past in a mapping table.
+    </div>
+
+    <h3>Published queries that name graphs the deployment does not have</h3>
+    <p>The three downloadable notebooks wrap their patterns in named graphs &#8212; <code>graph/rinf</code>, <code>graph/eratv</code>, <code>graph/ontology</code>, <code>graph/skos</code>, <code>graph/shacl</code> &#8212; referenced 47 times for <code>graph/rinf</code> alone. <strong>All five are empty in the repository that serves the data</strong>, which holds it in per-infrastructure-manager graphs instead (<code>graph/0080</code> with 15.5&nbsp;M triples, <code>graph/1080</code> with 10.8&nbsp;M, and so on).</p>
+    <div class="caveat">
+      <b>Run a notebook query exactly as published, against the endpoint named in its own header comment, and it returns HTTP 200 with a column header and no rows.</b> The same patterns without the <code>GRAPH</code> wrapper return data immediately. The 38 visible catalogue queries are unaffected &#8212; they query the default union graph, and all five I tested returned real results.
+    </div>
+    <p>This is the same failure mode as the concept-scheme case and the dangling organisation URIs: <strong>a silent, well-formed zero</strong>. Nothing errors, nothing warns, and a reuser evaluating the register through its own published notebooks would conclude the data is absent. A published query is an interface, and interfaces need a test that runs them.</p>
+
+    <h3>The same organisation under two identifiers</h3>
+    <p>The &#8220;one URI&#8221; principle above is right, and this is what it costs when it is not held. RINF names <span class="m">180</span> distinct organisations as infrastructure managers. Only <span class="m">93</span> of those URIs resolve in the authoritative organisation register &#8212; <strong>87, or 48%, do not.</strong></p>
+    <p>The instructive case is Belgium. RINF calls its infrastructure manager <code>.../body/organisation/0088</code>; the register knows the same body as <code>.../body/organisation/1976</code>. Nothing links the two &#8212; no <code>owl:sameAs</code>, no mapped code. And the two records are not equivalent:</p>
+    <div class="scroll">
+      <table>
+        <caption>One organisation, two identifiers, unequal records</caption>
+        <thead><tr><th></th><th>RINF&#8217;s <code>0088</code></th><th>The register&#8217;s <code>1976</code></th></tr></thead>
+        <tbody>
+          <tr><td>Name</td><td><em>none</em></td><td>INFRABEL S.A./N.V.</td></tr>
+          <tr><td>Legal / VAT number</td><td><em>none</em></td><td>BE0869.763.267</td></tr>
+          <tr><td>Roles</td><td class="num">1</td><td class="num">7</td></tr>
+          <tr><td>Site, homepage, change history</td><td><em>none</em></td><td>present, modified 2026-08-13</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="caveat">
+      <b>The richer record exists, and is unreachable from where it is needed.</b> Anyone joining RINF infrastructure to organisational identity gets a complete answer for 93 managers and a bare code for the other 87. The same stub also carries its role under two different URI patterns &#8212; the same shape of defect as the concept-scheme problem above: identifiers constructed by string assembly rather than looked up.
+    </div>
+
+    <h3>Two further defects, same family</h3>
+    <div class="caveat">
+      <b>Free text where a code list was needed.</b> <code>era:gradientProfile</code> contains <code>+00.0</code>, <code>+0.0</code> and <code>+0.0(+0.000)</code> &#8212; three encodings of &#8220;flat&#8221; in one column. No scheme was ever defined for it, so nothing could have caught this.
+    </div>
+    <div class="caveat">
+      <b>Coverage is partial, and measurable.</b> Of the <span class="m">292</span> live properties carrying a <code>rinfIndex</code>, <span class="m">208</span> are populated anywhere in RINF; the other 84 are legally defined but unreported. A figure any Member State can compute for itself &#8212; provided it excludes deprecated terms first.
+    </div>
+
+    <h3>Lessons learnt</h3>
+    <ol>
+      <li><strong>Annotate the ontology with the legal index.</strong> <code>era:rinfIndex</code> is the single highest-leverage design decision: it makes legal-to-technical traceability queryable, and it lets tools be built generically over <em>any</em> parameter rather than hard-coded per parameter.</li>
+      <li><strong>Resolve a value set from a trusted source, not from the graph under test.</strong> <span class="m">18,279</span> concepts in <span class="m">423</span> published schemes exist precisely so that &#8220;station&#8221; is not spelled eleven ways &#8212; and the published vocabulary is clean. The defect arose because conformance was evaluated against the working graph, which the data itself can extend. Validate against the versioned artefact.</li>
+      <li><strong>Validate the vocabulary, not only the data.</strong> The suite has shapes for <code>skos:Concept</code> but none for <code>skos:ConceptScheme</code>. Three constraints &#8212; every member has a <code>skos:notation</code>, notations are unique within a scheme, member IRIs match the scheme&#8217;s pattern &#8212; would have caught this at load time. Coverage is uneven more generally: <span class="m">116</span> of the <span class="m">300</span> live object properties are guarded by a scheme-membership check, so the suite needs its own completeness report.</li>
+      <li><strong>Deprecation is a data migration, not an annotation.</strong> Marking 37 RINF parameters <code>owl:deprecated</code> did not move the data: 17 still carry 237,781 statements, and only one names its successor. Retiring a term should ship with <code>dcterms:isReplacedBy</code> on every retired term, and a published count of what still sits on it.</li>
+      <li><strong>Model the publication dimension, not just the geographic one.</strong> Filtering by the per-resource <code>era:inCountry</code> property returns <strong>zero</strong> values for <code>era:maximumPermittedSpeed</code> in Austria &#8212; the real answer is <span class="m">43</span> &#8212; because many parameters sit on sub-objects such as contact line systems and ETCS equipment, which carry no country of their own. Scoping by the publisher&#8217;s dataset is reliable where the geographic property is not. Any register federating national contributions will meet this.</li>
+      <li><strong>Cross-border objects are shared, not duplicated.</strong> Two operational points are registered by two states at once &#8212; the Sweden&#8211;Finland border at Tornio and the France&#8211;Italy border at Menton/Ventimiglia &#8212; each in the neighbour&#8217;s language. Naive de-duplication destroys real information; naive summing double-counts. Cross-border identity needs an explicit, stated rule.</li>
+      <li><strong>An identifier is only reusable if it resolves.</strong> Publishing URIs is not the same as governing them. The gap above is not a modelling error &#8212; both systems use the right namespace and the right shape &#8212; it is the absence of a single authority deciding which identifier denotes a given organisation. Any federation should stand up its identifier register <em>before</em> the datasets that reference it, and should monitor dangling references as a standing metric, the same way it monitors parameter completeness.</li>
+      <li><strong>Ship the caveat with the query.</strong> The catalogue does this well and it is worth copying. The tunnel-length query documents its own deduplication rationale &#8212; the same tunnel is reported once per track inside it, sometimes with differing lengths, so <code>MAX</code> is used and the comment concedes it &#8220;might not be the correct value, but it&#8217;s deterministic and consistent&#8221;. Others warn &#8220;this query will LIKELY time out&#8221; and point at an optimised variant. Publishing the reasoning alongside the SPARQL is what makes a query library reusable rather than merely available.</li>
+      <li><strong>Reuse hubs are powerful and fragile.</strong> A single temporal-validity record is referenced by <span class="m">347,989</span> resources, and the most-shared contact line system by <span class="m">3,953</span> tracks. Excellent for consistency and storage, but a change to one such node propagates instantly across a national network, so change management has to account for the blast radius.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="q">
+  <div class="qnum">Q3</div>
+  <div class="qbody">
+    <h2>Do you envisage collaboration with other Member States or Union entities?</h2>
+    <p class="lede">Collaboration is already the operating model, not an aspiration.</p>
+    <ul>
+      <li><strong>With standardisation bodies.</strong> A Memorandum of Intent with <strong>railML.org was signed on 30 May 2023</strong>, under which ERA and railML jointly published their ontologies and developed use cases transforming railML data into RINF provisions. Alignment continues through regular working meetings.</li>
+      <li><strong>With the Publications Office.</strong> ERA does not mint its own country codes &#8212; the graph points directly at the EU authority tables under <code>publications.europa.eu/resource/authority/</code>. Reusing existing EU semantic assets rather than duplicating them is a deliberate choice, and one we would recommend to any reuser.</li>
+      <li><strong>With W3C and OGC.</strong> The ontology imports GeoSPARQL, SKOS, PROV, ORG and OWL-Time rather than reinventing geometry, provenance or organisational modelling.</li>
+      <li><strong>With Member States and infrastructure managers</strong>, through the National Registration Entities the RINF Regulation requires, and through a public GitLab issue tracker where change requests are visible to everyone.</li>
+      <li><strong>Beyond the compliance perimeter.</strong> Bane NOR, the Norwegian infrastructure manager, publishes its own station data using the ERA ontology on its own Linked Data server at <code>data.banenor.no</code> &#8212; its resources are visible in the shared graph, for instance contact line systems referenced by <span class="m">2,873</span> and <span class="m">1,641</span> Norwegian tracks. Voluntary adoption by a publisher outside the EU mandate is the clearest available evidence that the model is reusable on its merits.</li>
+    </ul>
+    <p>Natural next steps we would welcome partners on: deeper alignment with the European Mobility Data Space and National Access Points; publishing ERATV, EVR and ERADIS <em>data</em> as openly as RINF already is, since today the vocabulary covers all four registers but only RINF data is openly queryable; closing the value-set validation gaps identified in Q2; and contributing the pattern back to SEMIC as a reusable design rather than a rail-specific artefact.</p>
+  </div>
+</section>
+
+<section class="q">
+  <div class="qnum">Q4</div>
+  <div class="qbody">
+    <h2>Is the solution suitable for local, regional, or national public administrations?</h2>
+    <p class="lede">Yes, at every level &#8212; because the unit of publication is the dataset, not the country.</p>
+    <p>The graph holds <span class="m">54</span> distinct national datasets across <span class="m">27</span> countries, one per publishing infrastructure manager. The distribution shows this is not a national-champions-only model.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>Publishing organisations per country &#8212; a sample</caption>
+        <thead><tr><th>Country</th><th class="num">Publishing organisations</th></tr></thead>
+        <tbody>
+          <tr><td>Italy</td><td class="num">9</td></tr>
+          <tr><td>Austria</td><td class="num">8</td></tr>
+          <tr><td>France</td><td class="num">7</td></tr>
+          <tr><td>Sweden</td><td class="num">4</td></tr>
+          <tr><td>Germany, Finland, Switzerland</td><td class="num">2 each</td></tr>
+          <tr><td>Belgium, Poland, Portugal, Ireland and others</td><td class="num">1 each</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Small regional and private infrastructure managers already publish alongside national incumbents, using the same vocabulary and appearing in the same cross-border queries. No entity has to be large to participate.</p>
+    <p>The granularity supports local asset management as well as strategic planning: the ontology models platforms, sidings, level crossings, tunnels, bridges, signals and kilometric posts, not only strategic corridors. A regional authority can therefore adopt it for its own network and get immediate internal value &#8212; consistent asset descriptions, validated against the shipped SHACL shapes &#8212; without waiting for anyone else.</p>
+  </div>
+</section>
+
+<section class="q">
+  <div class="qnum">Q5</div>
+  <div class="qbody">
+    <h2>Does it need central governance, or does it bring value if deployed in just some entities?</h2>
+    <p class="lede">Two things must be separated, and the honest answer differs for each. The vocabulary needs central governance. The deployment does not.</p>
+    <h3>Central, and non-negotiable</h3>
+    <p>A shared meaning must have exactly one owner. ERA maintains the ontology under a single version line, one licence, a public repository and an archival DOI. Without that you do not get one vocabulary used 27 times; you get 27 dialects. The cost of governance gaps is already visible &#8212; the divergent concept scheme in <strong>Q2</strong> is precisely what happens when code-list conformance is not enforced at ingestion. We would advise any reuser that <strong>central governance of the code lists is the part that cannot be devolved.</strong></p>
+    <h3>Decentralised, and valuable immediately</h3>
+    <p>Deployment accrues benefit incrementally, per publisher. Each entity that adopts the vocabulary gets value before anyone else joins: its own data becomes queryable, comparable year-on-year, and testable against the SHACL shapes. Bane NOR demonstrates exactly this, deriving value while publishing essentially alone and outside the EU mandate.</p>
+    <div class="caveat">
+      <b>The realistic caveat.</b> Cross-border value requires both critical mass and conformance. Partial deployment <em>with</em> local variation is the worst of both worlds &#8212; it produces the appearance of interoperability without the substance, because queries return plausible but incomplete answers. Partial deployment <em>with</em> conformance is genuinely useful from the first publisher onward.
+    </div>
+  </div>
+</section>
+
+<section class="q">
+  <div class="qnum">Q6</div>
+  <div class="qbody">
+    <h2>How does the solution support cross-border data exchange and EU sovereignty?</h2>
+    <h3>Cross-border exchange</h3>
+    <p>The canonical use case is <strong>route compatibility</strong>: checking a vehicle against the infrastructure it is to run on, across borders, without bilateral agreements or point-to-point integrations. That check spans three registers at once &#8212; the individual vehicle in <strong>EVR</strong>, its authorised type in <strong>ERATV</strong>, and the line in <strong>RINF</strong> &#8212; and the ontology models the joins that connect them: an EVR <code>Vehicle</code> references its <code>VehicleType</code>, which carries the gauge, ETCS level and braking characteristics that RINF&#8217;s track parameters must be compared against. Because all three sides share one vocabulary and one set of code lists, this is a query rather than an integration project. It is the clearest argument for modelling a <em>family</em> of registers together rather than one at a time.</p>
+    <p>Borders are modelled as first-class objects, not edge cases: <span class="m">288</span> <code>era:ReferenceBorderPoint</code> resources, plus operational points typed &#8220;border point&#8221; (<span class="m">427</span> under the canonical concept, plus 17 under one of the duplicate concepts described in Q2) and &#8220;domestic border point&#8221; (<span class="m">433</span>), alongside the jointly-registered cross-border stations described above.</p>
+    <p>A single query shows what cross-border comparability buys. Asking the graph for legal parameter <strong>1.1.1.1.4.1</strong> returns the gauge landscape of the entire European network:</p>
+
+    <div class="scroll">
+      <table>
+        <caption>Nominal track gauge across 27 countries &#8212; RINF parameter 1.1.1.1.4.1</caption>
+        <thead><tr><th>Gauge</th><th>Network</th><th class="num">Running tracks</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1435</td><td>Standard</td><td class="num">697,901</td></tr>
+          <tr><td class="num">1668</td><td>Iberian</td><td class="num">13,275</td></tr>
+          <tr><td class="num">1524</td><td>Finnish / Baltic</td><td class="num">2,813</td></tr>
+          <tr><td class="num">1000</td><td>Metre</td><td class="num">2,746</td></tr>
+          <tr><td class="num">1520</td><td>Former Soviet</td><td class="num">1,826</td></tr>
+          <tr><td class="num">1600</td><td>Irish</td><td class="num">274</td></tr>
+          <tr><td class="num">760</td><td>Narrow</td><td class="num">131</td></tr>
+          <tr><td class="num">750</td><td>Narrow</td><td class="num">4</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>That is the classic break-of-gauge interoperability barrier &#8212; Iberian, Baltic and Irish networks &#8212; quantified across 27 countries from one question, in seconds. Before a shared vocabulary, assembling it meant 27 bilateral data requests.</p>
+    <p>The published catalogue already turns this into standing instruments. One query returns the gauging profiles of tracks in <strong>Ukraine&#8217;s neighbouring countries</strong> &#8212; a live question for interoperability with a non-member network, answerable because Hungary, Poland, Slovakia and Romania describe their gauges in the same terms. Three more audit the network as a <em>graph</em> rather than a table, finding operational points that are unreachable (5), sinks (36) or wholly disconnected (<span class="m">2,244</span>). Cross-border operation depends on the topology actually joining up, and that is only checkable once everyone&#8217;s topology is expressed the same way.</p>
+
+    <h3>EU sovereignty</h3>
+    <ul>
+      <li><strong>Custody stays national.</strong> Each Member State publishes into its own dataset, through its own National Registration Entity and infrastructure managers. What is shared is the <em>meaning</em>, not the ownership. No central database takes possession of national data.</li>
+      <li><strong>EU-controlled identifiers &#8212; the sovereignty argument proper.</strong> Resources are named under <code>data.europa.eu/949/</code>, and where an EU authority already names something, ERA points at it rather than minting a rival: Publications Office country, language, treaty, resource-type and corporate-body tables, EuroVoc subjects, ELI legal acts. Whoever controls the identifiers controls who can join the data. Here that authority is European, the URIs are persistent and publicly governed, and the vocabulary binding them is EUPL 1.2 with an archival DOI. <strong>A shared identifier space is the most durable form of digital sovereignty on offer</strong> &#8212; it cannot be withdrawn by a supplier, and it does not depend on where anything is hosted.</li>
+      <li><strong>No vendor lock-in anywhere in the stack.</strong> RDF, SPARQL, SKOS and SHACL (W3C) and GeoSPARQL (OGC) are open standards with multiple independent implementations. The vocabulary is EUPL 1.2 and archived on Zenodo with a DOI, so it survives any single supplier, contract or hosting decision.</li>
+      <li><strong>EU-hosted infrastructure.</strong> The knowledge graph is served from European Commission infrastructure, with no dependency on non-EU cloud services for the semantic layer.</li>
+      <li><strong>Open access enables scrutiny.</strong> The endpoint is publicly queryable with permissive CORS, so any Member State, researcher or citizen can verify a claim about the register directly rather than trusting a report. The data-quality findings in Q2 were found exactly that way.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="q">
+  <div class="qnum">Q7</div>
+  <div class="qbody">
+    <h2>What is the first step to reuse the solution?</h2>
+    <p class="lede">Query it before committing to anything. No account, no licence negotiation, no data pipeline.</p>
+    <p>The following runs as-is and returns the gauge table above:</p>
+<pre><code>curl -sS -X POST "https://graph.data.era.europa.eu/repositories/rinf-plus" \
+  -H "Content-Type: application/sparql-query" -H "Accept: text/csv" \
+  --data-binary '
+PREFIX era:  &lt;http://data.europa.eu/949/&gt;
+PREFIX skos: &lt;http://www.w3.org/2004/02/skos/core#&gt;
+SELECT ?rinfIndex ?property ?value ?label (COUNT(DISTINCT ?track) AS ?tracks)
+WHERE {
+  ?property era:rinfIndex ?rinfIndex .
+  FILTER(?rinfIndex = "1.1.1.1.4.1")          # Nominal track gauge
+  ?track ?property ?value .
+  OPTIONAL { ?value skos:prefLabel ?label FILTER(LANG(?label)="en") }
+}
+GROUP BY ?rinfIndex ?property ?value ?label
+ORDER BY DESC(?tracks)'</code></pre>
+
+    <p>Then, in order:</p>
+    <ol>
+      <li><strong>Run the published queries first.</strong> The <a href="https://rinf.data.era.europa.eu/data-stories">Data Stories catalogue</a> holds 38 ready-made queries and three downloadable notebooks; the commonest questions about a rail register are already written, annotated and tested. Start there rather than at a blank editor &#8212; but note the notebook caveat in Q2 and drop the <code>GRAPH</code> wrapper if a notebook query returns nothing.</li>
+      <li><strong>Read the vocabulary</strong> &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/">rinf.data.era.europa.eu/era-vocabulary</a> (RDF/XML, Turtle, JSON-LD, N-Triples, CSV, plus SHACL and SKOS artefacts) &#8212; and the <a href="https://rinf.data.era.europa.eu/era-vocabulary/rinf-appGuide/">RINF application guide</a>, which explains how each numbered parameter maps to a property.</li>
+      <li><strong>Locate your own parameters.</strong> If you already hold a register, map your fields to the ERA properties via their <code>rinfIndex</code>. Anything that does not map is either genuinely national or a gap worth raising upstream.</li>
+      <li><strong>Adopt the identifiers before anything else.</strong> Before modelling, look up what already has a URI &#8212; countries and languages in the Publications Office tables, legal acts in ELI, subjects in EuroVoc, railway organisations in ERA&#8217;s register. Pointing at an existing identifier is the cheapest interoperability you will ever buy; minting a parallel one is the most expensive thing to undo later, as the Belgian case in Q2 shows.</li>
+      <li><strong>Adopt the code lists before the classes.</strong> Reusing the SKOS concept schemes is where most of the remaining comparability is won.</li>
+      <li><strong>Validate early with the shipped SHACL shapes</strong>, in your own pipeline, before first publication. This is the step whose absence produced the defects in Q2 &#8212; and check specifically that each <em>coded</em> parameter you publish has a value-set shape, treating a coded parameter without one as unvalidated. Add one check of your own: that every external URI you reference actually resolves.</li>
+      <li><strong>Publish into your own dataset</strong>, keeping custody, and reuse the Publications Office authority tables for countries and organisations.</li>
+      <li><strong>Engage the maintainers</strong> through the public GitLab issue tracker for extensions or clarifications. The vocabulary is versioned and the change process is open.</li>
+    </ol>
+    <p>For an authority whose domain is <em>not</em> rail, the reusable asset is the design rather than the rail classes themselves: a legal annex expressed as indexed properties, governed code lists, shipped validation shapes, and open query access. That pattern is what we would encourage assessors to consider transferable.</p>
+  </div>
+</section>
+
+<footer class="src">
+  <h2>Sources</h2>
+  <ul>
+    <li>ERA Ontology v3.3.4 &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/">rinf.data.era.europa.eu/era-vocabulary</a></li>
+    <li>RINF application guide &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/rinf-appGuide/">rinf-appGuide</a></li>
+    <li>ERATV application guide &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/eratv-appGuide/">eratv-appGuide</a></li>
+    <li>EVR application guide &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/evr-appGuide/">evr-appGuide</a></li>
+    <li>ERADIS application guide &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/eradis-appGuide/">eradis-appGuide</a></li>
+    <li>Commission Implementing Regulation (EU) 2019/777 of 16 May 2019, as amended by (EU) 2023/1694 of 10 August 2023</li>
+    <li>Commission Recommendation 2014/881/EU</li>
+    <li>ERATV: Decision 2011/665/EU; Reg. (EU) 2019/776; Decision (EU) 2021/701; Dir. (EU) 2016/797; Reg. (EU) 2018/545</li>
+    <li>EVR: Reg. (EU) 2023/1695; Decision (EU) 2018/1614</li>
+    <li>ERADIS: Dir. (EU) 2016/798; Dir. (EU) 2016/797; Reg. (EU) 2016/796</li>
+    <li>ERA Knowledge Graph &#8212; <a href="https://www.era.europa.eu/domains/registers/era-knowlege-graph_en">era.europa.eu/domains/registers</a></li>
+    <li>RINF Data Stories &#8212; 38 queries and 3 SPARQL notebooks &#8212; <a href="https://rinf.data.era.europa.eu/data-stories">rinf.data.era.europa.eu/data-stories</a></li>
+    <li>Organisation register (<code>OCR-KG</code>) &#8212; <a href="https://graph.data.era.europa.eu/repositories/OCR-KG">graph.data.era.europa.eu/repositories/OCR-KG</a></li>
+    <li>Legislation dataset (<code>era-lex</code>) &#8212; <a href="https://graph.data.era.europa.eu/repositories/era-lex">graph.data.era.europa.eu/repositories/era-lex</a></li>
+    <li>Published SHACL shapes &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/era-shapes">era-shapes</a></li>
+    <li>Published SKOS vocabularies &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/era-skos">era-skos</a> and <a href="https://rinf.data.era.europa.eu/era-vocabulary/era-telem-skos">era-telem-skos</a></li>
+    <li>Published ontology &#8212; <a href="https://rinf.data.era.europa.eu/era-vocabulary/ontology.nt">ontology.nt</a></li>
+    <li>ELI (European Legislation Identifier) and EuroVoc, Publications Office of the EU</li>
+    <li>Interoperable Europe Portal, ERA Vocabulary solution &#8212; <a href="https://interoperable-europe.ec.europa.eu/collection/semic-support-centre/solution/era-vocabulary-era-ontology">interoperable-europe.ec.europa.eu</a></li>
+    <li>ERA / railML.org Memorandum of Intent, 30 May 2023 &#8212; <a href="https://www.railml.org/en/news/a-year-of-transformative-collaboration-era-and-railml-org-enhance-railway-data-standards">railml.org</a></li>
+    <li>ERA Ontology repository &#8212; <a href="https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology">gitlab.com/era-europa-eu</a></li>
+    <li>Live measurements taken 22 August 2026 against <code>graph.data.era.europa.eu/repositories/rinf-plus</code></li>
+  </ul>
+</footer>
+
+</div>
+
+<footer class="src" style="border-top:1px solid var(--rule);margin-top:8px;">
+  <p style="font-size:13px;color:var(--muted);line-height:1.6;">
+    Part of the <a href="https://github.com/gatemezing/onto-dissemination">onto-dissemination</a>
+    demo set &#8212; alongside the <a href="./">ERA Graph Explorer</a>,
+    the <a href="./exporter.html">RDF Exporter</a> and the
+    <a href="./values.html">RINF Parameter Values</a> explorer.
+    The source of this page is
+    <code>scripts/assets/era-interop-answers.html</code>; the same text in Markdown is
+    <code>interop-europe/answers.md</code>.
+  </p>
+</footer>
+</body>
+</html>
