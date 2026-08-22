@@ -1,9 +1,9 @@
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>
 PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
-PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 SELECT ?op ?opid ?opName ?railwayLocation ?trackName ?rinfIndex ?parameterLabel
        (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
@@ -12,23 +12,38 @@ WHERE {
       ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ;
                  era:rinfIndex ?rinfIndex ; rdfs:label ?parameterLabel .
       FILTER(STRSTARTS(?rinfIndex, "1.2"))
-      FILTER NOT EXISTS { ?parameter owl:deprecated true }
-  } }
+      FILTER NOT EXISTS { ?parameter owl:deprecated true } } }
   ?op a era:OperationalPoint ; era:inCountry eu:FRA ; era:opName ?opName ; era:uopid ?opid ;
       era:netReference/era:hasLrsCoordinate [
         era:kmPost [ era:kilometer ?startKp ; era:hasLRS/era:lineId "830000-1" ] ;
         era:offsetFromKilometricPost ?startOffset ] .
   BIND(CONCAT(STR(?startKp),"+",STR(?startOffset)) AS ?railwayLocation)
   ?track era:isPartOf ?op ; rdfs:label ?trackName ; ?parameter ?value0 .
-  # keep only the latest validity window present at this operational point;
-  # bounded by ?op, so it stays an indexed lookup rather than a global aggregate
-  OPTIONAL { ?track era:validity/time:hasBeginning/time:inXSDDate ?tb }
-  FILTER NOT EXISTS {
-    ?tLater era:isPartOf ?op ; era:validity/time:hasBeginning/time:inXSDDate ?later .
-    FILTER(?later > ?tb)
-  }
   VALUES ?type { era:RunningTrack era:Siding }
   ?track a ?type .
+  OPTIONAL { ?track era:validity/time:hasBeginning/time:inXSDDate ?tb }
+  # latest window per OP, aggregated over ONLY this line's operational points
+  # Two distinct duplications, two rules.
+  # (a) Germany repeats the whole station as separate OP resources, one per
+  #     window, sharing a uopid — keep the latest per uopid.
+  OPTIONAL { ?op era:validity/time:hasBeginning/time:inXSDDate ?ob }
+  OPTIONAL {
+    { SELECT ?opid (MAX(?ob2) AS ?opLatest) WHERE {
+        ?opU a era:OperationalPoint ; era:inCountry eu:FRA ; era:uopid ?opid ;
+             era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "830000-1" ;
+             era:validity/time:hasBeginning/time:inXSDDate ?ob2 .
+    } GROUP BY ?opid }
+  }
+  FILTER(!BOUND(?ob) || !BOUND(?opLatest) || ?ob = ?opLatest)
+  # (b) France repeats tracks inside one OP — keep that OP's latest window.
+  OPTIONAL {
+    { SELECT ?op (MAX(?bb) AS ?latest) WHERE {
+        ?op a era:OperationalPoint ; era:inCountry eu:FRA ;
+            era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "830000-1" .
+        ?t2 era:isPartOf ?op ; era:validity/time:hasBeginning/time:inXSDDate ?bb .
+    } GROUP BY ?op }
+  }
+  FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)
   OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk)="en") }
   OPTIONAL { ?value0 rdfs:label ?lb }
   BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)

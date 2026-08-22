@@ -44,8 +44,27 @@ sections, while a Spanish line stays at 86 → 86.
 Retired parameters (`owl:deprecated`) are excluded, consistent with the other
 tools; 4 of the 83 `era:usedInRCCCalculations` parameters are retired.
 
-## Known gap
+## Germany: solved, and it needed two rules not one
 
-The operational-point query has not been made to finish for Germany — the
-per-OP `NOT EXISTS` is affordable for France but exceeded 2 minutes on a German
-line. That needs solving before the tool is built on top of it.
+The operational-point query originally exceeded two minutes on a German line.
+Two separate causes, found by measuring rather than guessing:
+
+1. **The aggregate was not line-scoped**, so it computed a maximum for every
+   operational point in the graph. Scoping it to the selected line brought
+   Germany from a timeout to ~16 s.
+2. **The two countries duplicate differently.** France repeats *tracks inside
+   one operational point* — 149 of the 327 points on line `830000-1` carry more
+   than one window. Germany repeats *the whole station as separate OP
+   resources*, one per window, each internally single-window and sharing a
+   `era:uopid` (`DE95070` resolves to three OP resources). A per-OP rule fixes
+   France and does nothing for Germany; a line-wide maximum fixes Germany and
+   destroys France, cutting it from 2,596 rows to 1.
+
+The query therefore applies both: keep the latest OP resource per `uopid`, then
+within it keep that point's latest track window. Measured after the fix:
+
+| Scope | Rows | Distinct uopids | Time |
+|---|---|---|---|
+| FRA `830000-1` | 2,596 | 327 | 5.6 s |
+| DEU `4000` | 4,404 (from 8,802) | 132 | 16.6 s |
+| ESP `ESL740874000` (undated) | 182 | 87 | 0.3 s |
