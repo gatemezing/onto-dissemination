@@ -1,0 +1,7 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX eu: <http://publications.europa.eu/resource/authority/country/>
+SELECT ?line (COUNT(DISTINCT ?sol) AS ?sections)
+       (MIN(?kp) AS ?fromKm) (MAX(?kp) AS ?toKm) WHERE {
+  ?sol a era:SectionOfLine ; era:inCountry eu:BEL ; era:nationalLine/era:lineId ?line .
+  OPTIONAL { ?sol era:netReference/era:startsAt/era:hasLrsCoordinate/era:kmPost/era:kilometer ?kp }
+} GROUP BY ?line ORDER BY ?line

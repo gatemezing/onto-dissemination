@@ -1,0 +1,33 @@
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?sol ?startPosition ?endPosition ?trackName ?rinfIndex ?parameterLabel
+       (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
+WHERE {
+  { SELECT DISTINCT ?parameter ?rinfIndex ?parameterLabel WHERE {
+      ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ;
+                 era:rinfIndex ?rinfIndex ; rdfs:label ?parameterLabel .
+      FILTER(STRSTARTS(?rinfIndex, "1.1"))
+      FILTER NOT EXISTS { ?parameter owl:deprecated true }
+  } }
+  ?sol a era:SectionOfLine ; era:inCountry eu:FRA ; era:nationalLine/era:lineId "830000-1" ;
+       era:netReference/era:startsAt/era:hasLrsCoordinate [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] ;
+       era:netReference/era:endsAt/era:hasLrsCoordinate   [ era:kmPost/era:kilometer ?endKp   ; era:offsetFromKilometricPost ?endOffset ] .
+  OPTIONAL { ?sol era:validity/time:hasBeginning/time:inXSDDate ?b }
+  OPTIONAL { { SELECT (MAX(?bb) AS ?latest) WHERE {
+      ?s2 a era:SectionOfLine ; era:nationalLine/era:lineId "830000-1" ;
+          era:validity/time:hasBeginning/time:inXSDDate ?bb } } }
+  FILTER(!BOUND(?b) || !BOUND(?latest) || ?b = ?latest)
+  BIND(CONCAT(STR(?startKp),"+",STR(?startOffset)) AS ?startPosition)
+  BIND(CONCAT(STR(?endKp),  "+",STR(?endOffset))   AS ?endPosition)
+  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; ?parameter ?value0 .
+  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk)="en") }
+  OPTIONAL { ?value0 rdfs:label ?lb }
+  BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)
+}
+GROUP BY ?sol ?startPosition ?endPosition ?trackName ?rinfIndex ?parameterLabel
+ORDER BY ?startPosition ?trackName ?rinfIndex
