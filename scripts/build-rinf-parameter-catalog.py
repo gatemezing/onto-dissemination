@@ -156,16 +156,21 @@ WHERE {{ VALUES ?p {{ {vals} }} ?s ?p ?v }} GROUP BY ?p""")
     print("     " + ", ".join(f"{k}={n}" for k, n in tally.most_common()))
 
     print("5/7  retired parameters still being published …")
+    # The retired-property set is resolved in a subquery. Joining
+    # `?p era:rinfIndex ?i` directly into the counting pattern multiplies a
+    # property's statements by how many indices it carries — TSITractionHarmonics
+    # has two, which inflated the total by its own 27,818 statements.
     depr_rows = query(["g", "p", "n"], """PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX era: <http://data.europa.eu/949/>
 SELECT ?g ?p (COUNT(*) AS ?n) WHERE {
-  ?p owl:deprecated true ; era:rinfIndex ?i .
+  { SELECT DISTINCT ?p WHERE { ?p owl:deprecated true ; era:rinfIndex ?i } }
   GRAPH ?g { ?s ?p ?o }
 } GROUP BY ?g ?p""")
     depr_total = query(["n"], """PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX era: <http://data.europa.eu/949/>
 SELECT (COUNT(*) AS ?n) WHERE {
-  ?p owl:deprecated true ; era:rinfIndex ?i . ?s ?p ?o }""")
+  { SELECT DISTINCT ?p WHERE { ?p owl:deprecated true ; era:rinfIndex ?i } }
+  ?s ?p ?o }""")
     print(f"     {len(depr_rows)} dataset/parameter pairs still carry retired parameters")
 
     print("6/7  graph -> country, from the countries the graph's resources declare …")

@@ -6,6 +6,11 @@ maintained by the European Union Agency for Railways
 ([public GitLab](https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology)) ·
 already listed on the [Interoperable Europe Portal](https://interoperable-europe.ec.europa.eu/collection/semic-support-centre/solution/era-vocabulary-era-ontology).
 
+**Two sources, and where they disagree.** The published ontology v3.3.4 yields
+**292** live RINF parameters; the catalogue built from the live endpoint yields
+**294**. Both are correct — the deployed repository still runs an older ontology
+version, as noted below. Figures are labelled by source throughout.
+
 **A note on the figures below.** Every quantitative claim is either a legal
 reference, a measurement of the **published artefacts** (ontology v3.3.4,
 `era-shapes`, `era-skos`, `era-telem-skos`), or a measurement against the **live
@@ -240,7 +245,22 @@ Two related observations, both checkable:
 Of the **329** properties carrying a `rinfIndex`, **37 are `owl:deprecated`**,
 leaving **292 live** parameters. Deprecation has not reached the data: **17 of
 those deprecated properties still carry 237,781 statements** in the live
-endpoint.
+endpoint, published by **nine countries**.
+
+| Country | Datasets | Statements | Retired parameters |
+|---|---|---|---|
+| Germany | `1080` | 156,064 | 9 |
+| Switzerland | `0085`, `3915` | 63,159 | 3 |
+| Czechia | `0054` | 6,538 | 2 |
+| Netherlands | `0084` | 3,409 | 3 |
+| Sweden | `0074`, `3779`, `3872`, `LQB6` | 3,095 | 10 |
+| Spain | `0071` | 2,607 | 4 |
+| Hungary | `0055` | 2,250 | 1 |
+| Ireland | `0060` | 1,670 | 7 |
+| France | `3430` | 592 | 14 |
+
+The heaviest are `tsiCompliantMaxDistConsecutiveAxles` (55,045),
+`TSITractionHarmonics` (29,421) and `maxDistEndTrainFirstAxle` (23,493).
 
 Worse for a consumer, only **one of the 17 declares a replacement** via
 `dcterms:isReplacedBy` — and in that one case both spellings are populated:
@@ -252,6 +272,21 @@ successor at all.
 There is a second-order trap here: the retired and current terms differ only by
 capitalisation (`TSIMagneticFields` / `tsiMagneticFields`), which is easy to read
 past in a mapping table.
+
+And a third, which caught us while measuring it. `TSITractionHarmonics` carries
+**two** `rinfIndex` values, so counting retired statements with
+`?p era:rinfIndex ?i . ?s ?p ?o` multiplies that property's statements by two and
+inflates the total by its own 27,818. Resolving the property set in a subquery
+first gives the correct 237,781. A parameter that legitimately appears at more
+than one index is easy to double-count, and 146 of the properties in this
+ontology have more than one.
+
+**These findings are now enforced, not just recorded.** The three tools in this
+repository exclude `owl:deprecated` parameters: the catalogue behind the value
+explorer omits them (294 properties rather than 331), so one cannot be selected
+by accident, and the RDF exporter drops them at every level of its recursion. The
+value explorer still *reports* the table above, because silently omitting the
+data would repeat the very failure this section is about.
 
 #### Published queries that name graphs the deployment does not have
 

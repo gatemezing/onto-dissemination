@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reusing the ERA Ontology — ERA reusability answers</title>
+<title>Reusing the ERA Ontology &#8212; ERA reusability answers</title>
 <meta name="description" content="Seven answers on the reusability of the ERA rail ontology for the Interoperable Europe assessment, with every figure measured against the published artefacts and the live knowledge graph.">
 <meta name="author" content="European Union Agency for Railways">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,7 +77,7 @@
   header.mast{padding:52px 0 40px;border-bottom:2px solid var(--ink);}
   /* Official ERA mark (Wikimedia Commons, public domain, by the European Union
      Agency for Railways). It carries dark text, so it is given its native white
-     ground rather than being filtered — a plate reads as deliberate on both
+     ground rather than being filtered &#8212; a plate reads as deliberate on both
      themes, an inverted logo does not. */
   .brand{display:inline-block;background:#fff;padding:14px 18px;border-radius:4px;
     margin:0 0 28px;line-height:0;border:1px solid var(--rule);}
@@ -239,6 +239,7 @@
     <div><dt>Repository</dt><dd><a href="https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology">GitLab &#8212; public</a></dd></div>
   </dl>
 
+  <p class="provenance"><strong>Two sources, and where they disagree.</strong> The published ontology v3.3.4 yields <strong>292</strong> live RINF parameters; the catalogue built from the live endpoint yields <strong>294</strong>. Both are correct &#8212; the deployed repository still runs an older ontology version. Figures are labelled by source throughout.</p>
   <p class="provenance"><strong>On the figures.</strong> Every quantitative claim below is either a legal reference, a measurement of the <strong>published artefacts</strong> (ontology v3.3.4, <code>era-shapes</code>, <code>era-skos</code>, <code>era-telem-skos</code>), or a measurement against the <strong>live knowledge graph</strong> on 22&nbsp;August&nbsp;2026. The two are distinguished wherever they differ, because in places they do. Parameter counts <strong>exclude <code>owl:deprecated</code> terms</strong> unless stated &#8212; 100 terms are deprecated and several still carry live data, so including them overstates coverage.</p>
 </header>
 
@@ -336,9 +337,33 @@ FILTER NOT EXISTS { ?concept skos:inScheme ?conceptScheme }</code></pre>
     <p>Two related observations, both checkable. <strong>Nothing validates the vocabulary itself:</strong> the suite has shapes targeting <code>skos:Concept</code>, but none targeting <code>skos:ConceptScheme</code>. Constraints such as &#8220;every member carries a <code>skos:notation</code>&#8221;, &#8220;no two members share a notation&#8221; or &#8220;member IRIs match the scheme&#8217;s pattern&#8221; would have caught this at load time. And <strong>the deployed validation lags the published specification:</strong> published <code>era-shapes</code> carries <span class="m">147</span> node shapes, <span class="m">882</span> property shapes and <span class="m">323</span> SPARQL constraints; the repository serving the live data carries <span class="m">76</span>, <span class="m">393</span> and <span class="m">211</span> &#8212; roughly half. Shipping a rule and enforcing it are different acts.</p>
 
     <h3>Retired parameters that still carry data</h3>
-    <p>Of the <span class="m">329</span> properties carrying a <code>rinfIndex</code>, <span class="m">37</span> are <code>owl:deprecated</code>, leaving <span class="m">292</span> live parameters. Deprecation has not reached the data: <strong>17 of those deprecated properties still carry <span class="m">237,781</span> statements</strong> in the live endpoint.</p>
+    <p>Of the <span class="m">329</span> properties carrying a <code>rinfIndex</code>, <span class="m">37</span> are <code>owl:deprecated</code>, leaving <span class="m">292</span> live parameters. Deprecation has not reached the data: <strong>17 of those deprecated properties still carry <span class="m">237,781</span> statements</strong> in the live endpoint, published by <strong>nine countries</strong>.</p>
+    <div class="scroll">
+      <table>
+        <caption>Who still publishes retired RINF parameters</caption>
+        <thead><tr><th>Country</th><th>Datasets</th><th class="num">Statements</th><th class="num">Retired parameters</th></tr></thead>
+        <tbody>
+          <tr><td>Germany</td><td><code>1080</code></td><td class="num">156,064</td><td class="num">9</td></tr>
+          <tr><td>Switzerland</td><td><code>0085</code>, <code>3915</code></td><td class="num">63,159</td><td class="num">3</td></tr>
+          <tr><td>Czechia</td><td><code>0054</code></td><td class="num">6,538</td><td class="num">2</td></tr>
+          <tr><td>Netherlands</td><td><code>0084</code></td><td class="num">3,409</td><td class="num">3</td></tr>
+          <tr><td>Sweden</td><td><code>0074</code>, <code>3779</code>, <code>3872</code>, <code>LQB6</code></td><td class="num">3,095</td><td class="num">10</td></tr>
+          <tr><td>Spain</td><td><code>0071</code></td><td class="num">2,607</td><td class="num">4</td></tr>
+          <tr><td>Hungary</td><td><code>0055</code></td><td class="num">2,250</td><td class="num">1</td></tr>
+          <tr><td>Ireland</td><td><code>0060</code></td><td class="num">1,670</td><td class="num">7</td></tr>
+          <tr><td>France</td><td><code>3430</code></td><td class="num">592</td><td class="num">14</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The heaviest are <code>tsiCompliantMaxDistConsecutiveAxles</code> (55,045), <code>TSITractionHarmonics</code> (29,421) and <code>maxDistEndTrainFirstAxle</code> (23,493).</p>
     <div class="caveat">
       <b>Only one of the 17 declares a replacement.</b> Via <code>dcterms:isReplacedBy</code> &#8212; and in that one case both spellings are populated: <code>TSITractionHarmonics</code> (deprecated) holds 27,818 statements while its successor <code>tsiTractionHarmonics</code> holds 31,387. Query only the live property and you miss 47% of the parameter. The other 16 offer no machine-readable route to their successor at all &#8212; and retired and current terms can differ only by capitalisation (<code>TSIMagneticFields</code> / <code>tsiMagneticFields</code>), which is easy to read past in a mapping table.
+    </div>
+    <div class="caveat">
+      <b>A third trap, which caught us while measuring this.</b> <code>TSITractionHarmonics</code> carries <strong>two</strong> <code>rinfIndex</code> values, so counting retired statements with <code>?p era:rinfIndex ?i . ?s ?p ?o</code> multiplies that property&#8217;s statements by two and inflates the total by its own 27,818. Resolving the property set in a subquery first gives the correct 237,781. A parameter that legitimately appears at more than one index is easy to double-count &#8212; and 146 of the properties in this ontology have more than one.
+    </div>
+    <div class="note-enforced" style="background:var(--verify-soft);border-left:3px solid var(--verify);padding:16px 18px;margin:0 0 18px;border-radius:0 4px 4px 0;font-size:15px;line-height:1.55;">
+      <b style="color:var(--verify)">These findings are now enforced, not just recorded.</b> The three tools in this repository exclude <code>owl:deprecated</code> parameters: the catalogue behind the <a href="./values.html">value explorer</a> omits them (294 properties rather than 331), so one cannot be selected by accident, and the <a href="./exporter.html">RDF exporter</a> drops them at every level of its recursion. The value explorer still <em>reports</em> the table above, because silently omitting the data would repeat the very failure this section is about.
     </div>
 
     <h3>Published queries that name graphs the deployment does not have</h3>
