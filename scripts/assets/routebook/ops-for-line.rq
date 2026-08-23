@@ -1,17 +1,60 @@
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Operational points of a line -- reachable two ways, and a route book needs both.
+#
+# Most managers position a point with a kilometric post on the line's own LRS.
+# Croatia does not: its 582 operational points carry era:uopid and a net
+# reference but nothing tying them to an LRS, and no era:inCountry either. Its
+# sections of line do name them, with era:opStart and era:opEnd, which places
+# them just as well. The second branch excludes points the first already found,
+# so nothing is counted twice.
+#
+# The second branch is not a Croatia workaround -- it improves complete
+# networks too. French line 830000-1 goes from 327 points to 603, because
+# points at section boundaries are not all carried by a kilometric post on that
+# line's LRS.
+#
+# era:inCountry is deliberately not required: pinning the LPS resources already
+# confines the query to the chosen country's network, and requiring it would
+# drop Croatia entirely.
+#
+# Position is optional because Croatia's net point references carry a geometry
+# and no era:hasLrsCoordinate. Unpositioned points are reported without a
+# kilometre rather than dropped.
+#
+# Measured: DEU 4000 308 resources / 168 uopids after the validity rule;
+# FRA 830000-1 603 / 603; HRV NationalRailwayLine_L101 7, all via the second
+# branch.
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX time: <http://www.w3.org/2006/time#>
-PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>
-SELECT DISTINCT ?op ?opid ?opName ?startKp ?position WHERE {
-  ?op a era:OperationalPoint ; era:inCountry eu:DEU ; era:opName ?opName ; era:uopid ?opid ;
-      era:netReference/era:hasLrsCoordinate
-        [ era:kmPost [ era:kilometer ?startKp ; era:hasLRS/era:lineId "4000" ] ;
-          era:offsetFromKilometricPost ?startOffset ] .
-  BIND(CONCAT(STR(?startKp),"+",STR(?startOffset)) AS ?position)
+SELECT DISTINCT ?op ?opid ?opName ?startKp ?position ?via
+WHERE {
+  VALUES ?lps { <http://data.europa.eu/949/NationalRailwayLine_L101> }   # ... from lines-for-country.rq
+  {
+    ?op a era:OperationalPoint ; era:opName ?opName ; era:uopid ?opid ;
+        era:netReference/era:hasLrsCoordinate
+          [ era:kmPost [ era:kilometer ?startKp ; era:hasLRS ?lps ] ;
+            era:offsetFromKilometricPost ?startOffset ] .
+    BIND("kilometric post" AS ?via)
+  } UNION {
+    ?sol a era:SectionOfLine ; era:nationalLine ?lps .
+    { ?sol era:opStart ?op .
+      OPTIONAL { ?sol era:netReference/era:startsAt/era:hasLrsCoordinate
+                   [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] } }
+    UNION
+    { ?sol era:opEnd ?op .
+      OPTIONAL { ?sol era:netReference/era:endsAt/era:hasLrsCoordinate
+                   [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] } }
+    ?op a era:OperationalPoint ; era:opName ?opName ; era:uopid ?opid .
+    FILTER NOT EXISTS { ?op era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS ?lps }
+    BIND("section endpoint" AS ?via)
+  }
+  BIND(IF(BOUND(?startKp), CONCAT(STR(?startKp), "+", STR(?startOffset)), "") AS ?position)
+  # Germany republishes a whole station as separate resources sharing one uopid.
   OPTIONAL { ?op era:validity/time:hasBeginning/time:inXSDDate ?ob }
   OPTIONAL { { SELECT ?opid (MAX(?ob2) AS ?opLatest) WHERE {
-      ?opU a era:OperationalPoint ; era:inCountry eu:DEU ; era:uopid ?opid ;
-           era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "4000" ;
+      VALUES ?lps { <http://data.europa.eu/949/NationalRailwayLine_L101> }
+      ?opU a era:OperationalPoint ; era:uopid ?opid ;
+           era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS ?lps ;
            era:validity/time:hasBeginning/time:inXSDDate ?ob2 } GROUP BY ?opid } }
   FILTER(!BOUND(?ob) || !BOUND(?opLatest) || ?ob = ?opLatest)
-} ORDER BY ?startKp
+}
+ORDER BY ?startKp ?position

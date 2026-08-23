@@ -6,12 +6,12 @@ The query set behind [`era-route-book.html`](../era-route-book.html)
 
 | File | What it does | Measured |
 |---|---|---|
+| `lines-for-country.rq` | national lines for one country, by `era:lineId` **or** LPS label | **0.2–2.3 s** |
 | `d2-catalogue.rq` | the 46 D2 elements, and whether any manager publishes each at all | **0.15 s** |
 | `infrastructure-manager.rq` | D2 1.1 — the manager each section of line declares | **0.11 s** |
 | `infrastructure-manager-names.rq` | …and their names, from OCR-KG | **0.15 s** |
-| `country-gap-diagnosis.rq` | why a country returned no national lines | **0.15–0.21 s** |
 | `sections-for-line.rq` | phase 1: sections of line with position, latest window per stretch | **0.45 s**, 167 sections for DEU `4000` |
-| `ops-for-line.rq` | phase 1: operational points with position, latest resource per `uopid` | **0.23 s**, 168 points for the same line |
+| `ops-for-line.rq` | phase 1: operational points, by kilometric post **or** section endpoint | **0.23 s**, 168 points for the same line |
 | `d2-elements-for-place.rq` | phase 2: the D2 elements on those places, one query per access path | **1.4 s** for all five line-side branches |
 
 ## What Appendix D2 is, and what the ontology gives you
@@ -118,35 +118,89 @@ Resolved end to end: `0071` → Administrador de Infraestructuras Ferroviarias
 (ADIF), `0080` → DB InfraGO, `0084` → ProRail, `0087` → SNCF Réseau, `1080` →
 Deutsche Bahn AG.
 
-## Croatia and Norway: sections of line with no line identifiers
+## Four modelling variations, all of them absorbed
 
-The tool keys a route book to `era:lineId` and finds operational points by
-`era:inCountry`. Two of the 27 countries publishing sections of line populate
-neither, so the country → line cascade comes back empty:
+Every infrastructure manager publishes national lines. Not all publish them the
+same way, and a query written against one style returns *nothing at all* for
+the others — silently, which is the dangerous part. An earlier version of this
+tool asked only for `era:lineId` and reported Croatia and Norway as having no
+data. They have plenty; the query was too narrow.
 
-| Country | Sections | National lines | `era:lineId` | Labels instead | OPs referenced | OPs with `era:inCountry` |
-|---|---|---|---|---|---|---|
-| **HRV** | 583 | 55 | **0** | 110, e.g. `NationalRailwayLine_M604` | 533 | **0** |
-| **NOR** | 375 | 32 | **0** | 64, e.g. `Kongsberg - Flesberg` | 235 | 235 |
-| ESP *(for contrast)* | 2,520 | 466 | 466 | 466 | 2,153 | 2,153 |
+### 1. Line identity — `era:lineId` or the LPS label
 
-Croatia's national lines are typed `era:LinearPositioningSystem` and carry only
-an `rdfs:label` and a geometry. Its operational points are otherwise sound —
-correctly typed, carrying `era:uopid` — but without `era:inCountry` they cannot
-be found by country either, so both halves of the route book are unreachable.
-Norway has only the first gap; its operational points are complete.
+| | LPS resources | with `era:lineId` |
+|---|---|---|
+| all countries | 9,642 | 9,543 |
+| HRV | 55 | **0** |
+| NOR | 32 | **0** |
 
-The other 25 countries populate `era:lineId`, from Liechtenstein's 1 to
-Germany's 1,482.
+Croatia and Norway put the identifier in the English `rdfs:label` of the
+`era:LinearPositioningSystem` instead — `NationalRailwayLine_M604`,
+`B03-Kongsvingerbanen`. The line list takes `era:lineId` where it exists and the
+label where it does not, and records which in `?src`, which the page surfaces.
 
-**The identifier is visible in both cases, and the tool still does not use it.**
-`NationalRailwayLine_M604` plainly contains `M604`, and a regular expression
-would produce a line list for Croatia. That would be the wrong call: a label is
-not an identifier, the pattern differs between the two countries (Norway's
-labels are endpoint pairs, not codes), and parsing it would hide a reporting gap
-that a route-book compiler needs to see. The tool asks for the property the
-ontology defines, and when it is absent it says so — `country-gap-diagnosis.rq`
-runs automatically and the figures above appear in the page.
+Two traps here. The labels are **language-tagged** (`en`, plus `hr` for Croatia
+and `no` for Norway), so matching one as a plain literal never matches. And a
+line identifier is unique only *within* a Member State, so every downstream
+query pins the **LPS URIs** returned by this query with `VALUES` rather than
+matching the identifier string again.
+
+### 2. Reaching operational points — kilometric post or section endpoint
+
+Croatia's 582 operational points carry `era:uopid` and a net reference, but
+nothing tying them to an LRS and no `era:inCountry` either. Its sections of line
+*do* name them, with `era:opStart` and `era:opEnd`.
+
+Querying both routes is not a Croatia workaround — it improves complete networks
+too, because points at section boundaries are not all carried by a kilometric
+post on that line's LRS:
+
+| Line | via kilometric post | via section endpoint | total |
+|---|---|---|---|
+| DEU `4000` | 308 resources → 168 uopids | 4 | 168 |
+| FRA `830000-1` | 327 | 276 | **603** |
+| HRV `NationalRailwayLine_L101` | 0 | 7 | 7 |
+
+The second branch excludes points the first already found, so nothing doubles.
+`era:inCountry` is deliberately not required: pinning the LPS resources already
+confines the query to the chosen country's network, and requiring it would drop
+Croatia entirely.
+
+### 3. Linear referencing, or none at all
+
+Croatia's `era:NetPointReference` resources carry a geometry and **no**
+`era:hasLrsCoordinate`, so its sections have no kilometre position whatsoever.
+Position is therefore `OPTIONAL` throughout: unpositioned places are reported
+with `—` and sorted after the positioned ones, rather than excluded. Setting a
+kilometre range necessarily limits the result to places that have one.
+
+### 4. Organisation URIs are not as shared as advertised
+
+Names are joined to OCR-KG on `era:organisationCode`, not on the body URI:
+
+| Country | URI in RINF | In the register |
+|---|---|---|
+| 25 of 27 | `body/organisation/0087` | same URI ✓ |
+| HRV | `body/organisation/0078` **and** `…/0078_ORG` | only the first |
+| NOR | `…/organisations/0076` | `body/organisation/0076` |
+
+The URI join works for 25 of the 27 and is the better join where it holds. The
+code closes the other two and collapses Croatia's duplicate into one row —
+Croatia's manager resolves to *Hz Infrastruktura d.o.o.*, Norway's to *Bane NOR*.
+
+### What this costs
+
+Nothing measurable, and none of it is guesswork about what a manager meant:
+each branch queries a property the ontology defines, and the page reports which
+branch produced what. Coverage after the change:
+
+| Line | D2 elements | Rows | Time |
+|---|---|---|---|
+| HRV `NationalRailwayLine_L101` | 15 / 46 | 151 | 0.4 s |
+| NOR `B01-Østfoldbanen Vestre` | 22 / 46 | 1,540 | 2.3 s |
+| ESP `ESL010110000` | 27 / 46 | 1,551 | 0.6 s |
+| FRA `830000-1` | 27 / 46 | 40,996 | 4.3 s |
+| DEU `4000` | 29 / 46 | 13,795 | 6.0 s |
 
 ## Validity
 

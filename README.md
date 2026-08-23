@@ -374,16 +374,19 @@ declared line manager in one register and *DB InfraGO Aktiengesellschaft* in the
 other, and the identifier is the join. It is the clearest demonstration here of
 why one persistent URI reused across registers beats a shared numeric code.
 
-**Croatia and Norway get an explanation, not an empty box.** The tool keys a
-route book to `era:lineId` and finds operational points by `era:inCountry`. Two
-of the 27 countries publishing sections of line populate neither: Croatia has
-583 sections whose national lines carry only an `rdfs:label` such as
-`NationalRailwayLine_M604`, plus 533 operational points with no
-`era:inCountry`; Norway has 375 sections labelled `Kongsberg - Flesberg` and the
-like. Picking either country runs a diagnostic query and states exactly what is
-missing. The identifier is visible in both labels and the tool deliberately does
-not parse it — a label is not an identifier, the two countries' patterns differ,
-and guessing would hide a reporting gap a route-book compiler needs to see.
+**Every country works, because managers model their networks differently.** A
+query written against one publication style returns nothing at all for the
+others, silently. Four variations are absorbed: line identity comes from
+`era:lineId` where it is published and from the English LPS `rdfs:label` where
+it is not (9,543 of 9,642 LPS carry `era:lineId`; the 99 that do not are
+Croatia's 55 and Norway's 32); operational points are reached by kilometric post
+**or** by the `era:opStart`/`era:opEnd` of a section, which also takes French
+line `830000-1` from 327 points to 603; kilometre position is optional, since
+Croatia's net point references carry a geometry and no `era:hasLrsCoordinate` at
+all; and manager names join on `era:organisationCode` rather than the body URI,
+because Croatia publishes its manager under two URIs and Norway under a
+non-canonical one. Every branch queries a property the ontology defines, and the
+page reports which branch produced what.
 
 Validity handling is identical to the RCC tool, and retired (`owl:deprecated`)
 properties are excluded. The full query set with the measurements behind each

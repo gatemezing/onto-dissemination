@@ -111,6 +111,8 @@
   .note.warn{background:rgba(240,168,58,.10);border:1px solid rgba(240,168,58,.38);color:#f3d8a8;}
   .note.warn code{background:rgba(0,0,0,.28);}
   .note a{color:#f0a83a;}
+  footer ul{margin:0 0 9px;padding-left:20px;}
+  footer li{margin-bottom:6px;}
   .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
   .resultActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
   .resultActions .grow{flex:1;}
@@ -239,22 +241,35 @@
       Codes Register</a>, queried with the very same URIs RINF returned — no code column, no join key, no matching by
       hand. That is what a shared identifier buys. The dataset a line is published in is reported alongside, as the
       separate fact it is: German line <code>4000</code> appears in two of them.</p>
-    <p id="gapFootnote"><strong>Two countries publish sections of line but no line identifiers, so this tool can
-      offer them nothing.</strong> <em>Croatia</em> has 583 sections of line, every one pointing at a national line —
-      but those resources are typed <code>era:LinearPositioningSystem</code> and carry only an
-      <code>rdfs:label</code> such as <code>NationalRailwayLine_M604</code>; not one carries
-      <code>era:lineId</code>. Croatia compounds it: its 533 operational points are correctly typed and carry
-      <code>era:uopid</code>, yet none carries <code>era:inCountry</code>, so they cannot be reached by country
-      either. <em>Norway</em> has the same missing <code>era:lineId</code> across its 375 sections, labelled
-      <code>Kongsberg&nbsp;-&nbsp;Flesberg</code> and the like, though its operational points are complete. The other
-      25 countries publishing sections of line all populate <code>era:lineId</code>, from Liechtenstein's 1 to
-      Germany's 1,482.</p>
-    <p>Both are properties the ontology defines and the rest of Europe populates, so the tool asks for them rather
-      than parsing identifiers out of free-text labels — a label is not an identifier, and guessing would hide a
-      reporting gap that a route-book compiler needs to see. Pick either country above and the exact figures are
-      measured live and shown; the query is
-      <a href="https://github.com/gatemezing/onto-dissemination/blob/main/scripts/assets/routebook/country-gap-diagnosis.rq"
-         target="_blank" rel="noopener"><code>country-gap-diagnosis.rq</code></a>.</p>
+    <p id="gapFootnote"><strong>Managers model their networks differently, and the tool absorbs the differences
+      rather than dropping the countries that have them.</strong> Every infrastructure manager publishes national
+      lines; not all publish them the same way, and a query written against one style silently returns nothing for
+      the others. Four variations are handled here:</p>
+    <ul>
+      <li><strong>Line identity.</strong> 9,543 of the 9,642 <code>era:LinearPositioningSystem</code> resources carry
+        <code>era:lineId</code>. The 99 that do not are Croatia's 55 and Norway's 32, which put the identifier in the
+        English <code>rdfs:label</code> instead — <code>NationalRailwayLine_M604</code>,
+        <code>B03-Kongsvingerbanen</code>. The line list takes <code>era:lineId</code> where it exists and the label
+        where it does not, and says which it used.</li>
+      <li><strong>Reaching operational points.</strong> Most managers position a point with a kilometric post on the
+        line's own LRS. Croatia's 582 points carry <code>era:uopid</code> and a net reference but nothing tying them
+        to an LRS, and no <code>era:inCountry</code> either — yet its sections name them with
+        <code>era:opStart</code> and <code>era:opEnd</code>. Both routes are queried, and the second excludes points
+        the first already found. It also improves complete networks: French line <code>830000-1</code> goes from 327
+        points to 603.</li>
+      <li><strong>Linear referencing at all.</strong> Croatia's net point references carry a geometry and no
+        <code>era:hasLrsCoordinate</code>, so its sections have no kilometre position. Position is therefore
+        optional: unpositioned places are reported with <code>—</code> and sorted after the positioned ones, rather
+        than excluded. Setting a kilometre range necessarily limits results to places that have one.</li>
+      <li><strong>Organisation URIs.</strong> Names are joined to the Organisation Codes Register on
+        <code>era:organisationCode</code>, not on the body URI. The URI join works for 25 of the 27 — but Croatia
+        publishes its manager under both <code>body/organisation/0078</code> and a bare <code>…/0078_ORG</code>, and
+        Norway uses <code>…/organisations/0076</code> where the register has <code>body/organisation/0076</code>.</li>
+    </ul>
+    <p>None of this is guesswork about what a manager meant: each branch queries a property the ontology defines, and
+      the page reports which branch produced what. The queries are
+      <a href="https://github.com/gatemezing/onto-dissemination/tree/main/scripts/assets/routebook"
+         target="_blank" rel="noopener">published alongside the page</a>.</p>
     <p><strong>Superseded descriptions are dropped, place by place.</strong> The same validity rule as the RCC tool:
       the newest window per stretch of line, and per <code>era:uopid</code> then per track at operational points.
       Ten countries publish no dated validity at all, and a resource with no validity is always kept.
@@ -317,7 +332,8 @@ const CHUNK = 250;      // URIs per VALUES clause
 const POOL  = 6;        // concurrent requests
 const TABLE_LIMIT = 300;
 
-let lines = [];         // [{line, sections, fromKm, toKm}] for the chosen country
+let lines = [];         // [{line, src, lps, sections, fromKm, toKm}] for the chosen country
+let labelLines = 0;     // how many of them are identified by label rather than era:lineId
 let d2Catalog = [];     // [{d2, params:[], anywhere:bool}] all 46 elements
 let lastRun = null;
 let activeTab = 'line';
@@ -390,14 +406,34 @@ const VALUE_LABEL = `  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = 
   OPTIONAL { ?value0 rdfs:label ?lb }
   BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)`;
 
+/* National lines, keyed to the LinearPositioningSystem resource itself.
+   9,543 of the 9,642 LPS in the endpoint carry era:lineId; the 99 that do not
+   are Croatia's 56 and Norway's 35, which publish the identifier only as an
+   rdfs:label. Both are national lines and both belong in this list, so the
+   identifier is taken from era:lineId where it exists and from the English
+   label where it does not — and the LPS URIs come back with it, so every
+   later query pins the resource instead of matching a string. */
 function linesQuery(cc){
   return `${PREFIXES}
-SELECT ?line (COUNT(DISTINCT ?sol) AS ?sections) (MIN(?kp) AS ?fromKm) (MAX(?kp) AS ?toKm)
+SELECT ?line ?src (COUNT(DISTINCT ?sol) AS ?sections) (MIN(?kp) AS ?fromKm) (MAX(?kp) AS ?toKm)
+       (GROUP_CONCAT(DISTINCT STR(?lps); separator=" ") AS ?lpsList)
 WHERE {
-  ?sol a era:SectionOfLine ; era:inCountry eu:${safeCountry(cc)} ; era:nationalLine/era:lineId ?line .
+  ?sol a era:SectionOfLine ; era:inCountry eu:${safeCountry(cc)} ; era:nationalLine ?lps .
+  OPTIONAL { ?lps era:lineId ?lid }
+  OPTIONAL { ?lps rdfs:label ?llabel FILTER(LANG(?llabel) = "en") }
+  BIND(COALESCE(?lid, STR(?llabel)) AS ?line)
+  FILTER(BOUND(?line))
+  BIND(IF(BOUND(?lid), "lineId", "label") AS ?src)
   OPTIONAL { ?sol era:netReference/era:startsAt/era:hasLrsCoordinate/era:kmPost/era:kilometer ?kp }
 }
-GROUP BY ?line ORDER BY ?line`;
+GROUP BY ?line ?src ORDER BY ?line`;
+}
+
+/* Pinning the LinearPositioningSystem resources rather than the line string
+   also removes a hazard the string form carried: a line identifier is unique
+   only within a Member State. */
+function lpsValues(lps){
+  return `  VALUES ?lps { ${lps.map(u => '<' + u + '>').join(' ')} }`;
 }
 
 /* Every D2 element, and whether any manager publishes it at all. Cheap because
@@ -423,12 +459,11 @@ GROUP BY ?d2`;
    both German graphs, so the graph route names DB InfraGO *and* Deutsche Bahn
    AG for line 4000 where the declared property names DB InfraGO alone.
    The publishing dataset is reported too, as the separate fact it is. */
-function managersQuery(cc, line){
-  const L = safeLine(line), C = safeCountry(cc);
+function managersQuery(lps){
   return `${PREFIXES}
 SELECT DISTINCT ?body ?code ?graph WHERE {
-  GRAPH ?graph { ?sol a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" ;
-                      era:infrastructureManager ?role }
+${lpsValues(lps)}
+  GRAPH ?graph { ?sol a era:SectionOfLine ; era:nationalLine ?lps ; era:infrastructureManager ?role }
   ?role era:roleOf ?body .
   ?body era:organisationCode ?code .
 }
@@ -460,21 +495,25 @@ WHERE {
 }`;
 }
 
-/* …and the names, from the register that holds them. Run against OCR-KG with
-   the very same body URIs RINF returned — no key matching, no join column. */
-function managerNamesQuery(bodies){
+/* …and the names, from the register that holds them.
+   The join is on era:organisationCode rather than on the body URI, because two
+   managers mint their own: Croatia publishes both body/organisation/0078 and a
+   bare .../0078_ORG for the same organisation, and Norway uses
+   .../organisations/0076 where the register has body/organisation/0076. The
+   URI join works for 25 of the 27; the code is what closes the other two, and
+   it also collapses Croatia's duplicate into one row. */
+function managerNamesQuery(codes){
   return `${PREFIXES}
-SELECT ?body ?code ?name ?nick ?country
+SELECT ?code ?body ?name ?nick ?country
        (GROUP_CONCAT(DISTINCT ?roleNotation; separator=", ") AS ?roles)
 WHERE {
-  VALUES ?body { ${bodies.map(b => '<' + b + '>').join(' ')} }
-  ?body era:organisationCode ?code .
-  OPTIONAL { ?body foaf:name ?name }
+  VALUES ?code { ${codes.map(c => '"' + c + '"').join(' ')} }
+  ?body era:organisationCode ?code ; foaf:name ?name .
   OPTIONAL { ?body foaf:nick ?nick }
   OPTIONAL { ?body org:hasSite/org:siteAddress/locn:adminUnitL1 ?country }
   OPTIONAL { ?body era:role/era:hasOrganisationRole/skos:notation ?roleNotation }
 }
-GROUP BY ?body ?code ?name ?nick ?country
+GROUP BY ?code ?body ?name ?nick ?country
 ORDER BY ?code`;
 }
 
@@ -490,25 +529,30 @@ function kmFilter(varName){
    Resolving these once and pinning them into phase 2 with VALUES is the whole
    performance story: German line 4000 goes from 30 s to under 2 s, because the
    section lookup and its validity aggregate stop being repeated per branch. */
-function sectionsQuery(cc, line){
-  const L = safeLine(line), C = safeCountry(cc);
+function sectionsQuery(lps){
   return `${PREFIXES}
 SELECT DISTINCT ?sol ?startKp ?startPosition ?endPosition
 WHERE {
-  ?sol a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" ;
-       era:netReference/era:startsAt/era:hasLrsCoordinate
-         [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] ;
-       era:netReference/era:endsAt/era:hasLrsCoordinate
-         [ era:kmPost/era:kilometer ?endKp   ; era:offsetFromKilometricPost ?endOffset ] .
+${lpsValues(lps)}
+  ?sol a era:SectionOfLine ; era:nationalLine ?lps .
+  # Linear referencing is optional, because for one manager it is absent.
+  # Croatia's net point references carry a geometry and no era:hasLrsCoordinate,
+  # so its sections have no kilometre position at all — which is a reason to
+  # report them without one, not a reason to drop them.
+  OPTIONAL { ?sol era:netReference/era:startsAt/era:hasLrsCoordinate
+               [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] }
+  OPTIONAL { ?sol era:netReference/era:endsAt/era:hasLrsCoordinate
+               [ era:kmPost/era:kilometer ?endKp   ; era:offsetFromKilometricPost ?endOffset ] }
 ${kmFilter('startKp')}
-  BIND(CONCAT(STR(?startKp), "+", STR(?startOffset)) AS ?startPosition)
-  BIND(CONCAT(STR(?endKp),   "+", STR(?endOffset))   AS ?endPosition)
+  BIND(IF(BOUND(?startKp), CONCAT(STR(?startKp), "+", STR(?startOffset)), "") AS ?startPosition)
+  BIND(IF(BOUND(?endKp),   CONCAT(STR(?endKp),   "+", STR(?endOffset)),   "") AS ?endPosition)
   # Newest validity window per stretch of line, not per line. Some managers
   # republish a stretch every year; others date each section by the day it
   # opened, and a line-wide maximum would delete all but the newest of those.
   OPTIONAL { ?sol era:validity/time:hasBeginning/time:inXSDDate ?b }
   OPTIONAL { { SELECT ?startPosition ?endPosition (MAX(?bb) AS ?latest) WHERE {
-      ?s2 a era:SectionOfLine ; era:inCountry eu:${C} ; era:nationalLine/era:lineId "${L}" ;
+${lpsValues(lps)}
+      ?s2 a era:SectionOfLine ; era:nationalLine ?lps ;
           era:netReference/era:startsAt/era:hasLrsCoordinate
             [ era:kmPost/era:kilometer ?sk2 ; era:offsetFromKilometricPost ?so2 ] ;
           era:netReference/era:endsAt/era:hasLrsCoordinate
@@ -522,24 +566,48 @@ ${kmFilter('startKp')}
 ORDER BY ?startKp ?startPosition`;
 }
 
-function opsQuery(cc, line){
-  const L = safeLine(line), C = safeCountry(cc);
+/* Operational points reach a line two ways, and a route book needs both.
+   Most managers position a point with a kilometric post on the line's own LRS.
+   Croatia does not — its 582 points carry era:uopid and a net reference but
+   nothing tying them to an LRS, and no era:inCountry either — yet its sections
+   name them with era:opStart and era:opEnd, which places them exactly as well.
+   The second branch excludes points the first already found, so nothing is
+   counted twice. era:inCountry is deliberately not required: pinning the LPS
+   resources already confines the query to the chosen country's network. */
+function opsQuery(lps, cc){
   return `${PREFIXES}
-SELECT DISTINCT ?op ?opid ?opName ?startKp ?position
+SELECT DISTINCT ?op ?opid ?opName ?startKp ?position ?via
 WHERE {
-  ?op a era:OperationalPoint ; era:inCountry eu:${C} ; era:opName ?opName ; era:uopid ?opid ;
-      era:netReference/era:hasLrsCoordinate
-        [ era:kmPost [ era:kilometer ?startKp ; era:hasLRS/era:lineId "${L}" ] ;
-          era:offsetFromKilometricPost ?startOffset ] .
+${lpsValues(lps)}
+  {
+    ?op a era:OperationalPoint ; era:opName ?opName ; era:uopid ?opid ;
+        era:netReference/era:hasLrsCoordinate
+          [ era:kmPost [ era:kilometer ?startKp ; era:hasLRS ?lps ] ;
+            era:offsetFromKilometricPost ?startOffset ] .
+    BIND("kilometric post" AS ?via)
+  } UNION {
+    ?sol a era:SectionOfLine ; era:nationalLine ?lps .
+    { ?sol era:opStart ?op .
+      OPTIONAL { ?sol era:netReference/era:startsAt/era:hasLrsCoordinate
+                   [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] } }
+    UNION
+    { ?sol era:opEnd ?op .
+      OPTIONAL { ?sol era:netReference/era:endsAt/era:hasLrsCoordinate
+                   [ era:kmPost/era:kilometer ?startKp ; era:offsetFromKilometricPost ?startOffset ] } }
+    ?op a era:OperationalPoint ; era:opName ?opName ; era:uopid ?opid .
+    FILTER NOT EXISTS { ?op era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS ?lps }
+    BIND("section endpoint" AS ?via)
+  }
 ${kmFilter('startKp')}
-  BIND(CONCAT(STR(?startKp), "+", STR(?startOffset)) AS ?position)
+  BIND(IF(BOUND(?startKp), CONCAT(STR(?startKp), "+", STR(?startOffset)), "") AS ?position)
   # Germany republishes a whole station as separate resources sharing one
   # uopid, so the newest resource per uopid is the rule here; the per-track
   # window, which is what France repeats, is applied in phase 2.
   OPTIONAL { ?op era:validity/time:hasBeginning/time:inXSDDate ?ob }
   OPTIONAL { { SELECT ?opid (MAX(?ob2) AS ?opLatest) WHERE {
-      ?opU a era:OperationalPoint ; era:inCountry eu:${C} ; era:uopid ?opid ;
-           era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS/era:lineId "${L}" ;
+${lpsValues(lps)}
+      ?opU a era:OperationalPoint ; era:uopid ?opid ;
+           era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS ?lps ;
            era:validity/time:hasBeginning/time:inXSDDate ?ob2 } GROUP BY ?opid } }
   FILTER(!BOUND(?ob) || !BOUND(?opLatest) || ?ob = ?opLatest)
 }
@@ -642,10 +710,13 @@ async function loadLines(cc){
     const rows = await sparql(linesQuery(cc));
     lines = rows.map(b => ({
       line: b.line.value,
+      src: b.src ? b.src.value : 'lineId',
+      lps: b.lpsList.value.split(' ').filter(Boolean),
       sections: +b.sections.value,
       fromKm: b.fromKm ? Math.round(+b.fromKm.value) : null,
       toKm:   b.toKm   ? Math.round(+b.toKm.value)   : null,
     }));
+    labelLines = lines.filter(l => l.src === 'label').length;
     $('lineList').innerHTML = lines.map(l => {
       const span = (l.fromKm !== null && l.toKm !== null) ? `km ${l.fromKm}–${l.toKm}` : '';
       return `<option value="${esc(l.line)}">${l.sections} section${l.sections === 1 ? '' : 's'}${span ? ' · ' + span : ''}</option>`;
@@ -655,7 +726,17 @@ async function loadLines(cc){
     $('lineInput').placeholder = `Type or pick one of ${fmt(lines.length)} lines…`;
     $('countryHint').className = 'hint on';
     $('countryHint').textContent = fmt(lines.length) + ' national lines' +
-      (UNDATED.has(cc) ? ' · this country publishes no validity dates, so nothing is filtered out' : '');
+      (labelLines ? ` · ${labelLines === lines.length ? 'all' : fmt(labelLines)} identified by label, not era:lineId` : '') +
+      (UNDATED.has(cc) ? ' · no validity dates published, so nothing is filtered out' : '');
+    if(labelLines){
+      $('gapNote').innerHTML =
+        `<strong>${esc(name)} names its lines without <code>era:lineId</code>.</strong> ` +
+        `${labelLines === lines.length ? 'Every one of its' : fmt(labelLines) + ' of its'} ` +
+        `${fmt(lines.length)} national lines is identified here by the English <code>rdfs:label</code> of its ` +
+        `<code>era:LinearPositioningSystem</code> instead. The lines are real and complete; only the property ` +
+        `carrying their identifier differs. <a href="#gapFootnote">What this means for the results</a>.`;
+      $('gapNote').hidden = false;
+    }
   } catch(err){
     $('countryHint').textContent = 'Could not load lines: ' + err.message;
   }
@@ -676,7 +757,8 @@ function updateRun(){
   } else if(l){
     $('lineHint').className = 'hint on';
     $('lineHint').textContent = `${l.sections} section${l.sections === 1 ? '' : 's'}` +
-      (l.fromKm !== null ? ` · km ${l.fromKm}–${l.toKm}` : '');
+      (l.fromKm !== null ? ` · km ${l.fromKm}–${l.toKm}` : '') +
+      (l.src === 'label' ? ' · identified by label' : '');
   } else {
     $('lineHint').textContent = '';
   }
@@ -755,8 +837,8 @@ async function run(){
 
   let qSections = null, qOps = null;
   try{
-    if(wantLine) qSections = sectionsQuery(cc, l.line);
-    if(wantOp)   qOps      = opsQuery(cc, l.line);
+    if(wantLine) qSections = sectionsQuery(l.lps);
+    if(wantOp)   qOps      = opsQuery(l.lps, cc);
   } catch(err){ setStatus(err.message, 'error'); return; }
 
   $('runBtn').disabled = true;
@@ -768,7 +850,7 @@ async function run(){
   const started = performance.now();
   const shown = [];
   try{
-    const qMgr = managersQuery(cc, l.line);
+    const qMgr = managersQuery(l.lps);
     const [secRows, opRows, mgrRows] = await Promise.all([
       qSections ? sparql(qSections, ctrl.signal) : Promise.resolve([]),
       qOps      ? sparql(qOps,      ctrl.signal) : Promise.resolve([]),
@@ -778,20 +860,21 @@ async function run(){
     if(qOps)      shown.push('/* === phase 1: operational points === */\n' + qOps);
     shown.push('/* === D2 1.1: the infrastructure manager publishing this line === */\n' + qMgr);
 
-    const bodies = [...new Set(mgrRows.map(b => b.body.value))].sort();
+    /* One row per organisation code: a manager that publishes itself under two
+       URIs is still one manager. */
+    const codes = [...new Set(mgrRows.map(b => b.code.value))].sort();
     const graphs = [...new Set(mgrRows.map(b => b.graph.value.replace(/^.*\//, '')))].sort();
-    /* RINF gives the URI, the Organisation Codes Register gives the name. */
-    const named = bodies.length
-      ? await sparql(managerNamesQuery(bodies), ctrl.signal, OCR_ENDPOINT).catch(() => [])
+    const named = codes.length
+      ? await sparql(managerNamesQuery(codes), ctrl.signal, OCR_ENDPOINT).catch(() => [])
       : [];
-    if(bodies.length) shown.push('/* === D2 1.1: their names, from ' + OCR_ENDPOINT + ' === */\n' +
-      managerNamesQuery(bodies));
-    const byBody = new Map(named.map(b => [b.body.value, b]));
-    const managers = bodies.map(u => {
-      const b = byBody.get(u) || {};
+    if(codes.length) shown.push('/* === D2 1.1: their names, from ' + OCR_ENDPOINT + ' === */\n' +
+      managerNamesQuery(codes));
+    const byCode = new Map(named.map(b => [b.code.value, b]));
+    const managers = codes.map(c => {
+      const b = byCode.get(c) || {};
       return {
-        uri: u,
-        code: (b.code && b.code.value) || u.replace(/^.*\//, ''),
+        code: c,
+        uri: (b.body && b.body.value) || '',
         name: (b.name && b.name.value) || '',
         nick: (b.nick && b.nick.value) || '',
         country: b.country ? b.country.value.replace(/^.*\//, '') : '',
@@ -803,9 +886,12 @@ async function run(){
        so the two are joined here rather than repeated down the wire. */
     const sections = new Map(), ops = new Map();
     secRows.forEach(b => sections.set(b.sol.value, {
-      km: +b.startKp.value, start: b.startPosition.value, end: b.endPosition.value }));
+      km: b.startKp ? +b.startKp.value : Infinity,
+      start: b.startPosition.value || '—', end: b.endPosition.value || '—' }));
     opRows.forEach(b => { if(!ops.has(b.op.value)) ops.set(b.op.value, {
-      km: +b.startKp.value, position: b.position.value, opid: b.opid.value, name: b.opName.value }); });
+      km: b.startKp ? +b.startKp.value : Infinity,
+      position: b.position.value || '—', opid: b.opid.value,
+      name: b.opName.value, via: b.via ? b.via.value : '' }); });
 
     if(!sections.size && !ops.size){
       clearTimeout(timer);
@@ -858,7 +944,12 @@ async function run(){
         }
       });
     });
-    const order = (a, b) => a.km - b.km || byD2(a.d2, b.d2) || a.param.localeCompare(b.param);
+    /* Unpositioned places sort last, then by name, so a route book without
+       linear referencing still reads in a stable order. */
+    const order = (a, b) =>
+      (isFinite(a.km) ? a.km : Infinity) - (isFinite(b.km) ? b.km : Infinity) ||
+      (a.opName || '').localeCompare(b.opName || '') ||
+      byD2(a.d2, b.d2) || a.param.localeCompare(b.param);
     lineRows.sort(order); opRowsOut.sort(order);
 
     /* One example query per access path — seven near-identical 30 KB VALUES
@@ -872,7 +963,9 @@ async function run(){
     lastRun = {
       managers, graphs,
       country: cc, countryLabel: (COUNTRIES.find(x => x[0] === cc) || [, cc])[1],
-      line: l.line, kmFrom: $('kmFrom').value.trim(), kmTo: $('kmTo').value.trim(),
+      line: l.line, lineSrc: l.src,
+      viaSection: [...ops.values()].filter(o => o.via === 'section endpoint').length,
+      kmFrom: $('kmFrom').value.trim(), kmTo: $('kmTo').value.trim(),
       sidings, wantLine, wantOp,
       sections: sections.size, ops: ops.size,
       lineRows, opRows: opRowsOut, covered, elapsed,
@@ -947,9 +1040,13 @@ function render(){
   $('d2Filter').disabled = isCover;
   isCover ? renderCoverage() : renderRows();
 
-  $('validityNote').textContent = UNDATED.has(r.country)
+  const viaNote = r.viaSection
+    ? ` ${fmt(r.viaSection)} operational point${r.viaSection === 1 ? ' was' : 's were'} located from the section ` +
+      `of line that names ${r.viaSection === 1 ? 'it' : 'them'}, having no kilometric post on this line's LRS.`
+    : '';
+  $('validityNote').textContent = (UNDATED.has(r.country)
     ? `${r.countryLabel} publishes no validity dates, so no rows were filtered out on that basis.`
-    : 'Superseded descriptions are excluded — each place keeps only its newest validity window.';
+    : 'Superseded descriptions are excluded — each place keeps only its newest validity window.') + viaNote;
   $('sparqlOut').textContent = r.query;
   $('csvBtn').disabled = $('xlsBtn').disabled = !(r.lineRows.length + r.opRows.length);
   $('resultPanel').hidden = false;
@@ -1110,6 +1207,8 @@ $('xlsBtn').addEventListener('click', () => {
     [],
     ['Country', r.countryLabel + ' (' + r.country + ')'],
     ['National line', r.line],
+    ['Line identified by', r.lineSrc === 'label' ? 'rdfs:label on the LinearPositioningSystem (era:lineId not published)' : 'era:lineId'],
+    ['Operational points found via section endpoints', r.viaSection],
     ['Infrastructure manager (D2 1.1)', r.managers.map(m => (m.name || '?') + ' (' + m.code + ')').join('; ') || 'not resolved'],
     ['Published in dataset', r.graphs.join(', ') || '—'],
     ...r.managers.map(m => ['  ' + m.code, [m.name, m.nick && '“' + m.nick + '”', m.country,
@@ -1201,10 +1300,7 @@ updateRun();
    navigation, so the form has to be reapplied by hand. */
 window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; applyHash(); });
 
-/* ------------------------------------------------------------------ *
- * XLSX writer — store-only ZIP, no dependencies. The same one the other
- * tools here use, so every workbook comes out identical in shape.
- * ------------------------------------------------------------------ */
+/* XLSX writer — store-only ZIP, no dependencies. */
 let CRC_TABLE = null;
 function crc32(bytes){
   if(!CRC_TABLE){
