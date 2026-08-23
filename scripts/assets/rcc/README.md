@@ -7,9 +7,47 @@ tuned, plus the country → line lookup that drives its cascade. All three were 
 
 | File | What it does | Measured |
 |---|---|---|
-| `lines-for-country.rq` | national lines for one country, with section count and km range | 444 lines for BEL in **0.5 s** |
-| `track-rcc-parameters.rq` | RINF `1.1…` RCC parameters per track, with start/end position | **67,281 rows, 20 s** for FRA line `830000-1`; **8,281 rows (from 16,615), 24 s** for DEU `4000` |
-| `op-rcc-parameters.rq` | RINF `1.2…` RCC parameters per operational-point track | **2,596 rows, 6 s** for the same line |
+| `lines-for-country.rq` | national lines, by `era:lineId` **or** LPS label | 0.2–2.3 s |
+| `sections-for-line.rq` | phase 1: sections with position and latest window | **0.45 s**, 167 for DEU `4000` |
+| `ops-for-line.rq` | phase 1: points, by kilometric post **or** section endpoint | **0.25 s**, 168 for the same line |
+| `track-rcc-parameters.rq` | phase 2: RINF `1.1…` parameters on those sections | part of a **3.6 s** German run |
+| `op-rcc-parameters.rq` | phase 2: RINF `1.2…` parameters at those points | as above |
+
+## Two phases, and why the single query had to go
+
+The original form asked for places, parameters and two validity rules at once.
+The track side took 25 s; the operational-point side went **over the endpoint's
+120 s limit and returned HTTP 503** for every country tried. Resolving the
+places once and pinning them into the parameter query with `VALUES` gives
+identical results, far faster:
+
+| Line | Before | After | Rows |
+|---|---|---|---|
+| DEU `4000` | 33 s | **3.6 s** | 12,661 |
+| FRA `830000-1` | 21 s | **6.6 s** | 69,877 |
+| ESP `ESL010110000` | 0.7 s | **0.6 s** | 1,446 |
+| HRV `NationalRailwayLine_L101` | *no lines offered* | **0.3 s** | 62 |
+| NOR `B01-Østfoldbanen Vestre` | *no lines offered* | **1.3 s** | 1,104 |
+
+## Four modelling variations, all of them absorbed
+
+A query written against one publication style returns nothing at all for the
+others, silently. The full analysis is in
+[`../routebook/README.md`](../routebook/README.md); in summary:
+
+1. **Line identity** — `era:lineId` (9,543 of 9,642 LPS) or the English
+   `rdfs:label` (Croatia's 55, Norway's 32).
+2. **Reaching operational points** — kilometric post or `era:opStart`/`era:opEnd`
+   of a section. Not just a Croatia fix: FRA `830000-1` goes 327 → 603 points.
+3. **Linear referencing, or none** — Croatia's net point references carry a
+   geometry and no `era:hasLrsCoordinate`, so position is `OPTIONAL` and its
+   rows show `—`.
+4. **The part-whole direction** — every dataset publishes `era:isPartOf` except
+   Croatia's, which publishes only `era:hasPart` (645 tracks otherwise invisible).
+   Asking for **both** is correct and ruinous: by UNION or by an alternation
+   path it takes the German track query from 1.4 s to **57 s**, because the
+   optimiser can no longer push the parameter join. The direction is probed once
+   per run with a one-row query, and a single form is emitted.
 
 ## The correction that matters: latest validity only
 

@@ -118,7 +118,7 @@ Resolved end to end: `0071` → Administrador de Infraestructuras Ferroviarias
 (ADIF), `0080` → DB InfraGO, `0084` → ProRail, `0087` → SNCF Réseau, `1080` →
 Deutsche Bahn AG.
 
-## Four modelling variations, all of them absorbed
+## Five modelling variations, all of them absorbed
 
 Every infrastructure manager publishes national lines. Not all publish them the
 same way, and a query written against one style returns *nothing at all* for
@@ -174,7 +174,32 @@ Position is therefore `OPTIONAL` throughout: unpositioned places are reported
 with `—` and sorted after the positioned ones, rather than excluded. Setting a
 kilometre range necessarily limits the result to places that have one.
 
-### 4. Organisation URIs are not as shared as advertised
+### 4. The part-whole direction
+
+A place and its tracks are joined by `era:isPartOf` in every dataset except
+Croatia's, which publishes only `era:hasPart` — 645 tracks that a query written
+against the inverse alone never sees:
+
+| Dataset | tracks via `era:isPartOf` | via `era:hasPart` |
+|---|---|---|
+| HRV `graph/0078` | **0** | 645 |
+| NOR `graph/0076` | 607 | 607 |
+| DEU `graph/0080` | 36,777 | 36,777 |
+| FRA `graph/0087` | 25,133 | 25,133 |
+| ESP `graph/0071` | 3,530 | 3,530 |
+
+Asking for both is correct and ruinous. In isolation a `UNION` of the two costs
+nothing (1.1 s against 0.6 s), but in the real query — with the parameter join,
+the label resolution and the `GROUP_CONCAT` — it takes a German line from
+**1.4 s to 57 s**, and puts the operational-point side over the endpoint's
+120 s limit. An alternation path (`era:hasPart|^era:isPartOf`) behaves the same.
+The optimiser can no longer push the property join once the subject can arrive
+from two directions.
+
+So the direction is **probed once per run** with a one-row query and a single
+form is emitted. Cost: one round trip of about 0.1 s.
+
+### 5. Organisation URIs are not as shared as advertised
 
 Names are joined to OCR-KG on `era:organisationCode`, not on the body URI:
 
@@ -196,7 +221,7 @@ branch produced what. Coverage after the change:
 
 | Line | D2 elements | Rows | Time |
 |---|---|---|---|
-| HRV `NationalRailwayLine_L101` | 15 / 46 | 151 | 0.4 s |
+| HRV `NationalRailwayLine_L101` | 17 / 46 | 175 | 0.5 s |
 | NOR `B01-Østfoldbanen Vestre` | 22 / 46 | 1,540 | 2.3 s |
 | ESP `ESL010110000` | 27 / 46 | 1,551 | 0.6 s |
 | FRA `830000-1` | 27 / 46 | 40,996 | 4.3 s |

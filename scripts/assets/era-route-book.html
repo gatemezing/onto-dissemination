@@ -261,6 +261,11 @@
         <code>era:hasLrsCoordinate</code>, so its sections have no kilometre position. Position is therefore
         optional: unpositioned places are reported with <code>—</code> and sorted after the positioned ones, rather
         than excluded. Setting a kilometre range necessarily limits results to places that have one.</li>
+      <li><strong>The part-whole link.</strong> A place and its tracks are joined by <code>era:isPartOf</code> in
+        every dataset except Croatia's, which publishes only <code>era:hasPart</code> — 645 tracks that a query
+        written against the inverse alone never sees. Asking for both in the same query is correct and ruinous: it
+        takes a German line from 1.4&nbsp;s to 57&nbsp;s, because the optimiser can no longer push the property
+        join. The direction is therefore probed once per run and one form is emitted.</li>
       <li><strong>Organisation URIs.</strong> Names are joined to the Organisation Codes Register on
         <code>era:organisationCode</code>, not on the body URI. The URI join works for 25 of the 27 — but Croatia
         publishes its manager under both <code>body/organisation/0078</code> and a bare <code>…/0078_ORG</code>, and
@@ -620,11 +625,11 @@ ORDER BY ?startKp ?position`;
    run in parallel; a UNION of them all runs as one long serial plan. */
 const LINE_BRANCHES = {
   section: '  ?sol ?p ?value0 .\n  BIND("" AS ?trackName) BIND("" AS ?featureName)',
-  track:   '  ?track era:isPartOf ?sol ; rdfs:label ?trackName .\n  ?track ?p ?value0 .\n  BIND("" AS ?featureName)',
-  feature: '  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; era:hasPart ?f .\n  ?f ?p ?value0 .\n' +
+  track:   '@PART_SOL@  ?track rdfs:label ?trackName .\n  ?track ?p ?value0 .\n  BIND("" AS ?featureName)',
+  feature: '@PART_SOL@  ?track rdfs:label ?trackName ; era:hasPart ?f .\n  ?f ?p ?value0 .\n' +
            '  OPTIONAL { ?f rdfs:label ?fl }\n  BIND(COALESCE(?fl, REPLACE(STR(?f), "^.*/", "")) AS ?featureName)',
-  power:   '  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; era:contactLineSystem ?c .\n  ?c ?p ?value0 .\n  BIND("" AS ?featureName)',
-  etcs:    '  ?track era:isPartOf ?sol ; rdfs:label ?trackName ; era:etcs ?e .\n  ?e ?p ?value0 .\n  BIND("" AS ?featureName)',
+  power:   '@PART_SOL@  ?track rdfs:label ?trackName ; era:contactLineSystem ?c .\n  ?c ?p ?value0 .\n  BIND("" AS ?featureName)',
+  etcs:    '@PART_SOL@  ?track rdfs:label ?trackName ; era:etcs ?e .\n  ?e ?p ?value0 .\n  BIND("" AS ?featureName)',
 };
 const OP_BRANCHES = {
   point:    '  ?op ?p ?value0 .\n  BIND("" AS ?trackName) BIND("" AS ?featureName)',
@@ -637,6 +642,24 @@ const OP_BRANCHES = {
   etcs:     '@TRACK@  ?track era:etcs ?e .\n  ?e ?p ?value0 .\n  BIND("" AS ?featureName)',
 };
 
+/* Which way round the part-whole link is published. Every dataset but one
+   carries both era:hasPart and era:isPartOf; Croatia carries only era:hasPart,
+   so a query written against the inverse alone finds none of its tracks.
+   Asking for both in the same query is correct and ruinous — it takes a German
+   line from 1.4 s to 57 s, because the optimiser can no longer push the
+   property join. So the direction is probed once and one form is emitted. */
+let PART_DIR = 'isPartOf';
+function part(whole, track){
+  track = track || 'track';
+  return PART_DIR === 'isPartOf'
+    ? `?${track} era:isPartOf ?${whole} .`
+    : `?${whole} era:hasPart ?${track} .`;
+}
+function partProbeQuery(uris){
+  return `${PREFIXES}
+SELECT ?t WHERE { ${values('w', uris.slice(0, 50)).trim()} ?t era:isPartOf ?w } LIMIT 1`;
+}
+
 function values(varName, uris){
   return `  VALUES ?${varName} { ${uris.map(u => '<' + u + '>').join(' ')} }`;
 }
@@ -648,7 +671,7 @@ SELECT ?sol ?d2 ?paramLabel ?trackName ?featureName
 WHERE {
 ${D2_PARAMS}
 ${values('sol', sols)}
-${LINE_BRANCHES[branch]}
+${LINE_BRANCHES[branch].replace('@PART_SOL@', '  ' + part('sol'))}
 ${VALUE_LABEL}
 }
 GROUP BY ?sol ?d2 ?paramLabel ?trackName ?featureName`;
@@ -657,12 +680,12 @@ GROUP BY ?sol ?d2 ?paramLabel ?trackName ?featureName`;
 function opBranchQuery(branch, ops, sidings){
   /* France repeats tracks inside one point, so the newest track window is
      applied per point — pinned to the same VALUES so the aggregate stays small. */
-  const trackBlock = `  ?op era:hasPart ?track .\n  ?track rdfs:label ?trackName .\n` +
+  const trackBlock = `  ${part('op')}\n  ?track rdfs:label ?trackName .\n` +
     `  VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }\n  ?track a ?type .\n` +
     `  OPTIONAL { ?track era:validity/time:hasBeginning/time:inXSDDate ?tb }\n` +
     `  OPTIONAL { { SELECT ?op (MAX(?bb) AS ?latest) WHERE {\n` +
     `${values('op', ops)}\n` +
-    `      ?t2 era:isPartOf ?op ; era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }\n` +
+    `      ${part('op', 't2')} ?t2 era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }\n` +
     `  FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)\n`;
   return `${PREFIXES}
 SELECT ?op ?d2 ?paramLabel ?trackName ?featureName
@@ -902,6 +925,10 @@ async function run(){
 
     setStatus(`Collecting D2 elements from ${fmt(sections.size)} section${sections.size === 1 ? '' : 's'} and ` +
       `${fmt(ops.size)} operational point${ops.size === 1 ? '' : 's'}…`, 'loading');
+
+    const probeOn = sections.size ? [...sections.keys()] : [...ops.keys()];
+    PART_DIR = (await sparql(partProbeQuery(probeOn), ctrl.signal).catch(() => [{}])).length
+      ? 'isPartOf' : 'hasPart';
 
     const jobs = [], kinds = [];
     if(sections.size) for(const br of Object.keys(LINE_BRANCHES))

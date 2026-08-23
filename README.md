@@ -376,7 +376,7 @@ why one persistent URI reused across registers beats a shared numeric code.
 
 **Every country works, because managers model their networks differently.** A
 query written against one publication style returns nothing at all for the
-others, silently. Four variations are absorbed: line identity comes from
+others, silently. Five variations are absorbed: line identity comes from
 `era:lineId` where it is published and from the English LPS `rdfs:label` where
 it is not (9,543 of 9,642 LPS carry `era:lineId`; the 99 that do not are
 Croatia's 55 and Norway's 32); operational points are reached by kilometric post
@@ -385,8 +385,16 @@ line `830000-1` from 327 points to 603; kilometre position is optional, since
 Croatia's net point references carry a geometry and no `era:hasLrsCoordinate` at
 all; and manager names join on `era:organisationCode` rather than the body URI,
 because Croatia publishes its manager under two URIs and Norway under a
-non-canonical one. Every branch queries a property the ontology defines, and the
-page reports which branch produced what.
+non-canonical one; and the part-whole link between a place and its tracks is
+`era:isPartOf` everywhere except Croatia, which publishes only `era:hasPart`.
+Every branch queries a property the ontology defines, and the page reports which
+branch produced what.
+
+The same five apply to the RCC Parameters tool, which was rebuilt on the same
+two-phase shape at the same time: resolving places once and pinning them into
+the parameter query took German line `4000` from 33 s to **3.6 s** and French
+line `830000-1` from 21 s to **6.6 s**, and fixed an operational-point query
+that had been exceeding the endpoint's 120 s limit outright.
 
 Validity handling is identical to the RCC tool, and retired (`owl:deprecated`)
 properties are excluded. The full query set with the measurements behind each
