@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the 5-slide ERA reusability summary as a real .pptx.
+"""Build the 9-slide ERA reusability deck as a real .pptx — one slide per question.
 
 Run:  python3 scripts/build-era-answers-pptx.py   (needs python-pptx)
 Source text: interop-europe/answers.md  ·  page: scripts/assets/era-interop-answers.html
@@ -133,181 +133,324 @@ def table(slide, x, y, w, rows, widths, size=12.5, rh=Inches(.32)):
     return shp
 
 
+
+# ── extra visual helpers ──────────────────────────────────────────
+ACCENT = RGBColor(0x3F, 0x7B, 0xD1)
+TEAL   = RGBColor(0x1F, 0x6B, 0x4A)
+
+
+def tiles(slide, x, y, w, items, h=Inches(1.12), gap=Inches(.16), size=30, lab=10.5):
+    """A row of big-number stat tiles: [(value, label), …]."""
+    n = len(items)
+    tw = (w - gap * (n - 1)) / n
+    for i, (val, label) in enumerate(items):
+        tx = x + (tw + gap) * i
+        box(slide, tx, y, tw, h, fill=FILL2)
+        box(slide, tx, y, tw, Inches(.045), fill=ACCENT)
+        text(slide, tx + Inches(.14), y + Inches(.19), tw - Inches(.28), Inches(.5),
+             val, size=size, bold=True, color=NAVY, align=PP_ALIGN.CENTER, line=1.0)
+        text(slide, tx + Inches(.1), y + h - Inches(.42), tw - Inches(.2), Inches(.36),
+             label, size=lab, color=MUTED, align=PP_ALIGN.CENTER, line=1.12)
+
+
+def bars(slide, x, y, w, rows, bar_h=Inches(.26), gap=Inches(.13),
+         label_w=Inches(2.05), value_w=Inches(1.05), hue=ACCENT, note=None):
+    """Horizontal bar chart. rows: [(label, value, display)] — value drives length."""
+    top = max(v for _, v, _ in rows) or 1
+    track = w - label_w - value_w
+    for i, (label, val, disp) in enumerate(rows):
+        by = y + (bar_h + gap) * i
+        text(slide, x, by - Inches(.02), label_w - Inches(.12), bar_h,
+             label, size=11.5, color=INK, align=PP_ALIGN.RIGHT, line=1.0)
+        box(slide, x + label_w, by, track, bar_h, fill=FILL2)
+        bw = max(int(track * val / top), Emu(9000))
+        box(slide, x + label_w, by, Emu(int(bw)), bar_h, fill=hue if i == 0 else FILL)
+        text(slide, x + label_w + track + Inches(.1), by - Inches(.02), value_w, bar_h,
+             disp, size=11.5, bold=(i == 0), color=NAVY if i == 0 else INK, line=1.0)
+    if note:
+        text(slide, x + label_w, y + (bar_h + gap) * len(rows) + Inches(.06),
+             w - label_w, Inches(.3), [[(note, {"italic": True})]], size=10, color=MUTED)
+
+
+def bullets(slide, x, y, w, h, items, size=13.5, space=9, lead=None):
+    """items: [(lead, rest)] — lead set navy bold, rest normal."""
+    paras = []
+    for it in items:
+        if isinstance(it, tuple):
+            paras.append([("▪  ", {"color": ACCENT, "bold": True}),
+                          (it[0], {"bold": True, "color": NAVY}), (it[1], {})])
+        else:
+            paras.append([("▪  ", {"color": ACCENT, "bold": True}), (it, {})])
+    text(slide, x, y, w, h, paras, size=size, space=space, line=1.28)
+
+
+def slide(num, title, sub=None):
+    sl = prs.slides.add_slide(BLANK)
+    header(sl, num, title)
+    if sub:
+        text(sl, Inches(.62), Inches(1.32), Inches(12.1), Inches(.55), sub,
+             size=15.5, color=NAVY, bold=True, line=1.2)
+    footer(sl, "ERA Ontology v3.3.4 · EUPL 1.2 · figures measured 22 August 2026", num + 1)
+    return sl
+
+
 # ── 1 ─────────────────────────────────────────────────────── title
 s = prs.slides.add_slide(BLANK)
 box(s, 0, 0, W, H, fill=NAVY)
-text(s, Inches(.95), Inches(2.05), Inches(9.6), Inches(1.05),
+text(s, Inches(.95), Inches(1.95), Inches(9.6), Inches(1.05),
      [[("Reusing the ", {"size": 46}), ("ERA Ontology", {"size": 46, "bold": True})]],
      color=WHITE, line=1.02, space=2)
-text(s, Inches(.95), Inches(3.15), Inches(9.6), Inches(.6),
+text(s, Inches(.95), Inches(3.05), Inches(9.6), Inches(.6),
      "Seven answers for the Interoperable Europe assessment", size=21, color=WHITE)
-box(s, Inches(.95), Inches(4.0), Inches(4.2), Pt(1), fill=RGBColor(0x8E, 0xA2, 0xC6))
-text(s, Inches(.95), Inches(4.25), Inches(10.0), Inches(1.0),
+box(s, Inches(.95), Inches(3.9), Inches(4.2), Pt(1), fill=RGBColor(0x8E, 0xA2, 0xC6))
+text(s, Inches(.95), Inches(4.15), Inches(10.2), Inches(1.2),
      ["Every figure is a legal reference, a measurement of the published artefacts "
       "(ontology v3.3.4, era-shapes, era-skos), or a measurement against the live "
       "knowledge graph on 22 August 2026.",
-      "Parameter counts exclude owl:deprecated terms."],
+      "Parameter counts exclude owl:deprecated terms. Where the artefacts and the "
+      "deployed graph disagree, both numbers are given."],
      size=13, color=RGBColor(0xD3, 0xDD, 0xEE), line=1.3)
-s.shapes.add_picture(str(LOGO), Inches(.95), Inches(5.75), height=Inches(.78))
+prs.slides[0].shapes.add_picture(str(LOGO), Inches(.95), Inches(.75), height=Inches(.72))
 
-# ── 2 ─────────────────────────────────────────── the case for reuse
+# ── 2 ─────────────────────────────────── Q1 reusability / evidence
+s = slide(1, "Would it make sense for public authorities\nto look at reusability?",
+          "Yes — because the ontology is not an interpretation of the law. It is the law in machine-readable form.")
+callout(s, Inches(.62), Inches(2.0), Inches(12.1), Inches(.62), "navy",
+        [("RINF parameter 1.1.1.1.4.1 “Nominal track gauge” ", {"bold": True}),
+         ("is ", {}), ("era:wheelSetGauge", {"font": MONO}),
+         (". 292 live properties carry their legal index, so the trace from legal text to "
+          "data field is machine-checkable, not a matter of documentation discipline.", {})])
+tiles(s, Inches(.62), Inches(2.86), Inches(12.1),
+      [("47.4 M", "triples in the\nlive graph"), ("27", "countries\npublishing"),
+       ("54", "national\ndatasets"), ("725,637", "running\ntracks"),
+       ("18,279", "SKOS concepts\nin 423 schemes"), ("1,029", "SHACL shapes\n+ 323 constraints")])
+text(s, Inches(.62), Inches(4.28), Inches(5.6), Inches(.3),
+     "The same design across four legal registers", size=13, bold=True, color=NAVY)
+bars(s, Inches(.62), Inches(4.72), Inches(5.6),
+     [("era:rinfIndex", 292, "292"), ("era:eratvIndex", 174, "174"),
+      ("tsiOPEAppendixD2Index", 67, "67")],
+     label_w=Inches(1.95), value_w=Inches(.6),
+     note="live properties carrying a legal index (RINF · ERATV · Route Book)")
+callout(s, Inches(6.65), Inches(4.28), Inches(6.07), Inches(1.62), "green",
+        [("The chain is followable end to end. ", {"bold": True}),
+         ("era-lex holds 208,517 triples over 7,317 legal acts in ELI, and 420 ontology "
+          "terms cite 79 acts through dcterms:source. A reuser goes from data field → "
+          "numbered parameter → provision in the Official Journal with no human in the "
+          "loop. This is the part most worth copying, and it is domain-neutral.", {})])
+
+# ── 3 ─────────────────────────────────── Q2 challenge and lessons
+s = slide(2, "What was the main challenge,\nand what were the lessons?",
+          "The vocabulary was the easy part. The challenge is that a shared vocabulary does not "
+          "guarantee shared practice — and the gap is invisible until you measure it.")
+text(s, Inches(.62), Inches(2.16), Inches(6.5), Inches(.3),
+     "Retired parameters still carrying live data, by publisher", size=13, bold=True, color=NAVY)
+bars(s, Inches(.62), Inches(2.6), Inches(6.5),
+     [("Germany", 156064, "156,064"), ("Switzerland", 63159, "63,159"),
+      ("Czechia", 6538, "6,538"), ("Netherlands", 3409, "3,409"),
+      ("Sweden", 3095, "3,095"), ("Spain", 2607, "2,607"),
+      ("Hungary", 2250, "2,250"), ("Ireland", 1670, "1,670"), ("France", 592, "592")],
+     label_w=Inches(1.5), value_w=Inches(.95),
+     note="9 countries · 17 retired parameters · 237,781 statements in total")
+bullets(s, Inches(7.5), Inches(2.16), Inches(5.22), Inches(3.4), [
+    ("Divergence is silent. ", "Croatia publishes op-types under a parallel concept "
+     "scheme with typos (“Tehnical change”); the SHACL check passes because the value "
+     "shape tests membership of a scheme, not of the canonical one."),
+    ("Deprecation is a migration, ", "not an annotation. 37 RINF parameters are retired "
+     "and 9 countries still publish them."),
+    ("An identifier only counts if it resolves. ", "Belgium minted 0088 for INFRABEL "
+     "where the register already had 1976 — name, VAT and 7 roles on the real one, "
+     "none on the copy."),
+    ("Validate the vocabulary, not only the data, ", "and resolve value sets from a "
+     "trusted source rather than from the graph under test."),
+])
+callout(s, Inches(.62), Inches(6.06), Inches(12.1), Inches(.72), "green",
+        [("These findings are now enforced, not just recorded. ", {"bold": True}),
+         ("All three tools built on this graph exclude owl:deprecated properties, and the "
+          "nightly catalogue rebuild reports which datasets still carry retired data — so "
+          "the gap stays visible instead of decaying back into folklore.", {})])
+
+# ── 4 ─────────────────────────────────── Q3 collaboration
+s = slide(3, "Do you envisage collaboration with other\nMember States or Union entities?",
+          "Collaboration is already the operating model, not an aspiration.")
+bullets(s, Inches(.62), Inches(2.15), Inches(7.3), Inches(4.2), [
+    ("Standardisation bodies. ", "Memorandum of Intent with railML.org signed 30 May 2023; "
+     "ontologies jointly published and railML→RINF transformations developed."),
+    ("The Publications Office. ", "ERA mints no country codes — the graph points straight at "
+     "the EU authority tables. Reusing existing EU semantic assets is a deliberate choice."),
+    ("W3C and OGC. ", "GeoSPARQL, SKOS, PROV, ORG and OWL-Time are imported rather than "
+     "geometry, provenance and organisations being reinvented."),
+    ("Member States and infrastructure managers, ", "through the National Registration "
+     "Entities the RINF Regulation requires, and a public GitLab tracker where every "
+     "change request is visible."),
+])
+callout(s, Inches(8.15), Inches(2.15), Inches(4.57), Inches(1.62), "green",
+        [("Adoption beyond the mandate. ", {"bold": True}),
+         ("Bane NOR, the Norwegian infrastructure manager, publishes its own station data "
+          "with the ERA ontology on its own Linked Data server — outside the EU compliance "
+          "perimeter, visible in the shared graph. Voluntary adoption is the clearest "
+          "evidence that the model is reusable on its merits.", {})])
+text(s, Inches(.62), Inches(4.55), Inches(12.1), Inches(.3),
+     "Next steps we would welcome partners on", size=13, bold=True, color=NAVY)
+text(s, Inches(.62), Inches(4.95), Inches(12.1), Inches(1.0),
+     ["European Mobility Data Space and National Access Points  ·  publishing ERATV, EVR and "
+      "ERADIS data as openly as RINF already is  ·  closing the value-set validation gaps  ·  "
+      "contributing the pattern back to SEMIC as a reusable design rather than a rail artefact."],
+     size=13, line=1.3)
+
+# ── 5 ─────────────────────────────────── Q4 who can use it
+s = slide(4, "Is it suitable for local, regional\nor national administrations?",
+          "Yes, at every level — because the unit of publication is the dataset, not the country.")
+text(s, Inches(.62), Inches(2.2), Inches(6.9), Inches(.3),
+     "Publishing organisations per country — 54 datasets, 27 countries", size=13, bold=True, color=NAVY)
+bars(s, Inches(.62), Inches(2.66), Inches(6.9),
+     [("Italy", 9, "9"), ("Austria", 8, "8"), ("France", 7, "7"), ("Sweden", 4, "4"),
+      ("Germany", 2, "2"), ("Finland", 2, "2"), ("Switzerland", 2, "2"),
+      ("20 other countries", 1, "1 each")],
+     label_w=Inches(1.85), value_w=Inches(.85), bar_h=Inches(.28),
+     note="small regional and private managers publish alongside national incumbents")
+bullets(s, Inches(7.85), Inches(2.2), Inches(4.87), Inches(3.6), [
+    ("Not a national-champions model. ", "No entity has to be large to participate; every "
+     "publisher appears in the same cross-border queries."),
+    ("The granularity supports local asset management, ", "not only strategic planning — "
+     "platforms, sidings, level crossings, tunnels, bridges, signals and kilometric posts "
+     "are all modelled."),
+    ("Value arrives before anyone else joins. ", "A regional authority adopting it for its "
+     "own network gets consistent asset descriptions validated against the shipped SHACL "
+     "shapes on day one."),
+])
+
+# ── 6 ─────────────────────────────────── Q5 governance
+s = slide(5, "Does it need central governance?",
+          "Two things must be separated, and the honest answer differs for each.")
+box(s, Inches(.62), Inches(2.35), Inches(5.95), Inches(2.05), fill=FILL2)
+box(s, Inches(.62), Inches(2.35), Inches(5.95), Inches(.05), fill=NAVY)
+text(s, Inches(.92), Inches(2.60), Inches(5.35), Inches(.4),
+     "The vocabulary — central, non-negotiable", size=15, bold=True, color=NAVY)
+text(s, Inches(.92), Inches(3.08), Inches(5.35), Inches(1.25),
+     ["A shared meaning must have exactly one owner: one version line (v3.3.4), one licence "
+      "(EUPL 1.2), a public repository and an archival DOI.",
+      "Without that you do not get one vocabulary used 27 times. You get 27 dialects.",
+      "And it has to extend to what is loaded, not stop at what is published — the governed "
+      "artefact is clean, yet the deployed graph carries concepts that were never in it."],
+     size=12.5, line=1.3, space=7)
+box(s, Inches(6.77), Inches(2.35), Inches(5.95), Inches(2.05), fill=GRNBG)
+box(s, Inches(6.77), Inches(2.35), Inches(5.95), Inches(.05), fill=GREEN)
+text(s, Inches(7.07), Inches(2.60), Inches(5.35), Inches(.4),
+     "The deployment — decentralised, immediate", size=15, bold=True, color=GREEN)
+text(s, Inches(7.07), Inches(3.08), Inches(5.35), Inches(1.25),
+     ["Benefit accrues per publisher. Each entity that adopts the vocabulary gets value "
+      "before anyone else joins: its own data becomes queryable, comparable year-on-year "
+      "and testable against the SHACL shapes.",
+      "Bane NOR demonstrates exactly this — it derives value publishing essentially alone, "
+      "outside the EU mandate."],
+     size=12.5, line=1.3, space=7)
+callout(s, Inches(.62), Inches(4.72), Inches(12.1), Inches(.8), "amber",
+        [("The realistic caveat. ", {"bold": True}),
+         ("Cross-border value requires both critical mass and conformance. Partial deployment "
+          "with local variation is the worst of both worlds — it produces the appearance of "
+          "interoperability without the substance, because queries return plausible but "
+          "incomplete answers. Partial deployment with conformance is genuinely useful from "
+          "the first publisher onward.", {})])
+
+# ── 7 ─────────────────────────────────── Q6 cross-border + sovereignty
+s = slide(6, "Cross-border data exchange\nand EU sovereignty",
+          "Route compatibility spans three registers at once — so one shared vocabulary turns an "
+          "integration project into a query.")
+text(s, Inches(.62), Inches(2.3), Inches(6.4), Inches(.3),
+     "One question, the whole European gauge landscape — RINF 1.1.1.1.4.1",
+     size=13, bold=True, color=NAVY)
+bars(s, Inches(.62), Inches(2.76), Inches(6.4),
+     [("1435  standard", 697901, "697,901"), ("1668  Iberian", 13275, "13,275"),
+      ("1524  Finnish/Baltic", 2813, "2,813"), ("1000  metre", 2746, "2,746"),
+      ("1520  ex-Soviet", 1826, "1,826"), ("1600  Irish", 274, "274"),
+      ("760 / 750", 135, "135")],
+     label_w=Inches(1.95), value_w=Inches(.95),
+     note="running tracks per gauge across 27 countries, from one query")
+bullets(s, Inches(7.35), Inches(2.3), Inches(5.37), Inches(3.9), [
+    ("Custody stays national. ", "Each Member State publishes into its own dataset. What is "
+     "shared is the meaning, not the ownership — there is no central database taking "
+     "possession of national data."),
+    ("EU-controlled identifiers. ", "Whoever controls the identifiers controls who can join "
+     "the data. Here that authority is European, the URIs are persistent and publicly "
+     "governed — the most durable form of digital sovereignty on offer."),
+    ("No vendor lock-in. ", "RDF, SPARQL, SKOS, SHACL, GeoSPARQL — open standards, multiple "
+     "implementations, EUPL 1.2, archived on Zenodo."),
+    ("Open access enables scrutiny. ", "Anyone can verify a claim about the register "
+     "directly. The data-quality findings in §2 were found exactly that way."),
+])
+callout(s, Inches(.62), Inches(5.98), Inches(6.4), Inches(.92), "navy",
+        [("Borders are first-class objects: ", {"bold": True}),
+         ("288 reference border points, 427 border and 433 domestic-border operational "
+          "points — and published queries expose 2,244 disconnected points in ERA’s own "
+          "register.", {})])
+
+# ── 8 ─────────────────────────────────── Q7 first step
+s = slide(7, "What is the first step\nto reuse the solution?",
+          "Query it before committing to anything. No account, no licence negotiation, no data pipeline.")
+box(s, Inches(.62), Inches(2.12), Inches(6.4), Inches(1.62), fill=RGBColor(0xF3, 0xF5, 0xF9))
+box(s, Inches(.62), Inches(2.12), Inches(.05), Inches(1.62), fill=ACCENT)
+text(s, Inches(.86), Inches(2.28), Inches(6.05), Inches(1.35),
+     ["curl -sS -X POST \\",
+      "  \"https://graph.data.era.europa.eu/repositories/rinf-plus\" \\",
+      "  -H \"Content-Type: application/sparql-query\" \\",
+      "  --data-binary 'SELECT ?value (COUNT(?track) AS ?n) WHERE {",
+      "    ?p era:rinfIndex \"1.1.1.1.4.1\" . ?track ?p ?value }",
+      "    GROUP BY ?value ORDER BY DESC(?n)'"],
+     size=10.5, font=MONO, color=RGBColor(0x1F, 0x33, 0x55), line=1.24, space=1)
+text(s, Inches(.62), Inches(3.88), Inches(6.4), Inches(.3),
+     "Runs as-is and returns the gauge table on the previous slide.", size=11.5, color=MUTED)
+text(s, Inches(7.25), Inches(2.12), Inches(5.47), Inches(.3),
+     "Then, in order", size=13, bold=True, color=NAVY)
+steps = [("Run the published queries first — ", "38 in the catalogue, 47 in three notebooks."),
+         ("Read the vocabulary ", "and the application guide that maps each parameter."),
+         ("Locate your own parameters ", "by rinfIndex; what does not map is national, or a gap."),
+         ("Adopt the identifiers before modelling. ", "Cheapest interoperability there is."),
+         ("Adopt the code lists before the classes ", "— and pin the version you validated."),
+         ("Validate early with the shipped SHACL shapes, ", "in your own pipeline."),
+         ("Publish into your own dataset, ", "keeping custody."),
+         ("Engage the maintainers ", "through the public issue tracker.")]
+paras = []
+for i, (lead, rest) in enumerate(steps, 1):
+    paras.append([(f"{i}  ", {"bold": True, "color": ACCENT}),
+                  (lead, {"bold": True, "color": NAVY}), (rest, {})])
+text(s, Inches(7.25), Inches(2.55), Inches(5.47), Inches(4.0), paras,
+     size=12.5, space=7, line=1.24)
+callout(s, Inches(.62), Inches(4.42), Inches(6.4), Inches(1.55), "green",
+        [("If your domain is not rail, ", {"bold": True}),
+         ("the reusable asset is the design, not the classes: a legal annex expressed as "
+          "indexed properties, governed code lists shipped as SKOS, validation shapes "
+          "shipped with the vocabulary, and open query access. That pattern is what we "
+          "would encourage assessors to consider transferable — to energy metering, "
+          "building permits, or any register a legal act mandates across 27 jurisdictions.", {})])
+
+# ── 9 ─────────────────────────────────────────────── sources
 s = prs.slides.add_slide(BLANK)
-header(s, 2, "Not an interpretation of the law —\nthe law in machine-readable form")
-text(s, Inches(.62), Inches(1.62), Inches(12.1), Inches(.4),
-     "Reg. (EU) 2019/777, as amended by (EU) 2023/1694, defines RINF as a numbered parameter list.",
-     size=15.5, color=NAVY, bold=True)
-text(s, Inches(.62), Inches(2.08), Inches(12.1), Inches(.75),
-     [[("era:rinfIndex", {"font": MONO, "size": 13.5}),
-       (" binds each property to its legal index: parameter ", {}),
-       ("1.1.1.1.4.1 “Nominal track gauge”", {"bold": True}),
-       (" is ", {}), ("era:wheelSetGauge", {"font": MONO, "size": 13.5}),
-       (". The trace from legal text to data field is machine-checkable, not a documentation promise.", {})]],
-     size=14.5, line=1.3)
-
-stats = [("292", "Live RINF parameters\n(37 more deprecated)"),
-         ("4", "Registers on one vocabulary\nRINF · ERATV · EVR · ERADIS"),
-         ("420", "Ontology terms citing\n79 legal acts via ELI"),
-         ("27", "Countries publishing,\n54 national datasets")]
-for k, (big, lab) in enumerate(stats):
-    x = Inches(.62 + k * 3.05)
-    box(s, x, Inches(3.0), Inches(2.85), Inches(1.16), fill=FILL)
-    box(s, x, Inches(3.0), Inches(.05), Inches(1.16), fill=NAVY)
-    text(s, x + Inches(.18), Inches(3.06), Inches(2.5), Inches(.44), big,
-         size=22, color=NAVY, bold=True, space=0, line=1.1)
-    text(s, x + Inches(.18), Inches(3.5), Inches(2.55), Inches(.62), lab,
-         size=10, color=MUTED, line=1.15)
-
-callout(s, Inches(.62), Inches(4.45), Inches(12.1), Inches(.95), "green",
-        [("The chain runs end to end. ", {"bold": True}),
-         ("era:tsiMagneticFields carries RINF index 1.1.1.3.9.1 and points at "
-          "eli/reg_impl/2023/1695/oj — the act in the Official Journal. "
-          "Data field → legal parameter → provision, with no human in the loop.", {})])
-callout(s, Inches(.62), Inches(5.62), Inches(12.1), Inches(.95), "amber",
-        [("Stated plainly. ", {"bold": True}),
-         ("The vocabulary spans four registers, but only RINF data is openly queryable today; "
-          "and the deployed validation carries roughly half the published shapes "
-          "(76 node shapes against 147).", {})])
-footer(s, "ERA Ontology v3.3.4 · EUPL 1.2 · DOI 10.5281/zenodo.15089005", 2)
-
-# ── 3 ───────────────────────────────── one URI + cross-border value
-s = prs.slides.add_slide(BLANK)
-header(s, 3, "One URI, reusable everywhere")
-text(s, Inches(.62), Inches(1.62), Inches(12.1), Inches(.35),
-     "A thing gets one identifier, and everyone points at it instead of describing it again.",
-     size=15.5, color=NAVY, bold=True)
-
-text(s, Inches(.62), Inches(2.12), Inches(5.9), Inches(.3), "Reuse what already exists",
-     size=13.5, color=NAVY, bold=True)
-text(s, Inches(.62), Inches(2.5), Inches(5.9), Inches(1.8),
-     ["•  90,235 references to ELI legal acts",
-      "•  6,688 to Publications Office corporate bodies",
-      "•  1,863 to its language authority",
-      "•  1,092 to EuroVoc subjects · 93 to treaties",
-      "•  Countries are Publications Office URIs, not ERA codes"],
-     size=13, line=1.25, space=4)
-
-text(s, Inches(6.85), Inches(2.12), Inches(5.85), Inches(.3), "Mint once, reuse across registers",
-     size=13.5, color=NAVY, bold=True)
-text(s, Inches(6.85), Inches(2.5), Inches(5.85), Inches(1.8),
-     ["•  body/organisation/0080 is DB InfraGO — holding IM, RU, ECM, Keeper, Owner and ECM-CB roles at once",
-      "•  Those roles belong to different registers: IM→RINF, Keeper/Owner/ECM→EVR, certification→ERADIS",
-      "•  665,487 infrastructure elements name that one URI as their manager",
-      "•  2,909 of 5,528 organisations (53%) hold more than one role"],
-     size=13, line=1.25, space=4)
-
-text(s, Inches(.62), Inches(4.42), Inches(5.9), Inches(.3),
-     "One question, 27 countries, seconds", size=13.5, color=NAVY, bold=True)
-table(s, Inches(.62), Inches(4.78), Inches(5.9).emu,
-      [["Gauge", "Network", "Running tracks"],
-       ["1435", "Standard", "697,901"],
-       ["1668", "Iberian", "13,275"],
-       ["1524", "Finnish / Baltic", "2,813"],
-       ["1600", "Irish", "274"]],
-      [.22, .43, .35], size=11.5, rh=Inches(.29))
-
-callout(s, Inches(6.85), Inches(4.42), Inches(5.85), Inches(1.05), "navy",
-        [("Route compatibility spans three registers", {"bold": True}),
-         (" — the vehicle in EVR, its type in ERATV, the line in RINF. "
-          "One vocabulary makes it a query, not an integration project.", {})])
-callout(s, Inches(6.85), Inches(5.58), Inches(5.85), Inches(1.05), "green",
-        [("A shared identifier space is durable sovereignty", {"bold": True}),
-         (" — custody stays national, open W3C/OGC standards, EUPL 1.2, "
-          "archival DOI. It cannot be withdrawn by a supplier.", {})])
-footer(s, "era-lex holds 7,317 legal acts and 7,198 addressable subdivisions, in 24 languages", 3)
-
-# ── 4 ──────────────────────────────────────────── lessons / defects
-s = prs.slides.add_slide(BLANK)
-header(s, 4, "Lessons learnt —\nand what is not yet right")
-text(s, Inches(.62), Inches(1.72), Inches(12.1), Inches(.35),
-     "A shared vocabulary does not by itself produce comparable data. "
-     "Publication and convergence are different problems.",
-     size=15.5, color=NAVY, bold=True)
-callout(s, Inches(.62), Inches(2.22), Inches(12.1), Inches(.74), "amber",
-        [("Four defects, one failure mode: the silent, well-formed zero. ", {"bold": True}),
-         ("Nothing errors, nothing warns, and the wrong conclusion looks like a correct one.", {})])
-table(s, Inches(.62), Inches(3.05), Inches(12.1).emu,
-      [["What we found", "Why it matters"],
-       ["8 concepts minted into a scheme the check validates against",
-        "Conformance resolved from the working graph is self-certified"],
-       ["17 retired properties still carrying 237,781 statements, in 9 countries",
-        "Only 1 declares a successor; now excluded from the tools, but still reported"],
-       ["87 of 180 organisation URIs do not resolve",
-        "Belgium’s IM is 0088 in RINF, 1976 in the register"],
-       ["Notebook queries name graphs that are empty in the deployment",
-        "Run as published, they return HTTP 200 and no rows"]],
-      [.44, .56], size=12, rh=Inches(.42))
-text(s, Inches(.62), Inches(5.42), Inches(12.1), Inches(1.0),
-     [[("Transferable rules. ", {"bold": True, "color": NAVY}),
-       ("Resolve a value set from a trusted, published artefact — never from the same graph the "
-        "data under test can write into. Validate the vocabulary, not only the data. Stand up the "
-        "identifier register before the datasets that cite it, and treat deprecation as a data "
-        "migration rather than an annotation.", {})]],
-     size=13.5, color=MUTED, line=1.3)
-footer(s, "Stated deliberately: an assessment is worth more when it is honest", 4)
-
-# ── 5 ────────────────────────────────────── how to reuse + sources
-s = prs.slides.add_slide(BLANK)
-header(s, 5, "How to start reusing —\nand where everything lives")
-text(s, Inches(.62), Inches(1.72), Inches(5.9), Inches(.3),
-     "Governance", size=13.5, color=NAVY, bold=True)
-text(s, Inches(.62), Inches(2.08), Inches(5.9), Inches(2.05),
-     ["The vocabulary needs central governance. The deployment does not.",
-      "•  Central, non-negotiable: one owner, one version line, one licence — otherwise 27 dialects",
-      "•  Decentralised, valuable at once: Bane NOR (Norway) gains value publishing alone, outside the EU mandate",
-      "•  Every level: Italy has 9 publishing organisations, Austria 8, Belgium 1"],
-     size=12.5, line=1.24, space=4)
-
-text(s, Inches(6.85), Inches(1.72), Inches(5.85), Inches(.3),
-     "First steps", size=13.5, color=NAVY, bold=True)
-text(s, Inches(6.85), Inches(2.08), Inches(5.85), Inches(2.05),
-     ["1.  Run the published queries — 38 in the Data Stories catalogue plus 47 across three notebooks",
-      "2.  Adopt the identifiers before modelling anything",
-      "3.  Adopt the code lists — where most comparability is won",
-      "4.  Validate early with the shipped SHACL shapes; check every external URI resolves",
-      "5.  Publish into your own dataset, keeping custody"],
-     size=12.5, line=1.24, space=4)
-
-text(s, Inches(.62), Inches(4.32), Inches(12.1), Inches(.3),
-     "References", size=13.5, color=NAVY, bold=True)
-text(s, Inches(.62), Inches(4.66), Inches(6.0), Inches(2.2),
+box(s, 0, 0, W, H, fill=NAVY)
+s.shapes.add_picture(str(LOGO), Inches(.95), Inches(.72), height=Inches(.66))
+text(s, Inches(.95), Inches(1.85), Inches(11.4), Inches(.7),
+     "Sources — every figure above is traceable", size=30, bold=True, color=WHITE)
+box(s, Inches(.95), Inches(2.72), Inches(4.2), Pt(1), fill=RGBColor(0x8E, 0xA2, 0xC6))
+text(s, Inches(.95), Inches(3.02), Inches(5.6), Inches(2.6),
      ["ERA Ontology v3.3.4 — rinf.data.era.europa.eu/era-vocabulary",
       "Application guides — RINF, ERATV, EVR, ERADIS (same host)",
-      "Published artefacts — era-shapes, era-skos, era-telem-skos, ontology.nt",
+      "Published artefacts — era-shapes, era-skos, era-telem-skos",
       "Live knowledge graph — graph.data.era.europa.eu",
-      "Data Stories, 38 queries + 3 notebooks — rinf.data.era.europa.eu/data-stories"],
-     size=11.5, line=1.3, space=4)
-text(s, Inches(6.85), Inches(4.66), Inches(5.85), Inches(2.2),
+      "Data Stories — 38 queries + 3 notebooks",
+      "DOI 10.5281/zenodo.15089005 · EUPL 1.2"],
+     size=12, color=RGBColor(0xD3, 0xDD, 0xEE), line=1.34, space=5)
+text(s, Inches(6.85), Inches(3.02), Inches(5.6), Inches(2.6),
      ["Reg. (EU) 2019/777, amended by (EU) 2023/1694 — RINF",
       "Decision 2011/665/EU; Reg. (EU) 2019/776 — ERATV",
       "Reg. (EU) 2023/1695; Decision (EU) 2018/1614 — EVR",
       "Dir. (EU) 2016/797 and 2016/798; Reg. (EU) 2016/796 — ERADIS",
       "Interoperable Europe Portal — ERA Vocabulary solution",
-      "Repository — gitlab.com/era-europa-eu/public/interoperable-data-programme",
       "Logo: ERA-rgb-300dpi.jpg, Wikimedia Commons, public domain, by ERA"],
-     size=11.5, line=1.3, space=4)
-footer(s, "Full answers: gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html", 5)
+     size=12, color=RGBColor(0xD3, 0xDD, 0xEE), line=1.34, space=5)
+text(s, Inches(.95), Inches(6.1), Inches(11.4), Inches(.5),
+     "Full answers: gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html",
+     size=13, color=WHITE)
 
 out = (pathlib.Path(__file__).resolve().parent.parent /
        "interop-europe" / "ERA-ontology-reusability.pptx")
 prs.save(out)
-print(f"saved {out.name}: {out.stat().st_size:,} bytes, {len(prs.slides.__iter__.__self__._sldIdLst)} slides")
+print(f"saved {out.name}: {out.stat().st_size:,} bytes, {len(prs.slides._sldIdLst)} slides")
