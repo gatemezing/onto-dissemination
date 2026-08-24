@@ -336,15 +336,7 @@ carries its role under two different URI patterns
 which is the same shape of defect as the concept-scheme problem above:
 identifiers constructed by string assembly rather than looked up.
 
-#### Two further defects, same family
 
-- **Free text where a code list was needed.** `era:gradientProfile` contains
-  `+00.0`, `+0.0` and `+0.0(+0.000)` — three encodings of "flat" in one column.
-  No scheme was ever defined for it, so nothing could have caught this.
-- **Coverage is partial, and measurable.** Of the **292 live** properties
-  carrying a `rinfIndex`, **208 are populated anywhere in RINF** — the other 84
-  are legally defined but unreported. A completeness figure any Member State can
-  compute for itself, provided it excludes deprecated terms first.
 
 **Lessons learnt**
 
@@ -564,8 +556,7 @@ and that is only checkable once everyone's topology is expressed the same way.
   GeoSPARQL (OGC) are open standards with multiple independent implementations.
   The vocabulary is EUPL 1.2 and archived on Zenodo with a DOI, so it survives
   any single supplier, contract or hosting decision.
-- **EU-hosted infrastructure.** The knowledge graph is served from European
-  Commission infrastructure (`prod.virtuoso.ecdp.tech.ec.europa.eu`), with no
+- **EU-hosted infrastructure.** The knowledge graph is served from EU ERA  infrastructure (`graph.data.era.europa.eu`), with no
   dependency on non-EU cloud services for the semantic layer.
 - **Open access enables scrutiny.** The endpoint is publicly queryable with
   permissive CORS, so any Member State, researcher or citizen can verify a claim
