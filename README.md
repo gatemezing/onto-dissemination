@@ -113,6 +113,31 @@ dataset (156,064) and Switzerland's `0085`/`3915` (86,002). The app names them i
 a panel rather than quietly dropping them, since a reuser querying only current
 parameters would otherwise never learn that this data exists.
 
+**An empty result is reported as data coverage, not left ambiguous.** Coverage is
+very uneven — Estonia publishes **56** of the 294 live RINF parameters against
+Ireland's 82, Germany's 113, Spain's 126 and France's 145 — so a sparse country
+returns nothing for most parameters, which used to look exactly like a broken
+query. Each run now shows one chip per selected parameter reporting either its
+value count or *no data* and where; parameters that returned nothing appear as
+explicit rows in the table instead of being omitted; a failed request is labelled
+*query error*; and the transposed export writes `no data` into the cell.
+
+**Exports are transposed for a railway reader.** The full-data download is now
+one row per location with **one column per RINF parameter** — every parameter for
+a stretch of line side by side, which is how a route is read — with the long form
+kept alongside as a second sheet for machine use.
+
+**A network map with no map library.** Sections of line publish no geometry of
+their own in any dataset except Croatia's (581 of 583 there, zero in Germany,
+France, the Netherlands or Estonia), but *every* operational point does through
+`era:netReference/geo:hasGeometry` — 101 of 101 in Estonia, 17,797 of 17,797 in
+Germany. So each section is drawn as the chord between the two points it runs
+between and coloured by the selected parameter's value: 7,366 sections across six
+countries render in about 2 s, and the Baltic 1520/1524 break-of-gauge separates
+from the 1435 network at a glance. Canvas, Web Mercator, no tiles and no
+dependency, so it loads instantly, works offline and sends nothing to a third
+party. It is topology, not alignment, and the panel says so.
+
 **Several parameters at once.** Each parameter is queried separately rather
 than batched into one `VALUES ?prop` query, which is the faster arrangement by
 a wide margin — five parameters over all 27 countries took 12.1 s batched

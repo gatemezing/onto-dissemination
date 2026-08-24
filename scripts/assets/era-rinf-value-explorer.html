@@ -138,6 +138,41 @@
 
   /* ---- results ---- */
   #resultPanel[hidden]{display:none;}
+  #mapPanel[hidden]{display:none;}
+  .mapBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .mapBar select{flex:1 1 260px;min-width:200px;background:rgba(255,255,255,.06);border:1px solid var(--line);
+    color:var(--paper);padding:9px 11px;border-radius:8px;font-size:13px;font-family:inherit;}
+  .mapBar select option{background:#141d33;}
+  .mapBar .grow{flex:1;}
+  #mapWrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    background:#070d18;height:520px;}
+  #mapWrap[hidden]{display:none;}
+  #mapCanvas{display:block;width:100%;height:100%;cursor:grab;}
+  #mapCanvas.drag{cursor:grabbing;}
+  #mapTip{position:absolute;pointer-events:none;background:rgba(8,13,26,.95);border:1px solid var(--line);
+    border-radius:7px;padding:7px 10px;font-size:12px;line-height:1.45;max-width:270px;z-index:5;
+    box-shadow:0 6px 18px rgba(0,0,0,.5);}
+  #mapTip[hidden]{display:none;}
+  #mapTip b{color:var(--teal);}
+  #mapLegend{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;}
+  #mapLegend[hidden]{display:none;}
+  .lg{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:20px;
+    padding:4px 11px;font-size:12px;cursor:pointer;background:rgba(255,255,255,.04);user-select:none;}
+  .lg .sw{width:16px;height:3px;border-radius:2px;flex:none;}
+  .lg .ct{color:var(--dim);font-variant-numeric:tabular-nums;}
+  .lg.off{opacity:.38;}
+  .lg:hover{border-color:var(--blue);}
+  #coverStrip{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px;}
+  #coverStrip[hidden]{display:none;}
+  .cov{display:inline-flex;align-items:center;gap:7px;border-radius:20px;padding:5px 12px;
+    font-size:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);}
+  .cov .ix{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--dim);}
+  .cov.has{background:rgba(122,195,106,.13);border-color:rgba(122,195,106,.42);}
+  .cov.has .n{color:#9ede8c;font-weight:600;}
+  .cov.none{background:rgba(240,168,58,.12);border-color:rgba(240,168,58,.4);}
+  .cov.none .n{color:#f3c073;font-weight:600;}
+  .cov .where{color:var(--muted);}
+  tr.noData td{background:rgba(240,168,58,.07);color:#f3c073;font-style:italic;}
   .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:10px;margin-bottom:16px;}
   .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
   .statTile .n{font-size:20px;font-weight:700;}
@@ -264,13 +299,14 @@
       <div class="statTile"><div class="n" id="statScope">–</div><div class="l">Scope</div></div>
       <div class="statTile"><div class="n" id="statTime">–</div><div class="l">Query time</div></div>
     </div>
+    <div id="coverStrip" hidden></div>
     <div class="tableWrap"><table id="resultTable"><thead></thead><tbody></tbody></table></div>
     <div class="moreNote" id="moreNote"></div>
     <div class="moreNote" id="overlapNote"></div>
     <div class="moreNote" id="detailNote"></div>
     <div class="resultActions">
       <button class="btn csv" id="csvBtn">Download CSV</button>
-      <button class="btn csv" id="detailCsvBtn" hidden>Full data (CSV)</button>
+      <button class="btn csv" id="detailCsvBtn" hidden title="One row per location, one column per RINF parameter">By location (CSV)</button>
       <button class="btn xls" id="xlsBtn">Download Excel (.xlsx)</button>
       <span class="grow"></span>
       <button class="btn" id="linkBtn" title="Copy a link that reopens this exact query">Copy shareable link</button>
@@ -279,6 +315,25 @@
       <summary>Show the SPARQL query that produced this</summary>
       <pre class="code" id="sparqlOut"></pre>
     </details>
+  </div>
+
+  <div class="panel" id="mapPanel" hidden>
+    <h2><span class="step">4</span> Network map</h2>
+    <div class="mapBar">
+      <label class="fieldLabel" for="mapParam" style="margin:0">Colour the network by</label>
+      <select id="mapParam"></select>
+      <button class="btn" id="mapBtn">Draw map</button>
+      <span class="grow"></span>
+      <button type="button" class="mini" id="mapReset" hidden>Reset view</button>
+      <button type="button" class="mini" id="mapPng" hidden>Save PNG</button>
+    </div>
+    <div id="mapStatus" class="moreNote"></div>
+    <div id="mapWrap" hidden>
+      <canvas id="mapCanvas"></canvas>
+      <div id="mapTip" hidden></div>
+    </div>
+    <div id="mapLegend" hidden></div>
+    <p class="moreNote" id="mapNote"></p>
   </div>
 
   <details id="deprPanel" class="panel">
@@ -297,6 +352,20 @@
       This is used rather than the per-resource <code>era:inCountry</code> property because many parameters sit on
       sub-objects that carry no country of their own: querying <code>era:maximumPermittedSpeed</code> for Austria by
       <code>era:inCountry</code> returns <em>zero</em> values, while the dataset scope returns the real 43.</p>
+    <p><strong>An empty result is a fact, not a failure — and the tool now says which.</strong> Coverage is very
+      uneven: <em>Estonia</em> publishes <strong>56</strong> of the 294 live RINF parameters, against Ireland's 82,
+      Germany's 113, Spain's 126 and France's 145. So for most parameters a single sparse country returns nothing,
+      which used to look identical to a broken query. Every run now reports one chip per selected parameter saying
+      either how many values it found or <em>no data</em> and where, empty parameters appear as explicit rows in the
+      table rather than being omitted, and a failed request is labelled <em>query error</em> so the two can never be
+      confused. The <em>By location</em> export writes <code>no data</code> into the cell for the same reason.</p>
+    <p><strong>The network map is topology, not alignment.</strong> Sections of line publish no geometry of their
+      own in any dataset except Croatia's — 581 of 583 there, zero in Germany, France, the Netherlands and Estonia —
+      but <strong>every operational point does</strong>, through
+      <code>era:netReference/geo:hasGeometry</code>: 101 of 101 in Estonia, 17,797 of 17,797 in Germany. A section is
+      therefore drawn as the straight chord between the two points it runs between, which is exact for what connects
+      to what and wrong for the shape of the route. There is no basemap and no mapping library, so the panel loads
+      instantly, works offline and sends nothing to a third party.</p>
     <p><strong>Known limits.</strong> One dataset is not single-country: Austria’s <code>0081</code> is 99.76 % Austrian
       (13 of 5 402 country-tagged resources are Liechtenstein, Swiss or German border objects). Liechtenstein and the
       United Kingdom appear in the data but publish no dataset of their own, so they have no country entry. The shared
@@ -915,12 +984,24 @@ async function runExtract(){
       }
       const perCountry = {};
       detail.forEach(d => { perCountry[d.country] = (perCountry[d.country] || 0) + 1; });
+      /* Which of the countries in scope actually returned something. Only
+         knowable per country when the breakdown ran; otherwise the parameter
+         as a whole is either populated or not. A query that returns no rows is
+         a fact about the data, and is reported as such rather than left as an
+         empty table that reads like a failure. */
+      const withData = pl.brk
+        ? [...new Set(pl.brk.map(b => b.country.value).filter(c => BY_CODE[c]))]
+        : (rows.length ? chosenCountries().map(c => c.c) : []);
+      const scopeCodes = chosenCountries().map(c => c.c);
       perParam.push({
         param: pl.param,
         values: rows.length,
         capped: rows.length >= rowCap(pl.param),
         detail: detail.length,
         cappedCountries: Object.keys(perCountry).filter(c => perCountry[c] >= share),
+        withData: withData.sort(),
+        empty: scopeCodes.filter(c => !withData.includes(c)).sort(),
+        perCountryKnown: !!pl.brk,
       });
       allRows.push(...rows);
       allDetail.push(...detail);
@@ -958,11 +1039,18 @@ async function runExtract(){
     };
     sortState = {key:'resources', dir:-1};
     renderResults();
+    mapParamOptions();
 
     const totalValues = allRows.length;
+    const emptyParams = perParam.filter(x => !x.values);
     if(!totalValues){
-      setStatus('No values found — ' + (picked.length === 1 ? 'this parameter is' : 'these parameters are') +
-        ' not populated in ' + r_scopeWord() + ' RINF dataset.', 'warn');
+      setStatus('No data — the ' + (picked.length === 1 ? 'query ran' : picked.length + ' queries ran') +
+        ' without error, and ' + (picked.length === 1 ? 'this parameter is' : 'none of these parameters is') +
+        ' published in ' + r_scopeWord() + ' RINF dataset.', 'warn');
+    } else if(emptyParams.length){
+      setStatus('Done — ' + fmt(totalValues) + ' distinct ' + (totalValues === 1 ? 'value' : 'values') +
+        ', but ' + emptyParams.length + ' of ' + picked.length + ' parameters returned no data' +
+        ' (listed below). ' + elapsed.toFixed(1) + 's.', 'warn');
     } else if(lastRun.capped){
       setStatus('Done — ' + fmt(totalValues) + ' rows, some parameters capped by their row limit.', 'warn');
     } else {
@@ -972,8 +1060,10 @@ async function runExtract(){
     }
   } catch(err){
     clearTimeout(timer);
-    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Try fewer parameters or countries.', 'error');
-    else setStatus('Extraction failed: ' + err.message, 'error');
+    if(err.name === 'AbortError') setStatus('Query error — timed out after 180 s. No result was returned; ' +
+      'this is not the same as the parameter having no data. Try fewer parameters or countries.', 'error');
+    else setStatus('Query error — the endpoint rejected or failed the request, so nothing was measured: ' +
+      err.message, 'error');
   } finally {
     $('runBtn').disabled = false;
   }
@@ -1039,8 +1129,35 @@ function displayValues(rows){
   }
 }
 
+/* One chip per selected parameter saying, in words, whether it returned data
+   and where it did not. An empty result and a failed query look identical in a
+   blank table, and telling them apart is the difference between "this country
+   does not publish it" and "something went wrong". */
+function renderCoverage(){
+  const r = lastRun;
+  const name = cc => (BY_CODE[cc] && BY_CODE[cc].l) || cc;
+  const list = codes => codes.length > 4
+    ? codes.slice(0, 4).map(name).join(', ') + ' and ' + (codes.length - 4) + ' more'
+    : codes.map(name).join(', ');
+  $('coverStrip').innerHTML = r.perParam.map(x => {
+    const ix = x.param.i[0] || '—';
+    if(!x.values){
+      return `<span class="cov none" title="The query ran and returned zero rows — this is data coverage, not an error">` +
+        `<span class="ix">${esc(ix)}</span><span>${esc(x.param.l || x.param.n)}</span>` +
+        `<span class="n">no data</span><span class="where">in ${esc(list(r.countries_))}</span></span>`;
+    }
+    const gap = x.perCountryKnown && x.empty.length
+      ? `<span class="where">· none in ${esc(list(x.empty))}</span>` : '';
+    return `<span class="cov has"><span class="ix">${esc(ix)}</span>` +
+      `<span>${esc(x.param.l || x.param.n)}</span>` +
+      `<span class="n">${fmt(x.values)} value${x.values === 1 ? '' : 's'}</span>${gap}</span>`;
+  }).join('');
+  $('coverStrip').hidden = !r.perParam.length;
+}
+
 function renderResults(){
   const r = lastRun;
+  renderCoverage();
   displayValues(r.rows);
   const total = r.rows.reduce((s, x) => s + x.resources, 0);
   $('statValues').textContent    = fmt(r.rows.length) + (r.capped ? '+' : '');
@@ -1097,12 +1214,25 @@ function renderResults(){
           pct.toFixed(pct < 1 ? 2 : 1) + '%</td>';
       }
       const v = x.byCountry[c.k];
-      return '<td class="num">' + (v ? fmt(v) : '<span style="opacity:.28">·</span>') + '</td>';
+      return v ? '<td class="num">' + fmt(v) + '</td>'
+        : '<td class="num" title="no data — this country publishes no resource with this value">' +
+          '<span style="opacity:.28">·</span></td>';
     }).join('');
     return '<tr>' + cells + '</tr>';
   }).join('');
-  $('resultTable').querySelector('tbody').innerHTML = body ||
-    '<tr><td colspan="' + cols.length + '" style="padding:22px;text-align:center;color:var(--muted)">No values in this scope.</td></tr>';
+  /* Parameters that returned nothing are shown as rows rather than omitted,
+     so an empty result is visible in the table itself and not inferred from
+     the absence of one. */
+  const nameOf = cc => (BY_CODE[cc] && BY_CODE[cc].l) || cc;
+  const noDataRows = r.perParam.filter(x => !x.values).map(x =>
+    '<tr class="noData"><td class="lbl" title="' + esc(x.param.u) + '">' +
+    '<span style="font-family:\'SF Mono\',Consolas,monospace;font-size:11px">' +
+    esc(x.param.i[0] || '') + '</span> ' + esc(x.param.l || x.param.n) + '</td>' +
+    '<td colspan="' + (cols.length - 1) + '">no data — the query ran and returned zero rows for ' +
+    esc(r.countries_.map(nameOf).join(', ')) + '</td></tr>').join('');
+  $('resultTable').querySelector('tbody').innerHTML = (body + noDataRows) ||
+    '<tr><td colspan="' + cols.length + '" style="padding:22px;text-align:center;color:var(--muted)">' +
+    'No data — the query ran without error and returned zero rows in this scope.</td></tr>';
 
   $('moreNote').textContent = rows.length > TABLE_LIMIT
     ? 'Showing the first ' + TABLE_LIMIT + ' of ' + fmt(rows.length) + ' rows — the download contains all of them.'
@@ -1236,12 +1366,350 @@ function detailTable(){
     ])),
   };
 }
+/* The same full data with the parameters pivoted into columns: one row per
+   location, one column per RINF index. That is the shape a railway engineer
+   reads a route in — every parameter for a stretch of line side by side —
+   rather than the long form, which is the shape a database wants. A location
+   that carries several values for one parameter has them joined with " | ",
+   and a parameter that is simply absent there is written "no data" so an empty
+   cell never has to be interpreted. */
+function transposedTable(){
+  const r = lastRun;
+  const params = r.params.slice();
+  const key = d => [d.country || '', d.start || '', d.end || '', d.op || '', d.res || ''].join('\u0000');
+  const rowsByKey = new Map();
+  for(const d of r.detail){
+    let row = rowsByKey.get(key(d));
+    if(!row){
+      row = {country: d.country || '', start: d.start || '', end: d.end || '',
+             op: d.op || '', res: d.res || '', vals: new Map()};
+      rowsByKey.set(key(d), row);
+    }
+    const u = d.param.u;
+    if(!row.vals.has(u)) row.vals.set(u, new Set());
+    row.vals.get(u).add(d.isUri ? localName(d.value) : d.value);
+  }
+  const head = ['Country', 'Start OP', 'End OP', 'Operational point']
+    .concat(params.map(e => (e.i[0] || '—') + '  ' + (e.l || e.n)))
+    .concat(['Resource']);
+  const body = [...rowsByKey.values()]
+    .sort((a, b) => a.country.localeCompare(b.country) ||
+      a.start.localeCompare(b.start, 'en', {numeric:true}) ||
+      a.end.localeCompare(b.end, 'en', {numeric:true}) ||
+      a.op.localeCompare(b.op, 'en', {numeric:true}))
+    .map(x => [x.country ? BY_CODE[x.country].l : '', x.start, x.end, x.op]
+      .concat(params.map(e => {
+        const v = x.vals.get(e.u);
+        return v ? [...v].sort().join(' | ') : 'no data';
+      }))
+      .concat([x.res]));
+  return {head, body, locations: body.length};
+}
+
 $('detailCsvBtn').addEventListener('click', () => {
   if(!lastRun || !lastRun.detail.length) return;
-  const {head, body} = detailTable();
+  const {head, body} = transposedTable();
   const text = '\ufeff' + [head, ...body].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
-  download(new Blob([text], {type:'text/csv;charset=utf-8'}), fileBase() + '_fulldata.csv');
+  download(new Blob([text], {type:'text/csv;charset=utf-8'}), fileBase() + '_by-location.csv');
 });
+
+
+/* ------------------------------------------------------------------ *
+ * Network map
+ *
+ * Sections of line carry no geometry of their own in almost every dataset —
+ * only Croatia publishes it — but every operational point does, through
+ * era:netReference/geo:hasGeometry. So a section is drawn as the chord between
+ * the two points it runs between. That is a topological map, not an alignment:
+ * it shows what connects to what and what each stretch is worth on the chosen
+ * parameter, and it must not be read as the route on the ground. The panel
+ * says so in as many words.
+ *
+ * No tile layer and no mapping library: the network drawn alone is legible,
+ * loads instantly, works offline and sends nothing to a third party.
+ * ------------------------------------------------------------------ */
+const MAP_LIMIT = 30000;
+const MAP_SEP = '|~|';
+const MAP_PALETTE = ['#5fd0ae','#5b9bd5','#f0a83a','#e8604f','#b98bd6','#7ac36a',
+                     '#f2d06b','#6fd3e8','#e28fb4','#9aa8c9'];
+const MAP_NONE = '#3d4763';
+
+let mapData = null;      // {segs, colour, ranked, …}
+let mapView = null;      // {scale, tx, ty} over projected units
+let mapOff  = new Set(); // values switched off in the legend
+
+/* Web Mercator. Both axes must end up in the same units — longitude in
+   radians, not degrees, or the map comes out stretched ~50x horizontally at
+   European latitudes. */
+const mercX = lon => lon * Math.PI / 180;
+const mercY = lat => Math.log(Math.tan(Math.PI / 4 +
+  (Math.max(-85, Math.min(85, lat)) * Math.PI / 180) / 2));
+
+function parsePoint(w){
+  const m = /POINT\s*\(\s*([-\d.eE]+)\s+([-\d.eE]+)/.exec(w || '');
+  if(!m) return null;
+  const lon = +m[1], lat = +m[2];
+  return (isFinite(lon) && isFinite(lat)) ? [mercX(lon), mercY(lat)] : null;
+}
+
+function buildMapQuery(e){
+  const propUri = safeUri(e.u);
+  const pairs = scopeGraphs().filter(g => GRAPH_TO_COUNTRY[GRAPH_URI(g)])
+    .map(g => '    (<' + GRAPH_URI(g) + '> "' + GRAPH_TO_COUNTRY[GRAPH_URI(g)] + '")');
+  return ['PREFIX era: <http://data.europa.eu/949/>',
+    'PREFIX geo: <http://www.opengis.net/ont/geosparql#>',
+    'SELECT ?country ?a ?b (SAMPLE(?st) AS ?startName) (SAMPLE(?en) AS ?endName)',
+    '       (GROUP_CONCAT(DISTINCT ?v; separator="' + MAP_SEP + '") AS ?value)',
+    'WHERE {',
+    '  VALUES (?g ?country) {', ...pairs, '  }',
+    '  GRAPH ?g {',
+    '    ?sol a era:SectionOfLine ; era:opStart ?o1 ; era:opEnd ?o2 .',
+    '    ?o1 era:netReference/geo:hasGeometry/geo:asWKT ?a ; era:opName ?st .',
+    '    ?o2 era:netReference/geo:hasGeometry/geo:asWKT ?b ; era:opName ?en .',
+    '    # the value may sit on the section itself or on one of its tracks',
+    '    OPTIONAL { { ?sol <' + propUri + '> ?v }',
+    '               UNION { ?trk era:isPartOf ?sol . ?trk <' + propUri + '> ?v } }',
+    '  }',
+    '}',
+    'GROUP BY ?country ?a ?b',
+    'LIMIT ' + MAP_LIMIT].join('\n');
+}
+
+function mapParamOptions(){
+  $('mapParam').innerHTML = lastRun.params.map((e, i) =>
+    '<option value="' + i + '">' + esc(e.i[0] || '—') + ' — ' + esc(e.l || e.n) + '</option>').join('');
+  $('mapPanel').hidden = false;
+  $('mapStatus').textContent =
+    'Draws every section of line in scope, coloured by the value it carries for the chosen parameter.';
+}
+
+async function drawNetwork(){
+  const e = lastRun.params[+$('mapParam').value] || lastRun.params[0];
+  $('mapBtn').disabled = true;
+  $('mapStatus').textContent = 'Fetching the network…';
+  const ctrl = new AbortController();
+  const t0 = performance.now();
+  try{
+    const rows = await sparql(buildMapQuery(e), ctrl.signal);
+    const label = new Map();
+    lastRun.rows.filter(x => x.param === e && x.label).forEach(x => label.set(x.value, x.label));
+    const segs = [];
+    for(const b of rows){
+      const A = parsePoint(b.a.value), B = parsePoint(b.b.value);
+      if(!A || !B) continue;
+      const raw = (b.value && b.value.value) ? b.value.value.split(MAP_SEP).filter(Boolean) : [];
+      /* Reuse the labels the extraction already resolved, so the legend reads
+         "1435 mm" rather than the concept's local name "30". */
+      const vals = raw.map(v => label.get(v) || (/^https?:/.test(v) ? localName(v) : v));
+      segs.push({A, B, cc: b.country.value,
+                 s: b.startName ? b.startName.value : '',
+                 t: b.endName ? b.endName.value : '',
+                 v: vals.length ? [...new Set(vals)].sort().join(' | ') : null});
+    }
+    if(!segs.length){
+      $('mapStatus').textContent = 'No data — the query ran without error, but no section of line in this ' +
+        'scope has both of its operational points positioned.';
+      $('mapWrap').hidden = true; $('mapLegend').hidden = true;
+      $('mapReset').hidden = true; $('mapPng').hidden = true;
+      return;
+    }
+    /* Rank values by how much network carries them, so the legend is ordered
+       by what the reader will actually see on screen. */
+    const counts = new Map();
+    segs.forEach(x => counts.set(x.v, (counts.get(x.v) || 0) + 1));
+    const ranked = [...counts.entries()].filter(x => x[0] !== null).sort((a, b) => b[1] - a[1]);
+    const colour = new Map();
+    ranked.slice(0, MAP_PALETTE.length).forEach((x, i) => colour.set(x[0], MAP_PALETTE[i]));
+    mapData = {segs, param: e, colour, ranked,
+               otherCount: ranked.slice(MAP_PALETTE.length).reduce((s, x) => s + x[1], 0),
+               noneCount: counts.get(null) || 0,
+               elapsed: (performance.now() - t0) / 1000};
+    mapOff = new Set();
+    mapView = null;
+    $('mapWrap').hidden = false;
+    sizeCanvas();
+    renderLegend();
+    $('mapStatus').textContent = fmt(segs.length) + ' sections of line drawn in ' +
+      mapData.elapsed.toFixed(1) + 's' + (segs.length >= MAP_LIMIT ? ' (capped)' : '') + '.';
+    $('mapNote').innerHTML = '<strong>Read this as topology, not alignment.</strong> Sections of line publish no ' +
+      'geometry of their own in any dataset but Croatia’s, so each is drawn as the straight chord between the ' +
+      'two operational points it runs between — the real track curves, and the length on screen is not the ' +
+      'length on the ground. Grey means the section carries no value for this parameter. Scroll to zoom, drag to ' +
+      'pan, click a legend entry to hide it.';
+    $('mapReset').hidden = false; $('mapPng').hidden = false;
+  } catch(err){
+    $('mapStatus').textContent = 'Query error — the network could not be fetched: ' + err.message;
+  } finally {
+    $('mapBtn').disabled = false;
+  }
+}
+
+const segColour = x => x.v === null ? MAP_NONE : (mapData.colour.get(x.v) || '#8794b5');
+
+function fitView(){
+  const c = $('mapCanvas'), W = c.width, H = c.height;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for(const s of mapData.segs){
+    x0 = Math.min(x0, s.A[0], s.B[0]); x1 = Math.max(x1, s.A[0], s.B[0]);
+    y0 = Math.min(y0, s.A[1], s.B[1]); y1 = Math.max(y1, s.A[1], s.B[1]);
+  }
+  const pad = 26 * (window.devicePixelRatio || 1);
+  const scale = Math.min((W - pad * 2) / Math.max(1e-9, x1 - x0),
+                         (H - pad * 2) / Math.max(1e-9, y1 - y0));
+  mapView = {
+    scale,
+    tx: pad - x0 * scale + (W - pad * 2 - (x1 - x0) * scale) / 2,
+    ty: H - pad + y0 * scale - (H - pad * 2 - (y1 - y0) * scale) / 2,
+  };
+}
+
+const px = p => [p[0] * mapView.scale + mapView.tx, mapView.ty - p[1] * mapView.scale];
+
+function sizeCanvas(){
+  const c = $('mapCanvas'), r = window.devicePixelRatio || 1;
+  const box = $('mapWrap').getBoundingClientRect();
+  c.width = Math.max(1, Math.round(box.width * r));
+  c.height = Math.max(1, Math.round(box.height * r));
+  if(!mapView) fitView();
+  paintMap();
+}
+
+function paintMap(){
+  if(!mapData || !mapView) return;
+  const c = $('mapCanvas'), g = c.getContext('2d'), r = window.devicePixelRatio || 1;
+  g.fillStyle = '#070d18';
+  g.fillRect(0, 0, c.width, c.height);
+  g.lineCap = 'round';
+  /* Unvalued track first, coloured track over it, so colour is never buried. */
+  for(const pass of [0, 1]){
+    for(const s of mapData.segs){
+      const isNone = s.v === null;
+      if((pass === 0) !== isNone) continue;
+      if(mapOff.has(s.v)) continue;
+      const a = px(s.A), b = px(s.B);
+      g.strokeStyle = segColour(s);
+      g.lineWidth = (isNone ? 1 : 1.7) * r;
+      g.globalAlpha = isNone ? 0.5 : 0.95;
+      g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
+    }
+  }
+  g.globalAlpha = 1;
+}
+
+function renderLegend(){
+  const d = mapData;
+  const items = d.ranked.slice(0, MAP_PALETTE.length)
+    .map(x => ({v: x[0], n: x[1], c: d.colour.get(x[0])}));
+  if(d.otherCount) items.push({v: '__other', n: d.otherCount, c: '#8794b5', lab: 'other values'});
+  if(d.noneCount)  items.push({v: null, n: d.noneCount, c: MAP_NONE, lab: 'no data for this parameter'});
+  $('mapLegend').innerHTML = items.map(it =>
+    '<span class="lg' + (mapOff.has(it.v) ? ' off' : '') + '" data-v="' +
+      (it.v === null ? ' none' : esc(String(it.v))) + '">' +
+    '<span class="sw" style="background:' + it.c + '"></span>' +
+    '<span>' + esc(it.lab || String(it.v)) + '</span>' +
+    '<span class="ct">' + fmt(it.n) + '</span></span>').join('');
+  $('mapLegend').hidden = false;
+}
+
+$('mapLegend').addEventListener('click', ev => {
+  const el = ev.target.closest('.lg');
+  if(!el || !mapData) return;
+  const raw = el.dataset.v;
+  const v = raw === ' none' ? null : raw;
+  if(v === '__other'){
+    const named = new Set(mapData.colour.keys());
+    const others = mapData.ranked.map(x => x[0]).filter(x => !named.has(x));
+    const anyOn = others.some(x => !mapOff.has(x));
+    others.forEach(x => anyOn ? mapOff.add(x) : mapOff.delete(x));
+    if(mapOff.has('__other')) mapOff.delete('__other'); else mapOff.add('__other');
+  } else if(mapOff.has(v)){
+    mapOff.delete(v);
+  } else {
+    mapOff.add(v);
+  }
+  renderLegend();
+  paintMap();
+});
+
+/* Nearest segment within a few pixels of the cursor. */
+function nearestSeg(mx, my){
+  let best = null, bestD = 8 * (window.devicePixelRatio || 1);
+  for(const s of mapData.segs){
+    if(mapOff.has(s.v)) continue;
+    const a = px(s.A), b = px(s.B);
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const len2 = dx * dx + dy * dy;
+    let t = len2 ? ((mx - a[0]) * dx + (my - a[1]) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const d = Math.hypot(a[0] + t * dx - mx, a[1] + t * dy - my);
+    if(d < bestD){ bestD = d; best = s; }
+  }
+  return best;
+}
+
+(function mapInteraction(){
+  const c = $('mapCanvas'), tip = $('mapTip');
+  let dragging = false, lastX = 0, lastY = 0;
+  const toCanvas = ev => {
+    const r = window.devicePixelRatio || 1, box = c.getBoundingClientRect();
+    return [(ev.clientX - box.left) * r, (ev.clientY - box.top) * r];
+  };
+  c.addEventListener('pointerdown', ev => {
+    if(!mapData) return;
+    dragging = true; lastX = ev.clientX; lastY = ev.clientY;
+    c.classList.add('drag');
+    c.setPointerCapture(ev.pointerId);
+  });
+  c.addEventListener('pointermove', ev => {
+    if(!mapData || !mapView) return;
+    if(dragging){
+      const r = window.devicePixelRatio || 1;
+      mapView.tx += (ev.clientX - lastX) * r;
+      mapView.ty += (ev.clientY - lastY) * r;
+      lastX = ev.clientX; lastY = ev.clientY;
+      tip.hidden = true;
+      paintMap();
+      return;
+    }
+    const mp = toCanvas(ev);
+    const s = nearestSeg(mp[0], mp[1]);
+    if(!s){ tip.hidden = true; return; }
+    const cc = BY_CODE[s.cc] ? BY_CODE[s.cc].l : s.cc;
+    tip.innerHTML = '<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b><br>' + esc(cc) + '<br>' +
+      (s.v === null ? '<span style="color:#8794b5">no data for this parameter</span>' : esc(s.v));
+    tip.hidden = false;
+    const box = $('mapWrap').getBoundingClientRect();
+    tip.style.left = Math.min(ev.clientX - box.left + 14, box.width - tip.offsetWidth - 8) + 'px';
+    tip.style.top  = Math.min(ev.clientY - box.top + 14, box.height - tip.offsetHeight - 8) + 'px';
+  });
+  const end = ev => {
+    dragging = false;
+    c.classList.remove('drag');
+    if(ev && ev.pointerId !== undefined && c.hasPointerCapture(ev.pointerId)) c.releasePointerCapture(ev.pointerId);
+  };
+  c.addEventListener('pointerup', end);
+  c.addEventListener('pointercancel', end);
+  c.addEventListener('pointerleave', () => { tip.hidden = true; });
+  c.addEventListener('wheel', ev => {
+    if(!mapData || !mapView) return;
+    ev.preventDefault();
+    const mp = toCanvas(ev);
+    const s0 = mapView.scale, s1 = Math.max(s0 * Math.exp(-ev.deltaY * 0.0016), 1e-9);
+    /* keep whatever is under the cursor fixed while zooming */
+    mapView.tx = mp[0] - (mp[0] - mapView.tx) * (s1 / s0);
+    mapView.ty = mp[1] - (mp[1] - mapView.ty) * (s1 / s0);
+    mapView.scale = s1;
+    tip.hidden = true;
+    paintMap();
+  }, {passive: false});
+})();
+
+$('mapBtn').addEventListener('click', drawNetwork);
+$('mapReset').addEventListener('click', () => { mapView = null; sizeCanvas(); });
+$('mapPng').addEventListener('click', () => {
+  $('mapCanvas').toBlob(b => download(b, fileBase() + '_network.png'), 'image/png');
+});
+window.addEventListener('resize', () => { if(mapData) sizeCanvas(); });
 
 /* ------------------------------------------------------------------ *
  * XLSX — a minimal, dependency-free writer (stored/uncompressed ZIP)
@@ -1444,7 +1912,9 @@ $('xlsBtn').addEventListener('click', () => {
 
   if(r.hasDetail && r.detail.length){
     const d = detailTable();
-    specs.push({name:'Full data', rows:[d.head, ...d.body], opts:{autoFilter:true, maxWidth:46}});
+    const t = transposedTable();
+    specs.push({name:'By location', rows:[t.head, ...t.body], opts:{autoFilter:true, maxWidth:40}});
+    specs.push({name:'Full data (long)', rows:[d.head, ...d.body], opts:{autoFilter:true, maxWidth:46}});
   }
 
   const about = [
