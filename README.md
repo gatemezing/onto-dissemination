@@ -134,9 +134,17 @@ France, the Netherlands or Estonia), but *every* operational point does through
 Germany. So each section is drawn as the chord between the two points it runs
 between and coloured by the selected parameter's value: 7,366 sections across six
 countries render in about 2 s, and the Baltic 1520/1524 break-of-gauge separates
-from the 1435 network at a glance. Canvas, Web Mercator, no tiles and no
-dependency, so it loads instantly, works offline and sends nothing to a third
-party. It is topology, not alignment, and the panel says so.
+from the 1435 network at a glance.
+
+Under it sits a basemap of European country outlines — Natural Earth 1:50m,
+public domain, clipped to the RINF area, simplified with Douglas-Peucker and
+delta-encoded to **52 KB** (143 rings, 6,803 points) so it embeds in the file
+rather than being fetched. Canvas, Web Mercator, wheel-zoom clamped between
+about 3 m and 25 km per pixel, a scale bar computed at the current centre
+latitude, drag-pan, hover tooltip, clickable legend and PNG export — with no
+tile server and no mapping library, so the panel loads instantly, works offline
+and sends nothing to a third party. It is topology, not alignment, and the panel
+says so.
 
 **Several parameters at once.** Each parameter is queried separately rather
 than batched into one `VALUES ?prop` query, which is the faster arrangement by
