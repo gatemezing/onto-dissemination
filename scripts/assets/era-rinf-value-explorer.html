@@ -360,6 +360,14 @@
       either how many values it found or <em>no data</em> and where, empty parameters appear as explicit rows in the
       table rather than being omitted, and a failed request is labelled <em>query error</em> so the two can never be
       confused. The <em>By location</em> export writes <code>no data</code> into the cell for the same reason.</p>
+    <p><strong>Both full-data sheets are the same rows seen two ways</strong> — long, one row per value, and wide,
+      one row per location with the parameters pivoted into columns — so they share their location block, their
+      value/label naming and their rule for dropping a column nobody filled in. A parameter that hangs off an
+      operational point leaves <em>Start OP</em> and <em>End OP</em> empty on every row, and one that hangs off a
+      section of line leaves <em>Operational point</em> empty; that column is dropped rather than shipped blank.
+      Each parameter's value column is named after the parameter itself, with a <em>— label</em> column beside it
+      wherever the ontology labels those values — which matters more than it sounds: nominal track gauge
+      <code>80</code> is the concept's identifier, and <code>760</code> is the gauge in millimetres.</p>
     <p><strong>The network map is topology, not alignment.</strong> Sections of line publish no geometry of their
       own in any dataset except Croatia's — 581 of 583 there, zero in Germany, France, the Netherlands and Estonia —
       but <strong>every operational point does</strong>, through
@@ -1356,58 +1364,113 @@ $('csvBtn').addEventListener('click', () => {
   download(new Blob([text], {type:'text/csv;charset=utf-8'}), fileBase() + '.csv');
 });
 
+/* ------------------------------------------------------------------ *
+ * The two full-data sheets
+ *
+ * Both are the same rows seen two ways — long, one row per value, and wide,
+ * one row per location with the parameters pivoted into columns — so they
+ * share their location block, their value/label convention and their rule for
+ * dropping a column nobody filled in. A parameter that hangs off an
+ * operational point leaves Start OP and End OP empty on every row, and one that
+ * hangs off a section of line leaves Operational point empty; carrying the
+ * empty column into the download only invites the reader to wonder what went
+ * missing.
+ * ------------------------------------------------------------------ */
+
+/* Where a value sits. Only the columns some row actually fills survive. */
+function locationColumns(rows){
+  const defs = [
+    {h: 'Country',           get: d => d.country ? BY_CODE[d.country].l : ''},
+    {h: 'Start OP',          get: d => d.start || ''},
+    {h: 'End OP',            get: d => d.end || ''},
+    {h: 'Operational point', get: d => d.op || ''},
+  ];
+  return defs.filter(c => rows.some(d => c.get(d) !== ''));
+}
+
+/* Keyed by (parameter, value): two parameters can share a value string while
+   meaning entirely different things. */
+const labelKey = (paramUri, value) => paramUri + ' ' + value;
+function labelIndex(){
+  return new Map(lastRun.rows.map(x => [labelKey(x.param.u, x.value), x.label || '']));
+}
+const shortValue = d => d.isUri ? localName(d.value) : d.value;
+
+/* Long form: one row per value — the shape a database wants. */
 function detailTable(){
   const r = lastRun;
   const multi = r.params.length > 1;
-  // Keyed by (parameter, value): two parameters can share a value string
-  // while meaning entirely different things.
-  const labelOf = new Map(r.rows.map(x => [x.param.u + '\u0000' + x.value, x.label || '']));
-  return {
-    head: (multi ? ['RINF index', 'Parameter'] : [])
-      .concat(['Country', 'Start OP', 'End OP', 'Operational point', 'Value', 'Value label', 'Resource']),
-    body: r.detail.map(d => (multi ? [d.param.i[0] || '', d.param.l || d.param.n] : []).concat([
-      d.country ? BY_CODE[d.country].l : '',
-      d.start, d.end, d.op, d.value, labelOf.get(d.param.u + '\u0000' + d.value) || '', d.res,
-    ])),
-  };
+  const loc = locationColumns(r.detail);
+  const labelOf = labelIndex();
+  const labelled = r.detail.some(d => labelOf.get(labelKey(d.param.u, d.value)));
+  const anyUri = r.detail.some(d => d.isUri);
+  /* With one parameter the column is named after it, exactly as the wide sheet
+     names its columns, so the sheet says what the value is without a constant
+     column repeating it on every row. With several, the parameter varies per
+     row and has to be a column of its own. */
+  const vName = multi ? 'Value'
+    : (r.params[0].i[0] || '—') + '  ' + (r.params[0].l || r.params[0].n);
+  const head = (multi ? ['RINF index', 'Parameter'] : [])
+    .concat(loc.map(c => c.h))
+    .concat([vName])
+    .concat(labelled ? [vName + ' — label'] : [])
+    .concat(anyUri ? [vName + ' — URI'] : [])
+    .concat(['Resource']);
+  const body = r.detail.map(d => (multi ? [d.param.i[0] || '', d.param.l || d.param.n] : [])
+    .concat(loc.map(c => c.get(d)))
+    .concat([shortValue(d)])
+    .concat(labelled ? [labelOf.get(labelKey(d.param.u, d.value)) || ''] : [])
+    .concat(anyUri ? [d.isUri ? d.value : ''] : [])
+    .concat([d.res]));
+  return {head, body};
 }
-/* The same full data with the parameters pivoted into columns: one row per
-   location, one column per RINF index. That is the shape a railway engineer
-   reads a route in — every parameter for a stretch of line side by side —
-   rather than the long form, which is the shape a database wants. A location
-   that carries several values for one parameter has them joined with " | ",
-   and a parameter that is simply absent there is written "no data" so an empty
-   cell never has to be interpreted. */
+
+/* Wide form: one row per location, one column per parameter — the shape a
+   railway engineer reads a route in, every parameter for a stretch of line
+   side by side. A parameter carrying several values at one location has them
+   joined with " | "; a parameter simply absent there is written "no data", so
+   an empty cell never has to be interpreted. Each parameter contributes a
+   value column and, where the ontology labels its values, a label column
+   beside it under the same parameter name. */
 function transposedTable(){
   const r = lastRun;
-  const params = r.params.slice();
-  const key = d => [d.country || '', d.start || '', d.end || '', d.op || '', d.res || ''].join('\u0000');
+  const loc = locationColumns(r.detail);
+  const labelOf = labelIndex();
   const rowsByKey = new Map();
+  const key = d => [d.country || '', d.start || '', d.end || '', d.op || '', d.res || ''].join(' ');
   for(const d of r.detail){
     let row = rowsByKey.get(key(d));
-    if(!row){
-      row = {country: d.country || '', start: d.start || '', end: d.end || '',
-             op: d.op || '', res: d.res || '', vals: new Map()};
-      rowsByKey.set(key(d), row);
-    }
+    if(!row){ row = {d, vals: new Map(), labs: new Map()}; rowsByKey.set(key(d), row); }
     const u = d.param.u;
-    if(!row.vals.has(u)) row.vals.set(u, new Set());
-    row.vals.get(u).add(d.isUri ? localName(d.value) : d.value);
+    if(!row.vals.has(u)){ row.vals.set(u, new Set()); row.labs.set(u, new Set()); }
+    row.vals.get(u).add(shortValue(d));
+    const lab = labelOf.get(labelKey(u, d.value));
+    if(lab) row.labs.get(u).add(lab);
   }
-  const head = ['Country', 'Start OP', 'End OP', 'Operational point']
-    .concat(params.map(e => (e.i[0] || '—') + '  ' + (e.l || e.n)))
-    .concat(['Resource']);
-  const body = [...rowsByKey.values()]
-    .sort((a, b) => a.country.localeCompare(b.country) ||
-      a.start.localeCompare(b.start, 'en', {numeric:true}) ||
-      a.end.localeCompare(b.end, 'en', {numeric:true}) ||
-      a.op.localeCompare(b.op, 'en', {numeric:true}))
-    .map(x => [x.country ? BY_CODE[x.country].l : '', x.start, x.end, x.op]
-      .concat(params.map(e => {
-        const v = x.vals.get(e.u);
-        return v ? [...v].sort().join(' | ') : 'no data';
-      }))
-      .concat([x.res]));
+  const all = [...rowsByKey.values()];
+  /* A label column only where that parameter's values actually carry labels. */
+  const cols = [];
+  r.params.forEach(e => {
+    const name = (e.i[0] || '—') + '  ' + (e.l || e.n);
+    cols.push({h: name, get: x => {
+      const v = x.vals.get(e.u);
+      return v && v.size ? [...v].sort().join(' | ') : 'no data';
+    }});
+    if(all.some(x => (x.labs.get(e.u) || new Set()).size)){
+      cols.push({h: name + ' — label', get: x => {
+        const l = x.labs.get(e.u);
+        if(l && l.size) return [...l].sort().join(' | ');
+        return x.vals.get(e.u) ? '' : 'no data';
+      }});
+    }
+  });
+  const head = loc.map(c => c.h).concat(cols.map(c => c.h)).concat(['Resource']);
+  const body = all
+    .sort((a, b) => (a.d.country || '').localeCompare(b.d.country || '') ||
+      (a.d.start || '').localeCompare(b.d.start || '', 'en', {numeric: true}) ||
+      (a.d.end || '').localeCompare(b.d.end || '', 'en', {numeric: true}) ||
+      (a.d.op || '').localeCompare(b.d.op || '', 'en', {numeric: true}))
+    .map(x => loc.map(c => c.get(x.d)).concat(cols.map(c => c.get(x))).concat([x.d.res]));
   return {head, body, locations: body.length};
 }
 

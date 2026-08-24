@@ -125,7 +125,14 @@ explicit rows in the table instead of being omitted; a failed request is labelle
 **Exports are transposed for a railway reader.** The full-data download is now
 one row per location with **one column per RINF parameter** — every parameter for
 a stretch of line side by side, which is how a route is read — with the long form
-kept alongside as a second sheet for machine use.
+kept alongside as a second sheet for machine use. Both are the same rows seen two
+ways, so they share their location block, their value/label naming and their rule
+for dropping a column nobody filled in: a parameter hanging off an operational
+point leaves *Start OP* and *End OP* empty on every row, one hanging off a section
+of line leaves *Operational point* empty, and the empty column is dropped rather
+than shipped blank. Each value column is named after its parameter, with a
+*— label* column beside it wherever the ontology labels the values — nominal track
+gauge `80` is the concept identifier, `760` is the gauge in millimetres.
 
 **A network map with no map library.** Sections of line publish no geometry of
 their own in any dataset except Croatia's (581 of 583 there, zero in Germany,
