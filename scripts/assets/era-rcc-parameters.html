@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ERA RCC Parameters</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
   :root{
     --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
@@ -48,6 +52,86 @@
   .chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer;}
   .chk input{flex:none;margin:0;}
   .opts{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;}
+
+  /* ---- country grid ---- */
+  .fieldHead{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;}
+  .fieldHead .fieldLabel{margin-bottom:8px;}
+  .quickActions{display:flex;gap:6px;}
+  button.mini{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
+    padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;font-family:inherit;}
+  button.mini:hover{background:rgba(255,255,255,.1);color:var(--paper);}
+  #countryGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px;
+    max-height:250px;overflow-y:auto;padding:4px;border:1px solid var(--line);border-radius:9px;
+    background:rgba(255,255,255,.02);}
+  .cy{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;cursor:pointer;
+    font-size:12.5px;border:1px solid transparent;}
+  .cy:hover{background:rgba(255,255,255,.05);}
+  .cy.on{border-color:rgba(91,155,213,.45);background:rgba(91,155,213,.1);}
+  .cy input{flex:none;margin:0;}
+  .cy .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cy .ds{font-size:10.5px;color:var(--dim);flex:none;}
+
+  /* ---- shared search combobox: national line, RCC parameters ---- */
+  .comboWrap{position:relative;}
+  #lineSearch,#paramSearch{font-family:"SF Mono",Consolas,monospace;}
+  .comboList{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 5px);max-height:340px;overflow-y:auto;
+    background:#101830;border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 44px rgba(0,0,0,.6);
+    padding:5px;}
+  .comboList[hidden]{display:none;}
+  .opt{display:flex;gap:10px;align-items:baseline;padding:7px 9px;border-radius:7px;cursor:pointer;}
+  .opt:hover{background:rgba(255,255,255,.05);}
+  .opt.active{background:rgba(91,155,213,.16);}
+  .opt .ix{font-family:"SF Mono",Consolas,monospace;font-size:11.5px;color:var(--teal);flex:none;min-width:3em;}
+  .opt .txt{flex:1;min-width:0;}
+  .opt .nm{display:block;font-size:13px;line-height:1.3;}
+  .opt .sub{display:block;font-size:11px;color:var(--dim);font-family:"SF Mono",Consolas,monospace;margin-top:2px;}
+  .opt .vc{flex:none;font-size:11px;color:var(--muted);white-space:nowrap;text-align:right;}
+  .noHits{padding:14px 10px;font-size:12.5px;color:var(--muted);text-align:center;}
+
+  #paramChips,#lineChip{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  #paramChips[hidden],#lineChip[hidden]{display:none;}
+  .pchip{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(95,208,174,.4);
+    background:rgba(95,208,174,.09);border-radius:20px;padding:4px 6px 4px 11px;font-size:12px;max-width:100%;}
+  .pchip .ix{font-family:"SF Mono",Consolas,monospace;font-size:10.5px;color:var(--teal);flex:none;}
+  .pchip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pchip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;
+    line-height:1;padding:2px 5px;border-radius:50%;flex:none;font-family:inherit;}
+  .pchip button:hover{background:rgba(255,255,255,.14);color:var(--paper);}
+
+  /* ---- network map ---- */
+  #mapPanel[hidden]{display:none;}
+  .mapBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .mapBar .grow{flex:1;}
+  .mapParamPicks{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 100%;}
+  #mapWrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    background:#070d18;height:520px;}
+  #mapWrap[hidden]{display:none;}
+  #mapCanvas{width:100%;height:100%;background:#0e1626;}
+  .leaflet-container{background:#0e1626;font-family:inherit;color:var(--paper);}
+  .leaflet-control-zoom a{background:#141d33;color:var(--paper);border-color:var(--line) !important;}
+  .leaflet-control-zoom a:hover{background:#1c2740;}
+  .leaflet-bar{border-color:var(--line) !important;box-shadow:0 6px 18px rgba(0,0,0,.4) !important;}
+  .leaflet-control-attribution{background:rgba(8,13,26,.82) !important;color:var(--muted) !important;
+    font-size:10.5px;}
+  .leaflet-control-attribution a{color:var(--blue);}
+  .leaflet-control-scale-line{background:rgba(8,13,26,.72) !important;color:var(--paper) !important;
+    border-color:rgba(238,242,255,.62) !important;}
+  .leaflet-tooltip.eraTip{background:rgba(8,13,26,.95);border:1px solid var(--line);color:var(--paper);
+    border-radius:7px;padding:7px 10px;font-size:12px;line-height:1.45;max-width:270px;
+    box-shadow:0 6px 18px rgba(0,0,0,.5);opacity:1;}
+  .leaflet-tooltip.eraTip.leaflet-tooltip-top:before{border-top-color:var(--line);}
+  .leaflet-tooltip.eraTip.leaflet-tooltip-bottom:before{border-bottom-color:var(--line);}
+  .leaflet-tooltip.eraTip.leaflet-tooltip-left:before{border-left-color:var(--line);}
+  .leaflet-tooltip.eraTip.leaflet-tooltip-right:before{border-right-color:var(--line);}
+  .leaflet-tooltip.eraTip b{color:var(--teal);}
+  #mapLegend{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;}
+  #mapLegend[hidden]{display:none;}
+  .lg{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:20px;
+    padding:4px 11px;font-size:12px;cursor:pointer;background:rgba(255,255,255,.04);user-select:none;}
+  .lg .sw{width:16px;height:3px;border-radius:2px;flex:none;}
+  .lg .ct{color:var(--dim);font-variant-numeric:tabular-nums;}
+  .lg.off{opacity:.38;}
+  .lg:hover{border-color:var(--blue);}
 
   button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
     padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
@@ -117,34 +201,44 @@
 <div id="app">
   <header>
     <h1>ERA RCC Parameters</h1>
-    <p>Route-compatibility parameters for one national line, positioned by kilometre post. Pick a country, then a
-       line published by that country, and the tool returns the RINF parameters flagged
-       <code>era:usedInRCCCalculations</code> — those along the line (index&nbsp;1.1) and those at its operational
-       points (index&nbsp;1.2). Only the latest validity window is used, and retired parameters are excluded.
-       Export to CSV or Excel. Queries <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a> live from your browser.</p>
+    <p>Route-compatibility parameters for one national line, positioned by kilometre post. Search across as many
+       countries as you like, pick a line, then optionally narrow to specific RCC parameters, and the tool returns
+       every RINF parameter flagged <code>era:usedInRCCCalculations</code> — those along the line
+       (index&nbsp;1.1) and those at its operational points (index&nbsp;1.2). Only the latest validity window is
+       used, and retired parameters are excluded. Export to CSV or Excel. Queries
+       <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>
+       live from your browser. The network map additionally loads map tiles from OpenStreetMap and
+       <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a> when you draw
+       it; nothing else is sent anywhere.</p>
   </header>
 
   <div class="panel">
-    <h2><span class="step">1</span> Country and line</h2>
-    <div class="grid2">
-      <div>
-        <label class="fieldLabel" for="countrySel">Country</label>
-        <select id="countrySel"></select>
-        <div class="hint" id="countryHint"></div>
-      </div>
-      <div>
-        <label class="fieldLabel" for="lineInput">National line</label>
-        <input id="lineInput" list="lineList" type="text" spellcheck="false" autocomplete="off"
-               placeholder="Choose a country first…" disabled>
-        <datalist id="lineList"></datalist>
-        <div class="hint" id="lineHint"></div>
-      </div>
+    <h2><span class="step">1</span> Countries and line</h2>
+    <div class="fieldHead">
+      <span class="fieldLabel" id="countrySummary" aria-live="polite">No country selected — pick at least one</span>
+      <span class="quickActions">
+        <button type="button" class="mini" id="selAll">Select all</button>
+        <button type="button" class="mini" id="selNone">Clear</button>
+        <button type="button" class="mini" id="selInvert">Invert</button>
+      </span>
     </div>
+    <div id="countryGrid" role="group" aria-label="Countries to search for lines"></div>
+    <div class="hint" id="countryHint"></div>
+
+    <label class="fieldLabel" for="lineSearch" style="display:block;margin-top:16px">National line</label>
+    <div id="lineWrap" class="comboWrap">
+      <input id="lineSearch" type="text" spellcheck="false" autocomplete="off" role="combobox"
+             aria-expanded="false" aria-controls="lineList" aria-autocomplete="list"
+             placeholder="Choose at least one country first…" disabled>
+      <div id="lineList" class="comboList" role="listbox" aria-label="Matching national lines" hidden></div>
+    </div>
+    <div id="lineChip" hidden></div>
+    <div class="hint" id="lineHint"></div>
   </div>
 
   <div class="panel">
     <h2><span class="step">2</span> Narrow it down <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--dim)">— optional</span></h2>
-    <div class="grid3">
+    <div class="grid2">
       <div>
         <label class="fieldLabel" for="kmFrom">From kilometre</label>
         <input id="kmFrom" type="number" step="0.1" placeholder="whole line">
@@ -153,11 +247,17 @@
         <label class="fieldLabel" for="kmTo">To kilometre</label>
         <input id="kmTo" type="number" step="0.1" placeholder="whole line">
       </div>
-      <div>
-        <label class="fieldLabel" for="paramSel">Parameter</label>
-        <select id="paramSel"><option value="">All RCC parameters</option></select>
-      </div>
     </div>
+
+    <label class="fieldLabel" for="paramSearch" style="display:block;margin-top:16px">RCC parameters — leave empty for all</label>
+    <div id="paramWrap" class="comboWrap">
+      <input id="paramSearch" type="text" spellcheck="false" autocomplete="off" role="combobox"
+             aria-expanded="false" aria-controls="paramList" aria-autocomplete="list"
+             placeholder="Search by RINF index or name — leave empty for every RCC parameter…">
+      <div id="paramList" class="comboList" role="listbox" aria-label="Matching RCC parameters" hidden></div>
+    </div>
+    <div id="paramChips" hidden></div>
+
     <div class="opts">
       <label class="chk"><input type="checkbox" id="wantTrack" checked> Along the line — sections and their tracks (1.1…)</label>
       <label class="chk"><input type="checkbox" id="wantOp" checked> At operational points (1.2…)</label>
@@ -189,6 +289,24 @@
       <summary>Show the SPARQL that produced this</summary>
       <pre class="code" id="sparqlOut"></pre>
     </details>
+  </div>
+
+  <div class="panel" id="mapPanel" hidden>
+    <h2><span class="step">4</span> Network map</h2>
+    <div class="mapBar">
+      <span class="fieldLabel" style="margin:0">Colour the line by</span>
+      <div id="mapParamPicks" class="mapParamPicks" role="group" aria-label="Parameters to draw on the map"></div>
+      <button class="btn" id="mapBtn">Draw map</button>
+      <label class="chk" style="margin:0"><input type="checkbox" id="mapBase" checked> Railway overlay</label>
+      <span class="grow"></span>
+      <button type="button" class="mini" id="mapReset" hidden>Reset view</button>
+    </div>
+    <div id="mapStatus" class="moreNote"></div>
+    <div id="mapWrap" hidden>
+      <div id="mapCanvas"></div>
+    </div>
+    <div id="mapLegend" hidden></div>
+    <p class="moreNote" id="mapNote"></p>
   </div>
 
   <footer>
@@ -227,6 +345,26 @@
       <code>1.1.1.2.2.1.2.1</code> disappears entirely. Values that are concepts are resolved to their English label
       where one exists, and a track carrying several values for one parameter has them joined with
       &ldquo;&nbsp;|&nbsp;&rdquo;.</p>
+    <p><strong>The line search spans every country you tick, and lines are fetched once per country and cached</strong>
+      — ticking and unticking the same country again costs no further query. Because a line identifier is unique
+      only within a Member State, the picker keeps each line's country attached rather than matching on the bare
+      identifier, so two countries publishing the same number (say, line <code>1</code>) can never be picked by
+      mistake. The RCC parameter filter works the same way as the line picker: search, pick as many as you need, and
+      the underlying query adds <code>FILTER(?rinfIndex IN (…))</code> for exactly those — leave it empty and every
+      RCC parameter is returned, as before.</p>
+    <p><strong>The network map draws this run's sections geographically</strong>, over standard OpenStreetMap tiles
+      with the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
+      &ldquo;standard&rdquo; layer overlaid for real track, station and line-number context — the same approach as
+      the <a href="./values.html">RINF Parameter Values</a> network map. It draws only the &ldquo;along the
+      line&rdquo; side: sections publish no geometry of their own, but every operational point does, so each section
+      is the straight chord between the two operational points it runs between — topology, not alignment, exactly
+      as for the table above. It reuses the parameter values already fetched for the table rather than re-querying
+      them, so drawing the map only costs one further request for geometry. One RCC parameter colours by its
+      distinct values; several colour by parameter instead, one flat colour each, since mixing unrelated value
+      domains into one legend would not mean anything — hover a section to see every value regardless of which
+      colour is on top. With none picked, or none applicable to this line, the map still draws the topology in one
+      colour. Unlike the rest of this tool, the map is not offline and not third-party-free: it fetches tiles from
+      openstreetmap.org and openrailwaymap.org as you pan and zoom.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
       <a href="./values.html">RINF Parameter Values</a> · <a href="./routebook.html">Route Book</a></p>
   </footer>
@@ -259,11 +397,15 @@ const COUNTRIES = [
    never be allowed to empty them. Measured, not assumed. */
 const UNDATED = new Set(['SWE','ESP','IRL','EST','GRC','FIN','ROU','HRV','AUT','LUX']);
 
-let lines = [];        // [{line, src, lps, sections, fromKm, toKm}] for the chosen country
+let lines = [];        // lines from every currently-checked country, merged
 let labelLines = 0;    // how many are identified by label rather than era:lineId
 let params = [];       // [{index, label}] RCC parameters
 let lastRun = null;
 let activeTab = 'track';
+
+const chosen = new Set();      // country codes currently ticked
+let pickedLine = null;         // the one chosen {line, src, lps, sections, fromKm, toKm, cc, ccLabel}
+let pickedParams = [];         // [{index, label}] chosen RCC parameters; empty means "all"
 
 /* ------------------------------------------------------------------ *
  * SPARQL
@@ -289,6 +431,7 @@ const PREFIXES = [
   'PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>',
   'PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>',
   'PREFIX skos: <http://www.w3.org/2004/02/skos/core#>',
+  'PREFIX geo:  <http://www.opengis.net/ont/geosparql#>',
 ].join('\n');
 
 /* Line IDs come from the data and are echoed into a query, so they are
@@ -300,6 +443,10 @@ function safeLine(s){
 function safeCountry(c){
   if(!/^[A-Z]{3}$/.test(c)) throw new Error('Bad country code.');
   return c;
+}
+function safeRinfIndex(s){
+  if(!/^[0-9]+(\.[0-9]+)*$/.test(s)) throw new Error('Bad RINF index.');
+  return s;
 }
 
 /* National lines, keyed to the LinearPositioningSystem resource itself.
@@ -342,14 +489,18 @@ SELECT DISTINCT ?rinfIndex ?parameterLabel WHERE {
 
 /* The RCC parameter set, resolved in a subquery so the predicate is bound
    before the data is touched — an unbound ?parameter scan is what made the
-   original Data Stories query take 25 s. Retired parameters are excluded. */
-function paramBlock(prefix, only){
+   original Data Stories query take 25 s. Retired parameters are excluded.
+   `onlyList` is the set of RINF indices picked in the parameter combobox;
+   empty means every RCC parameter under this prefix. */
+function paramBlock(prefix, onlyList){
+  const list = (onlyList || []).map(safeRinfIndex);
+  const filter = list.length ? `FILTER(?rinfIndex IN (${list.map(x => '"' + x + '"').join(', ')}))` : '';
   return `  { SELECT DISTINCT ?parameter ?rinfIndex ?parameterLabel WHERE {
       ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ;
                  era:rinfIndex ?rinfIndex ; rdfs:label ?parameterLabel .
       FILTER(LANG(?parameterLabel) = "" || LANGMATCHES(LANG(?parameterLabel), "en"))
       FILTER(STRSTARTS(?rinfIndex, "${prefix}"))
-      ${only ? `FILTER(?rinfIndex = "${only}")` : ''}
+      ${filter}
       FILTER NOT EXISTS { ?parameter owl:deprecated true }
   } }`;
 }
@@ -541,11 +692,8 @@ async function pooled(jobs, limit, signal){
 }
 
 /* ------------------------------------------------------------------ *
- * Country → line cascade
+ * Countries → lines
  * ------------------------------------------------------------------ */
-$('countrySel').innerHTML = '<option value="">Choose a country…</option>' +
-  COUNTRIES.map(([c, l]) => `<option value="${c}">${esc(l)}</option>`).join('');
-
 function setStatus(msg, kind){
   const el = $('statusArea');
   el.className = kind || '';
@@ -553,70 +701,347 @@ function setStatus(msg, kind){
   else el.textContent = msg;
 }
 
-async function loadLines(cc){
-  lines = [];
-  $('lineInput').value = '';
-  $('lineInput').disabled = true;
-  $('lineList').innerHTML = '';
-  $('lineHint').textContent = '';
-  if(!cc){ $('lineInput').placeholder = 'Choose a country first…'; updateRun(); return; }
+function renderCountryGrid(){
+  $('countryGrid').innerHTML = COUNTRIES.map(([c, l]) =>
+    '<label class="cy' + (chosen.has(c) ? ' on' : '') + '" data-c="' + c + '">' +
+      '<input type="checkbox"' + (chosen.has(c) ? ' checked' : '') + ' value="' + c + '">' +
+      '<span class="nm">' + esc(l) + '</span>' +
+      '<span class="ds">' + c + '</span>' +
+    '</label>').join('');
+}
+function updateCountrySummary(){
+  const n = chosen.size;
+  const names = COUNTRIES.filter(c => chosen.has(c[0])).map(c => c[1]);
+  $('countrySummary').textContent =
+    n === 0 ? 'No country selected — pick at least one'
+    : n === COUNTRIES.length ? 'All ' + n + ' countries'
+    : n + (n === 1 ? ' country' : ' countries') + ': ' +
+      (n <= 5 ? names.join(', ') : names.slice(0, 4).join(', ') + ' +' + (n - 4) + ' more');
+}
+
+/* Lines are fetched once per country and cached, so ticking the same country
+   twice in a session costs no further query. */
+const linesByCountry = new Map();
+async function ensureCountryLines(cc){
+  if(linesByCountry.has(cc)) return linesByCountry.get(cc);
   const name = (COUNTRIES.find(x => x[0] === cc) || [,cc])[1];
+  const rows = await sparql(linesQuery(cc));
+  const arr = rows.map(b => ({
+    line: b.line.value,
+    src: b.src ? b.src.value : 'lineId',
+    lps: b.lpsList.value.split(' ').filter(Boolean),
+    sections: +b.sections.value,
+    fromKm: b.fromKm ? Math.round(+b.fromKm.value) : null,
+    toKm:   b.toKm   ? Math.round(+b.toKm.value)   : null,
+    cc, ccLabel: name,
+  }));
+  linesByCountry.set(cc, arr);
+  return arr;
+}
+
+/* Ticking two countries in quick succession starts two overlapping calls;
+   without a token the one that happens to resolve last would win regardless
+   of which selection it was answering, silently reverting the country list. */
+let linesSyncToken = 0;
+async function syncLines(){
+  const myToken = ++linesSyncToken;
+  const ccList = [...chosen];
+  lineSearch.disabled = true;
+  closeLineList();
+  if(!ccList.length){
+    lines = [];
+    lineSearch.placeholder = 'Choose at least one country first…';
+    $('countryHint').className = 'hint';
+    $('countryHint').textContent = '';
+    if(pickedLine){ pickedLine = null; renderLineChip(); }
+    updateRun();
+    return;
+  }
   $('countryHint').className = 'hint';
-  $('countryHint').textContent = 'Loading lines for ' + name + '…';
+  $('countryHint').textContent = 'Loading lines…';
   try{
-    const rows = await sparql(linesQuery(cc));
-    lines = rows.map(b => ({
-      line: b.line.value,
-      src: b.src ? b.src.value : 'lineId',
-      lps: b.lpsList.value.split(' ').filter(Boolean),
-      sections: +b.sections.value,
-      fromKm: b.fromKm ? Math.round(+b.fromKm.value) : null,
-      toKm:   b.toKm   ? Math.round(+b.toKm.value)   : null,
-    }));
-    $('lineList').innerHTML = lines.map(l => {
-      const span = (l.fromKm !== null && l.toKm !== null) ? `km ${l.fromKm}–${l.toKm}` : '';
-      return `<option value="${esc(l.line)}">${l.sections} section${l.sections === 1 ? '' : 's'}${span ? ' · ' + span : ''}</option>`;
-    }).join('');
-    $('lineInput').disabled = false;
-    $('lineInput').placeholder = `Type or pick one of ${fmt(lines.length)} lines…`;
+    const need = ccList.filter(cc => !linesByCountry.has(cc));
+    let done = 0;
+    if(need.length){
+      await pooled(need.map(cc => async () => {
+        await ensureCountryLines(cc);
+        done++;
+        if(myToken === linesSyncToken && need.length > 1)
+          $('countryHint').textContent = 'Loading lines… ' + done + ' of ' + need.length + ' countries';
+      }), 6);
+    }
+    if(myToken !== linesSyncToken) return; // superseded by a newer selection
+    lines = ccList.flatMap(cc => linesByCountry.get(cc) || []);
+    lineSearch.disabled = false;
+    lineSearch.placeholder = 'Search ' + fmt(lines.length) + ' line' + (lines.length === 1 ? '' : 's') + ' by id…';
     labelLines = lines.filter(l => l.src === 'label').length;
     $('countryHint').className = 'hint on';
-    $('countryHint').textContent = fmt(lines.length) + ' national lines' +
-      (labelLines ? ` · ${labelLines === lines.length ? 'all' : fmt(labelLines)} identified by label, not era:lineId` : '') +
-      (UNDATED.has(cc) ? ' · no validity dates published, so nothing is filtered out' : '');
+    $('countryHint').textContent = fmt(lines.length) + ' national line' + (lines.length === 1 ? '' : 's') +
+      ' across ' + ccList.length + ' countr' + (ccList.length === 1 ? 'y' : 'ies') +
+      (labelLines ? ' · ' + fmt(labelLines) + ' identified by label, not era:lineId' : '') +
+      (ccList.some(c => UNDATED.has(c)) ? ' · some publish no validity dates, so nothing is filtered out there' : '');
   } catch(err){
+    if(myToken !== linesSyncToken) return;
     $('countryHint').textContent = 'Could not load lines: ' + err.message;
   }
+  if(myToken !== linesSyncToken) return;
+  if(pickedLine && !chosen.has(pickedLine.cc)){ pickedLine = null; renderLineChip(); }
   updateRun();
 }
 
-function currentLine(){
-  const v = $('lineInput').value.trim();
-  return lines.find(l => l.line === v) || null;
+$('countryGrid').addEventListener('change', ev => {
+  const box = ev.target.closest('input[type=checkbox]');
+  if(!box) return;
+  if(box.checked) chosen.add(box.value); else chosen.delete(box.value);
+  box.closest('.cy').classList.toggle('on', box.checked);
+  updateCountrySummary();
+  syncLines();
+  $('resultPanel').hidden = true;
+});
+$('selAll').addEventListener('click', () => {
+  chosen.clear(); COUNTRIES.forEach(c => chosen.add(c[0]));
+  renderCountryGrid(); updateCountrySummary(); syncLines(); $('resultPanel').hidden = true;
+});
+$('selNone').addEventListener('click', () => {
+  chosen.clear();
+  renderCountryGrid(); updateCountrySummary(); syncLines(); $('resultPanel').hidden = true;
+});
+$('selInvert').addEventListener('click', () => {
+  const inv = COUNTRIES.map(c => c[0]).filter(c => !chosen.has(c));
+  chosen.clear(); inv.forEach(c => chosen.add(c));
+  renderCountryGrid(); updateCountrySummary(); syncLines(); $('resultPanel').hidden = true;
+});
+renderCountryGrid();
+updateCountrySummary();
+
+/* ------------------------------------------------------------------ *
+ * National-line combobox — search across every ticked country, pick one.
+ * Lines are only unique within a country, so each result carries its
+ * country and the pick is stored as the object itself, never re-parsed
+ * from typed text — that is what lets two countries share a line id.
+ * ------------------------------------------------------------------ */
+const lineSearch = $('lineSearch'), lineListEl = $('lineList');
+let lineFiltered = [], lineActiveIdx = -1;
+
+function lineSearchable(l){
+  return (l._s || (l._s = (l.line + ' ' + l.ccLabel + ' ' + l.cc).toLowerCase()));
 }
-function updateRun(){
-  const l = currentLine();
-  const any = $('wantTrack').checked || $('wantOp').checked;
-  $('runBtn').disabled = !l || !any;
-  if($('lineInput').value.trim() && !l){
-    $('lineHint').className = 'hint';
-    $('lineHint').textContent = 'No such line in this country — pick one from the list.';
-  } else if(l){
-    $('lineHint').className = 'hint on';
-    $('lineHint').textContent = `${l.sections} section${l.sections === 1 ? '' : 's'}` +
-      (l.fromKm !== null ? ` · km ${l.fromKm}–${l.toKm}` : '') +
-      (l.src === 'label' ? ' · identified by label' : '');
-  } else {
-    $('lineHint').textContent = '';
+function matchLines(q){
+  if(!q) return lines.slice(0, 60);
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const scored = [];
+  for(const l of lines){
+    const hay = lineSearchable(l);
+    if(!terms.every(t => hay.includes(t))) continue;
+    let score = 0;
+    if(l.line.toLowerCase().startsWith(q.toLowerCase())) score += 1000;
+    if(l.cc.toLowerCase() === q.toLowerCase()) score += 300;
+    score += Math.min(100, Math.log10(l.sections + 1) * 20);
+    scored.push([score, l]);
   }
+  scored.sort((a, b) => b[0] - a[0]);
+  return scored.slice(0, 60).map(x => x[1]);
+}
+function renderLineList(){
+  if(!lines.length){ lineListEl.hidden = true; return; }
+  const q = lineSearch.value.trim();
+  lineFiltered = matchLines(q);
+  lineActiveIdx = lineFiltered.length ? 0 : -1;
+  if(!lineFiltered.length){
+    lineListEl.innerHTML = '<div class="noHits">No line matches “' + esc(q) + '”.</div>';
+  } else {
+    lineListEl.innerHTML = lineFiltered.map((l, i) => {
+      const span = (l.fromKm !== null && l.toKm !== null) ? 'km ' + l.fromKm + '–' + l.toKm : '';
+      return '<div class="opt' + (i === lineActiveIdx ? ' active' : '') + '" role="option" data-i="' + i + '" id="lopt' + i + '"' +
+        ' aria-selected="' + (i === lineActiveIdx) + '">' +
+        '<span class="ix">' + esc(l.cc) + '</span>' +
+        '<span class="txt"><span class="nm">' + esc(l.line) + '</span>' +
+        '<span class="sub">' + esc(l.ccLabel) + (l.src === 'label' ? ' · by label' : '') + '</span></span>' +
+        '<span class="vc">' + fmt(l.sections) + (l.sections === 1 ? ' section' : ' sections') +
+          (span ? '<br>' + span : '') + '</span>' +
+      '</div>';
+    }).join('');
+  }
+  lineListEl.hidden = false;
+  lineSearch.setAttribute('aria-expanded', 'true');
+  scrollLineActiveIntoView();
+}
+function scrollLineActiveIntoView(){
+  const el = lineListEl.querySelector('.opt.active');
+  if(el) el.scrollIntoView({block:'nearest'});
+  lineSearch.setAttribute('aria-activedescendant', el ? el.id : '');
+}
+function closeLineList(){
+  lineListEl.hidden = true;
+  lineSearch.setAttribute('aria-expanded', 'false');
+  lineSearch.removeAttribute('aria-activedescendant');
+}
+function pickLine(l){
+  pickedLine = l;
+  lineSearch.value = '';
+  closeLineList();
+  renderLineChip();
+  updateRun();
+  $('resultPanel').hidden = true;
+}
+function renderLineChip(){
+  const el = $('lineChip');
+  if(!pickedLine){ el.hidden = true; el.innerHTML = ''; return; }
+  const l = pickedLine;
+  const span = (l.fromKm !== null && l.toKm !== null) ? ' · km ' + l.fromKm + '–' + l.toKm : '';
+  el.hidden = false;
+  el.innerHTML = '<span class="pchip">' +
+    '<span class="ix">' + esc(l.cc) + '</span>' +
+    '<span class="nm">' + esc(l.line) + ' — ' + esc(l.ccLabel) + ' · ' + fmt(l.sections) +
+      (l.sections === 1 ? ' section' : ' sections') + span + (l.src === 'label' ? ' · by label' : '') + '</span>' +
+    '<button type="button" id="lineClear" aria-label="Clear the picked line">×</button></span>';
+}
+$('lineChip').addEventListener('click', ev => {
+  if(ev.target.closest('#lineClear')){ pickedLine = null; renderLineChip(); updateRun(); $('resultPanel').hidden = true; }
+});
+lineSearch.addEventListener('input', renderLineList);
+lineSearch.addEventListener('focus', renderLineList);
+lineSearch.addEventListener('blur', () => setTimeout(closeLineList, 160));
+/* pointerdown fires before click, so closing here (rather than on click)
+   lets a click elsewhere on the page land where it was aimed instead of
+   being swallowed by a list option. */
+document.addEventListener('pointerdown', ev => {
+  if(!lineListEl.hidden && !ev.target.closest('#lineWrap')) closeLineList();
+}, true);
+lineSearch.addEventListener('keydown', ev => {
+  if(lineListEl.hidden && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')){ renderLineList(); ev.preventDefault(); return; }
+  if(ev.key === 'ArrowDown'){ lineActiveIdx = Math.min(lineActiveIdx + 1, lineFiltered.length - 1); refreshLineActive(); ev.preventDefault(); }
+  else if(ev.key === 'ArrowUp'){ lineActiveIdx = Math.max(lineActiveIdx - 1, 0); refreshLineActive(); ev.preventDefault(); }
+  else if(ev.key === 'Enter'){
+    if(!lineListEl.hidden && lineFiltered[lineActiveIdx]){ pickLine(lineFiltered[lineActiveIdx]); ev.preventDefault(); }
+    else if(pickedLine && !$('runBtn').disabled){ run(); }
+  }
+  else if(ev.key === 'Escape'){ closeLineList(); }
+});
+function refreshLineActive(){
+  lineListEl.querySelectorAll('.opt').forEach((el, i) => {
+    el.classList.toggle('active', i === lineActiveIdx);
+    el.setAttribute('aria-selected', String(i === lineActiveIdx));
+  });
+  scrollLineActiveIntoView();
+}
+lineListEl.addEventListener('mousedown', ev => {
+  const opt = ev.target.closest('.opt');
+  if(opt){ ev.preventDefault(); pickLine(lineFiltered[+opt.dataset.i]); }
+});
+
+function updateRun(){
+  const any = $('wantTrack').checked || $('wantOp').checked;
+  $('runBtn').disabled = !pickedLine || !any;
+  $('lineHint').textContent = !lines.length ? ''
+    : pickedLine ? ''
+    : 'Search and pick a line above.';
 }
 
-$('countrySel').addEventListener('change', e => { loadLines(e.target.value); $('resultPanel').hidden = true; });
-$('lineInput').addEventListener('input', () => { updateRun(); $('resultPanel').hidden = true; });
 ['wantTrack','wantOp','wantSidings'].forEach(id => $(id).addEventListener('change', () => { updateRun(); $('resultPanel').hidden = true; }));
 
-/* parameter picker */
-(async function loadParams(){
+/* ------------------------------------------------------------------ *
+ * RCC parameter combobox — multi-pick, empty selection means "all".
+ * ------------------------------------------------------------------ */
+const paramSearchEl = $('paramSearch'), paramListEl = $('paramList');
+let paramFiltered = [], paramActiveIdx = -1;
+
+function matchParams(q){
+  const pool = params.filter(p => !pickedParams.some(x => x.index === p.index));
+  if(!q) return pool.slice(0, 60);
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const scored = [];
+  for(const p of pool){
+    const hay = (p.index + ' ' + p.label).toLowerCase();
+    if(!terms.every(t => hay.includes(t))) continue;
+    let score = 0;
+    if(p.index.startsWith(q)) score += 1000;
+    if(p.label.toLowerCase().startsWith(q.toLowerCase())) score += 500;
+    scored.push([score, p]);
+  }
+  scored.sort((a, b) => b[0] - a[0]);
+  return scored.slice(0, 60).map(x => x[1]);
+}
+function renderParamList(){
+  const q = paramSearchEl.value.trim();
+  paramFiltered = matchParams(q);
+  paramActiveIdx = paramFiltered.length ? 0 : -1;
+  if(!params.length){
+    paramListEl.innerHTML = '<div class="noHits">Loading RCC parameters…</div>';
+  } else if(!paramFiltered.length){
+    paramListEl.innerHTML = '<div class="noHits">No RCC parameter matches “' + esc(q) + '”.</div>';
+  } else {
+    paramListEl.innerHTML = paramFiltered.map((p, i) =>
+      '<div class="opt' + (i === paramActiveIdx ? ' active' : '') + '" role="option" data-i="' + i + '" id="popt' + i + '"' +
+        ' aria-selected="' + (i === paramActiveIdx) + '">' +
+        '<span class="ix">' + esc(p.index) + '</span>' +
+        '<span class="txt"><span class="nm">' + esc(p.label) + '</span>' +
+        '<span class="sub">' + (p.index.startsWith('1.1') ? 'along the line' : 'at operational points') + '</span></span>' +
+      '</div>').join('');
+  }
+  paramListEl.hidden = false;
+  paramSearchEl.setAttribute('aria-expanded', 'true');
+  scrollParamActiveIntoView();
+}
+function scrollParamActiveIntoView(){
+  const el = paramListEl.querySelector('.opt.active');
+  if(el) el.scrollIntoView({block:'nearest'});
+  paramSearchEl.setAttribute('aria-activedescendant', el ? el.id : '');
+}
+function closeParamList(){
+  paramListEl.hidden = true;
+  paramSearchEl.setAttribute('aria-expanded', 'false');
+  paramSearchEl.removeAttribute('aria-activedescendant');
+}
+function pickParam(p){
+  if(!pickedParams.some(x => x.index === p.index)) pickedParams.push(p);
+  paramSearchEl.value = '';
+  closeParamList();
+  renderParamChips();
+  $('resultPanel').hidden = true;
+}
+function removeParam(index){
+  pickedParams = pickedParams.filter(p => p.index !== index);
+  renderParamChips();
+  $('resultPanel').hidden = true;
+}
+function renderParamChips(){
+  $('paramChips').hidden = pickedParams.length === 0;
+  $('paramChips').innerHTML = pickedParams.map(p =>
+    '<span class="pchip"><span class="ix">' + esc(p.index) + '</span>' +
+    '<span class="nm">' + esc(p.label) + '</span>' +
+    '<button type="button" data-i="' + esc(p.index) + '" aria-label="Remove ' + esc(p.label) + '">×</button></span>').join('');
+}
+$('paramChips').addEventListener('click', ev => {
+  const b = ev.target.closest('button[data-i]');
+  if(b) removeParam(b.dataset.i);
+});
+paramSearchEl.addEventListener('input', renderParamList);
+paramSearchEl.addEventListener('focus', renderParamList);
+paramSearchEl.addEventListener('blur', () => setTimeout(closeParamList, 160));
+document.addEventListener('pointerdown', ev => {
+  if(!paramListEl.hidden && !ev.target.closest('#paramWrap')) closeParamList();
+}, true);
+paramSearchEl.addEventListener('keydown', ev => {
+  if(paramListEl.hidden && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')){ renderParamList(); ev.preventDefault(); return; }
+  if(ev.key === 'ArrowDown'){ paramActiveIdx = Math.min(paramActiveIdx + 1, paramFiltered.length - 1); refreshParamActive(); ev.preventDefault(); }
+  else if(ev.key === 'ArrowUp'){ paramActiveIdx = Math.max(paramActiveIdx - 1, 0); refreshParamActive(); ev.preventDefault(); }
+  else if(ev.key === 'Enter'){ if(!paramListEl.hidden && paramFiltered[paramActiveIdx]){ pickParam(paramFiltered[paramActiveIdx]); ev.preventDefault(); } }
+  else if(ev.key === 'Escape'){ closeParamList(); }
+});
+function refreshParamActive(){
+  paramListEl.querySelectorAll('.opt').forEach((el, i) => {
+    el.classList.toggle('active', i === paramActiveIdx);
+    el.setAttribute('aria-selected', String(i === paramActiveIdx));
+  });
+  scrollParamActiveIntoView();
+}
+paramListEl.addEventListener('mousedown', ev => {
+  const opt = ev.target.closest('.opt');
+  if(opt){ ev.preventDefault(); pickParam(paramFiltered[+opt.dataset.i]); }
+});
+
+const paramsReady = (async function loadParams(){
   try{
     const rows = await sparql(paramsQuery());
     /* One entry per RINF number. Three of them — 1.1.1.2.3.4, 1.1.1.3.4.2.1 and
@@ -629,8 +1054,6 @@ $('lineInput').addEventListener('input', () => { updateRun(); $('resultPanel').h
       byIndex.get(i).push(b.parameterLabel.value);
     });
     params = [...byIndex].map(([index, labels]) => ({index, label: labels.join(' / ')}));
-    $('paramSel').innerHTML = '<option value="">All RCC parameters (' + params.length + ')</option>' +
-      params.map(p => `<option value="${esc(p.index)}">${esc(p.index)} — ${esc(p.label)}</option>`).join('');
   } catch { /* the picker is a convenience; the tool works without it */ }
 })();
 
@@ -640,10 +1063,10 @@ $('lineInput').addEventListener('input', () => { updateRun(); $('resultPanel').h
 const TABLE_LIMIT = 300;
 
 async function run(){
-  const l = currentLine();
+  const l = pickedLine;
   if(!l) return;
-  const cc = $('countrySel').value;
-  const only = $('paramSel').value || null;
+  const cc = l.cc;
+  const onlyList = pickedParams.map(p => p.index);
   const sidings = $('wantSidings').checked;
   const wantTrack = $('wantTrack').checked, wantOp = $('wantOp').checked;
 
@@ -696,11 +1119,11 @@ async function run(){
 
     const jobs = [], kinds = [];
     for(const c of chunkList([...sections.keys()], CHUNK)){
-      const q = trackParamsQuery(c, only);
+      const q = trackParamsQuery(c, onlyList);
       jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'track', q});
     }
     for(const c of chunkList([...ops.keys()], CHUNK)){
-      const q = opParamsQuery(c, only, sidings);
+      const q = opParamsQuery(c, onlyList, sidings);
       jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'op', q});
     }
     const results = await pooled(jobs, POOL, ctrl.signal);
@@ -738,29 +1161,31 @@ async function run(){
         : 'at operational points (RINF 1.2…)') + ' === */\n' + k.q); } });
 
     lastRun = {
-      country: cc, countryLabel: (COUNTRIES.find(x => x[0] === cc) || [,cc])[1],
+      country: cc, countryLabel: l.ccLabel,
       line: l.line, lineSrc: l.src, sections: sections.size, opCount: ops.size,
+      sectionsMap: sections,
       viaSection: [...ops.values()].filter(o => o.via === 'section endpoint').length,
       kmFrom: $('kmFrom').value.trim(), kmTo: $('kmTo').value.trim(),
-      only, sidings, track, ops: opsOut, elapsed,
+      onlyList, sidings, track, ops: opsOut, elapsed,
       query: shown.join('\n\n'),
       fetched: new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z',
     };
     activeTab = track.length || !opsOut.length ? 'track' : 'op';
     if(!wantTrack) activeTab = 'op';
     render();
+    mapParamOptions();
 
     const total = track.length + opsOut.length;
     if(!total){
       setStatus('No RCC parameters found for line ' + l.line + ' in ' + lastRun.countryLabel +
-        (only ? ' for parameter ' + only : '') +
+        (onlyList.length ? ' for parameter' + (onlyList.length > 1 ? 's ' : ' ') + onlyList.join(', ') : '') +
         ($('kmFrom').value || $('kmTo').value ? ' within that kilometre range' : '') + '.', 'warn');
     } else {
       setStatus('Done — ' + fmt(total) + ' rows in ' + elapsed.toFixed(1) + 's.', 'success');
     }
   } catch(err){
     clearTimeout(timer);
-    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Narrow the kilometre range, or pick a single parameter.', 'error');
+    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Narrow the kilometre range, or pick fewer parameters.', 'error');
     else setStatus('Query failed: ' + err.message, 'error');
   } finally {
     $('runBtn').disabled = false;
@@ -833,7 +1258,6 @@ $('tabs').addEventListener('click', e => {
   if(t){ activeTab = t.dataset.t; render(); }
 });
 $('runBtn').addEventListener('click', run);
-$('lineInput').addEventListener('keydown', e => { if(e.key === 'Enter' && !$('runBtn').disabled) run(); });
 
 /* ------------------------------------------------------------------ *
  * Export
@@ -894,7 +1318,7 @@ $('xlsBtn').addEventListener('click', () => {
     ['Operational points on this line', r.opCount],
     ['Operational points located from a section endpoint', r.viaSection],
     ['Kilometre range', (r.kmFrom || r.kmTo) ? `${r.kmFrom || 'start'} to ${r.kmTo || 'end'}` : 'whole line'],
-    ['Parameter filter', r.only || 'all RCC parameters'],
+    ['Parameter filter', r.onlyList.length ? r.onlyList.join(', ') : 'all RCC parameters'],
     ['Sidings included', r.sidings ? 'yes' : 'no'],
     [],
     ['Rows — along the line (RINF 1.1…)', r.track.length],
@@ -931,11 +1355,11 @@ $('xlsBtn').addEventListener('click', () => {
  * ------------------------------------------------------------------ */
 $('linkBtn').addEventListener('click', async () => {
   const p = new URLSearchParams();
-  p.set('c', $('countrySel').value);
-  p.set('l', $('lineInput').value.trim());
+  p.set('c', [...chosen].join(','));
+  if(pickedLine) p.set('l', pickedLine.cc + ':' + pickedLine.line);
   if($('kmFrom').value.trim()) p.set('from', $('kmFrom').value.trim());
   if($('kmTo').value.trim())   p.set('to', $('kmTo').value.trim());
-  if($('paramSel').value)      p.set('p', $('paramSel').value);
+  if(pickedParams.length)      p.set('p', pickedParams.map(x => x.index).join(','));
   if(!$('wantSidings').checked) p.set('sid', '0');
   const url = location.origin + location.pathname + '#' + p.toString();
   const btn = $('linkBtn');
@@ -946,14 +1370,26 @@ $('linkBtn').addEventListener('click', async () => {
 
 async function applyHash(){
   const p = new URLSearchParams(location.hash.replace(/^#/, ''));
-  const c = p.get('c');
-  if(!c || !COUNTRIES.some(x => x[0] === c)) return;
-  $('countrySel').value = c;
-  await loadLines(c);
-  if(p.get('l')) $('lineInput').value = p.get('l');
+  const cList = (p.get('c') || '').split(',').map(x => x.trim()).filter(x => COUNTRIES.some(c => c[0] === x));
+  if(!cList.length) return;
+  chosen.clear(); cList.forEach(c => chosen.add(c));
+  renderCountryGrid(); updateCountrySummary();
+  await syncLines();
+  const lVal = p.get('l');
+  if(lVal){
+    const sep = lVal.indexOf(':');
+    const cc = sep === -1 ? '' : lVal.slice(0, sep), lineId = sep === -1 ? lVal : lVal.slice(sep + 1);
+    const found = lines.find(x => x.cc === cc && x.line === lineId);
+    if(found) pickLine(found);
+  }
   if(p.get('from')) $('kmFrom').value = p.get('from');
   if(p.get('to'))   $('kmTo').value = p.get('to');
-  if(p.get('p'))    $('paramSel').value = p.get('p');
+  await paramsReady;
+  const pVal = p.get('p');
+  if(pVal){
+    pickedParams = pVal.split(',').map(idx => params.find(x => x.index === idx)).filter(Boolean);
+    renderParamChips();
+  }
   if(p.get('sid') === '0') $('wantSidings').checked = false;
   updateRun();
 }
@@ -963,6 +1399,327 @@ updateRun();
 /* Pasting a shared link while already on the page is a same-document
    navigation, so the form has to be reapplied by hand. */
 window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; applyHash(); });
+
+/* ------------------------------------------------------------------ *
+ * Network map
+ *
+ * Sections publish no geometry of their own, but every operational point
+ * does, through era:netReference/geo:hasGeometry — so a section is drawn as
+ * the chord between the two points it runs between, exactly as the RINF
+ * Parameter Values explorer draws its network map. This panel reuses that
+ * approach on Leaflet, over OpenStreetMap tiles with the OpenRailwayMap
+ * "standard" layer overlaid for real track and station context, trading
+ * away this tool's usual offline, no-third-party property for this one
+ * panel only.
+ *
+ * Unlike that other tool, the parameter *values* here are never re-queried:
+ * they were already fetched for the table by run(), so drawing the map only
+ * costs one further request — geometry for the sections already resolved.
+ * ------------------------------------------------------------------ */
+const MAP_PALETTE = ['#5fd0ae','#5b9bd5','#f0a83a','#e8604f','#b98bd6','#7ac36a',
+                     '#f2d06b','#6fd3e8','#e28fb4','#9aa8c9'];
+const MAP_NONE = '#3d4763';
+const MAP_LIMIT = 20000;
+const OSM_ATTRIB = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+const ORM_ATTRIB = 'Railway style: <a href="https://creativecommons.org/licenses/by-sa/2.0/" ' +
+  'target="_blank" rel="noopener">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/" target="_blank" ' +
+  'rel="noopener">OpenRailwayMap</a>';
+
+let mapData = null, mapOff = new Set(), mapParamOff = new Set();
+let leafletMap = null, orwLayer = null, segLayer = null;
+let mapParams = []; // [{index,label}] "along the line" parameters this run actually returned
+
+function parsePoint(w){
+  const m = /POINT\s*\(\s*([-\d.eE]+)\s+([-\d.eE]+)/.exec(w || '');
+  if(!m) return null;
+  const lon = +m[1], lat = +m[2];
+  return (isFinite(lon) && isFinite(lat)) ? [lat, lon] : null; // Leaflet order: [lat, lng]
+}
+
+function mapGeometryQuery(sols){
+  return `${PREFIXES}
+SELECT ?sol ?a ?b ?startName ?endName WHERE {
+${uriValues('sol', sols)}
+  ?sol era:opStart ?o1 ; era:opEnd ?o2 .
+  ?o1 era:netReference/geo:hasGeometry/geo:asWKT ?a ; era:opName ?startName .
+  ?o2 era:netReference/geo:hasGeometry/geo:asWKT ?b ; era:opName ?endName .
+}`;
+}
+
+function mapParamOptions(){
+  const seen = new Map();
+  lastRun.track.forEach(x => { if(!seen.has(x.index)) seen.set(x.index, x.param); });
+  mapParams = [...seen].map(([index, label]) => ({index, label})).sort((a, b) => a.index.localeCompare(b.index));
+  mapParamOff = new Set(mapParams.map((_, i) => i).slice(1)); // default: just the first
+  renderMapParamPicks();
+  const hasGeometry = lastRun.sections > 0;
+  $('mapPanel').hidden = !hasGeometry;
+  if(!hasGeometry) return;
+  $('mapStatus').textContent = mapParams.length
+    ? 'Draws this line’s sections, coloured by the parameter(s) picked above.'
+    : 'Draws this line’s sections in one colour — no along-the-line RCC parameter has a value here to colour by.';
+}
+
+function renderMapParamPicks(){
+  $('mapParamPicks').innerHTML = mapParams.map((p, i) =>
+    '<span class="lg' + (mapParamOff.has(i) ? ' off' : '') + '" data-pi="' + i + '">' +
+    '<span class="sw" style="background:' + MAP_PALETTE[i % MAP_PALETTE.length] + '"></span>' +
+    '<span>' + esc(p.index) + ' — ' + esc(p.label) + '</span></span>').join('');
+}
+function tryToggleMapParam(i, universe){
+  if(mapParamOff.has(i)){ mapParamOff.delete(i); return true; }
+  if(universe.filter(x => !mapParamOff.has(x)).length <= 1) return false;
+  mapParamOff.add(i);
+  return true;
+}
+$('mapParamPicks').addEventListener('click', ev => {
+  const el = ev.target.closest('.lg');
+  if(!el) return;
+  if(!tryToggleMapParam(+el.dataset.pi, mapParams.map((_, i) => i))){
+    $('mapStatus').textContent = 'At least one parameter must stay selected.';
+    return;
+  }
+  renderMapParamPicks();
+});
+
+/* One Leaflet map, created once and reused across redraws. */
+function ensureMap(){
+  if(leafletMap) return leafletMap;
+  leafletMap = L.map('mapCanvas', {preferCanvas: true, minZoom: 3, maxZoom: 19, worldCopyJump: false});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: OSM_ATTRIB})
+    .addTo(leafletMap);
+  orwLayer = L.tileLayer('https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',
+    {maxZoom: 19, opacity: 0.85, attribution: ORM_ATTRIB});
+  if($('mapBase').checked) orwLayer.addTo(leafletMap);
+  L.control.scale({metric: true, imperial: false}).addTo(leafletMap);
+  segLayer = L.layerGroup().addTo(leafletMap);
+  return leafletMap;
+}
+function fitToSegments(){
+  const pts = mapData.segs.flatMap(s => [s.A, s.B]);
+  leafletMap.fitBounds(L.latLngBounds(pts), {padding: [24, 24]});
+}
+const segColour = x => x.v === null ? MAP_NONE : (mapData.colour.get(x.v) || '#8794b5');
+
+function multiTooltipHTML(s){
+  const rows = mapData.origIndex.filter(oi => !mapParamOff.has(oi)).map(oi => {
+    const p = mapParams[oi], v = s.vals.get(oi);
+    const nm = esc(p.index + ' ' + p.label);
+    return v === undefined
+      ? '<span style="color:#8794b5">○ ' + nm + ': no data</span>'
+      : '<span style="color:' + mapData.colour.get(oi) + '">●</span> ' + nm + ': ' + esc(v);
+  });
+  return '<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b>' + (rows.length ? '<br>' + rows.join('<br>') : '');
+}
+
+function renderSegments(){
+  segLayer.clearLayers();
+  if(mapData.mode === 'plain'){
+    for(const s of mapData.segs){
+      L.polyline([s.A, s.B], {color: '#5fd0ae', weight: 2.4, opacity: 0.9})
+        .bindTooltip('<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b>', {className: 'eraTip', sticky: true})
+        .addTo(segLayer);
+    }
+  } else if(mapData.mode === 'single'){
+    /* Unvalued track first, coloured track over it, so colour is never buried. */
+    for(const isNone of [true, false]){
+      for(const s of mapData.segs){
+        if((s.v === null) !== isNone) continue;
+        if(mapOff.has(s.v)) continue;
+        const line = L.polyline([s.A, s.B], {
+          color: segColour(s), weight: isNone ? 1.6 : 2.8, opacity: isNone ? 0.55 : 0.95
+        }).addTo(segLayer);
+        line.bindTooltip('<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b><br>' +
+          (isNone ? '<span style="color:#8794b5">no data for this parameter</span>' : esc(s.v)),
+          {className: 'eraTip', sticky: true});
+      }
+    }
+  } else {
+    /* Every section this run touched, faint, so the network gives context even
+       where none of the visible parameters cover it. */
+    for(const s of mapData.segs){
+      L.polyline([s.A, s.B], {color: MAP_NONE, weight: 1.4, opacity: 0.45})
+        .bindTooltip(multiTooltipHTML(s), {className: 'eraTip', sticky: true})
+        .addTo(segLayer);
+    }
+    /* Then one coloured pass per visible parameter. Where a section carries
+       more than one, whichever is drawn last wins the pixels — the tooltip
+       is how you see the rest. */
+    for(const oi of mapData.origIndex){
+      if(mapParamOff.has(oi)) continue;
+      const color = mapData.colour.get(oi);
+      for(const s of mapData.segs){
+        if(!s.vals.has(oi)) continue;
+        L.polyline([s.A, s.B], {color, weight: 2.6, opacity: 0.9})
+          .bindTooltip(multiTooltipHTML(s), {className: 'eraTip', sticky: true})
+          .addTo(segLayer);
+      }
+    }
+  }
+}
+
+function renderMapLegend(){
+  if(mapData.mode === 'plain'){ $('mapLegend').hidden = true; $('mapLegend').innerHTML = ''; return; }
+  if(mapData.mode === 'single'){
+    const d = mapData;
+    const items = d.ranked.slice(0, MAP_PALETTE.length).map(x => ({v: x[0], n: x[1], c: d.colour.get(x[0])}));
+    if(d.otherCount) items.push({v: '__other', n: d.otherCount, c: '#8794b5', lab: 'other values'});
+    if(d.noneCount)  items.push({v: null, n: d.noneCount, c: MAP_NONE, lab: 'no data for this parameter'});
+    $('mapLegend').innerHTML = items.map(it =>
+      '<span class="lg' + (mapOff.has(it.v) ? ' off' : '') + '" data-v="' +
+        (it.v === null ? ' none' : esc(String(it.v))) + '">' +
+      '<span class="sw" style="background:' + it.c + '"></span>' +
+      '<span>' + esc(it.lab || String(it.v)) + '</span>' +
+      '<span class="ct">' + fmt(it.n) + '</span></span>').join('');
+  } else {
+    const items = mapData.origIndex.map(oi => ({
+      oi, p: mapParams[oi], c: mapData.colour.get(oi),
+      n: mapData.segs.filter(s => s.vals.has(oi)).length,
+    }));
+    $('mapLegend').innerHTML = items.map(it =>
+      '<span class="lg' + (mapParamOff.has(it.oi) ? ' off' : '') + '" data-pi="' + it.oi + '">' +
+      '<span class="sw" style="background:' + it.c + '"></span>' +
+      '<span>' + esc(it.p.index + ' — ' + it.p.label) + '</span>' +
+      '<span class="ct">' + fmt(it.n) + '</span></span>').join('');
+  }
+  $('mapLegend').hidden = false;
+}
+$('mapLegend').addEventListener('click', ev => {
+  const el = ev.target.closest('.lg');
+  if(!el || !mapData) return;
+  if(mapData.mode === 'single'){
+    const raw = el.dataset.v;
+    const v = raw === ' none' ? null : raw;
+    if(v === '__other'){
+      const named = new Set(mapData.colour.keys());
+      const others = mapData.ranked.map(x => x[0]).filter(x => !named.has(x));
+      const anyOn = others.some(x => !mapOff.has(x));
+      others.forEach(x => anyOn ? mapOff.add(x) : mapOff.delete(x));
+      if(mapOff.has('__other')) mapOff.delete('__other'); else mapOff.add('__other');
+    } else if(mapOff.has(v)){
+      mapOff.delete(v);
+    } else {
+      mapOff.add(v);
+    }
+    renderMapLegend();
+    renderSegments();
+  } else if(mapData.mode === 'multi'){
+    if(!tryToggleMapParam(+el.dataset.pi, mapData.origIndex)) return;
+    renderMapLegend();
+    renderMapParamPicks();
+    renderSegments();
+  }
+});
+
+async function drawNetworkMap(){
+  if(!lastRun || !lastRun.sections) return;
+  const picks = mapParams.map((p, i) => ({p, i})).filter(x => !mapParamOff.has(x.i));
+  $('mapBtn').disabled = true;
+  $('mapStatus').textContent = 'Fetching the line’s geometry…';
+  const ctrl = new AbortController();
+  const t0 = performance.now();
+  try{
+    const sols = [...lastRun.sectionsMap.keys()].slice(0, MAP_LIMIT);
+    const chunks = chunkList(sols, CHUNK);
+    const results = await pooled(chunks.map(c => () => sparql(mapGeometryQuery(c), ctrl.signal)), POOL, ctrl.signal);
+    const geomRows = results.flat();
+    const elapsed = (performance.now() - t0) / 1000;
+
+    /* This run's already-fetched track values, grouped by section then RINF
+       index — several tracks in the same section can each carry their own
+       value, so the values are joined the same way the table joins them. */
+    const valuesBySol = new Map();
+    lastRun.track.forEach(x => {
+      if(!valuesBySol.has(x.sol)) valuesBySol.set(x.sol, new Map());
+      const im = valuesBySol.get(x.sol);
+      if(!im.has(x.index)) im.set(x.index, new Set());
+      im.get(x.index).add(x.value);
+    });
+
+    const seenSol = new Set();
+    const rawSegs = [];
+    for(const b of geomRows){
+      if(seenSol.has(b.sol.value)) continue;
+      seenSol.add(b.sol.value);
+      const A = parsePoint(b.a.value), B = parsePoint(b.b.value);
+      if(!A || !B) continue;
+      rawSegs.push({sol: b.sol.value, A, B, s: b.startName.value, t: b.endName.value});
+    }
+    if(!rawSegs.length){
+      $('mapStatus').textContent = 'No data — none of this line’s sections have both endpoints geo-positioned.';
+      $('mapWrap').hidden = true; $('mapLegend').hidden = true; $('mapReset').hidden = true;
+      return;
+    }
+
+    if(!picks.length){
+      mapData = {mode: 'plain', segs: rawSegs, elapsed};
+    } else if(picks.length === 1){
+      const idx = picks[0].p.index;
+      const segs = rawSegs.map(s => {
+        const vs = valuesBySol.get(s.sol) && valuesBySol.get(s.sol).get(idx);
+        return Object.assign({}, s, {v: vs ? [...vs].sort().join(' | ') : null});
+      });
+      const counts = new Map();
+      segs.forEach(x => counts.set(x.v, (counts.get(x.v) || 0) + 1));
+      const ranked = [...counts.entries()].filter(x => x[0] !== null).sort((a, b) => b[1] - a[1]);
+      const colour = new Map();
+      ranked.slice(0, MAP_PALETTE.length).forEach((x, i) => colour.set(x[0], MAP_PALETTE[i]));
+      mapData = {mode: 'single', segs, colour, ranked,
+                 otherCount: ranked.slice(MAP_PALETTE.length).reduce((s, x) => s + x[1], 0),
+                 noneCount: counts.get(null) || 0, elapsed};
+      mapOff = new Set();
+    } else {
+      const origIndex = picks.map(x => x.i);
+      const colour = new Map(origIndex.map(i => [i, MAP_PALETTE[i % MAP_PALETTE.length]]));
+      const segs = rawSegs.map(s => {
+        const vals = new Map();
+        picks.forEach(({p, i}) => {
+          const vs = valuesBySol.get(s.sol) && valuesBySol.get(s.sol).get(p.index);
+          if(vs) vals.set(i, [...vs].sort().join(' | '));
+        });
+        return Object.assign({}, s, {vals});
+      });
+      mapData = {mode: 'multi', segs, origIndex, colour, elapsed};
+    }
+
+    $('mapWrap').hidden = false;
+    ensureMap();
+    leafletMap.invalidateSize();
+    renderSegments();
+    fitToSegments();
+    renderMapLegend();
+    renderMapParamPicks();
+    $('mapStatus').textContent = fmt(mapData.segs.length) + ' section' + (mapData.segs.length === 1 ? '' : 's') +
+      ' drawn in ' + elapsed.toFixed(1) + 's' + (sols.length >= MAP_LIMIT ? ' (capped)' : '') + '.';
+    $('mapNote').innerHTML = mapData.mode === 'plain'
+      ? '<strong>Read this as topology, not alignment.</strong> Sections publish no geometry of their own — ' +
+        'each is the straight chord between the two operational points it runs between, not the real track ' +
+        'curve. Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap “standard” style — both © their ' +
+        'contributors.'
+      : mapData.mode === 'single'
+      ? '<strong>Read this as topology, not alignment.</strong> Each section is the straight chord between the ' +
+        'two operational points it runs between, not the real track curve. Grey means no value for this ' +
+        'parameter. Click a legend entry to hide it. Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap ' +
+        '“standard” style — both © their contributors.'
+      : '<strong>Read this as topology, not alignment</strong> — and each colour is a parameter, not a value: ' +
+        'pick which ones above, or click a legend entry to hide it. Where a section carries more than one, ' +
+        'whichever is drawn last wins the pixels — hover it to see every value. Base tiles: OpenStreetMap. ' +
+        'Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
+    $('mapReset').hidden = false;
+  } catch(err){
+    $('mapStatus').textContent = 'Query error — the map could not be drawn: ' + err.message;
+  } finally {
+    $('mapBtn').disabled = false;
+  }
+}
+
+$('mapBase').addEventListener('change', () => {
+  if(!leafletMap || !orwLayer) return;
+  if($('mapBase').checked) orwLayer.addTo(leafletMap); else leafletMap.removeLayer(orwLayer);
+});
+$('mapBtn').addEventListener('click', drawNetworkMap);
+$('mapReset').addEventListener('click', () => { if(mapData) fitToSegments(); });
+window.addEventListener('resize', () => { if(leafletMap) leafletMap.invalidateSize(); });
 
 /* ------------------------------------------------------------------ *
  * XLSX writer — store-only ZIP, no dependencies. Same one the RINF
