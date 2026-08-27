@@ -144,10 +144,8 @@
   #resultPanel[hidden]{display:none;}
   #mapPanel[hidden]{display:none;}
   .mapBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-  .mapBar select{flex:1 1 260px;min-width:200px;background:rgba(255,255,255,.06);border:1px solid var(--line);
-    color:var(--paper);padding:9px 11px;border-radius:8px;font-size:13px;font-family:inherit;}
-  .mapBar select option{background:#141d33;}
   .mapBar .grow{flex:1;}
+  .mapParamPicks{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 100%;}
   #mapWrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;
     background:#070d18;height:520px;}
   #mapWrap[hidden]{display:none;}
@@ -338,8 +336,8 @@
   <div class="panel" id="mapPanel" hidden>
     <h2><span class="step">4</span> Network map</h2>
     <div class="mapBar">
-      <label class="fieldLabel" for="mapParam" style="margin:0">Colour the network by</label>
-      <select id="mapParam"></select>
+      <span class="fieldLabel" style="margin:0">Colour the network by</span>
+      <div id="mapParamPicks" class="mapParamPicks" role="group" aria-label="Parameters to draw on the map"></div>
       <button class="btn" id="mapBtn">Draw map</button>
       <label class="chk" style="margin:0"><input type="checkbox" id="mapBase" checked> Railway overlay</label>
       <span class="grow"></span>
@@ -1506,7 +1504,7 @@ $('detailCsvBtn').addEventListener('click', () => {
  * era:netReference/geo:hasGeometry. So a section is drawn as the chord between
  * the two points it runs between. That is a topological map, not an alignment:
  * it shows what connects to what and what each stretch is worth on the chosen
- * parameter, and it must not be read as the route on the ground. The panel
+ * parameter(s), and it must not be read as the route on the ground. The panel
  * says so in as many words.
  *
  * Drawn with Leaflet over standard OpenStreetMap tiles, with the
@@ -1514,6 +1512,14 @@ $('detailCsvBtn').addEventListener('click', () => {
  * line-number context. That trades away this tool's usual offline,
  * no-third-party property for this one panel only — every other query in the
  * tool still runs against graph.data.era.europa.eu alone.
+ *
+ * One parameter picked colours by that parameter's distinct values, exactly
+ * as before. Several parameters picked colours by parameter instead — one
+ * flat colour per parameter, since mixing two unrelated value domains (a
+ * gauge in mm, a speed in km/h) into one legend would not mean anything. A
+ * single combined SPARQL query carries every OPTIONAL value alongside the
+ * shared topology, so comparing five parameters costs one round trip, not
+ * five duplicate ones.
  * ------------------------------------------------------------------ */
 const MAP_LIMIT = 30000;
 const MAP_SEP = '|~|';
@@ -1525,8 +1531,9 @@ const ORM_ATTRIB = 'Railway style: <a href="https://creativecommons.org/licenses
   'target="_blank" rel="noopener">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/" target="_blank" ' +
   'rel="noopener">OpenRailwayMap</a>';
 
-let mapData = null;      // {segs, colour, ranked, …}
-let mapOff  = new Set(); // values switched off in the legend
+let mapData = null;          // {mode: 'single'|'multi', segs, …} — see drawNetwork()
+let mapOff  = new Set();     // single mode only: values switched off in the legend
+let mapParamOff = new Set(); // indices into lastRun.params currently excluded from the map
 let leafletMap = null, orwLayer = null, segLayer = null;
 
 function parsePoint(w){
@@ -1536,35 +1543,75 @@ function parsePoint(w){
   return (isFinite(lon) && isFinite(lat)) ? [lat, lon] : null; // Leaflet order: [lat, lng]
 }
 
-function buildMapQuery(e){
-  const propUri = safeUri(e.u);
+/* One combined query for every picked parameter: shared topology, one
+   GROUP_CONCAT'd ?value<i> per parameter. Per-parameter variable names
+   (?v0/?trk0, ?v1/?trk1, …) keep each OPTIONAL's binding from leaking into
+   the next — SPARQL variables are query-scoped, not block-scoped, so two
+   OPTIONALs sharing a variable name would silently correlate. */
+function buildMapQuery(params){
   const pairs = scopeGraphs().filter(g => GRAPH_TO_COUNTRY[GRAPH_URI(g)])
     .map(g => '    (<' + GRAPH_URI(g) + '> "' + GRAPH_TO_COUNTRY[GRAPH_URI(g)] + '")');
+  const valueSelects = params.map((e, i) =>
+    '       (GROUP_CONCAT(DISTINCT ?v' + i + '; separator="' + MAP_SEP + '") AS ?value' + i + ')');
+  const optionals = params.flatMap((e, i) => {
+    const propUri = safeUri(e.u);
+    return ['    OPTIONAL { { ?sol <' + propUri + '> ?v' + i + ' }',
+            '               UNION { ?trk' + i + ' era:isPartOf ?sol . ?trk' + i + ' <' + propUri + '> ?v' + i + ' } }'];
+  });
   return ['PREFIX era: <http://data.europa.eu/949/>',
     'PREFIX geo: <http://www.opengis.net/ont/geosparql#>',
     'SELECT ?country ?a ?b (SAMPLE(?st) AS ?startName) (SAMPLE(?en) AS ?endName)',
-    '       (GROUP_CONCAT(DISTINCT ?v; separator="' + MAP_SEP + '") AS ?value)',
+    ...valueSelects,
     'WHERE {',
     '  VALUES (?g ?country) {', ...pairs, '  }',
     '  GRAPH ?g {',
     '    ?sol a era:SectionOfLine ; era:opStart ?o1 ; era:opEnd ?o2 .',
     '    ?o1 era:netReference/geo:hasGeometry/geo:asWKT ?a ; era:opName ?st .',
     '    ?o2 era:netReference/geo:hasGeometry/geo:asWKT ?b ; era:opName ?en .',
-    '    # the value may sit on the section itself or on one of its tracks',
-    '    OPTIONAL { { ?sol <' + propUri + '> ?v }',
-    '               UNION { ?trk era:isPartOf ?sol . ?trk <' + propUri + '> ?v } }',
+    '    # each value may sit on the section itself or on one of its tracks',
+    ...optionals,
     '  }',
     '}',
     'GROUP BY ?country ?a ?b',
     'LIMIT ' + MAP_LIMIT].join('\n');
 }
 
+/* Keep at least one entry in `universe` switched on; returns false (no
+   change made) if the toggle would empty it. Shared by the pre-draw picker
+   and the post-draw multi-parameter legend, since both are "which of these
+   parameters is visible" toggles over the same mapParamOff set. */
+function tryToggleParam(i, universe){
+  if(mapParamOff.has(i)){ mapParamOff.delete(i); return true; }
+  if(universe.filter(x => !mapParamOff.has(x)).length <= 1) return false;
+  mapParamOff.add(i);
+  return true;
+}
+
+function renderMapParamPicks(){
+  $('mapParamPicks').innerHTML = lastRun.params.map((e, i) =>
+    '<span class="lg' + (mapParamOff.has(i) ? ' off' : '') + '" data-pi="' + i + '">' +
+    '<span class="sw" style="background:' + MAP_PALETTE[i % MAP_PALETTE.length] + '"></span>' +
+    '<span>' + esc(e.i[0] || '—') + ' — ' + esc(e.l || e.n) + '</span></span>').join('');
+}
+
+$('mapParamPicks').addEventListener('click', ev => {
+  const el = ev.target.closest('.lg');
+  if(!el) return;
+  if(!tryToggleParam(+el.dataset.pi, lastRun.params.map((_, i) => i))){
+    $('mapStatus').textContent = 'At least one parameter must stay selected.';
+    return;
+  }
+  renderMapParamPicks();
+});
+
 function mapParamOptions(){
-  $('mapParam').innerHTML = lastRun.params.map((e, i) =>
-    '<option value="' + i + '">' + esc(e.i[0] || '—') + ' — ' + esc(e.l || e.n) + '</option>').join('');
+  mapParamOff = new Set(lastRun.params.map((_, i) => i).slice(1)); // default: just the first
+  renderMapParamPicks();
   $('mapPanel').hidden = false;
-  $('mapStatus').textContent =
-    'Draws every section of line in scope, coloured by the value it carries for the chosen parameter.';
+  $('mapStatus').textContent = lastRun.params.length > 1
+    ? 'Pick one or more parameters above, then draw. One parameter shows its values; several show one colour ' +
+      'each instead.'
+    : 'Draws every section of line in scope, coloured by the value it carries for the chosen parameter.';
 }
 
 /* One Leaflet map, created once and reused across redraws. */
@@ -1588,80 +1635,165 @@ function fitToSegments(){
   leafletMap.fitBounds(L.latLngBounds(pts), {padding: [24, 24]});
 }
 
+/* Every value a section carries, across every currently-visible parameter —
+   used for the multi-parameter tooltip so hovering a section shows the full
+   picture even where colours overlap. */
+function multiTooltipHTML(s){
+  const cc = BY_CODE[s.cc] ? BY_CODE[s.cc].l : s.cc;
+  const rows = mapData.origIndex.filter(oi => !mapParamOff.has(oi)).map(oi => {
+    const e = lastRun.params[oi], v = s.vals.get(oi);
+    const nm = esc((e.i[0] || '—') + ' ' + (e.l || e.n));
+    return v === undefined
+      ? '<span style="color:#8794b5">○ ' + nm + ': no data</span>'
+      : '<span style="color:' + mapData.colour.get(oi) + '">●</span> ' + nm + ': ' + esc(v);
+  });
+  return '<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b><br>' + esc(cc) + '<br>' + rows.join('<br>');
+}
+
 function renderSegments(){
   segLayer.clearLayers();
-  /* Unvalued track first, coloured track over it, so colour is never buried. */
-  for(const isNone of [true, false]){
+  if(mapData.mode === 'single'){
+    /* Unvalued track first, coloured track over it, so colour is never buried. */
+    for(const isNone of [true, false]){
+      for(const s of mapData.segs){
+        if((s.v === null) !== isNone) continue;
+        if(mapOff.has(s.v)) continue;
+        const line = L.polyline([s.A, s.B], {
+          color: segColour(s), weight: isNone ? 1.6 : 2.8, opacity: isNone ? 0.55 : 0.95
+        }).addTo(segLayer);
+        const cc = BY_CODE[s.cc] ? BY_CODE[s.cc].l : s.cc;
+        line.bindTooltip('<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b><br>' + esc(cc) + '<br>' +
+          (isNone ? '<span style="color:#8794b5">no data for this parameter</span>' : esc(s.v)),
+          {className: 'eraTip', sticky: true});
+      }
+    }
+  } else {
+    /* Every section in scope, faint, so the full network gives context even
+       where none of the visible parameters cover it. */
     for(const s of mapData.segs){
-      if((s.v === null) !== isNone) continue;
-      if(mapOff.has(s.v)) continue;
-      const line = L.polyline([s.A, s.B], {
-        color: segColour(s), weight: isNone ? 1.6 : 2.8, opacity: isNone ? 0.55 : 0.95
-      }).addTo(segLayer);
-      const cc = BY_CODE[s.cc] ? BY_CODE[s.cc].l : s.cc;
-      line.bindTooltip('<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b><br>' + esc(cc) + '<br>' +
-        (isNone ? '<span style="color:#8794b5">no data for this parameter</span>' : esc(s.v)),
-        {className: 'eraTip', sticky: true});
+      L.polyline([s.A, s.B], {color: MAP_NONE, weight: 1.4, opacity: 0.45})
+        .bindTooltip(multiTooltipHTML(s), {className: 'eraTip', sticky: true})
+        .addTo(segLayer);
+    }
+    /* Then one coloured pass per visible parameter. Where a section carries
+       more than one, whichever is drawn last wins the pixels — the tooltip
+       is how you see the rest. */
+    for(const oi of mapData.origIndex){
+      if(mapParamOff.has(oi)) continue;
+      const color = mapData.colour.get(oi);
+      for(const s of mapData.segs){
+        if(!s.vals.has(oi)) continue;
+        L.polyline([s.A, s.B], {color, weight: 2.6, opacity: 0.9})
+          .bindTooltip(multiTooltipHTML(s), {className: 'eraTip', sticky: true})
+          .addTo(segLayer);
+      }
     }
   }
 }
 
 async function drawNetwork(){
-  const e = lastRun.params[+$('mapParam').value] || lastRun.params[0];
+  const picks = lastRun.params.map((e, i) => ({e, i})).filter(p => !mapParamOff.has(p.i));
+  if(!picks.length) return;
   $('mapBtn').disabled = true;
-  $('mapStatus').textContent = 'Fetching the network…';
+  $('mapStatus').textContent = picks.length > 1 ? 'Fetching ' + picks.length + ' networks…' : 'Fetching the network…';
   const ctrl = new AbortController();
   const t0 = performance.now();
   try{
-    const rows = await sparql(buildMapQuery(e), ctrl.signal);
-    const label = new Map();
-    lastRun.rows.filter(x => x.param === e && x.label).forEach(x => label.set(x.value, x.label));
-    const segs = [];
-    for(const b of rows){
-      const A = parsePoint(b.a.value), B = parsePoint(b.b.value);
-      if(!A || !B) continue;
-      const raw = (b.value && b.value.value) ? b.value.value.split(MAP_SEP).filter(Boolean) : [];
-      /* Reuse the labels the extraction already resolved, so the legend reads
-         "1435 mm" rather than the concept's local name "30". */
-      const vals = raw.map(v => label.get(v) || (/^https?:/.test(v) ? localName(v) : v));
-      segs.push({A, B, cc: b.country.value,
-                 s: b.startName ? b.startName.value : '',
-                 t: b.endName ? b.endName.value : '',
-                 v: vals.length ? [...new Set(vals)].sort().join(' | ') : null});
+    const rows = await sparql(buildMapQuery(picks.map(p => p.e)), ctrl.signal);
+    const elapsed = (performance.now() - t0) / 1000;
+
+    if(picks.length === 1){
+      const e = picks[0].e;
+      const label = new Map();
+      lastRun.rows.filter(x => x.param === e && x.label).forEach(x => label.set(x.value, x.label));
+      const segs = [];
+      for(const b of rows){
+        const A = parsePoint(b.a.value), B = parsePoint(b.b.value);
+        if(!A || !B) continue;
+        const raw = (b.value0 && b.value0.value) ? b.value0.value.split(MAP_SEP).filter(Boolean) : [];
+        /* Reuse the labels the extraction already resolved, so the legend reads
+           "1435 mm" rather than the concept's local name "30". */
+        const vals = raw.map(v => label.get(v) || (/^https?:/.test(v) ? localName(v) : v));
+        segs.push({A, B, cc: b.country.value,
+                   s: b.startName ? b.startName.value : '',
+                   t: b.endName ? b.endName.value : '',
+                   v: vals.length ? [...new Set(vals)].sort().join(' | ') : null});
+      }
+      if(!segs.length){
+        $('mapStatus').textContent = 'No data — the query ran without error, but no section of line in this ' +
+          'scope has both of its operational points positioned.';
+        $('mapWrap').hidden = true; $('mapLegend').hidden = true;
+        $('mapReset').hidden = true;
+        return;
+      }
+      /* Rank values by how much network carries them, so the legend is ordered
+         by what the reader will actually see on screen. */
+      const counts = new Map();
+      segs.forEach(x => counts.set(x.v, (counts.get(x.v) || 0) + 1));
+      const ranked = [...counts.entries()].filter(x => x[0] !== null).sort((a, b) => b[1] - a[1]);
+      const colour = new Map();
+      ranked.slice(0, MAP_PALETTE.length).forEach((x, i) => colour.set(x[0], MAP_PALETTE[i]));
+      mapData = {mode: 'single', segs, param: e, colour, ranked,
+                 otherCount: ranked.slice(MAP_PALETTE.length).reduce((s, x) => s + x[1], 0),
+                 noneCount: counts.get(null) || 0, elapsed};
+      mapOff = new Set();
+    } else {
+      const labelMaps = picks.map(p => {
+        const m = new Map();
+        lastRun.rows.filter(x => x.param === p.e && x.label).forEach(x => m.set(x.value, x.label));
+        return m;
+      });
+      const segs = [];
+      for(const b of rows){
+        const A = parsePoint(b.a.value), B = parsePoint(b.b.value);
+        if(!A || !B) continue;
+        const vals = new Map(); // original lastRun.params index -> value string
+        picks.forEach((p, qi) => {
+          const field = b['value' + qi];
+          const raw = (field && field.value) ? field.value.split(MAP_SEP).filter(Boolean) : [];
+          const vs = raw.map(v => labelMaps[qi].get(v) || (/^https?:/.test(v) ? localName(v) : v));
+          if(vs.length) vals.set(p.i, [...new Set(vs)].sort().join(' | '));
+        });
+        segs.push({A, B, cc: b.country.value,
+                   s: b.startName ? b.startName.value : '', t: b.endName ? b.endName.value : '', vals});
+      }
+      if(!segs.length){
+        $('mapStatus').textContent = 'No data — the query ran without error, but no section of line in this ' +
+          'scope has both of its operational points positioned.';
+        $('mapWrap').hidden = true; $('mapLegend').hidden = true;
+        $('mapReset').hidden = true;
+        return;
+      }
+      const origIndex = picks.map(p => p.i);
+      const colour = new Map(origIndex.map(i => [i, MAP_PALETTE[i % MAP_PALETTE.length]]));
+      mapData = {mode: 'multi', segs, origIndex, colour, elapsed};
     }
-    if(!segs.length){
-      $('mapStatus').textContent = 'No data — the query ran without error, but no section of line in this ' +
-        'scope has both of its operational points positioned.';
-      $('mapWrap').hidden = true; $('mapLegend').hidden = true;
-      $('mapReset').hidden = true;
-      return;
-    }
-    /* Rank values by how much network carries them, so the legend is ordered
-       by what the reader will actually see on screen. */
-    const counts = new Map();
-    segs.forEach(x => counts.set(x.v, (counts.get(x.v) || 0) + 1));
-    const ranked = [...counts.entries()].filter(x => x[0] !== null).sort((a, b) => b[1] - a[1]);
-    const colour = new Map();
-    ranked.slice(0, MAP_PALETTE.length).forEach((x, i) => colour.set(x[0], MAP_PALETTE[i]));
-    mapData = {segs, param: e, colour, ranked,
-               otherCount: ranked.slice(MAP_PALETTE.length).reduce((s, x) => s + x[1], 0),
-               noneCount: counts.get(null) || 0,
-               elapsed: (performance.now() - t0) / 1000};
-    mapOff = new Set();
+
     $('mapWrap').hidden = false;
     ensureMap();
     leafletMap.invalidateSize();
     renderSegments();
     fitToSegments();
     renderLegend();
-    $('mapStatus').textContent = fmt(segs.length) + ' sections of line drawn in ' +
-      mapData.elapsed.toFixed(1) + 's' + (segs.length >= MAP_LIMIT ? ' (capped)' : '') + '.';
-    $('mapNote').innerHTML = '<strong>Read this as topology, not alignment.</strong> Sections of line publish no ' +
-      'geometry of their own in any dataset but Croatia’s, so each is drawn as the straight chord between the ' +
-      'two operational points it runs between — the real track curves, and the length on screen is not the ' +
-      'length on the ground. Grey means the section carries no value for this parameter. Scroll to zoom, drag to ' +
-      'pan, click a legend entry to hide it. Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap ' +
-      '“standard” style — both © their contributors.';
+    renderMapParamPicks();
+    const segCount = mapData.segs.length;
+    $('mapStatus').textContent = mapData.mode === 'single'
+      ? fmt(segCount) + ' sections of line drawn in ' + mapData.elapsed.toFixed(1) + 's' +
+        (segCount >= MAP_LIMIT ? ' (capped)' : '') + '.'
+      : fmt(segCount) + ' sections of line in scope, over ' + picks.length + ' parameters, drawn in ' +
+        mapData.elapsed.toFixed(1) + 's' + (segCount >= MAP_LIMIT ? ' (capped)' : '') + '.';
+    $('mapNote').innerHTML = mapData.mode === 'single'
+      ? '<strong>Read this as topology, not alignment.</strong> Sections of line publish no ' +
+        'geometry of their own in any dataset but Croatia’s, so each is drawn as the straight chord between the ' +
+        'two operational points it runs between — the real track curves, and the length on screen is not the ' +
+        'length on the ground. Grey means the section carries no value for this parameter. Scroll to zoom, drag to ' +
+        'pan, click a legend entry to hide it. Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap ' +
+        '“standard” style — both © their contributors.'
+      : '<strong>Read this as topology, not alignment</strong> — same caveat as one parameter, and here each ' +
+        'colour is a parameter, not a value: pick which ones above, or click a legend entry to hide it. Grey ' +
+        'means none of the visible parameters have a value for that section. Where a section carries more than ' +
+        'one, whichever is drawn last wins the pixels on screen — hover it to see every value. Base tiles: ' +
+        'OpenStreetMap. Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
     $('mapReset').hidden = false;
   } catch(err){
     $('mapStatus').textContent = 'Query error — the network could not be fetched: ' + err.message;
@@ -1671,38 +1803,57 @@ async function drawNetwork(){
 }
 
 function renderLegend(){
-  const d = mapData;
-  const items = d.ranked.slice(0, MAP_PALETTE.length)
-    .map(x => ({v: x[0], n: x[1], c: d.colour.get(x[0])}));
-  if(d.otherCount) items.push({v: '__other', n: d.otherCount, c: '#8794b5', lab: 'other values'});
-  if(d.noneCount)  items.push({v: null, n: d.noneCount, c: MAP_NONE, lab: 'no data for this parameter'});
-  $('mapLegend').innerHTML = items.map(it =>
-    '<span class="lg' + (mapOff.has(it.v) ? ' off' : '') + '" data-v="' +
-      (it.v === null ? ' none' : esc(String(it.v))) + '">' +
-    '<span class="sw" style="background:' + it.c + '"></span>' +
-    '<span>' + esc(it.lab || String(it.v)) + '</span>' +
-    '<span class="ct">' + fmt(it.n) + '</span></span>').join('');
+  if(mapData.mode === 'single'){
+    const d = mapData;
+    const items = d.ranked.slice(0, MAP_PALETTE.length)
+      .map(x => ({v: x[0], n: x[1], c: d.colour.get(x[0])}));
+    if(d.otherCount) items.push({v: '__other', n: d.otherCount, c: '#8794b5', lab: 'other values'});
+    if(d.noneCount)  items.push({v: null, n: d.noneCount, c: MAP_NONE, lab: 'no data for this parameter'});
+    $('mapLegend').innerHTML = items.map(it =>
+      '<span class="lg' + (mapOff.has(it.v) ? ' off' : '') + '" data-v="' +
+        (it.v === null ? ' none' : esc(String(it.v))) + '">' +
+      '<span class="sw" style="background:' + it.c + '"></span>' +
+      '<span>' + esc(it.lab || String(it.v)) + '</span>' +
+      '<span class="ct">' + fmt(it.n) + '</span></span>').join('');
+  } else {
+    const items = mapData.origIndex.map(oi => ({
+      oi, e: lastRun.params[oi], c: mapData.colour.get(oi),
+      n: mapData.segs.filter(s => s.vals.has(oi)).length,
+    }));
+    $('mapLegend').innerHTML = items.map(it =>
+      '<span class="lg' + (mapParamOff.has(it.oi) ? ' off' : '') + '" data-pi="' + it.oi + '">' +
+      '<span class="sw" style="background:' + it.c + '"></span>' +
+      '<span>' + esc((it.e.i[0] || '—') + ' — ' + (it.e.l || it.e.n)) + '</span>' +
+      '<span class="ct">' + fmt(it.n) + '</span></span>').join('');
+  }
   $('mapLegend').hidden = false;
 }
 
 $('mapLegend').addEventListener('click', ev => {
   const el = ev.target.closest('.lg');
   if(!el || !mapData) return;
-  const raw = el.dataset.v;
-  const v = raw === ' none' ? null : raw;
-  if(v === '__other'){
-    const named = new Set(mapData.colour.keys());
-    const others = mapData.ranked.map(x => x[0]).filter(x => !named.has(x));
-    const anyOn = others.some(x => !mapOff.has(x));
-    others.forEach(x => anyOn ? mapOff.add(x) : mapOff.delete(x));
-    if(mapOff.has('__other')) mapOff.delete('__other'); else mapOff.add('__other');
-  } else if(mapOff.has(v)){
-    mapOff.delete(v);
+  if(mapData.mode === 'single'){
+    const raw = el.dataset.v;
+    const v = raw === ' none' ? null : raw;
+    if(v === '__other'){
+      const named = new Set(mapData.colour.keys());
+      const others = mapData.ranked.map(x => x[0]).filter(x => !named.has(x));
+      const anyOn = others.some(x => !mapOff.has(x));
+      others.forEach(x => anyOn ? mapOff.add(x) : mapOff.delete(x));
+      if(mapOff.has('__other')) mapOff.delete('__other'); else mapOff.add('__other');
+    } else if(mapOff.has(v)){
+      mapOff.delete(v);
+    } else {
+      mapOff.add(v);
+    }
+    renderLegend();
+    renderSegments();
   } else {
-    mapOff.add(v);
+    if(!tryToggleParam(+el.dataset.pi, mapData.origIndex)) return;
+    renderLegend();
+    renderMapParamPicks();
+    renderSegments();
   }
-  renderLegend();
-  renderSegments();
 });
 
 $('mapBase').addEventListener('change', () => {
