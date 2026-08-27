@@ -33,7 +33,7 @@ index, so excluding them loses nothing — but *including* them double-counts.
 ## Rule 2 — five ways publishers differ
 
 A query written against one publication style returns **nothing at all** for the
-others, with no error. Check each before concluding "no data".
+others, with no error. Check each before concluding "no data".E
 
 | # | Variation | Majority | Exception |
 |---|---|---|---|
