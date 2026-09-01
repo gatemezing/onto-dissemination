@@ -1,0 +1,40 @@
+# Section names for the "Section" column and the network map: every section
+# of line is bounded by era:opStart / era:opEnd, each an era:OperationalPoint
+# carrying era:opName — the same property the RCC tool's map draws chords
+# between. This is the only place a section's name comes from; the ontology
+# gives it none of its own.
+#
+# The naive form of this query — one WHERE clause joining opStart's geometry
+# against opEnd's geometry — returns far more than one row per section. An
+# operational point can carry several geometry statements (one per track), and
+# Germany republishes a whole station as several resources sharing one
+# era:uopid, so the two multiply: measured on a live DEU section, that naive
+# join returned 32 rows for ONE section. Resolving each side (start, end) in
+# its own GROUP BY / SAMPLE subquery caps every section at exactly one output
+# row regardless of how many geometries or duplicate point-resources back it —
+# confirmed against DEU line 4000: 250 sections in, 250 rows out, 0.3 s.
+#
+# Pinned to the sections already resolved by sections-for-line.rq, chunked at
+# 250 like every other phase-2 query, and run in the same shared job pool —
+# so it costs one more query per chunk, not one per section.
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+SELECT ?sol ?startName ?endName ?a ?b WHERE {
+  VALUES ?sol { <http://data.europa.eu/949/sectionOfLine/a4ad82c153> }   # … from phase 1
+  OPTIONAL {
+    SELECT ?sol (SAMPLE(?startName0) AS ?startName) (SAMPLE(?a0) AS ?a) WHERE {
+      VALUES ?sol { <http://data.europa.eu/949/sectionOfLine/a4ad82c153> }
+      ?sol era:opStart ?o .
+      OPTIONAL { ?o era:opName ?startName0 FILTER(LANG(?startName0) = "" || LANGMATCHES(LANG(?startName0), "en")) }
+      OPTIONAL { ?o era:netReference/geo:hasGeometry/geo:asWKT ?a0 }
+    } GROUP BY ?sol
+  }
+  OPTIONAL {
+    SELECT ?sol (SAMPLE(?endName0) AS ?endName) (SAMPLE(?b0) AS ?b) WHERE {
+      VALUES ?sol { <http://data.europa.eu/949/sectionOfLine/a4ad82c153> }
+      ?sol era:opEnd ?o .
+      OPTIONAL { ?o era:opName ?endName0 FILTER(LANG(?endName0) = "" || LANGMATCHES(LANG(?endName0), "en")) }
+      OPTIONAL { ?o era:netReference/geo:hasGeometry/geo:asWKT ?b0 }
+    } GROUP BY ?sol
+  }
+}

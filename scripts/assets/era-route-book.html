@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ERA Route Book Elements</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
   :root{
     --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
@@ -49,6 +53,51 @@
   .chk input{flex:none;margin:0;}
   .opts{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;}
 
+  /* ---- country grid ---- */
+  .fieldHead{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;}
+  .fieldHead .fieldLabel{margin-bottom:8px;}
+  .quickActions{display:flex;gap:6px;}
+  button.mini{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
+    padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;font-family:inherit;}
+  button.mini:hover{background:rgba(255,255,255,.1);color:var(--paper);}
+  #countryGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px;
+    max-height:250px;overflow-y:auto;padding:4px;border:1px solid var(--line);border-radius:9px;
+    background:rgba(255,255,255,.02);}
+  .cy{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;cursor:pointer;
+    font-size:12.5px;border:1px solid transparent;}
+  .cy:hover{background:rgba(255,255,255,.05);}
+  .cy.on{border-color:rgba(91,155,213,.45);background:rgba(91,155,213,.1);}
+  .cy input{flex:none;margin:0;}
+  .cy .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cy .ds{font-size:10.5px;color:var(--dim);flex:none;}
+
+  /* ---- national-line search combobox, multi-pick ---- */
+  .comboWrap{position:relative;}
+  #lineSearch{font-family:"SF Mono",Consolas,monospace;}
+  .comboList{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 5px);max-height:340px;overflow-y:auto;
+    background:#101830;border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 44px rgba(0,0,0,.6);
+    padding:5px;}
+  .comboList[hidden]{display:none;}
+  .opt{display:flex;gap:10px;align-items:baseline;padding:7px 9px;border-radius:7px;cursor:pointer;}
+  .opt:hover{background:rgba(255,255,255,.05);}
+  .opt.active{background:rgba(91,155,213,.16);}
+  .opt .ix{font-family:"SF Mono",Consolas,monospace;font-size:11.5px;color:var(--teal);flex:none;min-width:3em;}
+  .opt .txt{flex:1;min-width:0;}
+  .opt .nm{display:block;font-size:13px;line-height:1.3;}
+  .opt .sub{display:block;font-size:11px;color:var(--dim);font-family:"SF Mono",Consolas,monospace;margin-top:2px;}
+  .opt .vc{flex:none;font-size:11px;color:var(--muted);white-space:nowrap;text-align:right;}
+  .noHits{padding:14px 10px;font-size:12.5px;color:var(--muted);text-align:center;}
+
+  #lineChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  #lineChips[hidden]{display:none;}
+  .pchip{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(95,208,174,.4);
+    background:rgba(95,208,174,.09);border-radius:20px;padding:4px 6px 4px 11px;font-size:12px;max-width:100%;}
+  .pchip .ix{font-family:"SF Mono",Consolas,monospace;font-size:10.5px;color:var(--teal);flex:none;}
+  .pchip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pchip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;
+    line-height:1;padding:2px 5px;border-radius:50%;flex:none;font-family:inherit;}
+  .pchip button:hover{background:rgba(255,255,255,.14);color:var(--paper);}
+
   button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
     padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
   button.btn:hover:not(:disabled){background:linear-gradient(180deg,#33456b,#22304d);}
@@ -76,6 +125,9 @@
   .statTile.hero .n{color:var(--teal);}
   .bar{height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:8px;overflow:hidden;}
   .bar i{display:block;height:100%;background:var(--teal);}
+
+  .mgrList{margin:6px 0 0;padding-left:18px;font-size:12px;line-height:1.65;max-height:150px;overflow-y:auto;}
+  .mgrList li{margin-bottom:2px;}
 
   .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
   .tab{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
@@ -111,11 +163,47 @@
   .note.warn{background:rgba(240,168,58,.10);border:1px solid rgba(240,168,58,.38);color:#f3d8a8;}
   .note.warn code{background:rgba(0,0,0,.28);}
   .note a{color:#f0a83a;}
+  .note p{margin:0 0 8px;}
+  .note p:last-child{margin-bottom:0;}
   footer ul{margin:0 0 9px;padding-left:20px;}
   footer li{margin-bottom:6px;}
   .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
   .resultActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
   .resultActions .grow{flex:1;}
+
+  /* ---- network map ---- */
+  #mapPanel[hidden]{display:none;}
+  .mapBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .mapBar .grow{flex:1;}
+  #mapWrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    background:#070d18;height:520px;}
+  #mapWrap[hidden]{display:none;}
+  #mapCanvas{width:100%;height:100%;background:#0e1626;}
+  .leaflet-container{background:#0e1626;font-family:inherit;color:var(--paper);}
+  .leaflet-control-zoom a{background:#141d33;color:var(--paper);border-color:var(--line) !important;}
+  .leaflet-control-zoom a:hover{background:#1c2740;}
+  .leaflet-bar{border-color:var(--line) !important;box-shadow:0 6px 18px rgba(0,0,0,.4) !important;}
+  .leaflet-control-attribution{background:rgba(8,13,26,.82) !important;color:var(--muted) !important;
+    font-size:10.5px;}
+  .leaflet-control-attribution a{color:var(--blue);}
+  .leaflet-control-scale-line{background:rgba(8,13,26,.72) !important;color:var(--paper) !important;
+    border-color:rgba(238,242,255,.62) !important;}
+  .leaflet-tooltip.eraTip{background:rgba(8,13,26,.95);border:1px solid var(--line);color:var(--paper);
+    border-radius:7px;padding:7px 10px;font-size:12px;line-height:1.45;max-width:270px;
+    box-shadow:0 6px 18px rgba(0,0,0,.5);opacity:1;}
+  .leaflet-tooltip.eraTip.leaflet-tooltip-top:before{border-top-color:var(--line);}
+  .leaflet-tooltip.eraTip.leaflet-tooltip-bottom:before{border-bottom-color:var(--line);}
+  .leaflet-tooltip.eraTip.leaflet-tooltip-left:before{border-left-color:var(--line);}
+  .leaflet-tooltip.eraTip.leaflet-tooltip-right:before{border-right-color:var(--line);}
+  .leaflet-tooltip.eraTip b{color:var(--teal);}
+  #mapLegend{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;}
+  #mapLegend[hidden]{display:none;}
+  .lg{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:20px;
+    padding:4px 11px;font-size:12px;cursor:pointer;background:rgba(255,255,255,.04);user-select:none;}
+  .lg .sw{width:16px;height:3px;border-radius:2px;flex:none;}
+  .lg .ct{color:var(--dim);font-variant-numeric:tabular-nums;}
+  .lg.off{opacity:.38;}
+  .lg:hover{border-color:var(--blue);}
 
   details{margin-top:14px;}
   summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
@@ -141,35 +229,44 @@
   <header>
     <h1>ERA Route Book Elements</h1>
     <p>The elements an infrastructure manager owes a railway undertaking for the <strong>Route Book</strong>, as listed
-       in Appendix&nbsp;D2 of the TSI&nbsp;OPE (Commission Implementing Regulation (EU)&nbsp;2019/773). Pick a country
-       and one of its national lines: the tool collects every property carrying
-       <code>era:tsiOPEAppendixD2Index</code> along that line and at its operational points, in kilometre order, and
-       reports which of the 46&nbsp;D2 elements the line actually covers. Export to CSV or Excel. Queries
+       in Appendix&nbsp;D2 of the TSI&nbsp;OPE (Commission Implementing Regulation (EU)&nbsp;2019/773). Pick one or more
+       countries and one or more of their national lines: the tool collects every property carrying
+       <code>era:tsiOPEAppendixD2Index</code> along each line and at its operational points, in kilometre order, and
+       reports which of the 46&nbsp;D2 elements the combined selection covers. Sections of line are named by the
+       operational points they run between, not shown by kilometre position alone. Export to CSV or Excel, or draw
+       the selection on a network map. Queries
        <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>
-       live from your browser.</p>
+       live from your browser; the network map additionally loads tiles from OpenStreetMap and OpenRailwayMap when
+       you draw it.</p>
   </header>
 
   <div class="panel">
-    <h2><span class="step">1</span> Country and line</h2>
-    <div class="grid2">
-      <div>
-        <label class="fieldLabel" for="countrySel">Country</label>
-        <select id="countrySel"></select>
-        <div class="hint" id="countryHint"></div>
-      </div>
-      <div>
-        <label class="fieldLabel" for="lineInput">National line</label>
-        <input id="lineInput" list="lineList" type="text" spellcheck="false" autocomplete="off"
-               placeholder="Choose a country first…" disabled>
-        <datalist id="lineList"></datalist>
-        <div class="hint" id="lineHint"></div>
-      </div>
+    <h2><span class="step">1</span> Countries and lines</h2>
+    <div class="fieldHead">
+      <span class="fieldLabel" id="countrySummary" aria-live="polite">No country selected — pick at least one</span>
+      <span class="quickActions">
+        <button type="button" class="mini" id="selAll">Select all</button>
+        <button type="button" class="mini" id="selNone">Clear</button>
+        <button type="button" class="mini" id="selInvert">Invert</button>
+      </span>
     </div>
+    <div id="countryGrid" role="group" aria-label="Countries to search for lines"></div>
+    <div class="hint" id="countryHint"></div>
+
+    <label class="fieldLabel" for="lineSearch" style="display:block;margin-top:16px">National line(s)</label>
+    <div id="lineWrap" class="comboWrap">
+      <input id="lineSearch" type="text" spellcheck="false" autocomplete="off" role="combobox"
+             aria-expanded="false" aria-controls="lineList" aria-autocomplete="list"
+             placeholder="Choose at least one country first…" disabled>
+      <div id="lineList" class="comboList" role="listbox" aria-label="Matching national lines" hidden></div>
+    </div>
+    <div id="lineChips" hidden></div>
+    <div class="hint" id="lineHint"></div>
     <div class="note warn" id="gapNote" hidden></div>
   </div>
 
   <div class="panel">
-    <h2><span class="step">2</span> Narrow it down <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--dim)">— optional</span></h2>
+    <h2><span class="step">2</span> Narrow it down <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--dim)">— optional, applied to every line picked</span></h2>
     <div class="grid2">
       <div>
         <label class="fieldLabel" for="kmFrom">From kilometre</label>
@@ -192,8 +289,9 @@
   <div class="panel" id="resultPanel" hidden>
     <h2><span class="step">3</span> Results</h2>
     <div class="statGrid">
-      <div class="statTile hero"><div class="n" id="statCover">–</div><div class="l">D2 elements on this line</div>
+      <div class="statTile hero"><div class="n" id="statCover">–</div><div class="l">D2 elements on this selection</div>
         <div class="bar"><i id="coverBar" style="width:0"></i></div></div>
+      <div class="statTile"><div class="n" id="statLines">–</div><div class="l">Lines queried</div></div>
       <div class="statTile"><div class="n" id="statRows">–</div><div class="l">Rows</div></div>
       <div class="statTile"><div class="n" id="statSections">–</div><div class="l">Sections of line</div></div>
       <div class="statTile"><div class="n" id="statOps">–</div><div class="l">Operational points</div></div>
@@ -202,7 +300,7 @@
     <div class="moreNote" id="mgrNote" style="margin:0 0 14px"></div>
     <div class="tabs" id="tabs"></div>
     <div class="filterBar">
-      <input type="search" id="textFilter" placeholder="Filter by element, value, track or place…" autocomplete="off">
+      <input type="search" id="textFilter" placeholder="Filter by country, line, element, value, track or place…" autocomplete="off">
       <select id="d2Filter"><option value="">All D2 elements</option></select>
       <button class="btn clr" id="clearFilter">Clear filters</button>
     </div>
@@ -221,7 +319,45 @@
     </details>
   </div>
 
+  <div class="panel" id="mapPanel" hidden>
+    <h2><span class="step">4</span> Network map</h2>
+    <div class="mapBar">
+      <span class="fieldLabel" style="margin:0">Selected lines, coloured individually</span>
+      <button class="btn" id="mapBtn">Draw map</button>
+      <label class="chk" style="margin:0"><input type="checkbox" id="mapBase" checked> Railway overlay</label>
+      <span class="grow"></span>
+      <button type="button" class="mini" id="mapReset" hidden>Reset view</button>
+    </div>
+    <div id="mapStatus" class="moreNote"></div>
+    <div id="mapWrap" hidden>
+      <div id="mapCanvas"></div>
+    </div>
+    <div id="mapLegend" hidden></div>
+    <p class="moreNote" id="mapNote"></p>
+  </div>
+
   <footer>
+    <p><strong>Countries and lines are both multi-select, and results are combined across everything you pick.</strong>
+      Lines are fetched once per country and cached — ticking a country again costs no further query. Because a line
+      identifier is unique only within a Member State, the picker keeps each line's country attached rather than
+      matching on the bare identifier, so two countries publishing the same number can never be picked by mistake.
+      Every table row, and both exports, carry the country and line they came from, and the D2 coverage view
+      aggregates across the whole selection.</p>
+    <p><strong>Sections of line carry no name of their own, so this tool borrows one from the operational points at
+      each end.</strong> Every section of line is bounded by <code>era:opStart</code> and <code>era:opEnd</code>;
+      both resolve to an <code>era:OperationalPoint</code>, and its <code>era:opName</code> is what appears in the
+      <em>Section</em> column and on the network map — the same property the
+      <a href="./rcc.html">RCC Parameters</a> tool's map already draws chords between. A section missing either end
+      keeps its kilometre position only, shown as <code>—</code> where even that isn't published.</p>
+    <p><strong>The network map draws every selected line's sections geographically</strong>, over standard
+      OpenStreetMap tiles with the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
+      &ldquo;standard&rdquo; layer overlaid for real track, station and line-number context. Sections publish no
+      geometry of their own, so each is drawn as the straight chord between the two operational points it runs
+      between — topology, not alignment. Each line gets its own colour from the legend; a thicker, brighter segment
+      carries at least one D2 element from this run, a thin grey one was resolved but has none here. It reuses the
+      operational-point names and geometry already fetched for the Section column, so drawing the map costs no
+      further query. Unlike the rest of this tool, the map is not offline and not third-party-free: it fetches tiles
+      from openstreetmap.org and openrailwaymap.org as you pan and zoom.</p>
     <p><strong>Appendix D2 numbers the route book; the ontology carries the numbers but not the headings.</strong>
       ERA annotates each property with <code>era:tsiOPEAppendixD2Index</code> — the index of that term in
       &ldquo;Appendix D2: Elements the infrastructure manager has to provide to the railway undertaking for the Route
@@ -232,15 +368,17 @@
       <code>3.3.5</code> and <code>3.3.6</code> are carried only by <code>era:SpecialArea</code>, and
       <code>3.4.7</code> only by <code>era:RadioBlockCenter</code>; neither class has a single instance in the live
       endpoint. The coverage view separates that case — <em>not published by anyone</em> — from an element that other
-      managers do publish but this line does not, because they mean very different things to a route-book compiler.</p>
+      managers do publish but nothing in this selection does, because they mean very different things to a
+      route-book compiler.</p>
     <p><strong>D2 1.1 takes two registers, and the same URI opens both.</strong> Every section of line declares its
       manager: <code>era:infrastructureManager</code> points at an <code>era:OrganisationRole</code>, which
       <code>era:roleOf</code> resolves to the organisation. RINF knows <em>which</em> organisation but not its name —
       all 660 <code>era:Body</code> resources in <code>rinf-plus</code> carry zero <code>foaf:name</code>. The name
       comes from the <a href="https://graph.data.era.europa.eu/repositories/OCR-KG" target="_blank" rel="noopener">Organisation
       Codes Register</a>, queried with the very same URIs RINF returned — no code column, no join key, no matching by
-      hand. That is what a shared identifier buys. The dataset a line is published in is reported alongside, as the
-      separate fact it is: German line <code>4000</code> appears in two of them.</p>
+      hand. That is what a shared identifier buys, and it is resolved once for every distinct code across the whole
+      selection, not once per line. The dataset a line is published in is reported alongside, as the separate fact it
+      is: German line <code>4000</code> appears in two of them.</p>
     <p id="gapFootnote"><strong>Managers model their networks differently, and the tool absorbs the differences
       rather than dropping the countries that have them.</strong> Every infrastructure manager publishes national
       lines; not all publish them the same way, and a query written against one style silently returns nothing for
@@ -265,7 +403,9 @@
         every dataset except Croatia's, which publishes only <code>era:hasPart</code> — 645 tracks that a query
         written against the inverse alone never sees. Asking for both in the same query is correct and ruinous: it
         takes a German line from 1.4&nbsp;s to 57&nbsp;s, because the optimiser can no longer push the property
-        join. The direction is therefore probed once per run and one form is emitted.</li>
+        join. The direction is therefore probed once <em>per line</em> — publishers differ, and with several
+        countries picked in one run a single global answer would silently be wrong for whichever of them did not
+        set it — and one form is emitted for that line.</li>
       <li><strong>Organisation URIs.</strong> Names are joined to the Organisation Codes Register on
         <code>era:organisationCode</code>, not on the body URI. The URI join works for 25 of the 27 — but Croatia
         publishes its manager under both <code>body/organisation/0078</code> and a bare <code>…/0078_ORG</code>, and
@@ -285,7 +425,8 @@
 </div>
 <script>
 /* ------------------------------------------------------------------ *
- * ERA Route Book Elements — TSI OPE Appendix D2 for one national line
+ * ERA Route Book Elements — TSI OPE Appendix D2 for one or more lines,
+ * across one or more countries.
  * ------------------------------------------------------------------ */
 const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
 /* The Organisation Codes Register. RINF knows which organisation publishes a
@@ -294,7 +435,6 @@ const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
    argument for one identifier reused across registers rather than a code
    column that has to be joined by hand. */
 const OCR_ENDPOINT = 'https://graph.data.era.europa.eu/repositories/OCR-KG';
-const IM_ROLE = 'http://data.europa.eu/949/concepts/organisation-roles/IM';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -334,12 +474,20 @@ const CHAPTERS = {
 };
 
 const CHUNK = 250;      // URIs per VALUES clause
-const POOL  = 6;        // concurrent requests
+const POOL  = 6;        // concurrent requests, shared across every line in one run
 const TABLE_LIMIT = 300;
+const MAP_PALETTE = ['#5fd0ae','#5b9bd5','#f0a83a','#e8604f','#b98bd6','#7ac36a',
+                     '#f2d06b','#6fd3e8','#e28fb4','#9aa8c9'];
+const OSM_ATTRIB = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+const ORM_ATTRIB = 'Railway style: <a href="https://creativecommons.org/licenses/by-sa/2.0/" ' +
+  'target="_blank" rel="noopener">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/" target="_blank" ' +
+  'rel="noopener">OpenRailwayMap</a>';
 
-let lines = [];         // [{line, src, lps, sections, fromKm, toKm}] for the chosen country
-let labelLines = 0;     // how many of them are identified by label rather than era:lineId
-let d2Catalog = [];     // [{d2, params:[], anywhere:bool}] all 46 elements
+let chosen = new Set();       // ticked country codes
+let lines = [];                // lines across every ticked country: {line, cc, ccLabel, src, lps, sections, fromKm, toKm}
+let pickedLines = [];          // the lines actually picked to run
+let labelLines = 0;            // how many of `lines` are identified by label rather than era:lineId
+let d2Catalog = [];            // [{d2, params:[], anywhere:bool}] all 46 elements
 let lastRun = null;
 let activeTab = 'line';
 
@@ -359,9 +507,10 @@ async function sparql(query, signal, endpoint){
   return (await res.json()).results.bindings;
 }
 
-/* Runs jobs with a bounded number in flight. A French line is 570 sections and
-   327 points, which is a dozen chunk queries; letting them all go at once just
-   makes the endpoint queue them for us. */
+/* Runs jobs with a bounded number in flight. Several lines across several
+   countries can add up to a lot of chunk queries; letting them all go at once
+   just makes the endpoint queue them for us. The limit is shared across the
+   whole run, not per line, so picking more lines costs time, not endpoint load. */
 async function pooled(jobs, limit, signal){
   const out = new Array(jobs.length);
   let next = 0;
@@ -388,12 +537,6 @@ const PREFIXES = [
   'PREFIX locn: <http://www.w3.org/ns/locn#>',
 ].join('\n');
 
-/* Line identifiers come from the data and are echoed into a query, so they are
-   restricted to what a line identifier can actually contain. */
-function safeLine(s){
-  if(!/^[A-Za-z0-9 ._\/+()-]{1,60}$/.test(s)) throw new Error('That line identifier contains characters this tool will not put in a query.');
-  return s;
-}
 function safeCountry(c){
   if(!/^[A-Z]{3}$/.test(c)) throw new Error('Bad country code.');
   return c;
@@ -440,6 +583,9 @@ GROUP BY ?line ?src ORDER BY ?line`;
 function lpsValues(lps){
   return `  VALUES ?lps { ${lps.map(u => '<' + u + '>').join(' ')} }`;
 }
+function values(varName, uris){
+  return `  VALUES ?${varName} { ${uris.map(u => '<' + u + '>').join(' ')} }`;
+}
 
 /* Every D2 element, and whether any manager publishes it at all. Cheap because
    EXISTS short-circuits on the first statement it finds. */
@@ -457,13 +603,14 @@ WHERE {
 GROUP BY ?d2`;
 }
 
-/* D2 chapter 1 — who is the infrastructure manager. Every section of line
-   declares one: era:infrastructureManager points at an era:OrganisationRole,
-   which era:roleOf resolves to the organisation itself. Answering it from the
-   named graph instead looks equivalent and is not — both German bodies sit in
-   both German graphs, so the graph route names DB InfraGO *and* Deutsche Bahn
-   AG for line 4000 where the declared property names DB InfraGO alone.
-   The publishing dataset is reported too, as the separate fact it is. */
+/* D2 chapter 1 — who is the infrastructure manager, for one line. Every
+   section of line declares one: era:infrastructureManager points at an
+   era:OrganisationRole, which era:roleOf resolves to the organisation itself.
+   Answering it from the named graph instead looks equivalent and is not —
+   both German bodies sit in both German graphs, so the graph route names DB
+   InfraGO *and* Deutsche Bahn AG for line 4000 where the declared property
+   names DB InfraGO alone. The publishing dataset is reported too, as the
+   separate fact it is. */
 function managersQuery(lps){
   return `${PREFIXES}
 SELECT DISTINCT ?body ?code ?graph WHERE {
@@ -478,8 +625,7 @@ ORDER BY ?code`;
 /* Why a country came back with no lines. The tool asks for era:lineId, the
    property the ontology defines for a line identifier, and for era:inCountry
    on an operational point; a manager can publish neither and still publish
-   sections. Run only when the line list is empty, so it costs nothing in the
-   normal case. */
+   sections. Run only when a ticked country contributes zero lines. */
 function gapQuery(cc){
   const C = safeCountry(cc);
   return `${PREFIXES}
@@ -506,7 +652,8 @@ WHERE {
    bare .../0078_ORG for the same organisation, and Norway uses
    .../organisations/0076 where the register has body/organisation/0076. The
    URI join works for 25 of the 27; the code is what closes the other two, and
-   it also collapses Croatia's duplicate into one row. */
+   it also collapses Croatia's duplicate into one row. Resolved once for every
+   distinct code across the whole selection, not once per line. */
 function managerNamesQuery(codes){
   return `${PREFIXES}
 SELECT ?code ?body ?name ?nick ?country
@@ -532,8 +679,9 @@ function kmFilter(varName){
 
 /* ---- phase 1: which places are on this line, and where ----
    Resolving these once and pinning them into phase 2 with VALUES is the whole
-   performance story: German line 4000 goes from 30 s to under 2 s, because the
-   section lookup and its validity aggregate stop being repeated per branch. */
+   performance story: a line goes from 30 s to under 2 s, because the section
+   lookup and its validity aggregate stop being repeated per branch. Run once
+   per line picked, in a small pool alongside the other lines in this run. */
 function sectionsQuery(lps){
   return `${PREFIXES}
 SELECT DISTINCT ?sol ?startKp ?startPosition ?endPosition
@@ -578,8 +726,8 @@ ORDER BY ?startKp ?startPosition`;
    name them with era:opStart and era:opEnd, which places them exactly as well.
    The second branch excludes points the first already found, so nothing is
    counted twice. era:inCountry is deliberately not required: pinning the LPS
-   resources already confines the query to the chosen country's network. */
-function opsQuery(lps, cc){
+   resources already confines the query to the chosen line's own network. */
+function opsQuery(lps){
   return `${PREFIXES}
 SELECT DISTINCT ?op ?opid ?opName ?startKp ?position ?via
 WHERE {
@@ -619,6 +767,38 @@ ${lpsValues(lps)}
 ORDER BY ?startKp ?position`;
 }
 
+/* Sections carry no name of their own. Every one is (usually) bounded by
+   era:opStart/era:opEnd, and those resolve to an era:OperationalPoint with an
+   era:opName — the same property the RCC tool's map already draws chords
+   between. Resolved here, pinned to the sections already found in phase 1, so
+   it costs one more small request per line rather than per section. The same
+   query also carries the point geometry, which the network map reuses without
+   asking the endpoint again.
+
+   Measured on live data: a naive join of opStart's geometry against opEnd's
+   geometry in one WHERE clause returned 32 rows for a *single* section, not
+   one — an operational point can carry several geometries (one per track),
+   and Germany republishes a station as several resources sharing one uopid,
+   so the two multiply. Resolving each side in its own GROUP-BY/SAMPLE
+   subquery caps that at exactly one row per section: 250 sections in, 250
+   rows out, 0.3 s, confirmed against DEU line 4000. */
+function sectionEndpointsQuery(sols){
+  const sideQuery = (prop, nameVar, geomVar) => `  OPTIONAL {
+    SELECT ?sol (SAMPLE(?${nameVar}0) AS ?${nameVar}) (SAMPLE(?${geomVar}0) AS ?${geomVar}) WHERE {
+${values('sol', sols)}
+      ?sol era:${prop} ?o .
+      OPTIONAL { ?o era:opName ?${nameVar}0 FILTER(LANG(?${nameVar}0) = "" || LANGMATCHES(LANG(?${nameVar}0), "en")) }
+      OPTIONAL { ?o era:netReference/geo:hasGeometry/geo:asWKT ?${geomVar}0 }
+    } GROUP BY ?sol
+  }`;
+  return `${PREFIXES}
+SELECT ?sol ?startName ?endName ?a ?b WHERE {
+${values('sol', sols)}
+${sideQuery('opStart', 'startName', 'a')}
+${sideQuery('opEnd', 'endName', 'b')}
+}`;
+}
+
 /* ---- phase 2: the D2 elements hanging off those places ----
    D2 properties sit on a dozen classes, reached from a section of line or an
    operational point by a handful of paths. Each path is its own query so they
@@ -647,11 +827,13 @@ const OP_BRANCHES = {
    so a query written against the inverse alone finds none of its tracks.
    Asking for both in the same query is correct and ruinous — it takes a German
    line from 1.4 s to 57 s, because the optimiser can no longer push the
-   property join. So the direction is probed once and one form is emitted. */
-let PART_DIR = 'isPartOf';
-function part(whole, track){
+   property join. So the direction is probed once per line and one form is
+   emitted for it — a plain parameter here, not a shared global, because two
+   lines from different countries running in the same pool can each need a
+   different answer. */
+function part(dir, whole, track){
   track = track || 'track';
-  return PART_DIR === 'isPartOf'
+  return dir === 'isPartOf'
     ? `?${track} era:isPartOf ?${whole} .`
     : `?${whole} era:hasPart ?${track} .`;
 }
@@ -659,33 +841,34 @@ function partProbeQuery(uris){
   return `${PREFIXES}
 SELECT ?t WHERE { ${values('w', uris.slice(0, 50)).trim()} ?t era:isPartOf ?w } LIMIT 1`;
 }
-
-function values(varName, uris){
-  return `  VALUES ?${varName} { ${uris.map(u => '<' + u + '>').join(' ')} }`;
+async function probePartDir(uris, signal){
+  if(!uris.length) return 'isPartOf';
+  const rows = await sparql(partProbeQuery(uris), signal).catch(() => [{}]);
+  return rows.length ? 'isPartOf' : 'hasPart';
 }
 
-function lineBranchQuery(branch, sols){
+function lineBranchQuery(branch, sols, dir){
   return `${PREFIXES}
 SELECT ?sol ?d2 ?paramLabel ?trackName ?featureName
        (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
 WHERE {
 ${D2_PARAMS}
 ${values('sol', sols)}
-${LINE_BRANCHES[branch].replace('@PART_SOL@', '  ' + part('sol'))}
+${LINE_BRANCHES[branch].replace('@PART_SOL@', '  ' + part(dir, 'sol'))}
 ${VALUE_LABEL}
 }
 GROUP BY ?sol ?d2 ?paramLabel ?trackName ?featureName`;
 }
 
-function opBranchQuery(branch, ops, sidings){
+function opBranchQuery(branch, ops, sidings, dir){
   /* France repeats tracks inside one point, so the newest track window is
      applied per point — pinned to the same VALUES so the aggregate stays small. */
-  const trackBlock = `  ${part('op')}\n  ?track rdfs:label ?trackName .\n` +
+  const trackBlock = `  ${part(dir, 'op')}\n  ?track rdfs:label ?trackName .\n` +
     `  VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }\n  ?track a ?type .\n` +
     `  OPTIONAL { ?track era:validity/time:hasBeginning/time:inXSDDate ?tb }\n` +
     `  OPTIONAL { { SELECT ?op (MAX(?bb) AS ?latest) WHERE {\n` +
     `${values('op', ops)}\n` +
-    `      ${part('op', 't2')} ?t2 era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }\n` +
+    `      ${part(dir, 'op', 't2')} ?t2 era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }\n` +
     `  FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)\n`;
   return `${PREFIXES}
 SELECT ?op ?d2 ?paramLabel ?trackName ?featureName
@@ -706,11 +889,8 @@ function chunk(arr, n){
 }
 
 /* ------------------------------------------------------------------ *
- * Country → line cascade
+ * Countries → lines
  * ------------------------------------------------------------------ */
-$('countrySel').innerHTML = '<option value="">Choose a country…</option>' +
-  COUNTRIES.map(([c, l]) => `<option value="${c}">${esc(l)}</option>`).join('');
-
 function setStatus(msg, kind){
   const el = $('statusArea');
   el.className = kind || '';
@@ -718,82 +898,270 @@ function setStatus(msg, kind){
   else el.textContent = msg;
 }
 
-async function loadLines(cc){
-  lines = [];
-  $('lineInput').value = '';
-  $('lineInput').disabled = true;
-  $('lineList').innerHTML = '';
-  $('lineHint').textContent = '';
-  $('gapNote').hidden = true;
-  if(!cc){ $('lineInput').placeholder = 'Choose a country first…'; updateRun(); return; }
+function renderCountryGrid(){
+  $('countryGrid').innerHTML = COUNTRIES.map(([c, l]) =>
+    '<label class="cy' + (chosen.has(c) ? ' on' : '') + '" data-c="' + c + '">' +
+      '<input type="checkbox"' + (chosen.has(c) ? ' checked' : '') + ' value="' + c + '">' +
+      '<span class="nm">' + esc(l) + '</span>' +
+      '<span class="ds">' + c + '</span>' +
+    '</label>').join('');
+}
+function updateCountrySummary(){
+  const n = chosen.size;
+  const names = COUNTRIES.filter(c => chosen.has(c[0])).map(c => c[1]);
+  $('countrySummary').textContent =
+    n === 0 ? 'No country selected — pick at least one'
+    : n === COUNTRIES.length ? 'All ' + n + ' countries'
+    : n + (n === 1 ? ' country' : ' countries') + ': ' +
+      (n <= 5 ? names.join(', ') : names.slice(0, 4).join(', ') + ' +' + (n - 4) + ' more');
+}
+
+/* Lines are fetched once per country and cached, so ticking the same country
+   twice in a session costs no further query. A country that comes back with
+   zero lines gets its gap diagnostic queried once too, and cached the same way. */
+const linesByCountry = new Map();
+const gapCache = new Map();
+async function ensureCountryLines(cc){
+  if(linesByCountry.has(cc)) return linesByCountry.get(cc);
   const name = (COUNTRIES.find(x => x[0] === cc) || [, cc])[1];
+  const rows = await sparql(linesQuery(cc));
+  const arr = rows.map(b => ({
+    line: b.line.value,
+    src: b.src ? b.src.value : 'lineId',
+    lps: b.lpsList.value.split(' ').filter(Boolean),
+    sections: +b.sections.value,
+    fromKm: b.fromKm ? Math.round(+b.fromKm.value) : null,
+    toKm:   b.toKm   ? Math.round(+b.toKm.value)   : null,
+    cc, ccLabel: name,
+  }));
+  linesByCountry.set(cc, arr);
+  if(!arr.length && !gapCache.has(cc)) gapCache.set(cc, explainGap(cc, name));
+  return arr;
+}
+
+/* Ticking two countries in quick succession starts two overlapping calls;
+   without a token the one that happens to resolve last would win regardless
+   of which selection it was answering, silently reverting the country list. */
+let linesSyncToken = 0;
+async function syncLines(){
+  const myToken = ++linesSyncToken;
+  const ccList = [...chosen];
+  lineSearch.disabled = true;
+  closeLineList();
+  if(!ccList.length){
+    lines = [];
+    lineSearch.placeholder = 'Choose at least one country first…';
+    $('countryHint').className = 'hint';
+    $('countryHint').textContent = '';
+    $('gapNote').hidden = true;
+    pickedLines = []; renderLineChips();
+    updateRun();
+    return;
+  }
   $('countryHint').className = 'hint';
-  $('countryHint').textContent = 'Loading lines for ' + name + '…';
+  $('countryHint').textContent = 'Loading lines…';
   try{
-    const rows = await sparql(linesQuery(cc));
-    lines = rows.map(b => ({
-      line: b.line.value,
-      src: b.src ? b.src.value : 'lineId',
-      lps: b.lpsList.value.split(' ').filter(Boolean),
-      sections: +b.sections.value,
-      fromKm: b.fromKm ? Math.round(+b.fromKm.value) : null,
-      toKm:   b.toKm   ? Math.round(+b.toKm.value)   : null,
-    }));
+    const need = ccList.filter(cc => !linesByCountry.has(cc));
+    let done = 0;
+    if(need.length){
+      await pooled(need.map(cc => async () => {
+        await ensureCountryLines(cc);
+        done++;
+        if(myToken === linesSyncToken && need.length > 1)
+          $('countryHint').textContent = 'Loading lines… ' + done + ' of ' + need.length + ' countries';
+      }), 6);
+    }
+    if(myToken !== linesSyncToken) return; // superseded by a newer selection
+    lines = ccList.flatMap(cc => linesByCountry.get(cc) || []);
+    lineSearch.disabled = false;
+    lineSearch.placeholder = 'Search ' + fmt(lines.length) + ' line' + (lines.length === 1 ? '' : 's') + ' by id…';
     labelLines = lines.filter(l => l.src === 'label').length;
-    $('lineList').innerHTML = lines.map(l => {
-      const span = (l.fromKm !== null && l.toKm !== null) ? `km ${l.fromKm}–${l.toKm}` : '';
-      return `<option value="${esc(l.line)}">${l.sections} section${l.sections === 1 ? '' : 's'}${span ? ' · ' + span : ''}</option>`;
-    }).join('');
-    if(!lines.length){ await explainGap(cc, name); return; }
-    $('lineInput').disabled = false;
-    $('lineInput').placeholder = `Type or pick one of ${fmt(lines.length)} lines…`;
     $('countryHint').className = 'hint on';
-    $('countryHint').textContent = fmt(lines.length) + ' national lines' +
-      (labelLines ? ` · ${labelLines === lines.length ? 'all' : fmt(labelLines)} identified by label, not era:lineId` : '') +
-      (UNDATED.has(cc) ? ' · no validity dates published, so nothing is filtered out' : '');
-    if(labelLines){
-      $('gapNote').innerHTML =
-        `<strong>${esc(name)} names its lines without <code>era:lineId</code>.</strong> ` +
-        `${labelLines === lines.length ? 'Every one of its' : fmt(labelLines) + ' of its'} ` +
-        `${fmt(lines.length)} national lines is identified here by the English <code>rdfs:label</code> of its ` +
-        `<code>era:LinearPositioningSystem</code> instead. The lines are real and complete; only the property ` +
-        `carrying their identifier differs. <a href="#gapFootnote">What this means for the results</a>.`;
+    $('countryHint').textContent = fmt(lines.length) + ' national line' + (lines.length === 1 ? '' : 's') +
+      ' across ' + ccList.length + ' countr' + (ccList.length === 1 ? 'y' : 'ies') +
+      (labelLines ? ' · ' + fmt(labelLines) + ' identified by label, not era:lineId' : '') +
+      (ccList.some(c => UNDATED.has(c)) ? ' · some publish no validity dates, so nothing is filtered out there' : '');
+
+    const zeroCcs = ccList.filter(cc => (linesByCountry.get(cc) || []).length === 0);
+    if(zeroCcs.length){
+      const htmls = await Promise.all(zeroCcs.map(cc => gapCache.get(cc)));
+      if(myToken !== linesSyncToken) return;
+      $('gapNote').innerHTML = htmls.join('');
       $('gapNote').hidden = false;
+    } else {
+      $('gapNote').hidden = true;
     }
   } catch(err){
+    if(myToken !== linesSyncToken) return;
     $('countryHint').textContent = 'Could not load lines: ' + err.message;
   }
+  if(myToken !== linesSyncToken) return;
+  pickedLines = pickedLines.filter(l => chosen.has(l.cc));
+  renderLineChips();
   updateRun();
 }
 
-function currentLine(){
-  const v = $('lineInput').value.trim();
-  return lines.find(l => l.line === v) || null;
-}
-function updateRun(){
-  const l = currentLine();
-  const any = $('wantLine').checked || $('wantOp').checked;
-  $('runBtn').disabled = !l || !any;
-  if($('lineInput').value.trim() && !l){
-    $('lineHint').className = 'hint';
-    $('lineHint').textContent = 'No such line in this country — pick one from the list.';
-  } else if(l){
-    $('lineHint').className = 'hint on';
-    $('lineHint').textContent = `${l.sections} section${l.sections === 1 ? '' : 's'}` +
-      (l.fromKm !== null ? ` · km ${l.fromKm}–${l.toKm}` : '') +
-      (l.src === 'label' ? ' · identified by label' : '');
-  } else {
-    $('lineHint').textContent = '';
-  }
-}
+$('countryGrid').addEventListener('change', ev => {
+  const box = ev.target.closest('input[type=checkbox]');
+  if(!box) return;
+  if(box.checked) chosen.add(box.value); else chosen.delete(box.value);
+  box.closest('.cy').classList.toggle('on', box.checked);
+  updateCountrySummary();
+  syncLines();
+  $('resultPanel').hidden = true; $('mapPanel').hidden = true;
+});
+$('selAll').addEventListener('click', () => {
+  chosen.clear(); COUNTRIES.forEach(c => chosen.add(c[0]));
+  renderCountryGrid(); updateCountrySummary(); syncLines(); $('resultPanel').hidden = true; $('mapPanel').hidden = true;
+});
+$('selNone').addEventListener('click', () => {
+  chosen.clear();
+  renderCountryGrid(); updateCountrySummary(); syncLines(); $('resultPanel').hidden = true; $('mapPanel').hidden = true;
+});
+$('selInvert').addEventListener('click', () => {
+  const inv = COUNTRIES.map(c => c[0]).filter(c => !chosen.has(c));
+  chosen.clear(); inv.forEach(c => chosen.add(c));
+  renderCountryGrid(); updateCountrySummary(); syncLines(); $('resultPanel').hidden = true; $('mapPanel').hidden = true;
+});
+renderCountryGrid();
+updateCountrySummary();
 
-$('countrySel').addEventListener('change', e => { loadLines(e.target.value); $('resultPanel').hidden = true; });
-$('lineInput').addEventListener('input', () => { updateRun(); $('resultPanel').hidden = true; });
+/* ------------------------------------------------------------------ *
+ * National-line combobox — search across every ticked country, pick as many
+ * as needed. Lines are only unique within a country, so each result carries
+ * its country and every pick is kept as the object itself, never re-parsed
+ * from typed text — that is what lets two countries share a line id.
+ * ------------------------------------------------------------------ */
+const lineSearch = $('lineSearch'), lineListEl = $('lineList');
+let lineFiltered = [], lineActiveIdx = -1;
+
+function lineSearchable(l){
+  return (l._s || (l._s = (l.line + ' ' + l.ccLabel + ' ' + l.cc).toLowerCase()));
+}
+function matchLines(q){
+  const pool = lines.filter(l => !pickedLines.some(p => p.cc === l.cc && p.line === l.line));
+  if(!q) return pool.slice(0, 60);
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const scored = [];
+  for(const l of pool){
+    const hay = lineSearchable(l);
+    if(!terms.every(t => hay.includes(t))) continue;
+    let score = 0;
+    if(l.line.toLowerCase().startsWith(q.toLowerCase())) score += 1000;
+    if(l.cc.toLowerCase() === q.toLowerCase()) score += 300;
+    score += Math.min(100, Math.log10(l.sections + 1) * 20);
+    scored.push([score, l]);
+  }
+  scored.sort((a, b) => b[0] - a[0]);
+  return scored.slice(0, 60).map(x => x[1]);
+}
+function renderLineList(){
+  if(!lines.length){ lineListEl.hidden = true; return; }
+  const q = lineSearch.value.trim();
+  lineFiltered = matchLines(q);
+  lineActiveIdx = lineFiltered.length ? 0 : -1;
+  if(!lineFiltered.length){
+    lineListEl.innerHTML = '<div class="noHits">' +
+      (q ? 'No line matches “' + esc(q) + '”, or every match is already picked.' : 'Every matching line is already picked.') +
+      '</div>';
+  } else {
+    lineListEl.innerHTML = lineFiltered.map((l, i) => {
+      const span = (l.fromKm !== null && l.toKm !== null) ? 'km ' + l.fromKm + '–' + l.toKm : '';
+      return '<div class="opt' + (i === lineActiveIdx ? ' active' : '') + '" role="option" data-i="' + i + '" id="lopt' + i + '"' +
+        ' aria-selected="' + (i === lineActiveIdx) + '">' +
+        '<span class="ix">' + esc(l.cc) + '</span>' +
+        '<span class="txt"><span class="nm">' + esc(l.line) + '</span>' +
+        '<span class="sub">' + esc(l.ccLabel) + (l.src === 'label' ? ' · by label' : '') + '</span></span>' +
+        '<span class="vc">' + fmt(l.sections) + (l.sections === 1 ? ' section' : ' sections') +
+          (span ? '<br>' + span : '') + '</span>' +
+      '</div>';
+    }).join('');
+  }
+  lineListEl.hidden = false;
+  lineSearch.setAttribute('aria-expanded', 'true');
+  scrollLineActiveIntoView();
+}
+function scrollLineActiveIntoView(){
+  const el = lineListEl.querySelector('.opt.active');
+  if(el) el.scrollIntoView({block:'nearest'});
+  lineSearch.setAttribute('aria-activedescendant', el ? el.id : '');
+}
+function closeLineList(){
+  lineListEl.hidden = true;
+  lineSearch.setAttribute('aria-expanded', 'false');
+  lineSearch.removeAttribute('aria-activedescendant');
+}
+function pickLine(l){
+  if(!pickedLines.some(p => p.cc === l.cc && p.line === l.line)) pickedLines.push(l);
+  lineSearch.value = '';
+  closeLineList();
+  renderLineChips();
+  updateRun();
+  $('resultPanel').hidden = true; $('mapPanel').hidden = true;
+}
+function removeLine(cc, line){
+  pickedLines = pickedLines.filter(p => !(p.cc === cc && p.line === line));
+  renderLineChips();
+  updateRun();
+  $('resultPanel').hidden = true; $('mapPanel').hidden = true;
+}
+function renderLineChips(){
+  $('lineChips').hidden = pickedLines.length === 0;
+  $('lineChips').innerHTML = pickedLines.map(l => {
+    const span = (l.fromKm !== null && l.toKm !== null) ? ' · km ' + l.fromKm + '–' + l.toKm : '';
+    return '<span class="pchip">' +
+      '<span class="ix">' + esc(l.cc) + '</span>' +
+      '<span class="nm">' + esc(l.line) + ' — ' + esc(l.ccLabel) + ' · ' + fmt(l.sections) +
+        (l.sections === 1 ? ' section' : ' sections') + span + (l.src === 'label' ? ' · by label' : '') + '</span>' +
+      '<button type="button" data-cc="' + esc(l.cc) + '" data-line="' + esc(l.line) +
+        '" aria-label="Remove ' + esc(l.line) + '">×</button></span>';
+  }).join('');
+}
+$('lineChips').addEventListener('click', ev => {
+  const b = ev.target.closest('button[data-cc]');
+  if(b) removeLine(b.dataset.cc, b.dataset.line);
+});
+lineSearch.addEventListener('input', renderLineList);
+lineSearch.addEventListener('focus', renderLineList);
+lineSearch.addEventListener('blur', () => setTimeout(closeLineList, 160));
+/* pointerdown fires before click, so closing here (rather than on click)
+   lets a click elsewhere on the page land where it was aimed instead of
+   being swallowed by a list option. */
+document.addEventListener('pointerdown', ev => {
+  if(!lineListEl.hidden && !ev.target.closest('#lineWrap')) closeLineList();
+}, true);
+lineSearch.addEventListener('keydown', ev => {
+  if(lineListEl.hidden && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')){ renderLineList(); ev.preventDefault(); return; }
+  if(ev.key === 'ArrowDown'){ lineActiveIdx = Math.min(lineActiveIdx + 1, lineFiltered.length - 1); refreshLineActive(); ev.preventDefault(); }
+  else if(ev.key === 'ArrowUp'){ lineActiveIdx = Math.max(lineActiveIdx - 1, 0); refreshLineActive(); ev.preventDefault(); }
+  else if(ev.key === 'Enter'){
+    if(!lineListEl.hidden && lineFiltered[lineActiveIdx]){ pickLine(lineFiltered[lineActiveIdx]); ev.preventDefault(); }
+    else if(pickedLines.length && !$('runBtn').disabled){ run(); }
+  }
+  else if(ev.key === 'Escape'){ closeLineList(); }
+});
+function refreshLineActive(){
+  lineListEl.querySelectorAll('.opt').forEach((el, i) => {
+    el.classList.toggle('active', i === lineActiveIdx);
+    el.setAttribute('aria-selected', String(i === lineActiveIdx));
+  });
+  scrollLineActiveIntoView();
+}
+lineListEl.addEventListener('mousedown', ev => {
+  const opt = ev.target.closest('.opt');
+  if(opt){ ev.preventDefault(); pickLine(lineFiltered[+opt.dataset.i]); }
+});
+
+function updateRun(){
+  const any = $('wantLine').checked || $('wantOp').checked;
+  $('runBtn').disabled = !pickedLines.length || !any;
+  $('lineHint').textContent = !lines.length ? '' : pickedLines.length ? '' : 'Search and pick one or more lines above.';
+}
 ['wantLine','wantOp','wantSidings'].forEach(id =>
-  $(id).addEventListener('change', () => { updateRun(); $('resultPanel').hidden = true; }));
+  $(id).addEventListener('change', () => { updateRun(); $('resultPanel').hidden = true; $('mapPanel').hidden = true; }));
 
 /* The 46 D2 elements, loaded once. The coverage view needs them all, including
-   the ones this line will turn out not to have. */
+   the ones this selection will turn out not to have. */
 (async function loadCatalog(){
   try{
     const rows = await sparql(catalogQuery());
@@ -813,15 +1181,12 @@ $('lineInput').addEventListener('input', () => { updateRun(); $('resultPanel').h
 })();
 
 /* ------------------------------------------------------------------ *
- * When a country has no lines to offer
+ * When a ticked country has no lines to offer
  * ------------------------------------------------------------------ */
 async function explainGap(cc, name){
-  $('countryHint').className = 'hint';
-  $('countryHint').textContent = 'No national lines — checking why…';
-  $('lineInput').placeholder = 'This country publishes no line identifiers';
   let g;
   try{ g = (await sparql(gapQuery(cc)))[0]; }
-  catch { $('countryHint').textContent = name + ' returned no national lines.'; return; }
+  catch { return `<p><strong>${esc(name)}</strong> returned no national lines, and the diagnostic query failed too.</p>`; }
   const n = k => g && g[k] ? +g[k].value : 0;
   const sections = n('sections'), lineIds = n('lineIds'), labels = n('nationalLineLabels');
   const ops = n('opsReferenced'), opsInC = n('opsWithInCountry');
@@ -835,112 +1200,123 @@ async function explainGap(cc, name){
   if(ops && !opsInC) gaps.push(
     `its ${fmt(ops)} operational points carry no <code>era:inCountry</code>, so they cannot be found by country either`);
 
-  $('countryHint').className = 'hint';
-  $('gapNote').innerHTML = gaps.length
-    ? `<strong>${esc(name)} publishes sections of line, but nothing this tool can key a route book to.</strong> ` +
+  return gaps.length
+    ? `<p><strong>${esc(name)} publishes sections of line, but nothing this tool can key a route book to.</strong> ` +
       gaps.join('; ').replace(/^./, m => m.toUpperCase()) +
       `. ${gaps.length > 1 ? 'Both are properties' : 'That is a property'} the ontology defines and other managers ` +
       `populate, so the tool asks for ${gaps.length > 1 ? 'them' : 'it'} rather than guessing from labels. ` +
-      `<a href="#gapFootnote">How this was measured</a>.`
-    : `<strong>${esc(name)} returned no national lines.</strong> Its ${fmt(sections)} sections of line ` +
-      `carry ${fmt(lineIds)} line identifiers.`;
-  $('gapNote').hidden = false;
-  $('countryHint').textContent = fmt(sections) + ' sections of line, but no line identifiers';
+      `<a href="#gapFootnote">How this was measured</a>.</p>`
+    : `<p><strong>${esc(name)} returned no national lines.</strong> Its ${fmt(sections)} sections of line ` +
+      `carry ${fmt(lineIds)} line identifiers.</p>`;
 }
 
 /* ------------------------------------------------------------------ *
- * Running it
+ * Running it — every picked line, in one shared job pool
  * ------------------------------------------------------------------ */
 async function run(){
-  const l = currentLine();
-  if(!l) return;
-  const cc = $('countrySel').value;
+  if(!pickedLines.length) return;
+  const picks = pickedLines.slice();
   const sidings = $('wantSidings').checked;
   const wantLine = $('wantLine').checked, wantOp = $('wantOp').checked;
 
-  let qSections = null, qOps = null;
-  try{
-    if(wantLine) qSections = sectionsQuery(l.lps);
-    if(wantOp)   qOps      = opsQuery(l.lps, cc);
-  } catch(err){ setStatus(err.message, 'error'); return; }
-
   $('runBtn').disabled = true;
   $('resultPanel').hidden = true;
-  setStatus('Finding the places on line ' + l.line + '…', 'loading');
+  $('mapPanel').hidden = true;
+  setStatus('Resolving places on ' + picks.length + ' line' + (picks.length === 1 ? '' : 's') + '…', 'loading');
 
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 180000);
+  const timer = setTimeout(() => ctrl.abort(), 300000);
   const started = performance.now();
   const shown = [];
-  try{
-    const qMgr = managersQuery(l.lps);
-    const [secRows, opRows, mgrRows] = await Promise.all([
-      qSections ? sparql(qSections, ctrl.signal) : Promise.resolve([]),
-      qOps      ? sparql(qOps,      ctrl.signal) : Promise.resolve([]),
-      sparql(qMgr, ctrl.signal).catch(() => []),
-    ]);
-    if(qSections) shown.push('/* === phase 1: sections of line === */\n' + qSections);
-    if(qOps)      shown.push('/* === phase 1: operational points === */\n' + qOps);
-    shown.push('/* === D2 1.1: the infrastructure manager publishing this line === */\n' + qMgr);
 
-    /* One row per organisation code: a manager that publishes itself under two
-       URIs is still one manager. */
-    const codes = [...new Set(mgrRows.map(b => b.code.value))].sort();
-    const graphs = [...new Set(mgrRows.map(b => b.graph.value.replace(/^.*\//, '')))].sort();
-    const named = codes.length
-      ? await sparql(managerNamesQuery(codes), ctrl.signal, OCR_ENDPOINT).catch(() => [])
+  try{
+    /* ---- per-line phase 1: places, managers, part-whole probe ----
+       Run with modest concurrency of its own — these are the small, fast
+       queries — so ten lines don't all fire their phase-1 requests at once
+       ahead of the shared phase-2 pool below. */
+    const resolved = await pooled(picks.map(pick => async () => {
+      let qSections = null, qOps = null;
+      if(wantLine) qSections = sectionsQuery(pick.lps);
+      if(wantOp)   qOps      = opsQuery(pick.lps);
+      const qMgr = managersQuery(pick.lps);
+      const [secRows, opRows, mgrRows] = await Promise.all([
+        qSections ? sparql(qSections, ctrl.signal) : Promise.resolve([]),
+        qOps      ? sparql(qOps,      ctrl.signal) : Promise.resolve([]),
+        sparql(qMgr, ctrl.signal).catch(() => []),
+      ]);
+      const sections = new Map(), ops = new Map();
+      secRows.forEach(b => sections.set(b.sol.value, {
+        km: b.startKp ? +b.startKp.value : Infinity,
+        start: b.startPosition.value || '—', end: b.endPosition.value || '—' }));
+      opRows.forEach(b => { if(!ops.has(b.op.value)) ops.set(b.op.value, {
+        km: b.startKp ? +b.startKp.value : Infinity,
+        position: b.position.value || '—', opid: b.opid.value,
+        name: b.opName.value, via: b.via ? b.via.value : '' }); });
+
+      const codes = [...new Set(mgrRows.map(b => b.code.value))].sort();
+      const graphs = [...new Set(mgrRows.map(b => b.graph.value.replace(/^.*\//, '')))].sort();
+
+      /* Probed per line, not read from a shared global: publishers differ in
+         which way they publish the part-whole link, and two lines from
+         different countries can be in this same run at once. */
+      const probeOn = sections.size ? [...sections.keys()] : [...ops.keys()];
+      const partDir = await probePartDir(probeOn, ctrl.signal);
+
+      return {pick, sections, ops, codes, graphs, partDir, qSections, qOps, qMgr};
+    }), 4, ctrl.signal);
+
+    /* ---- organisation names, resolved once for every code across every line ---- */
+    const allCodes = [...new Set(resolved.flatMap(r => r.codes))].sort();
+    const named = allCodes.length
+      ? await sparql(managerNamesQuery(allCodes), ctrl.signal, OCR_ENDPOINT).catch(() => [])
       : [];
-    if(codes.length) shown.push('/* === D2 1.1: their names, from ' + OCR_ENDPOINT + ' === */\n' +
-      managerNamesQuery(codes));
+    if(allCodes.length) shown.push('/* === D2 1.1: names, from ' + OCR_ENDPOINT + ' === */\n' + managerNamesQuery(allCodes));
     const byCode = new Map(named.map(b => [b.code.value, b]));
-    const managers = codes.map(c => {
+    const nameOf = c => {
       const b = byCode.get(c) || {};
       return {
-        code: c,
-        uri: (b.body && b.body.value) || '',
-        name: (b.name && b.name.value) || '',
-        nick: (b.nick && b.nick.value) || '',
-        country: b.country ? b.country.value.replace(/^.*\//, '') : '',
+        code: c, uri: (b.body && b.body.value) || '', name: (b.name && b.name.value) || '',
+        nick: (b.nick && b.nick.value) || '', country: b.country ? b.country.value.replace(/^.*\//, '') : '',
         roles: (b.roles && b.roles.value) || '',
       };
-    });
+    };
 
-    /* Position and name live in phase 1; phase 2 returns only the place URI,
-       so the two are joined here rather than repeated down the wire. */
-    const sections = new Map(), ops = new Map();
-    secRows.forEach(b => sections.set(b.sol.value, {
-      km: b.startKp ? +b.startKp.value : Infinity,
-      start: b.startPosition.value || '—', end: b.endPosition.value || '—' }));
-    opRows.forEach(b => { if(!ops.has(b.op.value)) ops.set(b.op.value, {
-      km: b.startKp ? +b.startKp.value : Infinity,
-      position: b.position.value || '—', opid: b.opid.value,
-      name: b.opName.value, via: b.via ? b.via.value : '' }); });
+    const active = resolved.filter(r => r.sections.size || r.ops.size);
+    const emptyPicks = resolved.filter(r => !r.sections.size && !r.ops.size).map(r => r.pick);
 
-    if(!sections.size && !ops.size){
+    if(!active.length){
       clearTimeout(timer);
-      setStatus('Line ' + l.line + ' has no sections or operational points' +
-        ($('kmFrom').value || $('kmTo').value ? ' in that kilometre range' : '') + '.', 'warn');
+      setStatus((picks.length === 1 ? 'Line ' + picks[0].line + ' has' : 'None of the ' + picks.length + ' selected lines have') +
+        ' sections or operational points' + ($('kmFrom').value || $('kmTo').value ? ' in that kilometre range' : '') + '.', 'warn');
       return;
     }
 
-    setStatus(`Collecting D2 elements from ${fmt(sections.size)} section${sections.size === 1 ? '' : 's'} and ` +
-      `${fmt(ops.size)} operational point${ops.size === 1 ? '' : 's'}…`, 'loading');
+    setStatus(`Collecting D2 elements from ${fmt(active.reduce((s, r) => s + r.sections.size, 0))} section(s) and ` +
+      `${fmt(active.reduce((s, r) => s + r.ops.size, 0))} operational point(s) across ${active.length} line` +
+      (active.length === 1 ? '' : 's') + `…`, 'loading');
 
-    const probeOn = sections.size ? [...sections.keys()] : [...ops.keys()];
-    PART_DIR = (await sparql(partProbeQuery(probeOn), ctrl.signal).catch(() => [{}])).length
-      ? 'isPartOf' : 'hasPart';
-
+    /* ---- phase 2: every line's branch queries share one job pool ---- */
+    const solOwner = new Map(); // sol URI -> pick, for the map and the Section column
     const jobs = [], kinds = [];
-    if(sections.size) for(const br of Object.keys(LINE_BRANCHES))
-      for(const c of chunk([...sections.keys()], CHUNK)){
-        const q = lineBranchQuery(br, c);
-        jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'line', branch:br, q});
+    active.forEach(r => {
+      shown.push('/* === ' + r.pick.cc + ' ' + r.pick.line + ' — phase 1 === */\n' +
+        [r.qSections, r.qOps, r.qMgr].filter(Boolean).join('\n\n'));
+      for(const sol of r.sections.keys()) solOwner.set(sol, r.pick);
+      if(r.sections.size) for(const br of Object.keys(LINE_BRANCHES))
+        for(const c of chunk([...r.sections.keys()], CHUNK)){
+          const q = lineBranchQuery(br, c, r.partDir);
+          jobs.push(() => sparql(q, ctrl.signal)); kinds.push({r, side:'line', branch:br, q});
+        }
+      if(r.ops.size) for(const br of Object.keys(OP_BRANCHES))
+        for(const c of chunk([...r.ops.keys()], CHUNK)){
+          const q = opBranchQuery(br, c, sidings, r.partDir);
+          jobs.push(() => sparql(q, ctrl.signal)); kinds.push({r, side:'op', branch:br, q});
+        }
+      if(r.sections.size) for(const c of chunk([...r.sections.keys()], CHUNK)){
+        const q = sectionEndpointsQuery(c);
+        jobs.push(() => sparql(q, ctrl.signal)); kinds.push({r, side:'names', branch:'names', q});
       }
-    if(ops.size) for(const br of Object.keys(OP_BRANCHES))
-      for(const c of chunk([...ops.keys()], CHUNK)){
-        const q = opBranchQuery(br, c, sidings);
-        jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'op', branch:br, q});
-      }
+    });
 
     const results = await pooled(jobs, POOL, ctrl.signal);
     clearTimeout(timer);
@@ -948,55 +1324,93 @@ async function run(){
 
     /* One query per access path means the same element can arrive twice — a
        platform reached as a track feature and as part of the point. Keyed
-       de-duplication keeps the row once. */
+       de-duplication keeps the row once. Section-of-line URIs are globally
+       unique resources, so their names are resolved into one flat map rather
+       than one per line. */
+    const solNames = new Map();
     const lineRows = [], opRowsOut = [], seen = new Set();
     results.forEach((rows, i) => {
       const k = kinds[i];
+      if(k.side === 'names'){
+        rows.forEach(b => {
+          if(solNames.has(b.sol.value)) return;
+          solNames.set(b.sol.value, {
+            startName: b.startName ? b.startName.value : '',
+            endName: b.endName ? b.endName.value : '',
+            A: b.a ? parsePoint(b.a.value) : null,
+            B: b.b ? parsePoint(b.b.value) : null,
+          });
+        });
+        return;
+      }
       rows.forEach(b => {
         const d2 = b.d2.value, param = b.paramLabel.value, value = b.value.value;
         const track = b.trackName ? b.trackName.value : '';
         const feature = b.featureName ? b.featureName.value : '';
         if(k.side === 'line'){
-          const s = sections.get(b.sol.value); if(!s) return;
-          const key = ['L', b.sol.value, track, feature, d2, param, value].join('');
+          const s = k.r.sections.get(b.sol.value); if(!s) return;
+          const key = ['L', k.r.pick.cc, k.r.pick.line, b.sol.value, track, feature, d2, param, value].join('');
           if(seen.has(key)) return; seen.add(key);
-          lineRows.push({sol:b.sol.value, km:s.km, start:s.start, end:s.end,
+          lineRows.push({country: k.r.pick.cc, countryLabel: k.r.pick.ccLabel, line: k.r.pick.line,
+                         sol:b.sol.value, km:s.km, start:s.start, end:s.end,
                          track, feature, d2, param, value, path:k.branch});
         } else {
-          const o = ops.get(b.op.value); if(!o) return;
-          const key = ['O', b.op.value, track, feature, d2, param, value].join('');
+          const o = k.r.ops.get(b.op.value); if(!o) return;
+          const key = ['O', k.r.pick.cc, k.r.pick.line, b.op.value, track, feature, d2, param, value].join('');
           if(seen.has(key)) return; seen.add(key);
-          opRowsOut.push({op:b.op.value, km:o.km, position:o.position, opid:o.opid, opName:o.name,
+          opRowsOut.push({country: k.r.pick.cc, countryLabel: k.r.pick.ccLabel, line: k.r.pick.line,
+                          op:b.op.value, km:o.km, position:o.position, opid:o.opid, opName:o.name,
                           track, feature, d2, param, value, path:k.branch});
         }
       });
     });
-    /* Unpositioned places sort last, then by name, so a route book without
-       linear referencing still reads in a stable order. */
+
+    /* Section names, borrowed from the operational points at each end. A
+       section missing either end keeps its kilometre position only. */
+    lineRows.forEach(x => {
+      const n = solNames.get(x.sol);
+      x.sectionName = n && (n.startName || n.endName) ? (n.startName || '—') + ' – ' + (n.endName || '—') : '';
+    });
+
+    /* Unpositioned places sort last, then by country, line and name, so a
+       multi-line, multi-country result still reads in a stable order. */
     const order = (a, b) =>
       (isFinite(a.km) ? a.km : Infinity) - (isFinite(b.km) ? b.km : Infinity) ||
+      a.countryLabel.localeCompare(b.countryLabel) || a.line.localeCompare(b.line) ||
       (a.opName || '').localeCompare(b.opName || '') ||
       byD2(a.d2, b.d2) || a.param.localeCompare(b.param);
     lineRows.sort(order); opRowsOut.sort(order);
 
-    /* One example query per access path — seven near-identical 30 KB VALUES
-       blocks would make the panel unreadable. */
+    /* One example query per access path — dozens of near-identical 30 KB
+       VALUES blocks would make the panel unreadable. */
     const byPath = new Map();
-    kinds.forEach(k => { const key = k.side + '/' + k.branch; if(!byPath.has(key)) byPath.set(key, k.q); });
+    kinds.forEach(k => { if(k.side === 'names') return; const key = k.side + '/' + k.branch; if(!byPath.has(key)) byPath.set(key, k.q); });
     byPath.forEach((q, key) => shown.push('/* === phase 2: ' + key + ' === */\n' + q));
 
     const covered = new Set([...lineRows, ...opRowsOut].map(r => r.d2));
-    if(managers.length) covered.add('1.1');
+    const lineManagers = active.map(r => ({
+      cc: r.pick.cc, ccLabel: r.pick.ccLabel, line: r.pick.line,
+      graphs: r.graphs, managers: r.codes.map(nameOf),
+    }));
+    if(lineManagers.some(m => m.managers.length)) covered.add('1.1');
+
+    const perLineStats = active.map(r => ({
+      cc: r.pick.cc, ccLabel: r.pick.ccLabel, line: r.pick.line,
+      viaSection: [...r.ops.values()].filter(o => o.via === 'section endpoint').length,
+    }));
+
     lastRun = {
-      managers, graphs,
-      country: cc, countryLabel: (COUNTRIES.find(x => x[0] === cc) || [, cc])[1],
-      line: l.line, lineSrc: l.src,
-      viaSection: [...ops.values()].filter(o => o.via === 'section endpoint').length,
+      picks: active.map(r => r.pick),
+      emptyPicks,
+      lineManagers, perLineStats,
+      countries: [...new Set(active.map(r => r.pick.cc))],
       kmFrom: $('kmFrom').value.trim(), kmTo: $('kmTo').value.trim(),
       sidings, wantLine, wantOp,
-      sections: sections.size, ops: ops.size,
+      sections: active.reduce((s, r) => s + r.sections.size, 0),
+      ops: active.reduce((s, r) => s + r.ops.size, 0),
       lineRows, opRows: opRowsOut, covered, elapsed,
-      queries: jobs.length + (qSections ? 1 : 0) + (qOps ? 1 : 0),
+      solNames, solOwner,
+      queries: jobs.length + active.reduce((s, r) => s + (r.qSections ? 1 : 0) + (r.qOps ? 1 : 0) + 1, 0) + (allCodes.length ? 1 : 0),
       query: shown.join('\n\n'),
       fetched: new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z',
     };
@@ -1004,17 +1418,20 @@ async function run(){
     if(!wantLine) activeTab = 'op';
     $('textFilter').value = ''; $('d2Filter').value = '';
     render();
+    mapSetup();
 
     const total = lineRows.length + opRowsOut.length;
+    const skipNote = emptyPicks.length
+      ? ` ${fmt(emptyPicks.length)} line${emptyPicks.length === 1 ? '' : 's'} had nothing in range.` : '';
     if(!total){
-      setStatus('No route book elements found on line ' + l.line + ' in ' + lastRun.countryLabel + '.', 'warn');
+      setStatus('No route book elements found on the selected line(s).' + skipNote, 'warn');
     } else {
       setStatus(`Done — ${fmt(total)} rows covering ${covered.size} of ${d2Catalog.length || 46} ` +
-        `D2 elements, in ${elapsed.toFixed(1)}s.`, 'success');
+        `D2 elements, across ${active.length} line${active.length === 1 ? '' : 's'}, in ${elapsed.toFixed(1)}s.` + skipNote, 'success');
     }
   } catch(err){
     clearTimeout(timer);
-    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Narrow the kilometre range, or take the line and the points separately.', 'error');
+    if(err.name === 'AbortError') setStatus('Timed out after 300 s. Pick fewer lines, narrow the kilometre range, or take the line and the points separately.', 'error');
     else setStatus('Query failed: ' + err.message, 'error');
   } finally {
     $('runBtn').disabled = false;
@@ -1032,8 +1449,23 @@ function filtered(){
   const t = $('textFilter').value.trim().toLowerCase();
   return baseRows().filter(r =>
     (!d2 || r.d2 === d2) &&
-    (!t || (r.param + ' ' + r.value + ' ' + r.track + ' ' + r.feature + ' ' + r.d2 +
-            ' ' + (r.opName || '') + ' ' + (r.opid || '')).toLowerCase().includes(t)));
+    (!t || (r.param + ' ' + r.value + ' ' + r.track + ' ' + r.feature + ' ' + r.d2 + ' ' +
+            r.country + ' ' + r.countryLabel + ' ' + r.line + ' ' + (r.sectionName || '') + ' ' +
+            (r.opName || '') + ' ' + (r.opid || '')).toLowerCase().includes(t)));
+}
+
+function renderManagerList(r){
+  if(!r.lineManagers.length) return 'No infrastructure manager could be resolved for the selected line(s).';
+  const rows = r.lineManagers.map(m => {
+    const who = m.managers.length
+      ? m.managers.map(x => (x.name ? esc(x.name) : '<em>name not in the register</em>') + ' <code>' + esc(x.code) + '</code>').join(' · ')
+      : '<span style="color:var(--dim)">not resolved</span>';
+    return `<li><b>${esc(m.cc)}</b> ${esc(m.line)} — ${who}` +
+      (m.graphs.length ? `, dataset${m.graphs.length === 1 ? '' : 's'} ${m.graphs.map(g => '<code>' + esc(g) + '</code>').join(', ')}` : '') +
+      `</li>`;
+  }).join('');
+  return `<strong>D2&nbsp;1.1 — infrastructure manager${r.lineManagers.length > 1 ? 's' : ''}:</strong> ` +
+    `<ul class="mgrList">${rows}</ul>Names resolved from the Organisation Codes Register against the same URIs RINF returned.`;
 }
 
 function render(){
@@ -1042,20 +1474,13 @@ function render(){
 
   $('statCover').textContent  = r.covered.size + ' / ' + total;
   $('coverBar').style.width   = Math.round(100 * r.covered.size / total) + '%';
+  $('statLines').textContent  = fmt(r.picks.length) + (r.countries.length > 1 ? ' / ' + r.countries.length : '');
   $('statRows').textContent   = fmt(r.lineRows.length + r.opRows.length);
   $('statSections').textContent = fmt(r.sections);
   $('statOps').textContent    = fmt(r.ops);
   $('statTime').textContent   = r.elapsed.toFixed(1) + 's';
 
-  $('mgrNote').innerHTML = r.managers.length
-    ? `<strong>D2&nbsp;1.1 — infrastructure manager${r.managers.length > 1 ? 's' : ''}:</strong> ` +
-      r.managers.map(m => (m.name ? esc(m.name) : '<em>name not in the register</em>') +
-        ` <code>${esc(m.code)}</code>`).join(' · ') +
-      `, published in dataset${r.graphs.length === 1 ? '' : 's'} ` +
-      r.graphs.map(g => `<code>${esc(g)}</code>`).join(', ') +
-      (r.graphs.length > 1 ? '. This line is published in more than one dataset. ' : '. ') +
-      'Names resolved from the Organisation Codes Register against the same URIs RINF returned.'
-    : 'No infrastructure manager could be resolved for this line.';
+  $('mgrNote').innerHTML = renderManagerList(r);
 
   $('tabs').innerHTML =
     (r.wantLine ? `<button class="tab${activeTab === 'line' ? ' on' : ''}" data-t="line">Along the route <span class="c">${fmt(r.lineRows.length)}</span></button>` : '') +
@@ -1067,13 +1492,19 @@ function render(){
   $('d2Filter').disabled = isCover;
   isCover ? renderCoverage() : renderRows();
 
-  const viaNote = r.viaSection
-    ? ` ${fmt(r.viaSection)} operational point${r.viaSection === 1 ? ' was' : 's were'} located from the section ` +
-      `of line that names ${r.viaSection === 1 ? 'it' : 'them'}, having no kilometric post on this line's LRS.`
+  const viaSection = r.perLineStats.reduce((s, x) => s + x.viaSection, 0);
+  const viaNote = viaSection
+    ? ` ${fmt(viaSection)} operational point${viaSection === 1 ? ' was' : 's were'} located from the section ` +
+      `of line that names ${viaSection === 1 ? 'it' : 'them'}, having no kilometric post on its line's LRS.`
     : '';
-  $('validityNote').textContent = (UNDATED.has(r.country)
-    ? `${r.countryLabel} publishes no validity dates, so no rows were filtered out on that basis.`
-    : 'Superseded descriptions are excluded — each place keeps only its newest validity window.') + viaNote;
+  const undatedCcs = r.countries.filter(c => UNDATED.has(c));
+  $('validityNote').textContent = (undatedCcs.length === 0
+    ? 'Superseded descriptions are excluded — each place keeps only its newest validity window.'
+    : undatedCcs.length === r.countries.length
+    ? 'Every selected country publishes no validity dates, so no rows were filtered out on that basis.'
+    : undatedCcs.map(c => (COUNTRIES.find(x => x[0] === c) || [, c])[1]).join(', ') +
+      ' publish no validity dates, so nothing was filtered out for them specifically — the rest keep only their newest window.'
+  ) + viaNote;
   $('sparqlOut').textContent = r.query;
   $('csvBtn').disabled = $('xlsBtn').disabled = !(r.lineRows.length + r.opRows.length);
   $('resultPanel').hidden = false;
@@ -1082,18 +1513,21 @@ function render(){
 function renderRows(){
   const rs = filtered();
   const head = activeTab === 'line'
-    ? ['From', 'To', 'D2', 'Element', 'Value', 'Track', 'Feature']
-    : ['At km', 'Operational point', 'UOPID', 'D2', 'Element', 'Value', 'Track', 'Feature'];
+    ? ['Country', 'Line', 'Section', 'From', 'To', 'D2', 'Element', 'Value', 'Track', 'Feature']
+    : ['Country', 'Line', 'At km', 'Operational point', 'UOPID', 'D2', 'Element', 'Value', 'Track', 'Feature'];
   $('resultTable').querySelector('thead').innerHTML =
     '<tr>' + head.map(h => `<th>${esc(h)}</th>`).join('') + '</tr>';
 
   $('resultTable').querySelector('tbody').innerHTML = rs.slice(0, TABLE_LIMIT).map(x => activeTab === 'line'
-    ? `<tr><td class="pos">${esc(x.start)}</td><td class="pos">${esc(x.end)}</td>` +
+    ? `<tr><td class="sub">${esc(x.country)}</td><td class="sub">${esc(x.line)}</td>` +
+      `<td class="nm" title="${esc(x.sectionName || '')}">${esc(x.sectionName || '—')}</td>` +
+      `<td class="pos">${esc(x.start)}</td><td class="pos">${esc(x.end)}</td>` +
       `<td class="ix">${esc(x.d2)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
       `<td class="val" title="${esc(x.value)}">${esc(shortValue(x.value))}</td>` +
       `<td class="nm" title="${esc(x.track)}">${esc(shortName(x.track))}</td>` +
       `<td class="sub" title="${esc(x.feature)}">${esc(x.feature)}</td></tr>`
-    : `<tr><td class="pos">${esc(x.position)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
+    : `<tr><td class="sub">${esc(x.country)}</td><td class="sub">${esc(x.line)}</td>` +
+      `<td class="pos">${esc(x.position)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
       `<td class="sub">${esc(x.opid)}</td>` +
       `<td class="ix">${esc(x.d2)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
       `<td class="val" title="${esc(x.value)}">${esc(shortValue(x.value))}</td>` +
@@ -1108,36 +1542,44 @@ function renderRows(){
 }
 
 /* Three states, because they mean different things to whoever has to compile
-   the route book: on this line, published elsewhere but not here, or carried
-   only by a class no manager has populated. */
+   the route book: on this selection, published elsewhere but not here, or
+   carried only by a class no manager has populated. */
 function renderCoverage(){
   const r = lastRun;
-  const counts = new Map();
-  [...r.lineRows, ...r.opRows].forEach(x => counts.set(x.d2, (counts.get(x.d2) || 0) + 1));
-  if(r.managers.length) counts.set('1.1', r.managers.length);
+  const counts = new Map(); // d2 -> {n, lines:Set}
+  [...r.lineRows, ...r.opRows].forEach(x => {
+    if(!counts.has(x.d2)) counts.set(x.d2, {n:0, lines:new Set()});
+    const c = counts.get(x.d2); c.n++; c.lines.add(x.country + ':' + x.line);
+  });
+  if(r.lineManagers.some(m => m.managers.length)){
+    if(!counts.has('1.1')) counts.set('1.1', {n:0, lines:new Set()});
+    const c = counts.get('1.1');
+    r.lineManagers.forEach(m => { if(m.managers.length){ c.n += m.managers.length; c.lines.add(m.cc + ':' + m.line); } });
+  }
   $('resultTable').querySelector('thead').innerHTML =
-    '<tr><th>D2</th><th>Element</th><th>On this line</th><th>Rows</th></tr>';
+    '<tr><th>D2</th><th>Element</th><th>On this selection</th><th>Lines</th><th>Rows</th></tr>';
 
   let html = '', chapter = null;
   d2Catalog.forEach(e => {
     const c = e.d2.split('.')[0];
     if(c !== chapter){
       chapter = c;
-      html += `<tr class="chapRow"><td colspan="4">${esc(c)} — ${esc(CHAPTERS[c] || '')}</td></tr>`;
+      html += `<tr class="chapRow"><td colspan="5">${esc(c)} — ${esc(CHAPTERS[c] || '')}</td></tr>`;
     }
-    const n = counts.get(e.d2) || 0;
-    const pill = n ? '<span class="pill here">on this line</span>'
+    const info = counts.get(e.d2);
+    const pill = info ? '<span class="pill here">on this selection</span>'
       : e.anywhere ? '<span class="pill elsewhere">published elsewhere</span>'
                    : '<span class="pill nowhere">not published by anyone</span>';
     html += `<tr><td class="ix">${esc(e.d2)}</td><td class="val">${esc(e.params)}</td>` +
-            `<td>${pill}</td><td class="sub">${n ? fmt(n) : '—'}</td></tr>`;
+            `<td>${pill}</td><td class="sub">${info ? fmt(info.lines.size) : '—'}</td>` +
+            `<td class="sub">${info ? fmt(info.n) : '—'}</td></tr>`;
   });
   $('resultTable').querySelector('tbody').innerHTML = html;
 
   const nowhere = d2Catalog.filter(e => !e.anywhere).length;
   const elsewhere = d2Catalog.filter(e => e.anywhere && !counts.has(e.d2)).length;
   $('moreNote').textContent =
-    `${r.covered.size} of ${d2Catalog.length} D2 elements are on this line. ` +
+    `${r.covered.size} of ${d2Catalog.length} D2 elements are on this selection. ` +
     `${elsewhere} are published by other managers but not here` +
     (nowhere ? `, and ${nowhere} are carried only by classes no manager has populated yet.` : '.');
 }
@@ -1152,37 +1594,54 @@ $('clearFilter').addEventListener('click', () => {
   if(lastRun && activeTab !== 'cover') renderRows();
 });
 $('runBtn').addEventListener('click', run);
-$('lineInput').addEventListener('keydown', e => { if(e.key === 'Enter' && !$('runBtn').disabled) run(); });
 
 /* ------------------------------------------------------------------ *
  * Export
  * ------------------------------------------------------------------ */
-const LINE_HEAD  = ['Country', 'Line', 'From (km+m)', 'To (km+m)', 'D2 index', 'D2 chapter', 'Element', 'Value', 'Track', 'Feature', 'Access path', 'Section of line'];
+const LINE_HEAD  = ['Country', 'Line', 'Section', 'From (km+m)', 'To (km+m)', 'D2 index', 'D2 chapter', 'Element', 'Value', 'Track', 'Feature', 'Access path', 'Section of line'];
 const OP_HEAD    = ['Country', 'Line', 'At (km+m)', 'Operational point', 'UOPID', 'D2 index', 'D2 chapter', 'Element', 'Value', 'Track', 'Feature', 'Access path', 'Operational point URI'];
-const COVER_HEAD = ['D2 index', 'D2 chapter', 'Element', 'Status', 'Rows on this line'];
+const COVER_HEAD = ['D2 index', 'D2 chapter', 'Element', 'Status', 'Lines', 'Rows'];
+const MGR_HEAD   = ['Country', 'Line', 'Manager code', 'Manager name', 'Nickname', 'Roles', 'Dataset(s)'];
 
 const chapterOf = d2 => CHAPTERS[d2.split('.')[0]] || '';
 
 function lineTable(){
   const r = lastRun;
   return {head: LINE_HEAD, body: r.lineRows.map(x =>
-    [r.countryLabel, r.line, x.start, x.end, x.d2, chapterOf(x.d2), x.param, x.value, x.track, x.feature, x.path, x.sol])};
+    [x.countryLabel, x.line, x.sectionName, x.start, x.end, x.d2, chapterOf(x.d2), x.param, x.value, x.track, x.feature, x.path, x.sol])};
 }
 function opTable(){
   const r = lastRun;
   return {head: OP_HEAD, body: r.opRows.map(x =>
-    [r.countryLabel, r.line, x.position, x.opName, x.opid, x.d2, chapterOf(x.d2), x.param, x.value, x.track, x.feature, x.path, x.op])};
+    [x.countryLabel, x.line, x.position, x.opName, x.opid, x.d2, chapterOf(x.d2), x.param, x.value, x.track, x.feature, x.path, x.op])};
 }
 function coverTable(){
   const r = lastRun;
   const counts = new Map();
-  [...r.lineRows, ...r.opRows].forEach(x => counts.set(x.d2, (counts.get(x.d2) || 0) + 1));
-  if(r.managers.length) counts.set('1.1', r.managers.length);
+  [...r.lineRows, ...r.opRows].forEach(x => {
+    if(!counts.has(x.d2)) counts.set(x.d2, {n:0, lines:new Set()});
+    const c = counts.get(x.d2); c.n++; c.lines.add(x.country + ':' + x.line);
+  });
+  if(r.lineManagers.some(m => m.managers.length)){
+    if(!counts.has('1.1')) counts.set('1.1', {n:0, lines:new Set()});
+    const c = counts.get('1.1');
+    r.lineManagers.forEach(m => { if(m.managers.length){ c.n += m.managers.length; c.lines.add(m.cc + ':' + m.line); } });
+  }
   return {head: COVER_HEAD, body: d2Catalog.map(e => {
-    const n = counts.get(e.d2) || 0;
+    const info = counts.get(e.d2);
     return [e.d2, chapterOf(e.d2), e.params,
-      n ? 'on this line' : e.anywhere ? 'published elsewhere' : 'not published by anyone', n];
+      info ? 'on this selection' : e.anywhere ? 'published elsewhere' : 'not published by anyone',
+      info ? info.lines.size : 0, info ? info.n : 0];
   })};
+}
+function managerTable(){
+  const r = lastRun;
+  const rows = [];
+  r.lineManagers.forEach(m => {
+    if(!m.managers.length){ rows.push([m.cc, m.line, '', 'not resolved', '', '', m.graphs.join(', ')]); return; }
+    m.managers.forEach(x => rows.push([m.cc, m.line, x.code, x.name, x.nick, x.roles, m.graphs.join(', ')]));
+  });
+  return {head: MGR_HEAD, body: rows};
 }
 function activeTable(){
   return activeTab === 'cover' ? coverTable() : activeTab === 'line' ? lineTable() : opTable();
@@ -1190,8 +1649,8 @@ function activeTable(){
 function fileBase(){
   const r = lastRun;
   const km = (r.kmFrom || r.kmTo) ? `_km${r.kmFrom || '0'}-${r.kmTo || 'end'}` : '';
-  return ('RouteBook_D2_' + r.country + '_' + r.line + km + '_' + r.fetched.slice(0, 10))
-    .replace(/[^A-Za-z0-9._-]/g, '_');
+  const sel = r.picks.length === 1 ? (r.picks[0].cc + '_' + r.picks[0].line) : (r.countries.join('-') + '_' + r.picks.length + 'lines');
+  return ('RouteBook_D2_' + sel + km + '_' + r.fetched.slice(0, 10)).replace(/[^A-Za-z0-9._-]/g, '_');
 }
 function download(blob, name){
   const url = URL.createObjectURL(blob);
@@ -1206,7 +1665,8 @@ function csvCell(v){
 }
 
 /* CSV covers whichever view is on screen, filters included, so what you see is
-   what you get. The workbook carries everything. */
+   what you get. The workbook carries everything, plus an infrastructure
+   managers sheet. */
 $('csvBtn').addEventListener('click', () => {
   if(!lastRun) return;
   let t = activeTable();
@@ -1228,22 +1688,20 @@ $('xlsBtn').addEventListener('click', () => {
   specs.push({name:'D2 coverage', rows:[cov.head, ...cov.body], opts:{autoFilter:true, maxWidth:70}});
   if(r.lineRows.length){ const t = lineTable(); specs.push({name:'Along the route', rows:[t.head, ...t.body], opts:{autoFilter:true, maxWidth:46}}); }
   if(r.opRows.length){   const o = opTable();   specs.push({name:'Operational points', rows:[o.head, ...o.body], opts:{autoFilter:true, maxWidth:46}}); }
+  const mgr = managerTable();
+  specs.push({name:'Infrastructure managers', rows:[mgr.head, ...mgr.body], opts:{autoFilter:true, maxWidth:60}});
   const nowhere = d2Catalog.filter(e => !e.anywhere);
   const about = [
     ['ERA Route Book Elements — extraction record', ''],
     [],
-    ['Country', r.countryLabel + ' (' + r.country + ')'],
-    ['National line', r.line],
-    ['Line identified by', r.lineSrc === 'label' ? 'rdfs:label on the LinearPositioningSystem (era:lineId not published)' : 'era:lineId'],
-    ['Operational points found via section endpoints', r.viaSection],
-    ['Infrastructure manager (D2 1.1)', r.managers.map(m => (m.name || '?') + ' (' + m.code + ')').join('; ') || 'not resolved'],
-    ['Published in dataset', r.graphs.join(', ') || '—'],
-    ...r.managers.map(m => ['  ' + m.code, [m.name, m.nick && '“' + m.nick + '”', m.country,
-      m.roles && 'roles: ' + m.roles, m.uri].filter(Boolean).join(' · ')]),
-    ['Kilometre range', (r.kmFrom || r.kmTo) ? `${r.kmFrom || 'start'} to ${r.kmTo || 'end'}` : 'whole line'],
+    ['Lines queried', r.picks.length + ' across ' + r.countries.length + ' countr' + (r.countries.length === 1 ? 'y' : 'ies')],
+    ...r.picks.map(p => ['  ' + p.cc, p.line + (p.src === 'label' ? ' (identified by rdfs:label, era:lineId not published)' : '')]),
+    ...(r.emptyPicks.length ? [['Lines with nothing in range', r.emptyPicks.map(p => p.cc + ' ' + p.line).join(', ')]] : []),
+    [],
+    ['Kilometre range', (r.kmFrom || r.kmTo) ? `${r.kmFrom || 'start'} to ${r.kmTo || 'end'}` : 'whole line, for each line'],
     ['Sidings included', r.sidings ? 'yes' : 'no'],
     [],
-    ['D2 elements on this line', r.covered.size],
+    ['D2 elements on this selection', r.covered.size],
     ['D2 elements in the ontology', d2Catalog.length],
     ['Sections of line', r.sections],
     ['Operational points', r.ops],
@@ -1262,18 +1720,22 @@ $('xlsBtn').addEventListener('click', () => {
     ['', 'here by their ontology labels and the D2 number is kept as the legal cross-reference.'],
     ['', 'One D2 element is often several properties, and one property often serves several elements.'],
     [],
-    ['Method — validity', UNDATED.has(r.country)
-      ? r.countryLabel + ' publishes no dated validity, so no rows were filtered out on that basis.'
-      : 'Only the newest validity window is included, compared place by place rather than line by line.'],
-    ['', 'Along the route the newest window is chosen per stretch; at operational points the rule'],
-    ['', 'runs twice — newest resource per era:uopid, then that point\'s newest track window.'],
-    ['', 'A resource with no validity at all is always kept.'],
+    ['Method — section names', 'Each section of line is bounded by two operational points, era:opStart and'],
+    ['', 'era:opEnd; the Section column and the network map both use their era:opName. A section'],
+    ['', 'missing either property keeps its kilometre position only.'],
+    [],
+    ['Method — validity', 'Only the newest validity window is included, compared place by place rather than'],
+    ['', 'line by line. Along the route the newest window is chosen per stretch; at operational points'],
+    ['', 'the rule runs twice — newest resource per era:uopid, then that point\'s newest track window.'],
+    ['', 'A resource with no validity at all is always kept. Countries known to publish no dated'],
+    ['', 'validity at all: ' + [...UNDATED].join(', ') + '.'],
     [],
     ['Method — collection', 'D2 properties sit on a dozen classes reached from a section of line or an operational'],
     ['', 'point by a handful of paths (the track itself, its features, its contact line system, its'],
     ['', 'ETCS, the point\'s geometry and primary location). Each path is queried separately so they'],
-    ['', 'run in parallel, and the places are resolved once and pinned into those queries.'],
-    ['', 'The Access path column records which path produced each row.'],
+    ['', 'run in parallel, and the places for every selected line are resolved once and pinned into'],
+    ['', 'those queries. The part-whole direction (era:isPartOf vs era:hasPart) is probed per line,'],
+    ['', 'since it differs by publisher. The Access path column records which path produced each row.'],
     ['', 'Retired (owl:deprecated) properties are excluded.'],
     [],
     ['Not published by anyone', nowhere.length
@@ -1292,8 +1754,8 @@ $('xlsBtn').addEventListener('click', () => {
  * ------------------------------------------------------------------ */
 $('linkBtn').addEventListener('click', async () => {
   const p = new URLSearchParams();
-  p.set('c', $('countrySel').value);
-  p.set('l', $('lineInput').value.trim());
+  [...chosen].forEach(c => p.append('c', c));
+  pickedLines.forEach(l => p.append('l', l.cc + ':' + l.line));
   if($('kmFrom').value.trim()) p.set('from', $('kmFrom').value.trim());
   if($('kmTo').value.trim())   p.set('to', $('kmTo').value.trim());
   if(!$('wantLine').checked)    p.set('line', '0');
@@ -1308,11 +1770,14 @@ $('linkBtn').addEventListener('click', async () => {
 
 async function applyHash(){
   const p = new URLSearchParams(location.hash.replace(/^#/, ''));
-  const c = p.get('c');
-  if(!c || !COUNTRIES.some(x => x[0] === c)) return;
-  $('countrySel').value = c;
-  await loadLines(c);
-  if(p.get('l')) $('lineInput').value = p.get('l');
+  const cs = p.getAll('c').filter(c => COUNTRIES.some(x => x[0] === c));
+  if(!cs.length) return;
+  chosen.clear(); cs.forEach(c => chosen.add(c));
+  renderCountryGrid(); updateCountrySummary();
+  await syncLines();
+  const want = new Set(p.getAll('l'));
+  if(want.size) pickedLines = lines.filter(l => want.has(l.cc + ':' + l.line));
+  renderLineChips();
   if(p.get('from')) $('kmFrom').value = p.get('from');
   if(p.get('to'))   $('kmTo').value = p.get('to');
   $('wantLine').checked    = p.get('line') !== '0';
@@ -1325,7 +1790,155 @@ updateRun();
 
 /* Pasting a shared link while already on the page is a same-document
    navigation, so the form has to be reapplied by hand. */
-window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; applyHash(); });
+window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; $('mapPanel').hidden = true; applyHash(); });
+
+/* ------------------------------------------------------------------ *
+ * Network map
+ *
+ * Sections publish no geometry of their own, but every operational point
+ * does, through era:netReference/geo:hasGeometry — so a section is drawn as
+ * the chord between the two points it runs between, exactly as the RCC
+ * Parameters tool draws its map. Unlike that tool, nothing is re-queried to
+ * draw this one: the operational-point names and geometry were already
+ * fetched for the Section column by run(), via sectionEndpointsQuery.
+ * ------------------------------------------------------------------ */
+let leafletMap = null, orwLayer = null, segLayer = null;
+let mapSegs = [], mapOff = new Set(); // mapOff holds 'CC:line' keys toggled off in the legend
+
+function parsePoint(w){
+  const m = /POINT\s*\(\s*([-\d.eE]+)\s+([-\d.eE]+)/.exec(w || '');
+  if(!m) return null;
+  const lon = +m[1], lat = +m[2];
+  return (isFinite(lon) && isFinite(lat)) ? [lat, lon] : null; // Leaflet order: [lat, lng]
+}
+
+function lineKeys(){
+  const seen = new Map();
+  lastRun.picks.forEach(p => { const k = p.cc + ':' + p.line; if(!seen.has(k)) seen.set(k, p); });
+  return [...seen.values()];
+}
+function keyColour(key){
+  const keys = lineKeys().map(p => p.cc + ':' + p.line);
+  const i = keys.indexOf(key);
+  return MAP_PALETTE[(i < 0 ? 0 : i) % MAP_PALETTE.length];
+}
+
+function buildMapSegs(){
+  const r = lastRun;
+  const d2BySol = new Map();
+  r.lineRows.forEach(x => { if(!d2BySol.has(x.sol)) d2BySol.set(x.sol, new Set()); d2BySol.get(x.sol).add(x.d2); });
+  const segs = [];
+  r.solOwner.forEach((pick, sol) => {
+    const n = r.solNames.get(sol);
+    if(!n || !n.A || !n.B) return;
+    segs.push({
+      sol, cc: pick.cc, line: pick.line, key: pick.cc + ':' + pick.line,
+      A: n.A, B: n.B, s: n.startName, t: n.endName,
+      d2n: d2BySol.has(sol) ? d2BySol.get(sol).size : 0,
+    });
+  });
+  return segs;
+}
+
+function mapSetup(){
+  const r = lastRun;
+  $('mapPanel').hidden = !r.sections;
+  if(!r.sections) return;
+  mapSegs = []; mapOff = new Set();
+  $('mapWrap').hidden = true; $('mapLegend').hidden = true; $('mapReset').hidden = true;
+  $('mapStatus').textContent = 'Draws the selected line(s)’ sections between named operational points — press “Draw map”.';
+}
+
+function renderMapLegend(){
+  const keys = lineKeys();
+  $('mapLegend').innerHTML = keys.map(p => {
+    const k = p.cc + ':' + p.line;
+    const n = mapSegs.filter(s => s.key === k).length;
+    return '<span class="lg' + (mapOff.has(k) ? ' off' : '') + '" data-k="' + esc(k) + '">' +
+      '<span class="sw" style="background:' + keyColour(k) + '"></span>' +
+      '<span>' + esc(p.cc) + ' ' + esc(p.line) + '</span>' +
+      '<span class="ct">' + fmt(n) + '</span></span>';
+  }).join('');
+  $('mapLegend').hidden = keys.length <= 1;
+}
+$('mapLegend').addEventListener('click', ev => {
+  const el = ev.target.closest('.lg'); if(!el) return;
+  const k = el.dataset.k;
+  if(mapOff.has(k)) mapOff.delete(k); else mapOff.add(k);
+  renderMapLegend(); renderSegments();
+});
+
+/* One Leaflet map, created once and reused across redraws. */
+function ensureMap(){
+  if(leafletMap) return leafletMap;
+  leafletMap = L.map('mapCanvas', {preferCanvas: true, minZoom: 3, maxZoom: 19, worldCopyJump: false});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: OSM_ATTRIB})
+    .addTo(leafletMap);
+  orwLayer = L.tileLayer('https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',
+    {maxZoom: 19, opacity: 0.85, attribution: ORM_ATTRIB});
+  if($('mapBase').checked) orwLayer.addTo(leafletMap);
+  L.control.scale({metric: true, imperial: false}).addTo(leafletMap);
+  segLayer = L.layerGroup().addTo(leafletMap);
+  return leafletMap;
+}
+function fitToSegments(){
+  const pts = mapSegs.filter(s => !mapOff.has(s.key)).flatMap(s => [s.A, s.B]);
+  if(!pts.length) return;
+  leafletMap.fitBounds(L.latLngBounds(pts), {padding: [24, 24]});
+}
+function renderSegments(){
+  segLayer.clearLayers();
+  /* Faint, unmarked sections first, so a covered section drawn later is never
+     buried under one that has nothing this run touched. */
+  for(const withData of [false, true]){
+    for(const s of mapSegs){
+      if(mapOff.has(s.key)) continue;
+      if((s.d2n > 0) !== withData) continue;
+      L.polyline([s.A, s.B], {
+        color: keyColour(s.key), weight: withData ? 2.8 : 1.6, opacity: withData ? 0.95 : 0.5,
+      }).bindTooltip('<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b><br>' +
+        esc(s.cc) + ' ' + esc(s.line) + (s.d2n ? ' · ' + s.d2n + ' D2 element' + (s.d2n === 1 ? '' : 's') + ' here'
+                                                : ' · no D2 rows on this section'),
+        {className: 'eraTip', sticky: true}).addTo(segLayer);
+    }
+  }
+}
+async function drawNetworkMap(){
+  if(!lastRun || !lastRun.sections) return;
+  $('mapBtn').disabled = true;
+  mapSegs = buildMapSegs();
+  if(!mapSegs.length){
+    $('mapStatus').textContent = 'No data — none of the selected sections have both ends named with geometry via era:opStart/era:opEnd.';
+    $('mapWrap').hidden = true; $('mapLegend').hidden = true; $('mapReset').hidden = true;
+    $('mapBtn').disabled = false;
+    return;
+  }
+  mapOff = new Set();
+  $('mapWrap').hidden = false;
+  ensureMap();
+  leafletMap.invalidateSize();
+  renderSegments();
+  fitToSegments();
+  renderMapLegend();
+  const keys = lineKeys();
+  $('mapStatus').textContent = fmt(mapSegs.length) + ' section' + (mapSegs.length === 1 ? '' : 's') +
+    ' drawn across ' + keys.length + ' line' + (keys.length === 1 ? '' : 's') + '.';
+  $('mapNote').innerHTML = '<strong>Read this as topology, not alignment.</strong> Sections publish no geometry of ' +
+    'their own — each is the straight chord between the two operational points it runs between ' +
+    '(<code>era:opStart</code>/<code>era:opEnd</code>), not the real track curve. A brighter, thicker segment ' +
+    'carries at least one D2 element from this run; a thin, faint one was resolved but has none here. ' +
+    (keys.length > 1 ? 'Click a legend entry to hide that line. ' : '') +
+    'Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
+  $('mapReset').hidden = false;
+  $('mapBtn').disabled = false;
+}
+$('mapBase').addEventListener('change', () => {
+  if(!leafletMap || !orwLayer) return;
+  if($('mapBase').checked) orwLayer.addTo(leafletMap); else leafletMap.removeLayer(orwLayer);
+});
+$('mapBtn').addEventListener('click', drawNetworkMap);
+$('mapReset').addEventListener('click', () => { if(mapSegs.length) fitToSegments(); });
+window.addEventListener('resize', () => { if(leafletMap) leafletMap.invalidateSize(); });
 
 /* XLSX writer — store-only ZIP, no dependencies. */
 let CRC_TABLE = null;

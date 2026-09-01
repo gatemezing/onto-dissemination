@@ -12,7 +12,24 @@ The query set behind [`era-route-book.html`](../era-route-book.html)
 | `infrastructure-manager-names.rq` | …and their names, from OCR-KG | **0.15 s** |
 | `sections-for-line.rq` | phase 1: sections of line with position, latest window per stretch | **0.45 s**, 167 sections for DEU `4000` |
 | `ops-for-line.rq` | phase 1: operational points, by kilometric post **or** section endpoint | **0.23 s**, 168 points for the same line |
+| `section-endpoints.rq` | phase 2: each section's name and geometry, from its `era:opStart`/`era:opEnd` | **0.3 s** for 250 sections, DEU `4000` |
 | `d2-elements-for-place.rq` | phase 2: the D2 elements on those places, one query per access path | **1.4 s** for all five line-side branches |
+
+## Countries, lines and the network map are all multi-select
+
+The page now ticks countries and picks lines the same way the RCC tool does —
+lines are fetched once per country and cached, and every row in the result
+carries the country and line it came from, so the D2 coverage view can
+aggregate across the whole selection. The one piece the RCC tool didn't need:
+the part-whole direction (`era:isPartOf` vs `era:hasPart`, see §4 below) is
+probed **per line**, not once for the whole run, because two lines from
+different countries can be in the same run and a shared global would silently
+be wrong for whichever one didn't set it.
+
+A network map (Leaflet, OpenStreetMap + OpenRailwayMap tiles, same approach as
+the RCC tool's) draws every selected line's sections as chords between named
+operational points, one colour per line, reusing the geometry already fetched
+for the Section column rather than asking the endpoint again.
 
 ## What Appendix D2 is, and what the ontology gives you
 
