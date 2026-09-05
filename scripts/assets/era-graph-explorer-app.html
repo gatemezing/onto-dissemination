@@ -808,6 +808,74 @@ function hideToast(){
   toastEl.classList.remove('show');
 }
 
+/* A failed live fetch deserves more than the ordinary auto-dismissing toast:
+   it needs to say what actually happened and stay up until the reader has
+   read it, with a way to retry without re-clicking the node. */
+function toastError(diag, retry){
+  clearTimeout(toastTimer);
+  const e = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  toastEl.innerHTML = '<b>' + e(diag.title) + '</b> — ' + e(diag.message) +
+    (retry ? ' <button type="button" id="toastRetry" style="background:none;border:1px solid rgba(255,255,255,.4);' +
+      'color:#fff;border-radius:6px;padding:2px 9px;cursor:pointer;font:inherit;margin-left:6px;">Try again</button>' : '') +
+    ' <button type="button" id="toastClose" aria-label="Dismiss" style="background:none;border:none;color:#fff;' +
+    'opacity:.65;cursor:pointer;font-size:15px;margin-left:6px;line-height:1;vertical-align:-1px;">×</button>';
+  toastEl.classList.add('show');
+  document.getElementById('toastClose').addEventListener('click', hideToast);
+  if(retry) document.getElementById('toastRetry').addEventListener('click', () => { hideToast(); retry(); });
+}
+
+/* ------------------------------------------------------------------ *
+ * Fetch error diagnosis — shown instead of a raw browser error string.
+ *
+ * Browsers deliberately hide *why* a cross-origin request failed: a CORS
+ * block, a DNS failure, "connection refused" and being offline all throw the
+ * same generic TypeError, worded differently per browser and meaningless to
+ * whoever reads it. Telling them apart takes a follow-up probe, not just
+ * reading err.message — a plain no-cors fetch to the same origin resolves
+ * (even though its body can't be read) whenever the server is reachable at
+ * all, and rejects only on a genuine connectivity failure. That is the one
+ * signal a page is allowed to observe, and it is enough to tell "the server
+ * said no" from "there was no server to ask" — the two failures that call
+ * for different next steps. Confirmed against this endpoint's live CORS
+ * regression (2026-09-03): a GET/POST that returns real data over curl still
+ * throws this generic error in a browser, with zero Access-Control-Allow-*
+ * headers on the actual response — not just the preflight. */
+async function describeFetchError(err, endpoint){
+  if(err && err.name === 'AbortError')
+    return {title:'Timed out', message:'The request took too long and was cancelled.', detail:String(err.message || err)};
+  const m = /^HTTP (\d+)/.exec((err && err.message) || '');
+  if(m){
+    const code = +m[1];
+    const KNOWN = {
+      400:['The endpoint rejected this query', 'This is almost always a bug in this tool’s query, not something you did — worth reporting.'],
+      403:['The endpoint refused this request', 'Access to this query or resource may be restricted right now.'],
+      404:['The endpoint address has changed', 'This tool may be pointing at a URL that no longer exists.'],
+      500:['The endpoint hit an internal error', 'This is on the server side — try again in a moment.'],
+      502:['The endpoint is temporarily unreachable', 'A gateway in front of it returned an error — try again shortly.'],
+      503:['The endpoint is overloaded or busy', 'It rejected the request rather than queue it — try again in a moment, or narrow the query.'],
+      504:['The endpoint took too long to respond', 'It may be under heavy load — try again, or narrow the query.'],
+    };
+    const known = KNOWN[code] || ['The endpoint returned an error', 'HTTP ' + code + ' — see technical detail below.'];
+    return {title:known[0], message:known[1], detail:err.message};
+  }
+  let reachable = false;
+  try{ await fetch(new URL(endpoint).origin + '/', {mode:'no-cors', cache:'no-store'}); reachable = true; }
+  catch{ reachable = false; }
+  if(reachable)
+    return {
+      title:'Blocked by your browser, not by you',
+      message:'The server responded, but didn’t grant this page permission to read cross-origin responses (a missing CORS header) — a configuration issue on the endpoint’s side, not something to fix here.',
+      detail:String((err && err.message) || err),
+    };
+  return {
+    title:'Could not reach the server',
+    message:(typeof navigator !== 'undefined' && navigator.onLine === false)
+      ? 'Your device appears to be offline — check your connection and try again.'
+      : 'The endpoint didn’t respond at all. It may be down, or something on your network is blocking the request.',
+    detail:String((err && err.message) || err),
+  };
+}
+
 const history_ = [];
 let currentId = null;
 
@@ -967,7 +1035,8 @@ async function goTo(id, isBreadcrumbJump){
       await buildLiveNode(NODES[id].uri, id);
       hideToast();
     } catch(err){
-      toast('Live fetch failed (' + err.message + '). The endpoint may be unreachable from your network, or may not allow cross-origin requests from a browser page.', 6500);
+      const diag = await describeFetchError(err, LIVE_ENDPOINT);
+      toastError(diag, () => goTo(id, isBreadcrumbJump));
       return;
     }
   }
