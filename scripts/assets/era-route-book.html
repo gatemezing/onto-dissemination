@@ -630,8 +630,11 @@ const D2_PARAMS = `  { SELECT DISTINCT ?p ?d2 ?paramLabel WHERE {
       FILTER NOT EXISTS { ?p owl:deprecated true }
   } }`;
 
-const VALUE_LABEL = `  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "en") }
-  OPTIONAL { ?value0 rdfs:label ?lb }
+// Some concept schemes publish skos:prefLabel as a plain (untagged) literal
+// rather than "en" -- Slovakia's rail-inclinations concepts are one case.
+// Requiring LANG = "en" only missed those and fell through to the raw URI.
+const VALUE_LABEL = `  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "" || LANGMATCHES(LANG(?sk), "en")) }
+  OPTIONAL { ?value0 rdfs:label ?lb FILTER(LANG(?lb) = "" || LANGMATCHES(LANG(?lb), "en")) }
   BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)`;
 
 /* National lines, keyed to the LinearPositioningSystem resource itself.

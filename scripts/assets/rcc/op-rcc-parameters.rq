@@ -39,8 +39,8 @@ WHERE {
       VALUES ?type { era:RunningTrack era:Siding }
       ?t2 era:isPartOf ?op ; a ?type ; era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }
   FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)
-  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "en") }
-  OPTIONAL { ?value0 rdfs:label ?lb }
+  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "" || LANGMATCHES(LANG(?sk), "en")) }
+  OPTIONAL { ?value0 rdfs:label ?lb FILTER(LANG(?lb) = "" || LANGMATCHES(LANG(?lb), "en")) }
   BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)
 }
 GROUP BY ?op ?trackName ?rinfIndex ?parameterLabel
