@@ -263,10 +263,16 @@
     <div id="countryGrid" role="group" aria-label="Countries to search for lines"></div>
     <div class="hint" id="countryHint"></div>
 
-    <label class="fieldLabel" for="lineSearch" style="display:block;margin-top:16px">National line(s)</label>
+    <div class="fieldHead" style="margin-top:16px">
+      <span class="fieldLabel" id="lineSummary" aria-live="polite">No line selected — pick at least one</span>
+      <span class="quickActions">
+        <button type="button" class="mini" id="lineSelAll">Select all</button>
+        <button type="button" class="mini" id="lineSelNone">Clear</button>
+      </span>
+    </div>
     <div id="lineWrap" class="comboWrap">
       <input id="lineSearch" type="text" spellcheck="false" autocomplete="off" role="combobox"
-             aria-expanded="false" aria-controls="lineList" aria-autocomplete="list"
+             aria-label="National line" aria-expanded="false" aria-controls="lineList" aria-autocomplete="list"
              placeholder="Choose at least one country first…" disabled>
       <div id="lineList" class="comboList" role="listbox" aria-label="Matching national lines" hidden></div>
     </div>
@@ -1188,6 +1194,15 @@ function removeLine(cc, line){
   updateRun();
   $('resultPanel').hidden = true; $('mapPanel').hidden = true;
 }
+function updateLineSummary(){
+  const n = pickedLines.length;
+  $('lineSummary').textContent =
+    n === 0 ? 'No line selected — pick at least one'
+    : n === lines.length ? 'All ' + n + ' line' + (n === 1 ? '' : 's')
+    : n + ' line' + (n === 1 ? '' : 's') + ' selected: ' +
+      (n <= 4 ? pickedLines.map(l => l.cc + ' ' + l.line).join(', ')
+        : pickedLines.slice(0, 3).map(l => l.cc + ' ' + l.line).join(', ') + ' +' + (n - 3) + ' more');
+}
 function renderLineChips(){
   $('lineChips').hidden = pickedLines.length === 0;
   $('lineChips').innerHTML = pickedLines.map(l => {
@@ -1199,10 +1214,25 @@ function renderLineChips(){
       '<button type="button" data-cc="' + esc(l.cc) + '" data-line="' + esc(l.line) +
         '" aria-label="Remove ' + esc(l.line) + '">×</button></span>';
   }).join('');
+  updateLineSummary();
 }
 $('lineChips').addEventListener('click', ev => {
   const b = ev.target.closest('button[data-cc]');
   if(b) removeLine(b.dataset.cc, b.dataset.line);
+});
+$('lineSelAll').addEventListener('click', () => {
+  const merged = pickedLines.slice();
+  lines.forEach(l => { if(!merged.some(p => p.cc === l.cc && p.line === l.line)) merged.push(l); });
+  pickedLines = merged;
+  renderLineChips();
+  updateRun();
+  $('resultPanel').hidden = true; $('mapPanel').hidden = true;
+});
+$('lineSelNone').addEventListener('click', () => {
+  pickedLines = [];
+  renderLineChips();
+  updateRun();
+  $('resultPanel').hidden = true; $('mapPanel').hidden = true;
 });
 lineSearch.addEventListener('input', renderLineList);
 lineSearch.addEventListener('focus', renderLineList);
@@ -1238,7 +1268,7 @@ lineListEl.addEventListener('mousedown', ev => {
 function updateRun(){
   const any = $('wantLine').checked || $('wantOp').checked;
   $('runBtn').disabled = !pickedLines.length || !any;
-  $('lineHint').textContent = !lines.length ? '' : pickedLines.length ? '' : 'Search and pick one or more lines above.';
+  $('lineHint').textContent = !lines.length ? '' : pickedLines.length ? '' : 'Search and pick one or more lines above, or use “Select all”.';
 }
 ['wantLine','wantOp','wantSidings'].forEach(id =>
   $(id).addEventListener('change', () => { updateRun(); $('resultPanel').hidden = true; $('mapPanel').hidden = true; }));
