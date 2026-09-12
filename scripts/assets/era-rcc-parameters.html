@@ -211,8 +211,9 @@
 <div id="app">
   <header>
     <h1>ERA RCC Parameters</h1>
-    <p>Route-compatibility parameters for one national line, positioned by kilometre post. Search across as many
-       countries as you like, pick a line, then optionally narrow to specific RCC parameters, and the tool returns
+    <p>Route-compatibility parameters for one or more national lines, positioned by kilometre post. Search across as
+       many countries as you like, pick one or more lines — or select every line of the chosen countries at once —
+       then optionally narrow to specific RCC parameters, and the tool returns
        every RINF parameter flagged <code>era:usedInRCCCalculations</code> — those along the line
        (index&nbsp;1.1) and those at its operational points (index&nbsp;1.2). Only the latest validity window is
        used, and retired parameters are excluded. Export to CSV or Excel. Queries
@@ -223,7 +224,7 @@
   </header>
 
   <div class="panel">
-    <h2><span class="step">1</span> Countries and line</h2>
+    <h2><span class="step">1</span> Countries and lines</h2>
     <div class="fieldHead">
       <span class="fieldLabel" id="countrySummary" aria-live="polite">No country selected — pick at least one</span>
       <span class="quickActions">
@@ -235,10 +236,16 @@
     <div id="countryGrid" role="group" aria-label="Countries to search for lines"></div>
     <div class="hint" id="countryHint"></div>
 
-    <label class="fieldLabel" for="lineSearch" style="display:block;margin-top:16px">National line</label>
+    <div class="fieldHead" style="margin-top:16px">
+      <span class="fieldLabel" id="lineSummary" aria-live="polite">No line selected — pick at least one</span>
+      <span class="quickActions">
+        <button type="button" class="mini" id="lineSelAll">Select all</button>
+        <button type="button" class="mini" id="lineSelNone">Clear</button>
+      </span>
+    </div>
     <div id="lineWrap" class="comboWrap">
       <input id="lineSearch" type="text" spellcheck="false" autocomplete="off" role="combobox"
-             aria-expanded="false" aria-controls="lineList" aria-autocomplete="list"
+             aria-label="National line" aria-expanded="false" aria-controls="lineList" aria-autocomplete="list"
              placeholder="Choose at least one country first…" disabled>
       <div id="lineList" class="comboList" role="listbox" aria-label="Matching national lines" hidden></div>
     </div>
@@ -414,8 +421,9 @@ let lastRun = null;
 let activeTab = 'track';
 
 const chosen = new Set();      // country codes currently ticked
-let pickedLine = null;         // the one chosen {line, src, lps, sections, fromKm, toKm, cc, ccLabel}
+let pickedLines = [];          // [{line, src, lps, sections, fromKm, toKm, cc, ccLabel}, ...] chosen lines
 let pickedParams = [];         // [{index, label}] chosen RCC parameters; empty means "all"
+function lineKey(l){ return l.cc + ':' + l.line; }
 
 /* ------------------------------------------------------------------ *
  * SPARQL
@@ -608,7 +616,7 @@ function kmFilter(varName){
    endpoint's 120 s limit for every country tried; split in two it is seconds. */
 function sectionsQuery(lps){
   return `${PREFIXES}
-SELECT DISTINCT ?sol ?startKp ?startOffset ?startPosition ?endPosition
+SELECT DISTINCT ?sol ?lps ?startKp ?startOffset ?startPosition ?endPosition
 WHERE {
 ${lpsValues(lps)}
   ?sol a era:SectionOfLine ; era:nationalLine ?lps .
@@ -654,7 +662,7 @@ ORDER BY ?startKp ?startOffset`;
    resources already confines the query to the chosen country's network. */
 function opsQuery(lps){
   return `${PREFIXES}
-SELECT DISTINCT ?op ?opid ?opName ?startKp ?startOffset ?railwayLocation ?via
+SELECT DISTINCT ?op ?lps ?opid ?opName ?startKp ?startOffset ?railwayLocation ?via
 WHERE {
 ${lpsValues(lps)}
   {
@@ -699,10 +707,13 @@ ORDER BY ?startKp ?startOffset`;
    German line from 1.4 s to 57 s and puts the operational-point side over the
    endpoint's limit, because the optimiser can no longer push the parameter
    join. So the direction is probed once, cheaply, and one form is emitted. */
-let PART_DIR = 'isPartOf';
-function part(whole, track){
+/* The part-whole direction is a property of the publishing country (Croatia
+   alone differs), so a run spanning several countries probes and applies it
+   per country rather than once globally — see the per-country grouping in
+   run(). dir is passed in explicitly rather than read off a module global. */
+function part(whole, track, dir){
   track = track || 'track';
-  return PART_DIR === 'isPartOf'
+  return dir === 'isPartOf'
     ? `?${track} era:isPartOf ?${whole} .`
     : `?${whole} era:hasPart ?${track} .`;
 }
@@ -716,21 +727,21 @@ function uriValues(varName, uris){
 }
 
 /* ---- phase 2: the RCC parameters on those places ---- */
-function trackParamsQuery(sols, only){
+function trackParamsQuery(sols, only, dir){
   return `${PREFIXES}
 SELECT ?sol ?trackName ?rinfIndex ?parameterLabel
        (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
 WHERE {
 ${paramBlock('1.1', only)}
 ${uriValues('sol', sols)}
-  ${part('sol')}
+  ${part('sol', 'track', dir)}
   ?track rdfs:label ?trackName ; ?parameter ?value0 .
 ${valueBlock()}
 }
 GROUP BY ?sol ?trackName ?rinfIndex ?parameterLabel`;
 }
 
-function opParamsQuery(ops, only, sidings){
+function opParamsQuery(ops, only, sidings, dir){
   const typeValues = `VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }`;
   return `${PREFIXES}
 SELECT ?op ?trackName ?rinfIndex ?parameterLabel
@@ -738,7 +749,7 @@ SELECT ?op ?trackName ?rinfIndex ?parameterLabel
 WHERE {
 ${paramBlock('1.2', only)}
 ${uriValues('op', ops)}
-  ${part('op')}
+  ${part('op', 'track', dir)}
   ?track rdfs:label ?trackName ; ?parameter ?value0 .
   ${typeValues}
   ?track a ?type .
@@ -753,7 +764,7 @@ ${uriValues('op', ops)}
   OPTIONAL { { SELECT ?op (MAX(?bb) AS ?latest) WHERE {
 ${uriValues('op', ops)}
       ${typeValues}
-      ${part('op', 't2')} ?t2 a ?type ; era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }
+      ${part('op', 't2', dir)} ?t2 a ?type ; era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }
   FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)
 ${valueBlock()}
 }
@@ -843,7 +854,7 @@ async function syncLines(){
     lineSearch.placeholder = 'Choose at least one country first…';
     $('countryHint').className = 'hint';
     $('countryHint').textContent = '';
-    if(pickedLine){ pickedLine = null; renderLineChip(); }
+    if(pickedLines.length){ pickedLines = []; renderLineChips(); }
     updateRun();
     return;
   }
@@ -875,7 +886,8 @@ async function syncLines(){
     await setFetchErrorStatus($('countryHint'), 'hint err', err, ENDPOINT, () => syncLines());
   }
   if(myToken !== linesSyncToken) return;
-  if(pickedLine && !chosen.has(pickedLine.cc)){ pickedLine = null; renderLineChip(); }
+  const kept = pickedLines.filter(x => chosen.has(x.cc));
+  if(kept.length !== pickedLines.length){ pickedLines = kept; renderLineChips(); }
   updateRun();
 }
 
@@ -905,10 +917,14 @@ renderCountryGrid();
 updateCountrySummary();
 
 /* ------------------------------------------------------------------ *
- * National-line combobox — search across every ticked country, pick one.
+ * National-line combobox — search across every ticked country, multi-pick.
  * Lines are only unique within a country, so each result carries its
  * country and the pick is stored as the object itself, never re-parsed
  * from typed text — that is what lets two countries share a line id.
+ * Picking works like the RCC parameter combobox below: each match adds a
+ * removable chip and stays in the list for further picks, and "Select all"
+ * mirrors the countries panel by adding every line of the ticked countries
+ * at once.
  * ------------------------------------------------------------------ */
 const lineSearch = $('lineSearch'), lineListEl = $('lineList');
 let lineFiltered = [], lineActiveIdx = -1;
@@ -917,10 +933,11 @@ function lineSearchable(l){
   return (l._s || (l._s = (l.line + ' ' + l.ccLabel + ' ' + l.cc).toLowerCase()));
 }
 function matchLines(q){
-  if(!q) return lines.slice(0, 60);
+  const pool = lines.filter(l => !pickedLines.some(x => lineKey(x) === lineKey(l)));
+  if(!q) return pool.slice(0, 60);
   const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
   const scored = [];
-  for(const l of lines){
+  for(const l of pool){
     const hay = lineSearchable(l);
     if(!terms.every(t => hay.includes(t))) continue;
     let score = 0;
@@ -938,7 +955,8 @@ function renderLineList(){
   lineFiltered = matchLines(q);
   lineActiveIdx = lineFiltered.length ? 0 : -1;
   if(!lineFiltered.length){
-    lineListEl.innerHTML = '<div class="noHits">No line matches “' + esc(q) + '”.</div>';
+    lineListEl.innerHTML = '<div class="noHits">' +
+      (q ? 'No line matches “' + esc(q) + '”.' : 'All lines of the ticked countries are already selected.') + '</div>';
   } else {
     lineListEl.innerHTML = lineFiltered.map((l, i) => {
       const span = (l.fromKm !== null && l.toKm !== null) ? 'km ' + l.fromKm + '–' + l.toKm : '';
@@ -967,27 +985,58 @@ function closeLineList(){
   lineSearch.removeAttribute('aria-activedescendant');
 }
 function pickLine(l){
-  pickedLine = l;
+  if(!pickedLines.some(x => lineKey(x) === lineKey(l))) pickedLines.push(l);
   lineSearch.value = '';
   closeLineList();
-  renderLineChip();
+  renderLineChips();
   updateRun();
   $('resultPanel').hidden = true;
 }
-function renderLineChip(){
+function removeLine(key){
+  pickedLines = pickedLines.filter(x => lineKey(x) !== key);
+  renderLineChips();
+  updateRun();
+  $('resultPanel').hidden = true;
+}
+function updateLineSummary(){
+  const n = pickedLines.length;
+  $('lineSummary').textContent =
+    n === 0 ? 'No line selected — pick at least one'
+    : n === lines.length ? 'All ' + n + ' line' + (n === 1 ? '' : 's')
+    : n + ' line' + (n === 1 ? '' : 's') + ' selected: ' +
+      (n <= 4 ? pickedLines.map(l => l.cc + ' ' + l.line).join(', ')
+        : pickedLines.slice(0, 3).map(l => l.cc + ' ' + l.line).join(', ') + ' +' + (n - 3) + ' more');
+}
+function renderLineChips(){
   const el = $('lineChip');
-  if(!pickedLine){ el.hidden = true; el.innerHTML = ''; return; }
-  const l = pickedLine;
-  const span = (l.fromKm !== null && l.toKm !== null) ? ' · km ' + l.fromKm + '–' + l.toKm : '';
-  el.hidden = false;
-  el.innerHTML = '<span class="pchip">' +
-    '<span class="ix">' + esc(l.cc) + '</span>' +
-    '<span class="nm">' + esc(l.line) + ' — ' + esc(l.ccLabel) + ' · ' + fmt(l.sections) +
-      (l.sections === 1 ? ' section' : ' sections') + span + (l.src === 'label' ? ' · by label' : '') + '</span>' +
-    '<button type="button" id="lineClear" aria-label="Clear the picked line">×</button></span>';
+  el.hidden = pickedLines.length === 0;
+  el.innerHTML = pickedLines.map(l => {
+    const span = (l.fromKm !== null && l.toKm !== null) ? ' · km ' + l.fromKm + '–' + l.toKm : '';
+    return '<span class="pchip">' +
+      '<span class="ix">' + esc(l.cc) + '</span>' +
+      '<span class="nm">' + esc(l.line) + ' — ' + esc(l.ccLabel) + ' · ' + fmt(l.sections) +
+        (l.sections === 1 ? ' section' : ' sections') + span + (l.src === 'label' ? ' · by label' : '') + '</span>' +
+      '<button type="button" data-k="' + esc(lineKey(l)) + '" aria-label="Remove ' + esc(l.cc + ' ' + l.line) + '">×</button></span>';
+  }).join('');
+  updateLineSummary();
 }
 $('lineChip').addEventListener('click', ev => {
-  if(ev.target.closest('#lineClear')){ pickedLine = null; renderLineChip(); updateRun(); $('resultPanel').hidden = true; }
+  const b = ev.target.closest('button[data-k]');
+  if(b) removeLine(b.dataset.k);
+});
+$('lineSelAll').addEventListener('click', () => {
+  const merged = pickedLines.slice();
+  lines.forEach(l => { if(!merged.some(x => lineKey(x) === lineKey(l))) merged.push(l); });
+  pickedLines = merged;
+  renderLineChips();
+  updateRun();
+  $('resultPanel').hidden = true;
+});
+$('lineSelNone').addEventListener('click', () => {
+  pickedLines = [];
+  renderLineChips();
+  updateRun();
+  $('resultPanel').hidden = true;
 });
 lineSearch.addEventListener('input', renderLineList);
 lineSearch.addEventListener('focus', renderLineList);
@@ -1004,7 +1053,7 @@ lineSearch.addEventListener('keydown', ev => {
   else if(ev.key === 'ArrowUp'){ lineActiveIdx = Math.max(lineActiveIdx - 1, 0); refreshLineActive(); ev.preventDefault(); }
   else if(ev.key === 'Enter'){
     if(!lineListEl.hidden && lineFiltered[lineActiveIdx]){ pickLine(lineFiltered[lineActiveIdx]); ev.preventDefault(); }
-    else if(pickedLine && !$('runBtn').disabled){ run(); }
+    else if(pickedLines.length && !$('runBtn').disabled){ run(); }
   }
   else if(ev.key === 'Escape'){ closeLineList(); }
 });
@@ -1022,10 +1071,10 @@ lineListEl.addEventListener('mousedown', ev => {
 
 function updateRun(){
   const any = $('wantTrack').checked || $('wantOp').checked;
-  $('runBtn').disabled = !pickedLine || !any;
+  $('runBtn').disabled = !pickedLines.length || !any;
   $('lineHint').textContent = !lines.length ? ''
-    : pickedLine ? ''
-    : 'Search and pick a line above.';
+    : pickedLines.length ? ''
+    : 'Search and pick at least one line above, or use “Select all”.';
 }
 
 ['wantTrack','wantOp','wantSidings'].forEach(id => $(id).addEventListener('change', () => { updateRun(); $('resultPanel').hidden = true; }));
@@ -1153,49 +1202,74 @@ const paramsReady = (async function loadParams(){
 const TABLE_LIMIT = 300;
 
 async function run(){
-  const l = pickedLine;
-  if(!l) return;
-  const cc = l.cc;
+  if(!pickedLines.length) return;
   const onlyList = pickedParams.map(p => p.index);
   const sidings = $('wantSidings').checked;
   const wantTrack = $('wantTrack').checked, wantOp = $('wantOp').checked;
 
-  let qSections = null, qOps = null;
+  /* Several lines can share no LPS, but each LPS resource belongs to exactly
+     one picked line, which is how a result row is traced back to the line
+     (and country) that produced it once everything is merged below. */
+  const lpsToLine = new Map();
+  pickedLines.forEach(pl => pl.lps.forEach(u => lpsToLine.set(u, pl)));
+  const allLps = [...lpsToLine.keys()];
+  const lpsChunks = chunkList(allLps, CHUNK);
+
+  let qSectionsChunks = [], qOpsChunks = [];
   try{
-    if(wantTrack) qSections = sectionsQuery(l.lps);
-    if(wantOp)    qOps      = opsQuery(l.lps);
+    if(wantTrack) qSectionsChunks = lpsChunks.map(c => sectionsQuery(c));
+    if(wantOp)    qOpsChunks      = lpsChunks.map(c => opsQuery(c));
   } catch(err){ setStatus(err.message, 'error'); return; }
 
   $('runBtn').disabled = true;
   $('resultPanel').hidden = true;
-  setStatus('Finding the places on line ' + l.line + '…', 'loading');
+  const lineWord = pickedLines.length === 1 ? ('line ' + pickedLines[0].line) : (fmt(pickedLines.length) + ' lines');
+  setStatus('Finding the places on ' + lineWord + '…', 'loading');
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 180000);
   const started = performance.now();
   const shown = [];
   try{
-    const [secRows, opRows] = await Promise.all([
-      qSections ? sparql(qSections, ctrl.signal) : Promise.resolve([]),
-      qOps      ? sparql(qOps,      ctrl.signal) : Promise.resolve([]),
-    ]);
-    if(qSections) shown.push('/* === phase 1: sections of line === */\n' + qSections);
-    if(qOps)      shown.push('/* === phase 1: operational points === */\n' + qOps);
+    const jobs1 = [], kinds1 = [];
+    qSectionsChunks.forEach(q => { jobs1.push(() => sparql(q, ctrl.signal)); kinds1.push('sections'); });
+    qOpsChunks.forEach(q      => { jobs1.push(() => sparql(q, ctrl.signal)); kinds1.push('ops'); });
+    const results1 = await pooled(jobs1, POOL, ctrl.signal);
+    const secRows = [], opRows = [];
+    results1.forEach((rows, i) => (kinds1[i] === 'sections' ? secRows : opRows).push(...rows));
+
+    if(qSectionsChunks.length) shown.push('/* === phase 1: sections of line' +
+      (qSectionsChunks.length > 1 ? ' — ' + qSectionsChunks.length + ' queries, chunked by line; first shown' : '') +
+      ' === */\n' + qSectionsChunks[0]);
+    if(qOpsChunks.length) shown.push('/* === phase 1: operational points' +
+      (qOpsChunks.length > 1 ? ' — ' + qOpsChunks.length + ' queries, chunked by line; first shown' : '') +
+      ' === */\n' + qOpsChunks[0]);
 
     /* Position and name come from phase 1; phase 2 returns only the place URI,
-       so the two are joined here rather than repeated down the wire. */
+       so the two are joined here rather than repeated down the wire. Each
+       place also carries the line (and country) it came from, resolved via
+       ?lps, so a run across several lines can still tell rows apart. */
     const sections = new Map(), ops = new Map();
-    secRows.forEach(b => { if(!sections.has(b.sol.value)) sections.set(b.sol.value, {
-      km: b.startKp ? +b.startKp.value : Infinity,
-      start: b.startPosition.value || '—', end: b.endPosition.value || '—' }); });
-    opRows.forEach(b => { if(!ops.has(b.op.value)) ops.set(b.op.value, {
-      km: b.startKp ? +b.startKp.value : Infinity,
-      location: b.railwayLocation.value || '—', opid: b.opid.value,
-      name: b.opName.value, via: b.via ? b.via.value : '' }); });
+    secRows.forEach(b => { if(!sections.has(b.sol.value)){
+      const pl = lpsToLine.get(b.lps.value);
+      sections.set(b.sol.value, {
+        km: b.startKp ? +b.startKp.value : Infinity,
+        start: b.startPosition.value || '—', end: b.endPosition.value || '—',
+        cc: pl ? pl.cc : '', countryLabel: pl ? pl.ccLabel : '', line: pl ? pl.line : '', lineSrc: pl ? pl.src : 'lineId' });
+    }});
+    opRows.forEach(b => { if(!ops.has(b.op.value)){
+      const pl = lpsToLine.get(b.lps.value);
+      ops.set(b.op.value, {
+        km: b.startKp ? +b.startKp.value : Infinity,
+        location: b.railwayLocation.value || '—', opid: b.opid.value,
+        name: b.opName.value, via: b.via ? b.via.value : '',
+        cc: pl ? pl.cc : '', countryLabel: pl ? pl.ccLabel : '', line: pl ? pl.line : '', lineSrc: pl ? pl.src : 'lineId' });
+    }});
 
     if(!sections.size && !ops.size){
       clearTimeout(timer);
-      setStatus('Line ' + l.line + ' has no sections or operational points' +
+      setStatus((pickedLines.length === 1 ? 'Line ' + pickedLines[0].line : fmt(pickedLines.length) + ' selected lines') +
+        ' had no sections or operational points' +
         ($('kmFrom').value || $('kmTo').value ? ' in that kilometre range' : '') + '.', 'warn');
       return;
     }
@@ -1203,18 +1277,35 @@ async function run(){
     setStatus(`Collecting RCC parameters from ${fmt(sections.size)} section${sections.size === 1 ? '' : 's'} and ` +
       `${fmt(ops.size)} operational point${ops.size === 1 ? '' : 's'}…`, 'loading');
 
-    const probeOn = sections.size ? [...sections.keys()] : [...ops.keys()];
-    PART_DIR = (await sparql(partProbeQuery(probeOn), ctrl.signal).catch(() => [{}])).length
-      ? 'isPartOf' : 'hasPart';
+    /* The part-whole direction differs by publishing country (Croatia alone
+       differs), so it is probed once per country represented in the result,
+       never once globally — mixing a Croatia line into a run with any other
+       country would otherwise apply the wrong direction to one side of it. */
+    const ccSet = new Set([...sections.values(), ...ops.values()].map(x => x.cc));
+    const byCcSol = new Map(), byCcOp = new Map();
+    for(const cc of ccSet){ byCcSol.set(cc, []); byCcOp.set(cc, []); }
+    sections.forEach((v, k) => byCcSol.get(v.cc).push(k));
+    ops.forEach((v, k) => byCcOp.get(v.cc).push(k));
+
+    const partDirByCc = new Map();
+    await Promise.all([...ccSet].map(async cc => {
+      const sample = [...byCcSol.get(cc), ...byCcOp.get(cc)].slice(0, 50);
+      const dir = (await sparql(partProbeQuery(sample), ctrl.signal).catch(() => [{}])).length
+        ? 'isPartOf' : 'hasPart';
+      partDirByCc.set(cc, dir);
+    }));
 
     const jobs = [], kinds = [];
-    for(const c of chunkList([...sections.keys()], CHUNK)){
-      const q = trackParamsQuery(c, onlyList);
-      jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'track', q});
-    }
-    for(const c of chunkList([...ops.keys()], CHUNK)){
-      const q = opParamsQuery(c, onlyList, sidings);
-      jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'op', q});
+    for(const cc of ccSet){
+      const dir = partDirByCc.get(cc);
+      for(const c of chunkList(byCcSol.get(cc), CHUNK)){
+        const q = trackParamsQuery(c, onlyList, dir);
+        jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'track', q});
+      }
+      for(const c of chunkList(byCcOp.get(cc), CHUNK)){
+        const q = opParamsQuery(c, onlyList, sidings, dir);
+        jobs.push(() => sparql(q, ctrl.signal)); kinds.push({side:'op', q});
+      }
     }
     const results = await pooled(jobs, POOL, ctrl.signal);
     clearTimeout(timer);
@@ -1227,32 +1318,41 @@ async function run(){
         if(side === 'track'){
           const p = sections.get(b.sol.value); if(!p) return;
           track.push({sol: b.sol.value, km: p.km, start: p.start, end: p.end,
+            cc: p.cc, countryLabel: p.countryLabel, line: p.line, lineSrc: p.lineSrc,
             trackName: b.trackName.value, index: b.rinfIndex.value,
             param: b.parameterLabel.value, value: b.value.value});
         } else {
           const o = ops.get(b.op.value); if(!o) return;
           opsOut.push({op: b.op.value, km: o.km, opid: o.opid, opName: o.name, location: o.location,
+            cc: o.cc, countryLabel: o.countryLabel, line: o.line, lineSrc: o.lineSrc,
             trackName: b.trackName.value, index: b.rinfIndex.value,
             param: b.parameterLabel.value, value: b.value.value});
         }
       });
     });
     /* Unpositioned places sort last, so a line without linear referencing still
-       reads in a stable order. */
+       reads in a stable order. Grouped by line first — a no-op within a single
+       line, since cc/line then never differ — so several lines' results don't
+       interleave by raw kilometre, which is only comparable within one line. */
     const order = (a, b) =>
+      (a.cc || '').localeCompare(b.cc || '') || (a.line || '').localeCompare(b.line || '') ||
       (isFinite(a.km) ? a.km : Infinity) - (isFinite(b.km) ? b.km : Infinity) ||
       (a.opName || '').localeCompare(b.opName || '') ||
       a.trackName.localeCompare(b.trackName) || a.index.localeCompare(b.index);
     track.sort(order); opsOut.sort(order);
 
+    const trackJobs = kinds.filter(k => k.side === 'track').length;
+    const opJobs = kinds.filter(k => k.side === 'op').length;
     const seen = new Set();
     kinds.forEach(k => { if(!seen.has(k.side)){ seen.add(k.side);
+      const n = k.side === 'track' ? trackJobs : opJobs;
       shown.push('/* === phase 2: ' + (k.side === 'track' ? 'along the line (RINF 1.1…)'
-        : 'at operational points (RINF 1.2…)') + ' === */\n' + k.q); } });
+        : 'at operational points (RINF 1.2…)') +
+        (n > 1 ? ' — ' + n + ' queries, chunked by country and line; first shown' : '') + ' === */\n' + k.q); } });
 
     lastRun = {
-      country: cc, countryLabel: l.ccLabel,
-      line: l.line, lineSrc: l.src, sections: sections.size, opCount: ops.size,
+      lines: pickedLines.slice(), countries: [...ccSet].sort(),
+      sections: sections.size, opCount: ops.size,
       sectionsMap: sections,
       viaSection: [...ops.values()].filter(o => o.via === 'section endpoint').length,
       kmFrom: $('kmFrom').value.trim(), kmTo: $('kmTo').value.trim(),
@@ -1267,7 +1367,9 @@ async function run(){
 
     const total = track.length + opsOut.length;
     if(!total){
-      setStatus('No RCC parameters found for line ' + l.line + ' in ' + lastRun.countryLabel +
+      setStatus('No RCC parameters found for ' +
+        (pickedLines.length === 1 ? 'line ' + pickedLines[0].line + ' in ' + pickedLines[0].ccLabel
+          : fmt(pickedLines.length) + ' selected lines') +
         (onlyList.length ? ' for parameter' + (onlyList.length > 1 ? 's ' : ' ') + onlyList.join(', ') : '') +
         ($('kmFrom').value || $('kmTo').value ? ' within that kilometre range' : '') + '.', 'warn');
     } else {
@@ -1275,7 +1377,7 @@ async function run(){
     }
   } catch(err){
     clearTimeout(timer);
-    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Narrow the kilometre range, or pick fewer parameters.', 'error');
+    if(err.name === 'AbortError') setStatus('Timed out after 180 s. Narrow the kilometre range, pick fewer parameters, or select fewer lines.', 'error');
     else await setFetchErrorStatus($('statusArea'), 'error', err, ENDPOINT, run);
   } finally {
     $('runBtn').disabled = false;
@@ -1306,18 +1408,23 @@ function render(){
     (r.ops.length || $('wantOp').checked
       ? `<button class="tab${activeTab === 'op' ? ' on' : ''}" data-t="op">At operational points <span class="c">${fmt(r.ops.length)}</span></button>` : '');
 
-  const head = activeTab === 'track'
+  /* A "Line" column only earns its place once a run actually mixes lines —
+     the common single-line case stays exactly as before. */
+  const multiLine = new Set(rs.map(x => x.cc + ':' + x.line)).size > 1;
+  const lineCol = x => multiLine ? `<td class="ix" title="${esc(x.countryLabel)}">${esc(x.cc)} ${esc(x.line)}</td>` : '';
+  const head = (activeTab === 'track'
     ? ['From', 'To', 'Track', 'RINF', 'Parameter', 'Value']
-    : ['At km', 'Operational point', 'UOPID', 'Track', 'RINF', 'Parameter', 'Value'];
+    : ['At km', 'Operational point', 'UOPID', 'Track', 'RINF', 'Parameter', 'Value']);
+  if(multiLine) head.splice(activeTab === 'track' ? 0 : 1, 0, 'Line');
   $('resultTable').querySelector('thead').innerHTML =
     '<tr>' + head.map(h => `<th>${esc(h)}</th>`).join('') + '</tr>';
 
   $('resultTable').querySelector('tbody').innerHTML = rs.slice(0, TABLE_LIMIT).map(x => activeTab === 'track'
-    ? `<tr><td class="pos">${esc(x.start)}</td><td class="pos">${esc(x.end)}</td>` +
+    ? `<tr>${lineCol(x)}<td class="pos">${esc(x.start)}</td><td class="pos">${esc(x.end)}</td>` +
       `<td class="nm" title="${esc(x.trackName)}">${esc(shortName(x.trackName))}</td>` +
       `<td class="ix">${esc(x.index)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
       `<td class="val">${esc(x.value)}</td></tr>`
-    : `<tr><td class="pos">${esc(x.location)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
+    : `<tr><td class="pos">${esc(x.location)}</td>${lineCol(x)}<td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
       `<td class="ix">${esc(x.opid)}</td><td class="nm" title="${esc(x.trackName)}">${esc(shortName(x.trackName))}</td>` +
       `<td class="ix">${esc(x.index)}</td><td class="nm" title="${esc(x.param)}">${esc(x.param)}</td>` +
       `<td class="val">${esc(x.value)}</td></tr>`
@@ -1329,14 +1436,30 @@ function render(){
   const windows = [...new Set(rs.map(x => (/\(from (\d{4}-\d{2}-\d{2}) until/.exec(x.trackName) || [])[1]).filter(Boolean))].sort();
   const viaNote = r.viaSection
     ? ` ${fmt(r.viaSection)} operational point${r.viaSection === 1 ? ' was' : 's were'} located from the section ` +
-      `of line that names ${r.viaSection === 1 ? 'it' : 'them'}, having no kilometric post on this line's LRS.`
+      `of line that names ${r.viaSection === 1 ? 'it' : 'them'}, having no kilometric post on its line's LRS.`
     : '';
-  $('validityNote').textContent = (UNDATED.has(r.country)
-    ? `${r.countryLabel} publishes no validity dates, so no rows were filtered out on that basis.`
-    : 'Superseded descriptions are excluded — each place keeps only its newest validity window' +
-      (windows.length === 1 ? `, here ${windows[0]}. ` : windows.length > 1
-        ? `, and these run from ${windows[0]} to ${windows[windows.length - 1]}. ` : '. ') +
-      'Track names carry their window in full in the download.') + viaNote;
+  /* Single line/country: worded exactly as before a run could span several.
+     Several countries: validity is still compared place by place within each
+     one, but naming every country by name would just repeat the "Countries"
+     line already shown elsewhere, so this only calls out the undated ones. */
+  let validityMsg;
+  if(r.countries.length === 1){
+    const cc0 = r.countries[0], label0 = r.lines.find(x => x.cc === cc0).ccLabel;
+    validityMsg = UNDATED.has(cc0)
+      ? `${label0} publishes no validity dates, so no rows were filtered out on that basis.`
+      : 'Superseded descriptions are excluded — each place keeps only its newest validity window' +
+        (windows.length === 1 ? `, here ${windows[0]}. ` : windows.length > 1
+          ? `, and these run from ${windows[0]} to ${windows[windows.length - 1]}. ` : '. ') +
+        'Track names carry their window in full in the download.';
+  } else {
+    const undatedCc = r.countries.filter(cc => UNDATED.has(cc));
+    validityMsg = 'Superseded descriptions are excluded — each place keeps only its newest validity window, compared within its own country.';
+    if(undatedCc.length){
+      const names = [...new Set(r.lines.filter(x => undatedCc.includes(x.cc)).map(x => x.ccLabel))];
+      validityMsg += ` ${names.join(', ')} publish${names.length === 1 ? 'es' : ''} no validity dates, so nothing is filtered there.`;
+    }
+  }
+  $('validityNote').textContent = validityMsg + viaNote;
 
   $('sparqlOut').textContent = r.query;
   $('csvBtn').disabled = $('xlsBtn').disabled = !(r.track.length + r.ops.length);
@@ -1358,17 +1481,19 @@ const OP_HEAD    = ['Country', 'Line', 'At (km+m)', 'Operational point', 'UOPID'
 function trackTable(){
   const r = lastRun;
   return {head: TRACK_HEAD, body: r.track.map(x =>
-    [r.countryLabel, r.line, x.start, x.end, x.trackName, x.index, x.param, x.value, x.sol])};
+    [x.countryLabel, x.line, x.start, x.end, x.trackName, x.index, x.param, x.value, x.sol])};
 }
 function opTable(){
   const r = lastRun;
   return {head: OP_HEAD, body: r.ops.map(x =>
-    [r.countryLabel, r.line, x.location, x.opName, x.opid, x.trackName, x.index, x.param, x.value, x.op])};
+    [x.countryLabel, x.line, x.location, x.opName, x.opid, x.trackName, x.index, x.param, x.value, x.op])};
 }
 function fileBase(){
   const r = lastRun;
   const km = (r.kmFrom || r.kmTo) ? `_km${r.kmFrom || '0'}-${r.kmTo || 'end'}` : '';
-  return ('RINF_RCC_' + r.country + '_' + r.line + km + '_' + r.fetched.slice(0, 10))
+  const ccPart = r.countries.join('-');
+  const linePart = r.lines.length === 1 ? r.lines[0].line : r.lines.length + 'lines';
+  return ('RINF_RCC_' + ccPart + '_' + linePart + km + '_' + r.fetched.slice(0, 10))
     .replace(/[^A-Za-z0-9._-]/g, '_');
 }
 function download(blob, name){
@@ -1401,11 +1526,17 @@ $('xlsBtn').addEventListener('click', () => {
   const about = [
     ['ERA RCC Parameters — extraction record', ''],
     [],
-    ['Country', r.countryLabel + ' (' + r.country + ')'],
-    ['National line', r.line],
-    ['Line identified by', r.lineSrc === 'label' ? 'rdfs:label on the LinearPositioningSystem (era:lineId not published)' : 'era:lineId'],
-    ['Sections on this line', r.sections],
-    ['Operational points on this line', r.opCount],
+    ['Countries', r.countries.map(cc => r.lines.find(x => x.cc === cc).ccLabel + ' (' + cc + ')').join(', ')],
+    ['National line' + (r.lines.length === 1 ? '' : 's'),
+      r.lines.length === 1 ? r.lines[0].line : r.lines.map(x => x.cc + ' ' + x.line).join(', ')],
+    ['Line identification', (() => {
+      const byLabel = r.lines.filter(x => x.src === 'label').length;
+      return byLabel === 0 ? 'era:lineId'
+        : byLabel === r.lines.length ? 'rdfs:label on the LinearPositioningSystem (era:lineId not published)'
+        : byLabel + ' of ' + r.lines.length + ' lines identified by rdfs:label, the rest by era:lineId';
+    })()],
+    ['Sections found', r.sections],
+    ['Operational points found', r.opCount],
     ['Operational points located from a section endpoint', r.viaSection],
     ['Kilometre range', (r.kmFrom || r.kmTo) ? `${r.kmFrom || 'start'} to ${r.kmTo || 'end'}` : 'whole line'],
     ['Parameter filter', r.onlyList.length ? r.onlyList.join(', ') : 'all RCC parameters'],
@@ -1420,9 +1551,10 @@ $('xlsBtn').addEventListener('click', () => {
     ['Extracted at (UTC)', r.fetched],
     ['Query time', r.elapsed.toFixed(2) + ' s'],
     [],
-    ['Method — validity', UNDATED.has(r.country)
-      ? r.countryLabel + ' publishes no dated validity, so no rows were filtered out on that basis.'
-      : 'Only the latest validity window is included, compared place by place rather than line by line.'],
+    ['Method — validity', r.countries.every(cc => UNDATED.has(cc))
+      ? r.countries.map(cc => r.lines.find(x => x.cc === cc).ccLabel).join(', ') +
+        ' publish' + (r.countries.length === 1 ? 'es' : '') + ' no dated validity, so no rows were filtered out on that basis.'
+      : 'Only the latest validity window is included, compared place by place within each country, rather than line by line.'],
     ['', 'Along the line, the newest window is chosen per stretch: some managers republish the same stretch'],
     ['', 'every year, while others date each section by the day it opened, so a line-wide maximum would'],
     ['', 'delete real sections. At operational points the rule runs twice — newest resource per era:uopid,'],
@@ -1446,7 +1578,7 @@ $('xlsBtn').addEventListener('click', () => {
 $('linkBtn').addEventListener('click', async () => {
   const p = new URLSearchParams();
   p.set('c', [...chosen].join(','));
-  if(pickedLine) p.set('l', pickedLine.cc + ':' + pickedLine.line);
+  if(pickedLines.length) p.set('l', pickedLines.map(x => x.cc + ':' + x.line).join(','));
   if($('kmFrom').value.trim()) p.set('from', $('kmFrom').value.trim());
   if($('kmTo').value.trim())   p.set('to', $('kmTo').value.trim());
   if(pickedParams.length)      p.set('p', pickedParams.map(x => x.index).join(','));
@@ -1467,10 +1599,12 @@ async function applyHash(){
   await syncLines();
   const lVal = p.get('l');
   if(lVal){
-    const sep = lVal.indexOf(':');
-    const cc = sep === -1 ? '' : lVal.slice(0, sep), lineId = sep === -1 ? lVal : lVal.slice(sep + 1);
-    const found = lines.find(x => x.cc === cc && x.line === lineId);
-    if(found) pickLine(found);
+    const wanted = lVal.split(',').map(tok => tok.trim()).filter(Boolean).map(tok => {
+      const sep = tok.indexOf(':');
+      return {cc: sep === -1 ? '' : tok.slice(0, sep), line: sep === -1 ? tok : tok.slice(sep + 1)};
+    });
+    pickedLines = wanted.map(w => lines.find(x => x.cc === w.cc && x.line === w.line)).filter(Boolean);
+    renderLineChips();
   }
   if(p.get('from')) $('kmFrom').value = p.get('from');
   if(p.get('to'))   $('kmTo').value = p.get('to');
