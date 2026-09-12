@@ -163,6 +163,7 @@ from the browser and share a dependency-free XLSX writer.
 | File | Page | Does |
 |---|---|---|
 | `era-graph-explorer-app.html` | `/` | bubble-graph "follow your nose" demo |
+| `era-holobox-frame.html` | `/holobox.html` | 4-face hologram-pyramid frame embedding the real GraphDB Workbench visual graph, with an Expand-to-next-bubble control dock |
 | `era-rdf-exporter.html` | `/exporter.html` | export any resource URI as RDF/XML |
 | `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country |
 | `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters along one line |
