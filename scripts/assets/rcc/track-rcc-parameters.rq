@@ -30,8 +30,8 @@ WHERE {
   VALUES ?sol { <http://data.europa.eu/949/sectionOfLine/8cfa1fcc33> }   # ... from sections-for-line.rq
   ?track era:isPartOf ?sol .                                            # ... or ?sol era:hasPart ?track
   ?track rdfs:label ?trackName ; ?parameter ?value0 .
-  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "en") }
-  OPTIONAL { ?value0 rdfs:label ?lb }
+  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "" || LANGMATCHES(LANG(?sk), "en")) }
+  OPTIONAL { ?value0 rdfs:label ?lb FILTER(LANG(?lb) = "" || LANGMATCHES(LANG(?lb), "en")) }
   BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)
 }
 GROUP BY ?sol ?trackName ?rinfIndex ?parameterLabel

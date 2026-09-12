@@ -26,8 +26,8 @@ WHERE {
   ?track era:isPartOf ?sol ; rdfs:label ?trackName .
   ?track ?p ?value0 .
   BIND("" AS ?featureName)
-  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "en") }
-  OPTIONAL { ?value0 rdfs:label ?lb }
+  OPTIONAL { ?value0 skos:prefLabel ?sk FILTER(LANG(?sk) = "" || LANGMATCHES(LANG(?sk), "en")) }
+  OPTIONAL { ?value0 rdfs:label ?lb FILTER(LANG(?lb) = "" || LANGMATCHES(LANG(?lb), "en")) }
   BIND(COALESCE(?sk, ?lb, ?value0) AS ?fullValue)
 }
 GROUP BY ?sol ?d2 ?paramLabel ?trackName ?featureName
