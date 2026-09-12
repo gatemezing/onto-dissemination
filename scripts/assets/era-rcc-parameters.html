@@ -728,6 +728,7 @@ GROUP BY ?sol ?trackName ?rinfIndex ?parameterLabel`;
 }
 
 function opParamsQuery(ops, only, sidings){
+  const typeValues = `VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }`;
   return `${PREFIXES}
 SELECT ?op ?trackName ?rinfIndex ?parameterLabel
        (GROUP_CONCAT(DISTINCT ?fullValue; separator=" | ") AS ?value)
@@ -736,14 +737,20 @@ ${paramBlock('1.2', only)}
 ${uriValues('op', ops)}
   ${part('op')}
   ?track rdfs:label ?trackName ; ?parameter ?value0 .
-  VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }
+  ${typeValues}
   ?track a ?type .
   # France repeats tracks inside one operational point, so the newest track
   # window is applied per point — pinned to the same list so it stays small.
+  # The inner MAX must be scoped to the same track type(s) as the outer
+  # pattern: with sidings excluded, an excluded siding's later validity date
+  # would otherwise become "latest" and silently filter out every current
+  # running-track row at that point (and vice versa with sidings included
+  # but a running track dated later).
   OPTIONAL { ?track era:validity/time:hasBeginning/time:inXSDDate ?tb }
   OPTIONAL { { SELECT ?op (MAX(?bb) AS ?latest) WHERE {
 ${uriValues('op', ops)}
-      ${part('op', 't2')} ?t2 era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }
+      ${typeValues}
+      ${part('op', 't2')} ?t2 a ?type ; era:validity/time:hasBeginning/time:inXSDDate ?bb } GROUP BY ?op } }
   FILTER(!BOUND(?tb) || !BOUND(?latest) || ?tb = ?latest)
 ${valueBlock()}
 }
@@ -1526,7 +1533,22 @@ ${uriValues('sol', sols)}
 }`;
 }
 
+/* A previously-drawn map belongs to the run that produced it. Without this,
+   picking a new line (or re-running with different filters) left the old
+   line's segments on screen — still hoverable, still "Reset view"-able —
+   while the table above already showed the new results. */
+function resetMapForNewRun(){
+  mapData = null;
+  mapOff = new Set();
+  if(segLayer) segLayer.clearLayers();
+  $('mapWrap').hidden = true;
+  $('mapLegend').hidden = true; $('mapLegend').innerHTML = '';
+  $('mapReset').hidden = true;
+  $('mapNote').innerHTML = '';
+}
+
 function mapParamOptions(){
+  resetMapForNewRun();
   const seen = new Map();
   lastRun.track.forEach(x => { if(!seen.has(x.index)) seen.set(x.index, x.param); });
   mapParams = [...seen].map(([index, label]) => ({index, label})).sort((a, b) => a.index.localeCompare(b.index));
