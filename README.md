@@ -6,6 +6,7 @@ Contents
 - `scripts/innotrans2026-era-ontology-script.md`: booth/demo script, elevator pitch, demo queries, and checklist for InnoTrans 2026.
 - `scripts/assets/era-follow-your-nose-scene.html`: demo scene / explainer mockup (video/animation source).
 - `scripts/assets/era-graph-explorer-app.html`: interactive offline demo app (single-file HTML) for the bubble-graph explorer.
+- `scripts/assets/era-holobox-frame.html`: single-file frame that embeds the live GraphDB Workbench visual graph on a 4-face cross layout for a pyramid hologram display, with an Expand-to-next-bubble control dock — see the dedicated section below.
 - `scripts/assets/era-rdf-exporter.html`: single-file tool to export any ERA/RINF resource URI as RDF/XML, recursed to real leaf values — see the dedicated section below.
 - `scripts/assets/era-rinf-value-explorer.html`: single-file tool that lists every distinct value reported for any RINF parameter, per country or across all of RINF, and downloads it as CSV or Excel — see the dedicated section below.
 - `scripts/assets/era-rcc-parameters.html`: single-file tool that returns the route-compatibility parameters for one national line, positioned by kilometre post, along the line and at its operational points — see the dedicated section below.
@@ -23,6 +24,7 @@ Live demo
 - **https://gatemezing.github.io/onto-dissemination/rcc.html** — the RCC Parameters tool.
 - **https://gatemezing.github.io/onto-dissemination/routebook.html** — the Route Book (Appendix D2) tool.
 - **https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html** — the Interoperable Europe reusability answers.
+- **https://gatemezing.github.io/onto-dissemination/holobox.html** — the Holobox Frame (hologram-pyramid GraphDB visual-graph embed).
 
 The tools cross-link: the landing page carries a tools nav in its top bar, and each tool links back.
 

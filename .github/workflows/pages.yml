@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - claude/railway-ontology-script-opambl
+      - claude/holobox-graphdb-frame-c6vtty
     paths:
       - 'scripts/assets/era-graph-explorer-app.html'
       - 'scripts/assets/era-rdf-exporter.html'
@@ -12,6 +13,7 @@ on:
       - 'scripts/assets/era-interop-answers.html'
       - 'scripts/assets/era-rcc-parameters.html'
       - 'scripts/assets/era-route-book.html'
+      - 'scripts/assets/era-holobox-frame.html'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -43,6 +45,7 @@ jobs:
           cp scripts/assets/era-interop-answers.html _site/interopable-eu-portal-answers.html
           cp scripts/assets/era-rcc-parameters.html _site/rcc.html
           cp scripts/assets/era-route-book.html _site/routebook.html
+          cp scripts/assets/era-holobox-frame.html _site/holobox.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
