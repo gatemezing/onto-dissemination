@@ -3,12 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ERA Holobox Frame — GraphDB visual graph, hologram-ready</title>
+<title>ERA Holobox Frame — native graph, hologram-ready</title>
 <style>
   :root{
     --bg:#0b1220; --panel:#111a2e; --ink:#eef2ff; --muted:#8fa0c9;
     --accent:#5b9bd5; --accent2:#e8604f; --line:rgba(255,255,255,.12);
     --good:#7ac36a; --warn:#f0a83a;
+    /* Bubble swatch palette, carried over from era-graph-explorer-app.html so
+       a resource gets the same colour in both tools. */
+    --center:#e8604f; --blue:#5b9bd5; --green:#7ac36a; --pink:#c894c8;
+    --purple:#9b8fd1; --orange:#f0a83a; --teal:#5fd0ae; --lav:#8f9fe0;
+    --lgreen:#b7dd82; --grey:#7a8296; --gold:#e0b64a;
   }
   *{box-sizing:border-box;}
   body{margin:0; background:var(--bg); color:var(--ink); font:14px/1.4 "Segoe UI", Arial, sans-serif;}
@@ -35,7 +40,7 @@
   .layoutToggle button.active{outline:2px solid var(--accent2); outline-offset:2px;}
 
   #stage{
-    position:relative; width:520px; height:520px; background:#000;
+    position:relative; width:520px; height:520px; background:#fff;
     border:1px solid var(--line); border-radius:10px; overflow:hidden;
   }
   #stage.flat{display:flex; align-items:center; justify-content:center;}
@@ -45,25 +50,71 @@
      so the physical pyramid apex sits over the void, matching the common
      4-way "hologram fan" cross layout used for pocket pyramid projectors. */
   #stage.hologram{display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-rows:1fr 1fr 1fr;}
-  .face{position:relative; overflow:hidden; background:#050a14;}
+  .face{position:relative; overflow:hidden; background:#fff;}
   .face .inner{position:absolute; inset:0; transform-origin:center center;}
-  .face iframe{position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff;}
   #faceTop{grid-column:2; grid-row:1;}
   #faceRight{grid-column:3; grid-row:2;}
   #faceBottom{grid-column:2; grid-row:3;}
   #faceLeft{grid-column:1; grid-row:2;}
   .faceLabel{
-    position:absolute; top:4px; left:4px; z-index:2; font-size:10px; color:var(--muted);
-    background:rgba(0,0,0,.5); padding:1px 5px; border-radius:4px; pointer-events:none;
+    position:absolute; top:4px; left:4px; z-index:9; font-size:10px; color:var(--muted);
+    background:rgba(255,255,255,.8); padding:1px 5px; border-radius:4px; pointer-events:none;
   }
-  .embedHint{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    flex-direction:column; gap:8px; text-align:center; padding:16px; font-size:12px;
-    color:var(--warn); background:rgba(0,0,0,.55); z-index:3; opacity:0; pointer-events:none;
-    transition:opacity .3s;
-  }
-  .embedHint.show{opacity:1; pointer-events:auto;}
-  .embedHint a{color:#fff;}
+
+  /* ---------------- native bubble graph, ported from era-graph-explorer-app.html ----
+     One instance of this per face (each with its own .world), all driven from
+     the same shared NODES cache so all four stay in lock-step. Colours and
+     bubble shape are unchanged from that tool; only the edge lines, arrowheads
+     and edge-label chip are re-themed for a white stage instead of a dark one
+     — the original's near-white edges would be invisible here. */
+  .graphStage{position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    perspective:1400px; overflow:hidden;}
+  .world{position:relative; width:10px; height:10px; transform-style:preserve-3d;
+    transform:rotateX(14deg) rotateY(-5deg);}
+
+  .node{position:absolute; left:0; top:0; width:132px; height:132px; margin:-66px 0 0 -66px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; text-align:center; color:#0d1526; font-weight:700;
+    font-size:13px; line-height:1.15; padding:8px; cursor:pointer; user-select:none;
+    box-shadow:0 10px 22px rgba(20,30,55,.28), inset 0 8px 18px rgba(255,255,255,.35), inset 0 -14px 22px rgba(0,0,0,.14);
+    opacity:0; transform:translate3d(0,0,0) scale(.4);
+    transition:opacity .5s ease, transform .55s cubic-bezier(.2,.8,.25,1), filter .2s ease;
+    backface-visibility:hidden;}
+  .node.visible{opacity:1;}
+  .node:hover:not(.center){filter:brightness(1.08); transform:translate3d(var(--tx),var(--ty),var(--tz)) scale(1.07) !important;}
+  .node .lbl{position:relative; z-index:2; white-space:pre-line; pointer-events:none;}
+  .node::after{content:""; position:absolute; inset:0; border-radius:50%;
+    background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.85), rgba(255,255,255,0) 45%); pointer-events:none;}
+  .node.center{width:172px; height:172px; margin:-86px 0 0 -86px; font-size:17px; cursor:default;
+    background:radial-gradient(circle at 35% 30%,#ff9c8c,var(--center) 60%,#b7392b 100%); z-index:5;}
+  .node.center:hover{filter:none; transform:translate3d(0,0,50px) scale(1) !important;}
+  .node.blue{background:radial-gradient(circle at 35% 30%,#bcdcff,var(--blue) 60%,#366a99 100%);}
+  .node.green{background:radial-gradient(circle at 35% 30%,#d3f3c8,var(--green) 60%,#4c8a41 100%);}
+  .node.pink{background:radial-gradient(circle at 35% 30%,#f0d4f0,var(--pink) 60%,#8a5b8a 100%);}
+  .node.purple{background:radial-gradient(circle at 35% 30%,#d9d4f7,var(--purple) 60%,#5b4fa0 100%);}
+  .node.orange{background:radial-gradient(circle at 35% 30%,#ffe1b0,var(--orange) 60%,#b3781f 100%);}
+  .node.teal{background:radial-gradient(circle at 35% 30%,#cdf6e8,var(--teal) 60%,#2f9c78 100%);}
+  .node.lav{background:radial-gradient(circle at 35% 30%,#dbe1ff,var(--lav) 60%,#4c5bb0 100%);}
+  .node.lgreen{background:radial-gradient(circle at 35% 30%,#eaf6d4,var(--lgreen) 60%,#7fa63f 100%);}
+  .node.grey{background:radial-gradient(circle at 35% 30%,#c7ccd8,var(--grey) 60%,#4a5062 100%); color:#e8ebf2;}
+  .node.gold{background:radial-gradient(circle at 35% 30%,#fbe6ae,var(--gold) 60%,#a5822c 100%);}
+
+  /* Dark-on-white: the original tool's edges are near-white for a dark stage. */
+  .edge{position:absolute; left:0; top:0; height:2px; width:0;
+    background:linear-gradient(90deg,rgba(30,42,74,.55),rgba(30,42,74,.75));
+    transform-origin:0 50%; opacity:0; transition:opacity .4s ease, width .5s ease; pointer-events:none;}
+  .edge.visible{opacity:1;}
+  .edge::after{content:""; position:absolute; right:-1px; top:50%; transform:translateY(-50%); width:0; height:0;
+    border-style:solid; border-width:5px 0 5px 9px; border-color:transparent transparent transparent rgba(30,42,74,.8);}
+  .edge.reciprocal::before{content:""; position:absolute; left:-1px; top:50%; transform:translateY(-50%); width:0; height:0;
+    border-style:solid; border-width:5px 9px 5px 0; border-color:transparent rgba(30,42,74,.8) transparent transparent;}
+  .edge.incoming::after{display:none;}
+  .edge.incoming::before{content:""; position:absolute; left:-1px; top:50%; transform:translateY(-50%); width:0; height:0;
+    border-style:solid; border-width:5px 9px 5px 0; border-color:transparent rgba(30,42,74,.8) transparent transparent;}
+
+  .edgeLabel{position:absolute; left:0; top:0; background:rgba(255,255,255,.94); border:1px solid rgba(20,30,55,.18);
+    color:#1a2540; font-size:11px; padding:3px 8px; border-radius:10px; white-space:nowrap; opacity:0;
+    box-shadow:0 2px 8px rgba(20,30,55,.15); transition:opacity .4s ease; z-index:6; pointer-events:none;}
+  .edgeLabel.visible{opacity:1;}
 
   .rotCalib{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;}
   .rotCalib .field{width:80px;}
@@ -94,7 +145,10 @@
 
 <header>
   <h1>ERA Holobox Frame</h1>
-  <p>Wraps the live <b>GraphDB Workbench</b> visual graph (a third-party tool) for a 4-sided pyramid hologram display. Click <b>Expand</b> on a related resource to open it as the next bubble across all faces.</p>
+  <p>Renders the live ERA/RINF graph as its own bubble-and-edge view — the same style
+     <a href="./" style="color:#fff;">ERA Graph Explorer</a> draws — on all four faces of a pyramid hologram
+     display. Click a bubble, or <b>Expand</b> a related resource in the dock, to open it as the next bubble
+     across all faces.</p>
 </header>
 
 <main>
@@ -105,10 +159,10 @@
     </div>
 
     <div id="stage" class="hologram">
-      <div id="faceBottom" class="face"><span class="faceLabel">bottom</span><div class="inner"><iframe title="graph bottom"></iframe></div><div class="embedHint"></div></div>
-      <div id="faceLeft" class="face"><span class="faceLabel">left</span><div class="inner"><iframe title="graph left"></iframe></div><div class="embedHint"></div></div>
-      <div id="faceTop" class="face"><span class="faceLabel">top</span><div class="inner"><iframe title="graph top"></iframe></div><div class="embedHint"></div></div>
-      <div id="faceRight" class="face"><span class="faceLabel">right</span><div class="inner"><iframe title="graph right"></iframe></div><div class="embedHint"></div></div>
+      <div id="faceBottom" class="face"><span class="faceLabel">bottom</span><div class="inner"><div class="graphStage"><div class="world"></div></div></div></div>
+      <div id="faceLeft" class="face"><span class="faceLabel">left</span><div class="inner"><div class="graphStage"><div class="world"></div></div></div></div>
+      <div id="faceTop" class="face"><span class="faceLabel">top</span><div class="inner"><div class="graphStage"><div class="world"></div></div></div></div>
+      <div id="faceRight" class="face"><span class="faceLabel">right</span><div class="inner"><div class="graphStage"><div class="world"></div></div></div></div>
     </div>
 
     <div class="rotCalib">
@@ -121,7 +175,9 @@
       Per-face rotation follows the common 4-way pyramid "fan" fold, but the exact
       angles depend on how <i>your</i> physical reflector is cut and which way it
       folds — recalibrate the four values above against your unit rather than
-      trusting the defaults.
+      trusting the defaults. Each face redraws itself to fit whatever size it's
+      given, so the four small faces and the single large "Flat" preview both
+      stay legible without separate tuning.
     </p>
   </div>
 
@@ -132,20 +188,6 @@
         <label for="uriInput">ERA / linked-data URI</label>
         <input type="text" id="uriInput" style="width:100%;">
       </div>
-      <div class="field" style="margin-bottom:8px;">
-        <label for="templateInput">GraphDB visual-graph URL template</label>
-        <input type="text" id="templateInput" style="width:100%;">
-      </div>
-      <p style="color:var(--muted); font-size:11px; margin:0 0 8px;">
-        The default template is a real captured GraphDB Workbench URL (see this
-        repo's README, "Links" section), not a guess. What's still
-        <b>unverified</b>: <code>graph.data.era.europa.eu</code> is blocked by this
-        environment's network policy, so whether the site actually permits being
-        framed (<code>X-Frame-Options</code> / CSP <code>frame-ancestors</code>)
-        could not be confirmed here — test on a network that can reach it before
-        relying on this for a booth. <code>{uri}</code> is replaced with the
-        encoded resource URI.
-      </p>
       <button id="goBtn" type="button">Go</button>
       <button id="backBtn" class="ghost" type="button" disabled>← Back</button>
     </div>
@@ -166,13 +208,15 @@
 <script>
 const LIVE_ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
 const DEFAULT_URI = 'https://data.banenor.no/data/_station_c0576848-8f76-4489-aa6e-ae95b98c1a1c'; // Oslo S
-// Verified against a real captured GraphDB Workbench URL (see README.md, "Links"),
-// not guessed: .../graphs-visualizations?uri=<encoded>&role=subject.
-const DEFAULT_TEMPLATE = 'https://graph.data.era.europa.eu/graphs-visualizations?uri={uri}&role=subject';
-const RELATED_LIMIT = 16;
+const ERA_NAMESPACE = 'http://data.europa.eu/949/';
+const ERA_ONTOLOGY_GRAPH = 'http://data.europa.eu/949/graph/rinf/ontology';
+const ERA_SKOS_GRAPH = 'http://data.europa.eu/949/graph/rinf/skos';
+// A tiny pyramid face and the dock's scrollable text list have very different
+// tolerances for "how much is too much" — the list is fine with more than the
+// graph is, so both share one fetch and one limit rather than querying twice.
+const EDGE_LIMIT = 24;
 
 const uriInput = document.getElementById('uriInput');
-const templateInput = document.getElementById('templateInput');
 const goBtn = document.getElementById('goBtn');
 const backBtn = document.getElementById('backBtn');
 const trailListEl = document.getElementById('trailList');
@@ -180,7 +224,7 @@ const relatedListEl = document.getElementById('relatedList');
 const relatedStatusEl = document.getElementById('relatedStatus');
 const stageEl = document.getElementById('stage');
 
-const faces = {
+const faceEls = {
   bottom: document.querySelector('#faceBottom'),
   left:   document.querySelector('#faceLeft'),
   top:    document.querySelector('#faceTop'),
@@ -194,15 +238,14 @@ const rotInputs = {
 };
 
 let trail = [DEFAULT_URI];
-let embedWatchTimer = null;
 
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function localName(uri){ const m = String(uri).match(/([^/#]+)\/?$/); return m ? decodeURIComponent(m[1]) : uri; }
 
 function applyRotations(){
-  for(const k in faces){
+  for(const k in faceEls){
     const deg = Number(rotInputs[k].value) || 0;
-    faces[k].querySelector('.inner').style.transform = 'rotate(' + deg + 'deg)';
+    faceEls[k].querySelector('.inner').style.transform = 'rotate(' + deg + 'deg)';
   }
 }
 Object.values(rotInputs).forEach(inp => inp.addEventListener('change', applyRotations));
@@ -214,90 +257,193 @@ function setLayout(mode){
   document.getElementById('btnFlat').classList.toggle('active', mode === 'flat');
   if(mode === 'flat'){
     // Preview mode: show only the bottom face, upright, filling the stage.
-    Object.entries(faces).forEach(([k, el]) => { el.style.display = (k === 'bottom') ? '' : 'none'; });
-    faces.bottom.querySelector('.inner').style.transform = 'none';
+    Object.entries(faceEls).forEach(([k, el]) => { el.style.display = (k === 'bottom') ? '' : 'none'; });
+    faceEls.bottom.querySelector('.inner').style.transform = 'none';
   } else {
-    Object.values(faces).forEach(el => el.style.display = '');
+    Object.values(faceEls).forEach(el => el.style.display = '');
     applyRotations();
   }
+  renderers.forEach(r => r.rescale());
 }
 document.getElementById('btnHologram').addEventListener('click', () => setLayout('hologram'));
 document.getElementById('btnFlat').addEventListener('click', () => setLayout('flat'));
 
-function embedUrlFor(uri){
-  const tpl = templateInput.value.trim() || DEFAULT_TEMPLATE;
-  return tpl.replace('{uri}', encodeURIComponent(uri));
-}
+/* ------------------------------------------------------------------ *
+ * Native bubble-graph renderer, ported from era-graph-explorer-app.html.
+ * One instance per pyramid face, each targeting its own .world element but
+ * all reading the same shared NODES cache below, so the four faces are
+ * never out of sync with each other.
+ * ------------------------------------------------------------------ */
+const NODES = {}; // shared across every face: id -> {label, swatch, edges:[{pred,dir,target}]}
+const WORLD_BASE_TRANSFORM = 'rotateX(14deg) rotateY(-5deg)';
 
-// A blocked (X-Frame-Options / CSP frame-ancestors) iframe fires no reliable
-// error event in most browsers, so this can only ever be a heuristic: if no
-// load event lands within the timeout, assume trouble and offer the escape
-// hatch rather than leaving a silently blank hologram face.
-function watchEmbeds(uri){
-  clearTimeout(embedWatchTimer);
-  const targetUrl = embedUrlFor(uri);
-  Object.values(faces).forEach(f => f.querySelector('.embedHint').classList.remove('show'));
-  const loaded = new Set();
-  Object.entries(faces).forEach(([k, f]) => {
-    const onLoad = () => loaded.add(k);
-    f.querySelector('iframe').addEventListener('load', onLoad, {once:true});
-  });
-  embedWatchTimer = setTimeout(() => {
-    if(loaded.size < Object.keys(faces).length){
-      Object.values(faces).forEach(f => {
-        const hint = f.querySelector('.embedHint');
-        hint.innerHTML = 'Blank? This third-party page may block embedding.<br>' +
-          '<a href="' + esc(targetUrl) + '" target="_blank" rel="noopener">Open directly ↗</a>';
-        hint.classList.add('show');
-      });
-    }
-  }, 4000);
-}
+function createGraphRenderer(faceEl){
+  const worldEl = faceEl.querySelector('.world');
+  const stageWrapEl = faceEl.querySelector('.graphStage');
+  let lastMaxExtent = 0;
 
-function loadUri(uri, {pushToTrail} = {pushToTrail:false}){
-  uriInput.value = uri;
-  const url = embedUrlFor(uri);
-  Object.values(faces).forEach(f => { f.querySelector('iframe').src = url; });
-  watchEmbeds(uri);
-  if(pushToTrail){
-    // Cut any forward history once a new bubble is opened from mid-trail.
-    const idx = trail.indexOf(uri);
-    if(idx !== -1){ trail = trail.slice(0, idx + 1); }
-    else { trail.push(uri); }
+  function el(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+  function clearWorld(){ worldEl.innerHTML = ''; }
+
+  // Bubble size/font scale with label length (sqrt curve) so long live-data
+  // text fits inside its bubble instead of overflowing a fixed-size circle.
+  function bubbleMetrics(label, isCenter){
+    const len = (label || '').replace(/\n/g, ' ').length;
+    const minD = isCenter ? 150 : 104, maxD = isCenter ? 260 : 200;
+    const diameter = Math.round(Math.min(maxD, minD + Math.sqrt(len) * (isCenter ? 11 : 9)));
+    const minF = isCenter ? 12.5 : 9.5, maxF = isCenter ? 17 : 13;
+    const fontSize = Math.max(minF, maxF - Math.max(0, len - 10) * 0.09);
+    return {diameter, fontSize};
   }
-  renderTrail();
-  backBtn.disabled = trail.length < 2;
-  fetchRelated(uri);
-}
 
-function renderTrail(){
-  trailListEl.innerHTML = '';
-  trail.forEach((uri, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = (i + 1) + '. ' + localName(uri);
-    b.title = uri;
-    if(i === trail.length - 1) b.classList.add('current');
-    b.addEventListener('click', () => {
-      trail = trail.slice(0, i + 1);
-      loadUri(uri);
+  function renderNode(id, x, y, z, isCenter, onClick){
+    const data = NODES[id];
+    const swatch = isCenter ? 'center' : (data.swatch === 'center' ? 'lav' : data.swatch);
+    const n = el('div', 'node ' + swatch + (isCenter ? ' center' : ''));
+    const s = el('span', 'lbl'); s.textContent = data.label;
+    n.appendChild(s);
+    const {diameter, fontSize} = bubbleMetrics(data.label, isCenter);
+    n.style.width = diameter + 'px';
+    n.style.height = diameter + 'px';
+    n.style.margin = (-diameter / 2) + 'px 0 0 ' + (-diameter / 2) + 'px';
+    n.style.fontSize = fontSize + 'px';
+    n.style.setProperty('--tx', x + 'px'); n.style.setProperty('--ty', y + 'px'); n.style.setProperty('--tz', z + 'px');
+    n.style.transform = `translate3d(${x}px,${y}px,${z}px) scale(.4)`;
+    worldEl.appendChild(n);
+    requestAnimationFrame(() => {
+      n.classList.add('visible');
+      n.style.transform = `translate3d(${x}px,${y}px,${z}px) scale(1)`;
     });
-    trailListEl.appendChild(b);
-  });
+    if(!isCenter && onClick){
+      n.setAttribute('role', 'button'); n.setAttribute('tabindex', '0');
+      n.setAttribute('aria-label', 'Follow link to: ' + data.label.replace(/\n/g, ' '));
+      n.addEventListener('click', onClick);
+      n.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); onClick(); } });
+    }
+    return n;
+  }
+
+  // Trims the line to the gap between the two bubbles' surfaces instead of
+  // drawing center-to-center, so it shrinks rather than disappearing when
+  // bubbles sit close together.
+  function renderEdge(x1, y1, z1, x2, y2, z2, dirClass, r1, r2){
+    const dx = x2 - x1, dy = y2 - y1, fullLen = Math.sqrt(dx * dx + dy * dy) || 1, rad = Math.atan2(dy, dx), ang = rad * 180 / Math.PI;
+    const visibleLen = Math.max(10, fullLen - r1 - r2);
+    const startX = x1 + Math.cos(rad) * r1, startY = y1 + Math.sin(rad) * r1;
+    const e = el('div', 'edge' + (dirClass ? (' ' + dirClass) : ''));
+    e.style.transform = `translate3d(${startX}px,${startY}px,${(z1 + z2) / 2}px) rotate(${ang}deg)`;
+    e.style.width = '0px';
+    worldEl.appendChild(e);
+    requestAnimationFrame(() => { e.classList.add('visible'); e.style.width = visibleLen + 'px'; });
+    return {midX: startX + Math.cos(rad) * visibleLen / 2, midY: startY + Math.sin(rad) * visibleLen / 2};
+  }
+
+  function renderLabel(text, x, y, z){
+    const l = el('div', 'edgeLabel');
+    l.textContent = text;
+    l.style.transform = `translate3d(${x}px,${y}px,${z}px) translate(-50%,-50%)`;
+    worldEl.appendChild(l);
+    requestAnimationFrame(() => l.classList.add('visible'));
+    return l;
+  }
+
+  function applyWorldScale(maxExtent){
+    lastMaxExtent = maxExtent;
+    const availW = stageWrapEl.clientWidth, availH = stageWrapEl.clientHeight;
+    const margin = 0.88;
+    const scale = Math.min(1, (availW * margin) / (2 * maxExtent), (availH * margin) / (2 * maxExtent));
+    worldEl.style.transform = `${WORLD_BASE_TRANSFORM} scale(${scale})`;
+  }
+
+  // A busy resource can carry more edges than a ~170px pyramid face can ever
+  // show legibly — proportionally shrinking the same desktop-scale layout
+  // (as era-graph-explorer-app.html does, fine at full window size) just
+  // turns it into an unreadable cluster of overlapping bubbles instead. Each
+  // face caps how MANY bubbles it draws to its own current size instead, so
+  // the four small hologram faces stay legible while flat/desktop preview —
+  // several times larger — can still show the fuller picture. The dock's
+  // text list is the complete, uncapped reference regardless.
+  function maxEdgesForSize(px){
+    if(px < 220) return 8;
+    if(px < 400) return 14;
+    return 24;
+  }
+
+  function layout(centerId, onNavigate){
+    clearWorld();
+    if(!centerId || !NODES[centerId]) return;
+    const data = NODES[centerId];
+    renderNode(centerId, 0, 0, 50, true);
+
+    const cap = maxEdgesForSize(Math.min(stageWrapEl.clientWidth, stageWrapEl.clientHeight) || 520);
+    const edges = data.edges.slice(0, cap);
+    const n = edges.length;
+    const centerR = bubbleMetrics(data.label, true).diameter / 2;
+    const targetDiams = edges.map(e => bubbleMetrics(NODES[e.target].label, false).diameter);
+    const avgDiam = n === 0 ? 0 : targetDiams.reduce((sum, d) => sum + d, 0) / n;
+    const Rsized = (n * (avgDiam + 26)) / (2 * Math.PI * 0.82);
+    const R = Math.max(280, Math.min(460, Rsized));
+    edges.forEach((edge, i) => {
+      const angle = -90 + i * (360 / Math.max(n, 1));
+      const rad = angle * Math.PI / 180;
+      const x = R * Math.cos(rad), y = R * Math.sin(rad) * 0.82, z = 30 * Math.sin(i * 1.7);
+      const isUriTarget = NODES[edge.target].uri != null;
+      renderNode(edge.target, x, y, z, false, isUriTarget ? () => onNavigate(NODES[edge.target].uri) : null);
+      const mid = renderEdge(0, 0, 50, x, y, z, edge.dir === 'in' ? 'incoming' : '', centerR, targetDiams[i] / 2);
+      renderLabel(edge.pred, mid.midX, mid.midY, (50 + z) / 2);
+    });
+
+    const maxTargetR = targetDiams.length ? Math.max(...targetDiams) / 2 : 0;
+    applyWorldScale(R + Math.max(centerR, maxTargetR));
+  }
+
+  return {
+    layout,
+    rescale(){ if(lastMaxExtent > 0) applyWorldScale(lastMaxExtent); },
+  };
 }
 
+const renderers = Object.values(faceEls).map(createGraphRenderer);
+window.addEventListener('resize', () => renderers.forEach(r => r.rescale()));
+
+/* ------------------------------------------------------------------ *
+ * Live SPARQL — one query serves both the four graph faces and the dock's
+ * text list, rather than the two querying the endpoint separately for the
+ * same resource.
+ * ------------------------------------------------------------------ */
 async function sparqlSelect(query, timeoutMs){
   const url = LIVE_ENDPOINT + '?query=' + encodeURIComponent(query);
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs || 8000);
   try{
-    const res = await fetch(url, {headers:{Accept:'application/sparql-results+json'}, signal: ctrl.signal});
+    const res = await fetch(url, {headers: {Accept: 'application/sparql-results+json'}, signal: ctrl.signal});
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
     return json.results.bindings;
   } finally {
     clearTimeout(t);
   }
+}
+
+function buildTriplesQuery(uri){
+  // For an ERA-namespace resource, also pull in what the ontology and SKOS
+  // graphs say about it directly (rdfs:comment/subClassOf for a class,
+  // skos:prefLabel/definition/broader-narrower for a controlled-vocabulary
+  // concept) — the default (graph-less) query on this endpoint already
+  // includes both named graphs, but naming them explicitly is robust rather
+  // than silently relying on that store-specific default.
+  const ontologyClause = uri.startsWith(ERA_NAMESPACE)
+    ? `UNION { GRAPH <${ERA_ONTOLOGY_GRAPH}> { <${uri}> ?p ?other } BIND("out" AS ?dir) }
+       UNION { GRAPH <${ERA_SKOS_GRAPH}> { <${uri}> ?p ?other } BIND("out" AS ?dir) }`
+    : '';
+  return `SELECT DISTINCT ?other ?p ?dir WHERE {
+    { <${uri}> ?p ?other . BIND("out" AS ?dir) }
+    UNION
+    { ?other ?p <${uri}> . BIND("in" AS ?dir) }
+    ${ontologyClause}
+    FILTER NOT EXISTS { ?p <http://www.w3.org/2002/07/owl#deprecated> true }
+    FILTER(!isLiteral(?other) || lang(?other) = "" || lang(?other) = "en")
+  } LIMIT ${EDGE_LIMIT}`;
 }
 
 async function fetchLabels(uris){
@@ -315,34 +461,73 @@ async function fetchLabels(uris){
   return map;
 }
 
-let relatedRequestId = 0;
-async function fetchRelated(uri){
-  const reqId = ++relatedRequestId;
+let requestId = 0;
+async function loadUri(uri, {pushToTrail} = {pushToTrail: false}){
+  const reqId = ++requestId;
+  uriInput.value = uri;
+  if(pushToTrail){
+    // Cut any forward history once a new bubble is opened from mid-trail.
+    const idx = trail.indexOf(uri);
+    if(idx !== -1){ trail = trail.slice(0, idx + 1); }
+    else { trail.push(uri); }
+  }
+  renderTrail();
+  backBtn.disabled = trail.length < 2;
+
   relatedStatusEl.textContent = 'Loading related resources…';
   relatedStatusEl.classList.remove('err');
   relatedListEl.innerHTML = '';
-  const query = `SELECT DISTINCT ?other ?p ?dir WHERE {
-    { <${uri}> ?p ?other . BIND("out" AS ?dir) }
-    UNION
-    { ?other ?p <${uri}> . BIND("in" AS ?dir) }
-    FILTER NOT EXISTS { ?p <http://www.w3.org/2002/07/owl#deprecated> true }
-  } LIMIT ${RELATED_LIMIT}`;
+  renderers.forEach(r => r.layout(null, () => {})); // clear all four faces while loading
+
   try{
-    const rows = await sparqlSelect(query, 8000);
-    if(reqId !== relatedRequestId) return; // a newer bubble was opened meanwhile
-    const uriSet = new Set();
+    const rows = await sparqlSelect(buildTriplesQuery(uri), 8000);
+    if(reqId !== requestId) return; // a newer bubble was opened meanwhile
+
+    const uriSet = new Set([uri]); // seed with the center itself, or its own label never resolves
     rows.forEach(r => { uriSet.add(r.p.value); if(r.other.type === 'uri') uriSet.add(r.other.value); });
     const labels = await fetchLabels([...uriSet]);
-    if(reqId !== relatedRequestId) return;
+    if(reqId !== requestId) return;
+
+    // Build this bubble's edges, and a minimal NODES entry for each satellite
+    // — enough to render and, for a URI object, to navigate into on click.
+    const centerKey = 'n:' + uri;
+    const edges = rows.map((r, i) => {
+      const predLabel = labels[r.p.value] || localName(r.p.value);
+      const isUriObj = r.other.type === 'uri';
+      const targetKey = centerKey + ':' + i;
+      NODES[targetKey] = isUriObj
+        ? {label: labels[r.other.value] || localName(r.other.value), uri: r.other.value, swatch: 'lav'}
+        : {label: r.other.value, uri: null, swatch: r.other['xml:lang'] ? 'grey' : 'grey'};
+      return {pred: predLabel, dir: r.dir.value, target: targetKey};
+    });
+    NODES[centerKey] = {label: labels[uri] || localName(uri), uri, swatch: 'center', edges};
+
+    renderers.forEach(r => r.layout(centerKey, u => loadUri(u, {pushToTrail: true})));
     renderRelated(rows, labels);
     relatedStatusEl.textContent = rows.length === 0
       ? 'No outgoing or incoming triples found for this URI.'
-      : (rows.length >= RELATED_LIMIT ? `Showing the first ${RELATED_LIMIT} links.` : `${rows.length} links.`);
+      : (rows.length >= EDGE_LIMIT ? `Showing the first ${EDGE_LIMIT} links.` : `${rows.length} links.`);
   } catch(err){
-    if(reqId !== relatedRequestId) return;
+    if(reqId !== requestId) return;
     relatedStatusEl.textContent = 'Could not reach the live endpoint (' + err.message + ').';
     relatedStatusEl.classList.add('err');
   }
+}
+
+function renderTrail(){
+  trailListEl.innerHTML = '';
+  trail.forEach((uri, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = (i + 1) + '. ' + localName(uri);
+    b.title = uri;
+    if(i === trail.length - 1) b.classList.add('current');
+    b.addEventListener('click', () => {
+      trail = trail.slice(0, i + 1);
+      loadUri(uri);
+    });
+    trailListEl.appendChild(b);
+  });
 }
 
 function renderRelated(rows, labels){
@@ -371,7 +556,7 @@ function renderRelated(rows, labels){
       btn.className = 'expandBtn';
       btn.textContent = 'Expand';
       btn.title = 'Open ' + r.other.value + ' as the next bubble';
-      btn.addEventListener('click', () => loadUri(r.other.value, {pushToTrail:true}));
+      btn.addEventListener('click', () => loadUri(r.other.value, {pushToTrail: true}));
       li.appendChild(btn);
     }
     relatedListEl.appendChild(li);
@@ -389,11 +574,9 @@ backBtn.addEventListener('click', () => {
   trail.pop();
   loadUri(trail[trail.length - 1]);
 });
-templateInput.addEventListener('change', () => loadUri(uriInput.value.trim() || DEFAULT_URI));
 
 // ---- init ----
 uriInput.value = DEFAULT_URI;
-templateInput.value = DEFAULT_TEMPLATE;
 applyRotations();
 loadUri(DEFAULT_URI);
 </script>
