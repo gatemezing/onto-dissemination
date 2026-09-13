@@ -56,6 +56,12 @@ Consequences:
   last rather than dropping them.
 - **Join organisation names on `era:organisationCode`**, not the body URI. RINF
   has no names at all — all 660 `era:Body` there carry zero `foaf:name`.
+- **Probe the part-whole direction per country represented in the run, never
+  once globally**, the moment a tool lets more than one line be picked at
+  once. A single probe was safe when a run could only ever touch one line;
+  once RCC and the route book both gained multi-line selection, a run mixing
+  a Croatia line with any other country's would otherwise silently apply the
+  wrong direction to Croatia's side of it.
 
 ## Rule 3 — validity: newest window **per place**, never per line
 
@@ -120,6 +126,45 @@ Measured, identical results:
 - Parallel single-property queries beat one batched `VALUES ?prop` query — 1.1 s
   vs 12.1 s for five parameters across 27 countries.
 
+## Rule 6 — the endpoint's own reliability is not guaranteed, and browsers hide why
+
+Two failure modes are specific to this domain and worth checking for directly
+rather than assuming a query bug:
+
+- **CORS can silently regress.** `graph.data.era.europa.eu` sent no
+  `Access-Control-Allow-Origin` at all for roughly two and a half weeks
+  (broke sometime after 2026-08-17, confirmed fixed again by 2026-09-12) —
+  GET, POST and the OPTIONS preflight all affected, `curl` unaffected (CORS is
+  browser-enforced, not server-side access control), so every live-query tool
+  here failed identically and simultaneously with no server-side change on
+  our part. A browser deliberately gives JS no way to tell "CORS blocked
+  this" apart from "there is no server to reach" or "something on the
+  network ate the request" — `fetch()` throws the same generic `TypeError`
+  either way. Diagnose with a follow-up probe instead of guessing from
+  `err.message`: `fetch(originUrl, {mode:'no-cors', cache:'no-store'})`
+  resolves (even though its body is unreadable) whenever the server is
+  reachable at all, and rejects only on a genuine connectivity failure. Every
+  live-query tool in this repo runs this probe before showing an error, and
+  reports which of the two actually happened, with the raw `err.message`
+  kept behind a details toggle rather than shown as the headline.
+- **`graph.data.era.europa.eu/graphs-visualizations`** (the GraphDB Workbench
+  visual-graph UI page — a different thing from the `/repositories/*` SPARQL
+  endpoints above) **sends `X-Frame-Options: SAMEORIGIN`.** It cannot be
+  embedded in an `<iframe>` from any other origin, confirmed with a real
+  browser, not just headers read by `curl` — every modern browser enforces
+  this, and there is no client-side workaround and no reliable way to detect
+  the block from script (a blocked frame still fires a `load` event, so a
+  load-timeout heuristic won't catch it either). `era-holobox-frame.html`
+  tried this first and had to be rewritten to render its own bubble graph
+  instead of embedding GraphDB's page.
+- **`rinf.data.era.europa.eu/api/v1/sparql/rinf`** looks like a plausible
+  alternative endpoint and is not one: its CORS policy is an explicit origin
+  allowlist that rejects every origin but its own official app (confirmed via
+  the OPTIONS preflight, which returns `400 Disallowed CORS origin`), and it
+  only fronts the `rinf` dataset — no `OCR-KG`, `era-lex`, or ontology
+  repository, so organisation-name resolution and similar joins have nowhere
+  to go through it.
+
 ## Legal index annotations
 
 Properties carry their position in the legislation. These are **independent
@@ -163,11 +208,11 @@ from the browser and share a dependency-free XLSX writer.
 | File | Page | Does |
 |---|---|---|
 | `era-graph-explorer-app.html` | `/` | bubble-graph "follow your nose" demo |
-| `era-holobox-frame.html` | `/holobox.html` | 4-face hologram-pyramid frame embedding the real GraphDB Workbench visual graph, with an Expand-to-next-bubble control dock |
+| `era-holobox-frame.html` | `/holobox.html` | the same bubble graph, natively rendered (no iframe — see Rule 6) across 4 faces of a hologram-pyramid frame, with an Expand-to-next-bubble control dock |
 | `era-rdf-exporter.html` | `/exporter.html` | export any resource URI as RDF/XML |
-| `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country |
-| `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters along one line |
-| `era-route-book.html` | `/routebook.html` | TSI OPE Appendix D2 elements + coverage |
+| `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country, plus a network map |
+| `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters, multi-country/multi-line with "Select all", plus a network map |
+| `era-route-book.html` | `/routebook.html` | TSI OPE Appendix D2 elements + coverage, multi-country/multi-line with "Select all", plus a network map |
 
 Verified query sets with measurements live in `scripts/assets/rcc/` and
 `scripts/assets/routebook/`. `scripts/build-rinf-parameter-catalog.py` refreshes
