@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ERA Holobox Frame — native graph, hologram-ready</title>
+<title>ERA Holobox Frame — native live graph</title>
 <style>
   :root{
     --bg:#0b1220; --panel:#111a2e; --ink:#eef2ff; --muted:#8fa0c9;
@@ -34,39 +34,19 @@
   button:disabled{opacity:.5; cursor:default;}
   main{display:flex; gap:16px; padding:16px 18px; align-items:flex-start; flex-wrap:wrap;}
 
-  /* ---------------- Holobox stage ---------------- */
+  /* ---------------- Stage ---------------- */
   #stageWrap{flex:0 0 auto;}
-  .layoutToggle{display:flex; gap:6px; margin-bottom:8px;}
-  .layoutToggle button.active{outline:2px solid var(--accent2); outline-offset:2px;}
 
   #stage{
     position:relative; width:520px; height:520px; background:#fff;
     border:1px solid var(--line); border-radius:10px; overflow:hidden;
   }
-  #stage.flat{display:flex; align-items:center; justify-content:center;}
-  #stage.flat .face{position:static; width:100%; height:100%; transform:none;}
-
-  /* Cross/plus template: 3x3 grid, faces on N/E/S/W arms, center + corners empty
-     so the physical pyramid apex sits over the void, matching the common
-     4-way "hologram fan" cross layout used for pocket pyramid projectors. */
-  #stage.hologram{display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-rows:1fr 1fr 1fr;}
-  .face{position:relative; overflow:hidden; background:#fff;}
-  .face .inner{position:absolute; inset:0; transform-origin:center center;}
-  #faceTop{grid-column:2; grid-row:1;}
-  #faceRight{grid-column:3; grid-row:2;}
-  #faceBottom{grid-column:2; grid-row:3;}
-  #faceLeft{grid-column:1; grid-row:2;}
-  .faceLabel{
-    position:absolute; top:4px; left:4px; z-index:9; font-size:10px; color:var(--muted);
-    background:rgba(255,255,255,.8); padding:1px 5px; border-radius:4px; pointer-events:none;
-  }
 
   /* ---------------- native bubble graph, ported from era-graph-explorer-app.html ----
-     One instance of this per face (each with its own .world), all driven from
-     the same shared NODES cache so all four stay in lock-step. Colours and
-     bubble shape are unchanged from that tool; only the edge lines, arrowheads
-     and edge-label chip are re-themed for a white stage instead of a dark one
-     — the original's near-white edges would be invisible here. */
+     Colours and bubble shape are unchanged from that tool; only the edge
+     lines, arrowheads and edge-label chip are re-themed for a white stage
+     instead of a dark one — the original's near-white edges would be
+     invisible here. */
   .graphStage{position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;
     perspective:1400px; overflow:hidden;}
   .world{position:relative; width:10px; height:10px; transform-style:preserve-3d;
@@ -116,10 +96,7 @@
     box-shadow:0 2px 8px rgba(20,30,55,.15); transition:opacity .4s ease; z-index:6; pointer-events:none;}
   .edgeLabel.visible{opacity:1;}
 
-  .rotCalib{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;}
-  .rotCalib .field{width:80px;}
-
-  /* ---------------- Control dock (never projected — this is the operator's own screen) ---------------- */
+  /* ---------------- Control dock ---------------- */
   #dock{flex:1 1 360px; min-width:320px; max-width:480px;}
   #dock h2{font-size:13px; margin:0 0 6px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;}
   .card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:12px;}
@@ -146,39 +123,15 @@
 <header>
   <h1>ERA Holobox Frame</h1>
   <p>Renders the live ERA/RINF graph as its own bubble-and-edge view — the same style
-     <a href="./" style="color:#fff;">ERA Graph Explorer</a> draws — on all four faces of a pyramid hologram
-     display. Click a bubble, or <b>Expand</b> a related resource in the dock, to open it as the next bubble
-     across all faces.</p>
+     <a href="./" style="color:#fff;">ERA Graph Explorer</a> draws. Click a bubble, or <b>Expand</b> a related
+     resource in the dock, to open it as the next bubble.</p>
 </header>
 
 <main>
   <div id="stageWrap">
-    <div class="layoutToggle">
-      <button id="btnHologram" class="active" type="button">Hologram (4 faces)</button>
-      <button id="btnFlat" class="ghost" type="button">Flat (desktop preview)</button>
+    <div id="stage">
+      <div class="graphStage"><div class="world"></div></div>
     </div>
-
-    <div id="stage" class="hologram">
-      <div id="faceBottom" class="face"><span class="faceLabel">bottom</span><div class="inner"><div class="graphStage"><div class="world"></div></div></div></div>
-      <div id="faceLeft" class="face"><span class="faceLabel">left</span><div class="inner"><div class="graphStage"><div class="world"></div></div></div></div>
-      <div id="faceTop" class="face"><span class="faceLabel">top</span><div class="inner"><div class="graphStage"><div class="world"></div></div></div></div>
-      <div id="faceRight" class="face"><span class="faceLabel">right</span><div class="inner"><div class="graphStage"><div class="world"></div></div></div></div>
-    </div>
-
-    <div class="rotCalib">
-      <div class="field"><label for="rotBottom">Bottom °</label><input type="number" id="rotBottom" value="0" step="90"></div>
-      <div class="field"><label for="rotLeft">Left °</label><input type="number" id="rotLeft" value="90" step="90"></div>
-      <div class="field"><label for="rotTop">Top °</label><input type="number" id="rotTop" value="180" step="90"></div>
-      <div class="field"><label for="rotRight">Right °</label><input type="number" id="rotRight" value="270" step="90"></div>
-    </div>
-    <p style="color:var(--muted); font-size:11.5px; max-width:520px;">
-      Per-face rotation follows the common 4-way pyramid "fan" fold, but the exact
-      angles depend on how <i>your</i> physical reflector is cut and which way it
-      folds — recalibrate the four values above against your unit rather than
-      trusting the defaults. Each face redraws itself to fit whatever size it's
-      given, so the four small faces and the single large "Flat" preview both
-      stay legible without separate tuning.
-    </p>
   </div>
 
   <div id="dock">
@@ -211,9 +164,8 @@ const DEFAULT_URI = 'http://data.europa.eu/949/operationalPoint/6d8ac0e632'; // 
 const ERA_NAMESPACE = 'http://data.europa.eu/949/';
 const ERA_ONTOLOGY_GRAPH = 'http://data.europa.eu/949/graph/rinf/ontology';
 const ERA_SKOS_GRAPH = 'http://data.europa.eu/949/graph/rinf/skos';
-// A tiny pyramid face and the dock's scrollable text list have very different
-// tolerances for "how much is too much" — the list is fine with more than the
-// graph is, so both share one fetch and one limit rather than querying twice.
+// The graph and the dock's scrollable text list share one fetch and one
+// limit rather than querying the endpoint twice for the same resource.
 const EDGE_LIMIT = 24;
 
 const uriInput = document.getElementById('uriInput');
@@ -222,59 +174,16 @@ const backBtn = document.getElementById('backBtn');
 const trailListEl = document.getElementById('trailList');
 const relatedListEl = document.getElementById('relatedList');
 const relatedStatusEl = document.getElementById('relatedStatus');
-const stageEl = document.getElementById('stage');
-
-const faceEls = {
-  bottom: document.querySelector('#faceBottom'),
-  left:   document.querySelector('#faceLeft'),
-  top:    document.querySelector('#faceTop'),
-  right:  document.querySelector('#faceRight'),
-};
-const rotInputs = {
-  bottom: document.getElementById('rotBottom'),
-  left:   document.getElementById('rotLeft'),
-  top:    document.getElementById('rotTop'),
-  right:  document.getElementById('rotRight'),
-};
 
 let trail = [DEFAULT_URI];
 
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function localName(uri){ const m = String(uri).match(/([^/#]+)\/?$/); return m ? decodeURIComponent(m[1]) : uri; }
 
-function applyRotations(){
-  for(const k in faceEls){
-    const deg = Number(rotInputs[k].value) || 0;
-    faceEls[k].querySelector('.inner').style.transform = 'rotate(' + deg + 'deg)';
-  }
-}
-Object.values(rotInputs).forEach(inp => inp.addEventListener('change', applyRotations));
-
-function setLayout(mode){
-  stageEl.classList.toggle('flat', mode === 'flat');
-  stageEl.classList.toggle('hologram', mode === 'hologram');
-  document.getElementById('btnHologram').classList.toggle('active', mode === 'hologram');
-  document.getElementById('btnFlat').classList.toggle('active', mode === 'flat');
-  if(mode === 'flat'){
-    // Preview mode: show only the bottom face, upright, filling the stage.
-    Object.entries(faceEls).forEach(([k, el]) => { el.style.display = (k === 'bottom') ? '' : 'none'; });
-    faceEls.bottom.querySelector('.inner').style.transform = 'none';
-  } else {
-    Object.values(faceEls).forEach(el => el.style.display = '');
-    applyRotations();
-  }
-  renderers.forEach(r => r.rescale());
-}
-document.getElementById('btnHologram').addEventListener('click', () => setLayout('hologram'));
-document.getElementById('btnFlat').addEventListener('click', () => setLayout('flat'));
-
 /* ------------------------------------------------------------------ *
  * Native bubble-graph renderer, ported from era-graph-explorer-app.html.
- * One instance per pyramid face, each targeting its own .world element but
- * all reading the same shared NODES cache below, so the four faces are
- * never out of sync with each other.
  * ------------------------------------------------------------------ */
-const NODES = {}; // shared across every face: id -> {label, swatch, edges:[{pred,dir,target}]}
+const NODES = {}; // id -> {label, swatch, edges:[{pred,dir,target}]}
 const WORLD_BASE_TRANSFORM = 'rotateX(14deg) rotateY(-5deg)';
 
 function createGraphRenderer(faceEl){
@@ -355,28 +264,13 @@ function createGraphRenderer(faceEl){
     worldEl.style.transform = `${WORLD_BASE_TRANSFORM} scale(${scale})`;
   }
 
-  // A busy resource can carry more edges than a ~170px pyramid face can ever
-  // show legibly — proportionally shrinking the same desktop-scale layout
-  // (as era-graph-explorer-app.html does, fine at full window size) just
-  // turns it into an unreadable cluster of overlapping bubbles instead. Each
-  // face caps how MANY bubbles it draws to its own current size instead, so
-  // the four small hologram faces stay legible while flat/desktop preview —
-  // several times larger — can still show the fuller picture. The dock's
-  // text list is the complete, uncapped reference regardless.
-  function maxEdgesForSize(px){
-    if(px < 220) return 8;
-    if(px < 400) return 14;
-    return 24;
-  }
-
   function layout(centerId, onNavigate){
     clearWorld();
     if(!centerId || !NODES[centerId]) return;
     const data = NODES[centerId];
     renderNode(centerId, 0, 0, 50, true);
 
-    const cap = maxEdgesForSize(Math.min(stageWrapEl.clientWidth, stageWrapEl.clientHeight) || 520);
-    const edges = data.edges.slice(0, cap);
+    const edges = data.edges;
     const n = edges.length;
     const centerR = bubbleMetrics(data.label, true).diameter / 2;
     const targetDiams = edges.map(e => bubbleMetrics(NODES[e.target].label, false).diameter);
@@ -403,13 +297,13 @@ function createGraphRenderer(faceEl){
   };
 }
 
-const renderers = Object.values(faceEls).map(createGraphRenderer);
-window.addEventListener('resize', () => renderers.forEach(r => r.rescale()));
+const renderer = createGraphRenderer(document.getElementById('stage'));
+window.addEventListener('resize', () => renderer.rescale());
 
 /* ------------------------------------------------------------------ *
- * Live SPARQL — one query serves both the four graph faces and the dock's
- * text list, rather than the two querying the endpoint separately for the
- * same resource.
+ * Live SPARQL — one query serves both the graph and the dock's text list,
+ * rather than the two querying the endpoint separately for the same
+ * resource.
  * ------------------------------------------------------------------ */
 async function sparqlSelect(query, timeoutMs){
   const url = LIVE_ENDPOINT + '?query=' + encodeURIComponent(query);
@@ -477,7 +371,7 @@ async function loadUri(uri, {pushToTrail} = {pushToTrail: false}){
   relatedStatusEl.textContent = 'Loading related resources…';
   relatedStatusEl.classList.remove('err');
   relatedListEl.innerHTML = '';
-  renderers.forEach(r => r.layout(null, () => {})); // clear all four faces while loading
+  renderer.layout(null, () => {}); // clear the stage while loading
 
   try{
     const rows = await sparqlSelect(buildTriplesQuery(uri), 8000);
@@ -502,7 +396,7 @@ async function loadUri(uri, {pushToTrail} = {pushToTrail: false}){
     });
     NODES[centerKey] = {label: labels[uri] || localName(uri), uri, swatch: 'center', edges};
 
-    renderers.forEach(r => r.layout(centerKey, u => loadUri(u, {pushToTrail: true})));
+    renderer.layout(centerKey, u => loadUri(u, {pushToTrail: true}));
     renderRelated(rows, labels);
     relatedStatusEl.textContent = rows.length === 0
       ? 'No outgoing or incoming triples found for this URI.'
@@ -577,7 +471,6 @@ backBtn.addEventListener('click', () => {
 
 // ---- init ----
 uriInput.value = DEFAULT_URI;
-applyRotations();
 loadUri(DEFAULT_URI);
 </script>
 </body>
