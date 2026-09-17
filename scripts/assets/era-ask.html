@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the ERA Graph</title>
+<style>
+  :root{
+    --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
+    --blue:#5b9bd5; --green:#7ac36a; --teal:#5fd0ae; --orange:#f0a83a;
+    --paper:#eef2ff; --panel:rgba(16,22,38,.92); --line:rgba(255,255,255,.14);
+    --muted:#aebbdd; --danger:#f26d6d; --dim:#7d8bb0;
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--bg1);}
+  body{margin:0;padding:0;min-height:100vh;background-color:var(--bg1);
+    background-image:radial-gradient(1400px 900px at 50% 0%, var(--bg2), var(--bg1) 70%);
+    background-repeat:no-repeat;
+    font-family:"Segoe UI",Arial,sans-serif;color:var(--paper);}
+  #app{max-width:880px;margin:0 auto;padding:28px 20px 70px;}
+
+  header h1{font-size:23px;margin:0 0 6px;font-weight:700;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  header p{margin:0 0 22px;color:var(--muted);font-size:13.5px;line-height:1.55;max-width:78ch;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);margin-bottom:16px;}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+    margin:0 0 14px;font-weight:700;display:flex;align-items:center;gap:9px;}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;flex:none;
+    border-radius:50%;background:rgba(91,155,213,.18);border:1px solid rgba(91,155,213,.5);
+    color:var(--blue);font-size:11px;font-weight:700;}
+
+  input[type=text],select{background:rgba(255,255,255,.06);
+    border:1px solid var(--line);color:var(--paper);padding:10px 12px;border-radius:8px;font-size:14px;
+    font-family:inherit;}
+  input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+  select option{background:#141d33;color:var(--paper);}
+
+  .askBar{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;}
+  #qInput{flex:1 1 260px;min-width:0;}
+  #voiceLang{flex:0 0 auto;}
+  button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
+    padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  button.btn:hover:not(:disabled){background:linear-gradient(180deg,#33456b,#22304d);}
+  button.btn:disabled{opacity:.4;cursor:not-allowed;}
+  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);}
+  button.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#4a89e0,#3568b3);}
+  button:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+  #micBtn{font-size:16px;line-height:1;padding:9px 13px;position:relative;}
+  #micBtn.listening{background:linear-gradient(180deg,#c1503f,#a13d2f);animation:pulse 1.1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,96,79,.55);}50%{box-shadow:0 0 0 8px rgba(232,96,79,0);}}
+  #micHint{font-size:11.5px;color:var(--dim);margin-top:8px;min-height:15px;}
+  #micHint.err{color:var(--danger);}
+
+  .sampleRow{margin-top:16px;}
+  .sampleLabel{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;
+    display:block;margin-bottom:8px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--paper);
+    padding:6px 13px;border-radius:20px;font-size:12.5px;cursor:pointer;font-family:inherit;text-align:left;}
+  .chip:hover{background:rgba(91,155,213,.16);border-color:rgba(91,155,213,.5);}
+  .chip .tag{color:var(--teal);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;margin-right:6px;}
+
+  #resultPanel[hidden]{display:none;}
+  .understood{font-size:13px;color:var(--muted);margin-bottom:14px;padding:9px 12px;
+    background:rgba(95,208,174,.08);border:1px solid rgba(95,208,174,.3);border-radius:8px;}
+  .understood b{color:var(--paper);}
+
+  .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+  .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:14px 16px;}
+  .statTile .n{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .statTile .l{font-size:12px;color:var(--muted);margin-top:4px;}
+
+  .tableWrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;max-height:420px;overflow-y:auto;}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  th,td{text-align:left;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.07);}
+  th{position:sticky;top:0;background:#141d33;font-size:11px;text-transform:uppercase;
+    letter-spacing:.4px;color:var(--muted);z-index:2;}
+  td.nm{max-width:380px;}
+  td.ix a{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--dim);text-decoration:none;white-space:nowrap;}
+  td.ix a:hover{color:var(--blue);}
+  tbody tr:hover{background:rgba(255,255,255,.035);}
+  .moreNote{font-size:11.5px;color:var(--muted);margin-top:10px;}
+  .resultActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .resultActions[hidden]{display:none;}
+  button.btn.secondary{background:rgba(255,255,255,.05);}
+
+  .fetchErr .h{font-weight:700;margin-bottom:2px;}
+  .fetchErr .b{line-height:1.5;}
+  .fetchErr .retryBtn{background:none;border:none;color:var(--blue);text-decoration:underline;
+    cursor:pointer;font:inherit;padding:0;margin-left:4px;}
+  .fetchErr details{margin-top:5px;}
+  .fetchErr summary{cursor:pointer;font-size:11px;color:var(--muted);}
+  .fetchErr .tech{display:block;margin-top:4px;font-size:11px;font-family:"SF Mono",Consolas,monospace;
+    color:var(--muted);white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);
+    padding:6px 8px;border-radius:6px;}
+
+  details{margin-top:14px;}
+  summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
+  summary:hover{color:var(--paper);}
+  #queryMeta{font-size:11.5px;color:var(--dim);margin-top:8px;}
+  pre.code{background:#050810;border:1px solid var(--line);border-radius:8px;padding:12px;
+    font-size:11px;font-family:"SF Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word;
+    max-height:320px;overflow:auto;margin:6px 0 0;color:#b9c6ea;}
+
+  #spinner{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+  .spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);
+    animation:spin .8s linear infinite;flex:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  footer{font-size:11.5px;color:var(--muted);margin-top:24px;line-height:1.65;}
+  footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11px;}
+  footer p{margin:0 0 9px;}
+  a{color:var(--blue);}
+
+  @media (max-width:640px){
+    #app{padding:20px 13px 44px;}
+    .askBar{flex-direction:column;}
+    #qInput{flex:none;width:100%;}
+    #voiceLang{width:100%;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Ask the ERA Graph</h1>
+    <p>Ask about railway infrastructure, organisations and EU rail law in plain language — type it or speak it —
+       and this tool turns the question into a live SPARQL query across three ERA endpoints:
+       <code>rinf-plus</code> (infrastructure), <code>OCR-KG</code> (organisations) and <code>era-lex</code>
+       (EU rail legislation). It recognises a fixed set of question shapes by keyword matching, in English,
+       French, German, Spanish or Italian — not a general language model — so an unrecognised question gets a
+       nudge toward the sample questions below rather than a guess.</p>
+  </header>
+
+  <div class="panel">
+    <h2><span class="step">1</span> Ask a question</h2>
+    <div class="askBar">
+      <input type="text" id="qInput" placeholder="e.g. How many tunnels does Italy have?" autocomplete="off">
+      <select id="voiceLang" title="Voice input language">
+        <option value="en-US">🎙 English</option>
+        <option value="fr-FR">🎙 Français</option>
+        <option value="de-DE">🎙 Deutsch</option>
+        <option value="es-ES">🎙 Español</option>
+        <option value="it-IT">🎙 Italiano</option>
+      </select>
+      <button type="button" id="micBtn" class="btn" title="Ask by voice">🎤</button>
+      <button type="button" id="askBtn" class="btn primary">Ask</button>
+    </div>
+    <div id="micHint"></div>
+
+    <div class="sampleRow">
+      <span class="sampleLabel">Try asking</span>
+      <div id="samples" class="chips"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="resultPanel" hidden>
+    <h2><span class="step">2</span> Answer</h2>
+    <div id="understood" class="understood" hidden></div>
+    <div id="answerArea"></div>
+    <div id="resultActions" class="resultActions" hidden>
+      <button type="button" id="downloadCsvBtn" class="btn">Download CSV</button>
+      <button type="button" id="copyLinkBtn" class="btn secondary">Copy link</button>
+    </div>
+    <details id="sparqlDetails" hidden>
+      <summary>Show the SPARQL query</summary>
+      <div id="queryMeta"></div>
+      <pre class="code" id="sparqlText"></pre>
+    </details>
+  </div>
+
+  <footer>
+    <p>Every answer is a live SPARQL query run from your browser — nothing is sent anywhere else, and the exact
+       query is always one click away under &ldquo;Show the SPARQL query&rdquo;. Voice input uses your browser's
+       own speech recognition (Chrome/Edge); it is not supported in every browser. This is a demo of a small,
+       fixed vocabulary — tunnels, freight terminals, stations, border points, railway lines, infrastructure
+       managers, railway undertakings, and EU rail legislation by topic — not a general question-answering system.</p>
+    <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
+       <a href="./values.html">RINF Parameter Values</a> · <a href="./rcc.html">RCC Parameters</a> ·
+       <a href="./routebook.html">Route Book</a></p>
+  </footer>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * Endpoints
+ * ------------------------------------------------------------------ */
+const REPOS = {
+  rinf: 'https://graph.data.era.europa.eu/repositories/rinf-plus',
+  ocr:  'https://graph.data.era.europa.eu/repositories/OCR-KG',
+  lex:  'https://graph.data.era.europa.eu/repositories/era-lex',
+};
+const REPO_LABEL = {rinf:'rinf-plus', ocr:'OCR-KG', lex:'era-lex'};
+
+const PFX = `PREFIX era:  <http://data.europa.eu/949/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>`;
+
+/* ------------------------------------------------------------------ *
+ * Countries — same 27 as the other tools in this repo, with a name
+ * variant per supported language so "in Germany"/"en Allemagne"/
+ * "in Deutschland"/"en Alemania"/"in Germania" all resolve to DEU.
+ * ------------------------------------------------------------------ */
+const COUNTRIES = [
+  ['AUT','Austria',      {fr:'autriche', de:'österreich', es:'austria',    it:'austria'}],
+  ['BEL','Belgium',      {fr:'belgique', de:'belgien',    es:'bélgica',    it:'belgio'}],
+  ['BGR','Bulgaria',     {fr:'bulgarie', de:'bulgarien',  es:'bulgaria',   it:'bulgaria'}],
+  ['HRV','Croatia',      {fr:'croatie',  de:'kroatien',   es:'croacia',    it:'croazia'}],
+  ['CZE','Czechia',      {fr:'tchéquie', de:'tschechien', es:'chequia',    it:'cechia'}],
+  ['DNK','Denmark',      {fr:'danemark', de:'dänemark',   es:'dinamarca',  it:'danimarca'}],
+  ['EST','Estonia',      {fr:'estonie',  de:'estland',    es:'estonia',    it:'estonia'}],
+  ['FIN','Finland',      {fr:'finlande', de:'finnland',   es:'finlandia',  it:'finlandia'}],
+  ['FRA','France',       {fr:'france',   de:'frankreich', es:'francia',    it:'francia'}],
+  ['DEU','Germany',      {fr:'allemagne',de:'deutschland',es:'alemania',   it:'germania'}],
+  ['GRC','Greece',       {fr:'grèce',    de:'griechenland',es:'grecia',    it:'grecia'}],
+  ['HUN','Hungary',      {fr:'hongrie',  de:'ungarn',     es:'hungría',    it:'ungheria'}],
+  ['IRL','Ireland',      {fr:'irlande',  de:'irland',     es:'irlanda',    it:'irlanda'}],
+  ['ITA','Italy',        {fr:'italie',   de:'italien',    es:'italia',     it:'italia'}],
+  ['LVA','Latvia',       {fr:'lettonie', de:'lettland',   es:'letonia',    it:'lettonia'}],
+  ['LTU','Lithuania',    {fr:'lituanie', de:'litauen',    es:'lituania',   it:'lituania'}],
+  ['LUX','Luxembourg',   {fr:'luxembourg',de:'luxemburg', es:'luxemburgo', it:'lussemburgo'}],
+  ['NLD','Netherlands',  {fr:'pays-bas', de:'niederlande',es:'países bajos',it:'paesi bassi'}],
+  ['NOR','Norway',       {fr:'norvège',  de:'norwegen',   es:'noruega',    it:'norvegia'}],
+  ['POL','Poland',       {fr:'pologne',  de:'polen',      es:'polonia',    it:'polonia'}],
+  ['PRT','Portugal',     {fr:'portugal', de:'portugal',   es:'portugal',   it:'portogallo'}],
+  ['ROU','Romania',      {fr:'roumanie', de:'rumänien',   es:'rumania',    it:'romania'}],
+  ['SVK','Slovakia',     {fr:'slovaquie',de:'slowakei',   es:'eslovaquia', it:'slovacchia'}],
+  ['SVN','Slovenia',     {fr:'slovénie', de:'slowenien',  es:'eslovenia',  it:'slovenia'}],
+  ['ESP','Spain',        {fr:'espagne',  de:'spanien',    es:'españa',     it:'spagna'}],
+  ['SWE','Sweden',       {fr:'suède',    de:'schweden',   es:'suecia',     it:'svezia'}],
+  ['CHE','Switzerland',  {fr:'suisse',   de:'schweiz',    es:'suiza',      it:'svizzera'}],
+];
+
+/* ------------------------------------------------------------------ *
+ * What can be asked about — checked in this order, so a specific
+ * phrase ("freight station") is matched before the generic one it
+ * contains ("station").
+ * ------------------------------------------------------------------ */
+const LANGS = ['en','fr','de','es','it'];
+const LANG_NAME = {en:'English', fr:'French', de:'German', es:'Spanish', it:'Italian'};
+
+const ENTITIES = [
+  { id:'freight', kind:'opType', match:'freight', displayName:'freight terminals', patterns:{
+      en:['freight terminal','freight terminals','freight station','freight stations','freight'],
+      fr:['terminal de fret','terminaux de fret','gare de fret','fret'],
+      de:['güterterminal','güterbahnhof','güterbahnhöfe','fracht'],
+      es:['terminal de mercancías','terminal de mercancias','estación de mercancías','estacion de mercancias','mercancías','mercancias'],
+      it:['terminale merci','terminali merci','scalo merci','merci'],
+  }},
+  { id:'border', kind:'opType', match:'border', displayName:'border points', patterns:{
+      en:['border point','border points','border crossing','border crossings'],
+      fr:['point frontière','points frontière','point frontiere','points frontiere'],
+      de:['grenzübergang','grenzübergänge','grenzpunkt','grenzpunkte'],
+      es:['punto fronterizo','puntos fronterizos'],
+      it:['punto di frontiera','punti di frontiera'],
+  }},
+  { id:'tunnel', kind:'class', cls:'Tunnel', displayName:'tunnels',
+    caveat:'Counts only tunnels that record a country in the live data — a little over half of all tunnels do.',
+    patterns:{
+      en:['tunnel','tunnels'], fr:['tunnel','tunnels'], de:['tunnel','tunneln'],
+      es:['túnel','tunel','túneles','tuneles'], it:['galleria','gallerie','tunnel'],
+  }},
+  { id:'line', kind:'lps', displayName:'railway lines',
+    caveat:'Country results follow each line’s published sections, because line resources do not normally record a country directly.',
+    patterns:{
+      en:['railway line','railway lines','rail line','rail lines','line','lines'],
+      fr:['ligne ferroviaire','lignes ferroviaires','ligne','lignes'],
+      de:['eisenbahnstrecke','eisenbahnstrecken','strecke','strecken'],
+      es:['línea ferroviaria','linea ferroviaria','líneas ferroviarias','lineas ferroviarias','línea','linea','líneas','lineas'],
+      it:['linea ferroviaria','linee ferroviarie','linea','linee'],
+  }},
+  { id:'im', kind:'org', role:'IM', displayName:'infrastructure managers', patterns:{
+      en:['infrastructure manager','infrastructure managers','manage infrastructure','manages infrastructure','who manages'],
+      fr:["gestionnaire d'infrastructure","gestionnaires d'infrastructure","qui gère l'infrastructure"],
+      de:['infrastrukturbetreiber','wer betreibt die infrastruktur'],
+      es:['administrador de infraestructura','administradores de infraestructura','gestor de infraestructura','gestores de infraestructura','quién gestiona','quien gestiona'],
+      it:["gestore dell'infrastruttura","gestori dell'infrastruttura","chi gestisce"],
+  }},
+  { id:'ru', kind:'org', role:'RU', displayName:'railway undertakings', patterns:{
+      en:['railway undertaking','railway undertakings','train operator','train operators'],
+      fr:['entreprise ferroviaire','entreprises ferroviaires'],
+      de:['eisenbahnverkehrsunternehmen'],
+      es:['empresa ferroviaria','empresas ferroviarias'],
+      it:['impresa ferroviaria','imprese ferroviarie'],
+  }},
+  { id:'legal', kind:'lex', displayName:'legislation', patterns:{
+      en:['regulation','regulations','directive','directives','legal act','legal acts','decision','decisions'],
+      fr:['règlement','reglement','règlements','reglements','directive','directives'],
+      de:['verordnung','verordnungen','richtlinie','richtlinien'],
+      es:['reglamento','reglamentos','directiva','directivas'],
+      it:['regolamento','regolamenti','direttiva','direttive'],
+  }},
+  { id:'station', kind:'opType', match:'station', displayName:'railway stations', patterns:{
+      en:['railway station','railway stations','train station','train stations','station','stations'],
+      fr:['gare','gares'],
+      de:['bahnhof','bahnhöfe','bahnhofe'],
+      es:['estación','estacion','estaciones'],
+      it:['stazione','stazioni'],
+  }},
+];
+
+const COUNT_TRIGGERS = {
+  en:['how many','number of','count of'],
+  fr:['combien de','combien','nombre de'],
+  de:['wie viele','anzahl der','anzahl von'],
+  es:['cuántos','cuantos','cuántas','cuantas','número de','numero de'],
+  it:['quanti','quante','numero di'],
+};
+const LIST_TRIGGERS = {
+  en:['list','show me','give me','find','which','what are','display'],
+  fr:['liste','montre-moi','montrez-moi','donne-moi','donnez-moi','quels sont','quelles sont','trouve','trouver'],
+  de:['liste','zeig mir','zeige mir','welche sind','welche','finde'],
+  es:['lista','muéstrame','muestrame','dame','cuáles son','cuales son','encuentra'],
+  it:['elenca','mostrami','dammi','quali sono','trova'],
+};
+const ABOUT_WORDS = {
+  en:['about','concerning','regarding','on'],
+  fr:['concernant','à propos de','a propos de','sur'],
+  de:['bezüglich','bezueglich','über','ueber','zu'],
+  es:['acerca de','concerniente a','sobre'],
+  it:['riguardo a','concernente','su'],
+};
+
+/* ------------------------------------------------------------------ *
+ * Matching helpers
+ * ------------------------------------------------------------------ */
+function normalize(s){
+  return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function phraseRe(phrase){ return new RegExp('\\b' + escapeRegex(normalize(phrase)) + '\\b', 'i'); }
+function anyMatch(norm, phrases){ return (phrases || []).some(p => phraseRe(p).test(norm)); }
+
+function extractTopic(norm, lang, entity){
+  for(const w of (ABOUT_WORDS[lang] || ABOUT_WORDS.en)){
+    // A word-boundary search, not a plain substring one: a short connector
+    // like "on" would otherwise also match inside an unrelated word (e.g.
+    // the "on" inside "regulations"), slicing the topic from the wrong spot.
+    const re = new RegExp('\\b' + escapeRegex(normalize(w)) + '\\b', 'gi');
+    let m, last = null;
+    while((m = re.exec(norm)) !== null) last = m;
+    if(last){
+      const topic = norm.slice(last.index + last[0].length).replace(/[?.!,;:]+$/, '').trim();
+      if(topic) return topic;
+    }
+  }
+  // Fallback: strip the entity phrase, any intent triggers and any dangling
+  // "about"-word, and use what's left.
+  let rest = norm;
+  for(const p of (entity.patterns[lang] || [])) rest = rest.replace(phraseRe(p), ' ');
+  for(const p of [...(COUNT_TRIGGERS[lang]||[]), ...(LIST_TRIGGERS[lang]||[]), ...(ABOUT_WORDS[lang]||[])])
+    rest = rest.replace(phraseRe(p), ' ');
+  rest = rest.replace(/[?.!,;:]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return rest || null;
+}
+
+// Best-guess sentence language, from signals that are actually distinctive
+// across languages (intent phrases, non-English country names) rather than
+// from whichever language's entity keyword happened to match first — words
+// like "tunnel" are spelled identically in English and French, so keying
+// language purely off the entity match mislabels plainly French/Italian/etc.
+// questions as English whenever their entity word happens to be a cognate.
+function detectLanguage(norm){
+  const scores = {en:0, fr:0, de:0, es:0, it:0};
+  for(const l of LANGS){
+    if(anyMatch(norm, COUNT_TRIGGERS[l])) scores[l] += 2;
+    if(anyMatch(norm, LIST_TRIGGERS[l])) scores[l] += 2;
+  }
+  for(const [, , variants] of COUNTRIES){
+    for(const l of LANGS){
+      if(l === 'en') continue; // the English name often collides with other words; not a useful signal
+      if(phraseRe(variants[l]).test(norm)) scores[l] += 1;
+    }
+  }
+  let best = 'en', bestScore = 0;
+  for(const l of LANGS){ if(scores[l] > bestScore){ best = l; bestScore = scores[l]; } }
+  return best;
+}
+
+function parseQuestion(text){
+  const norm = normalize(text);
+  const lang = detectLanguage(norm);
+
+  let entity = null;
+  // A legal-act keyword describes the collection being searched, while an
+  // infrastructure keyword after "about" is the topic. Give it precedence so
+  // "regulations about tunnels" does not become a tunnel-count question.
+  const legalEntity = ENTITIES.find(e => e.id === 'legal');
+  if(LANGS.some(l => anyMatch(norm, legalEntity.patterns[l]))){
+    entity = legalEntity;
+  } else {
+    outer: for(const e of ENTITIES){
+      for(const l of LANGS){
+        if(anyMatch(norm, e.patterns[l])){ entity = e; break outer; }
+      }
+    }
+  }
+  if(!entity) return null;
+
+  let cc = null, countryLabel = null;
+  for(const [code, label, variants] of COUNTRIES){
+    const names = [label, ...Object.values(variants)];
+    if(names.some(n => phraseRe(n).test(norm)) || phraseRe(code).test(norm)){
+      cc = code; countryLabel = label; break;
+    }
+  }
+
+  const countMatched = anyMatch(norm, COUNT_TRIGGERS[lang]);
+  const listMatched = anyMatch(norm, LIST_TRIGGERS[lang]);
+  const defaultIntent = entity.id === 'legal' ? 'list' : 'count';
+  const intent = countMatched ? 'count' : (listMatched ? 'list' : defaultIntent);
+
+  const topic = entity.id === 'legal' ? extractTopic(norm, lang, entity) : null;
+  if(entity.id === 'legal' && !topic) return {entity, lang, cc, countryLabel, intent, topic: null, noTopic: true};
+
+  return {entity, lang, cc, countryLabel, intent, topic};
+}
+
+/* ------------------------------------------------------------------ *
+ * Query builders — always build both forms; the caller picks which
+ * to run based on intent, and runs both for a "list" so the caption
+ * can say how many results exist beyond the LIMIT.
+ * ------------------------------------------------------------------ */
+function countryUri(cc){ return cc ? 'http://publications.europa.eu/resource/authority/country/' + cc : null; }
+
+function buildQuery(entity, cc, topic){
+  const cUri = countryUri(cc);
+  if(entity.kind === 'class'){
+    const filter = cUri ? `?t era:inCountry <${cUri}> .` : '';
+    return {
+      repo:'rinf', labelVar:'label', uriVar:'t',
+      countQuery: `${PFX}\nSELECT (COUNT(DISTINCT ?t) AS ?n) WHERE {\n  ?t a era:${entity.cls} .\n  ${filter}\n}`,
+      listQuery: `${PFX}\nSELECT DISTINCT ?t ?label WHERE {\n  ?t a era:${entity.cls} ; rdfs:label ?label .\n  FILTER(LANG(?label) = "en")\n  ${filter}\n} ORDER BY ?label LIMIT 200`,
+    };
+  }
+  if(entity.kind === 'opType'){
+    const filter = cUri ? `?op era:inCountry <${cUri}> .` : '';
+    const lit = JSON.stringify(entity.match);
+    const typeClause = `?op era:opType ?type .\n  ?type skos:prefLabel ?tlabel .\n  FILTER(LANG(?tlabel) = "en" && CONTAINS(LCASE(?tlabel), ${lit}))`;
+    return {
+      repo:'rinf', labelVar:'name', uriVar:'op',
+      countQuery: `${PFX}\nSELECT (COUNT(DISTINCT ?op) AS ?n) WHERE {\n  ?op a era:OperationalPoint .\n  ${filter}\n  ${typeClause}\n}`,
+      listQuery: `${PFX}\nSELECT DISTINCT ?op ?name WHERE {\n  ?op a era:OperationalPoint .\n  ${filter}\n  ${typeClause}\n  OPTIONAL { ?op era:opName ?name . FILTER(LANG(?name) = "en" || LANG(?name) = "") }\n} ORDER BY ?name LIMIT 200`,
+    };
+  }
+  if(entity.kind === 'lps'){
+    // LPS resources generally do not carry era:inCountry. Their sections do,
+    // and era:nationalLine links those sections back to the line identity.
+    const filter = cUri ? `?sol a era:SectionOfLine ;\n       era:inCountry <${cUri}> ;\n       era:nationalLine ?lps .` : '';
+    return {
+      repo:'rinf', labelVar:'label', uriVar:'lps',
+      countQuery: `${PFX}\nSELECT (COUNT(DISTINCT ?lps) AS ?n) WHERE {\n  ?lps a era:LinearPositioningSystem .\n  ${filter}\n}`,
+      listQuery: `${PFX}\nSELECT DISTINCT ?lps ?label WHERE {\n  ?lps a era:LinearPositioningSystem .\n  ${filter}\n  OPTIONAL { ?lps rdfs:label ?rdfsLabel . FILTER(LANG(?rdfsLabel) = "en" || LANG(?rdfsLabel) = "") }\n  OPTIONAL { ?lps era:lineId ?lineId . }\n  BIND(COALESCE(?rdfsLabel, ?lineId, STRAFTER(STR(?lps), "/")) AS ?label)\n} ORDER BY ?label LIMIT 200`,
+    };
+  }
+  if(entity.kind === 'org'){
+    const roleUri = 'http://data.europa.eu/949/concepts/organisation-roles/' + entity.role;
+    const filter = cUri ? `?addr locn:adminUnitL1 <${cUri}> .` : '';
+    const base = `?org a org:Organization ; foaf:name ?name ; era:role ?roleInst ; org:hasSite ?site .\n  ?roleInst era:hasOrganisationRole <${roleUri}> .\n  ?site org:siteAddress ?addr .\n  ${filter}`;
+    return {
+      repo:'ocr', labelVar:'name', uriVar:'org',
+      countQuery: `${PFX}\nSELECT (COUNT(DISTINCT ?org) AS ?n) WHERE {\n  ${base}\n}`,
+      listQuery: `${PFX}\nSELECT DISTINCT ?org ?name WHERE {\n  ${base}\n} ORDER BY ?name LIMIT 200`,
+    };
+  }
+  if(entity.kind === 'lex'){
+    if(!topic) return null;
+    const lit = JSON.stringify(topic.toLowerCase());
+    const filter = `FILTER(LANG(?title) = "en" && CONTAINS(LCASE(?title), ${lit}))`;
+    return {
+      repo:'lex', labelVar:'title', uriVar:'expr',
+      countQuery: `${PFX}\nSELECT (COUNT(DISTINCT ?expr) AS ?n) WHERE {\n  ?expr a eli:Expression ; eli:title ?title .\n  ${filter}\n}`,
+      listQuery: `${PFX}\nSELECT DISTINCT ?expr ?title WHERE {\n  ?expr a eli:Expression ; eli:title ?title .\n  ${filter}\n} ORDER BY ?title LIMIT 100`,
+    };
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ *
+ * SPARQL fetch + the same CORS/reachability diagnosis used by the
+ * other live-query tools in this repo (see the era-graph skill).
+ * ------------------------------------------------------------------ */
+async function sparql(endpoint, query){
+  const res = await fetch(endpoint, {
+    method:'POST',
+    headers:{'Content-Type':'application/sparql-query', 'Accept':'application/sparql-results+json'},
+    body: query,
+  });
+  if(!res.ok){
+    const body = await res.text().catch(() => '');
+    throw new Error('HTTP ' + res.status + (body ? ' — ' + body.slice(0, 200) : ''));
+  }
+  return (await res.json()).results.bindings;
+}
+async function describeFetchError(err, endpoint){
+  const m = /^HTTP (\d+)/.exec((err && err.message) || '');
+  if(m){
+    const code = +m[1];
+    const KNOWN = {
+      400:['The endpoint rejected this query', 'This is almost always a bug in this tool’s query, not something you did.'],
+      403:['The endpoint refused this request', 'Access to this query or resource may be restricted right now.'],
+      404:['The endpoint address has changed', 'This tool may be pointing at a URL that no longer exists.'],
+      500:['The endpoint hit an internal error', 'This is on the server side — try again in a moment.'],
+      503:['The endpoint is overloaded or busy', 'Try again in a moment, or ask a narrower question.'],
+      504:['The endpoint took too long to respond', 'It may be under heavy load — try again, or ask a narrower question.'],
+    };
+    const known = KNOWN[code] || ['The endpoint returned an error', 'HTTP ' + code + ' — see technical detail below.'];
+    return {title:known[0], message:known[1], detail:err.message};
+  }
+  let reachable = false;
+  try{ await fetch(new URL(endpoint).origin + '/', {mode:'no-cors', cache:'no-store'}); reachable = true; }
+  catch{ reachable = false; }
+  if(reachable)
+    return {
+      title:'Blocked by your browser, not by you',
+      message:'The server responded, but didn’t grant this page permission to read cross-origin responses (a missing CORS header). That’s on the endpoint’s side.',
+      detail:String((err && err.message) || err),
+    };
+  return {
+    title:'Could not reach the server',
+    message:(typeof navigator !== 'undefined' && navigator.onLine === false)
+      ? 'Your device appears to be offline — check your connection and try again.'
+      : 'The endpoint didn’t respond at all. It may be down, or something on your network is blocking the request.',
+    detail:String((err && err.message) || err),
+  };
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function renderFetchError(el, err, endpoint, retry){
+  const diag = await describeFetchError(err, endpoint);
+  el.innerHTML =
+    '<div class="fetchErr"><div class="h">' + esc(diag.title) + '</div>' +
+    '<div class="b">' + esc(diag.message) + (retry ? ' <button type="button" class="retryBtn">Try again</button>' : '') + '</div>' +
+    '<details><summary>Technical detail</summary><code class="tech">' + esc(diag.detail) + '</code></details></div>';
+  if(retry){ const b = el.querySelector('.retryBtn'); if(b) b.addEventListener('click', retry); }
+}
+function localName(uri){ const m = String(uri).match(/([^/#]+)\/?$/); return m ? decodeURIComponent(m[1]) : uri; }
+function fmt(n){ return Number(n).toLocaleString('en-GB'); }
+function csvCell(value){
+  const text = String(value == null ? '' : value);
+  return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+}
+function csvText(rows){ return '\ufeff' + rows.map(row => row.map(csvCell).join(',')).join('\r\n'); }
+function safeFilePart(value){
+  return normalize(value).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'answer';
+}
+function shareUrl(question){
+  const url = new URL(location.href);
+  url.searchParams.set('q', question);
+  url.hash = '';
+  return url.toString();
+}
+function resultRows(result){
+  const common = [result.question, REPO_LABEL[result.repo], result.entity.displayName, result.countryLabel || 'Europe'];
+  if(result.kind === 'count'){
+    return [['Question','Endpoint','Entity','Scope','Count'], [...common, result.count]];
+  }
+  return [
+    ['Question','Endpoint','Entity','Scope','Name','Resource'],
+    ...result.rows.map(row => [...common, row.name, row.uri]),
+  ];
+}
+
+/* ------------------------------------------------------------------ *
+ * Rendering
+ * ------------------------------------------------------------------ */
+function renderUnderstood(el, {entity, intent, countryLabel, repo, lang, topic}){
+  const what = entity.id === 'legal' ? `legislation mentioning “${topic}”` : entity.displayName;
+  const scope = entity.id === 'legal' ? '' : (countryLabel ? ' in ' + esc(countryLabel) : ' across Europe');
+  el.hidden = false;
+  el.innerHTML = 'Understood as <b>' + (intent === 'count' ? 'how many ' : 'list of ') + esc(what) + '</b>' +
+    scope + ' — querying <b>' + esc(REPO_LABEL[repo]) + '</b> (' + LANG_NAME[lang] + ' detected).';
+}
+function renderCount(el, n, entity, countryLabel){
+  el.innerHTML = `<div class="statGrid"><div class="statTile">
+    <div class="n">${fmt(n)}</div>
+    <div class="l">${esc(entity.displayName)}${countryLabel ? ' in ' + esc(countryLabel) : ' in Europe'}</div>
+  </div></div>` +
+  (n === 0 ? '<p class="moreNote">No matches for this exact combination in the live graph right now — try a different country, or drop the country for the EU-wide picture.</p>' : '') +
+  (entity.caveat ? '<p class="moreNote">' + esc(entity.caveat) + '</p>' : '');
+}
+function renderList(el, rows, total, labelVar, uriVar, entity){
+  if(rows.length === 0){
+    el.innerHTML = '<p class="moreNote">No matches for this exact combination in the live graph right now.</p>';
+    return;
+  }
+  const body = rows.map(r => {
+    const label = r[labelVar] ? r[labelVar].value : localName(r[uriVar].value);
+    const uri = r[uriVar].value;
+    return '<tr><td class="nm">' + esc(label) + '</td><td class="ix"><a href="' + esc(uri) +
+      '" target="_blank" rel="noopener">' + esc(localName(uri)) + '</a></td></tr>';
+  }).join('');
+  el.innerHTML = '<div class="tableWrap"><table><thead><tr><th>Name</th><th>Resource</th></tr></thead>' +
+    '<tbody>' + body + '</tbody></table></div>' +
+    '<p class="moreNote">Showing ' + fmt(rows.length) + (total > rows.length ? ' of ' + fmt(total) : '') +
+    ' result' + (rows.length === 1 ? '' : 's') + '.</p>' +
+    (entity.caveat ? '<p class="moreNote">' + esc(entity.caveat) + '</p>' : '');
+}
+function renderUnrecognized(el, noTopic){
+  el.innerHTML = '<p class="moreNote">' + (noTopic
+    ? 'That sounds like a legislation question, but I couldn’t tell what topic to search for — try “regulations about tunnels” or “directives on signalling”.'
+    : 'I didn’t recognise a question shape in that. Try mentioning tunnels, freight terminals, stations, border points, railway lines, infrastructure managers, railway undertakings, or a legislation topic — or click one of the sample questions above.'
+  ) + '</p>';
+}
+
+/* ------------------------------------------------------------------ *
+ * Wiring
+ * ------------------------------------------------------------------ */
+const qInput = document.getElementById('qInput');
+const askBtn = document.getElementById('askBtn');
+const micBtn = document.getElementById('micBtn');
+const micHint = document.getElementById('micHint');
+const voiceLang = document.getElementById('voiceLang');
+const samplesEl = document.getElementById('samples');
+const resultPanel = document.getElementById('resultPanel');
+const understoodEl = document.getElementById('understood');
+const answerArea = document.getElementById('answerArea');
+const sparqlDetails = document.getElementById('sparqlDetails');
+const queryMeta = document.getElementById('queryMeta');
+const sparqlText = document.getElementById('sparqlText');
+const resultActions = document.getElementById('resultActions');
+const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+
+const SAMPLES = [
+  {tag:'rinf-plus', q:'Give me all the tunnels in Europe'},
+  {tag:'rinf-plus', q:'How many freight stations does Germany have?'},
+  {tag:'rinf-plus', q:'How many tunnels does Italy have?'},
+  {tag:'OCR-KG',    q:'Which organisations manage infrastructure in Spain?'},
+  {tag:'era-lex',   q:'Find regulations about signalling'},
+];
+samplesEl.innerHTML = SAMPLES.map((s, i) =>
+  '<button type="button" class="chip" data-i="' + i + '"><span class="tag">' + esc(s.tag) + '</span>' + esc(s.q) + '</button>'
+).join('');
+samplesEl.addEventListener('click', ev => {
+  const b = ev.target.closest('.chip'); if(!b) return;
+  const s = SAMPLES[+b.dataset.i];
+  qInput.value = s.q;
+  runQuery(s.q);
+});
+
+let requestId = 0;
+let lastResult = null;
+function clearResultActions(){
+  lastResult = null;
+  resultActions.hidden = true;
+}
+function showResultActions(result){
+  lastResult = result;
+  resultActions.hidden = false;
+}
+async function runQuery(rawText){
+  const text = (rawText != null ? rawText : qInput.value).trim();
+  if(!text) return;
+  const reqId = ++requestId;
+  resultPanel.hidden = false;
+  understoodEl.hidden = true;
+  sparqlDetails.hidden = true;
+  clearResultActions();
+  answerArea.innerHTML = '<div id="spinner"><span class="spin"></span> Thinking…</div>';
+  try{ history.replaceState(null, '', shareUrl(text)); } catch{}
+
+  const parsed = parseQuestion(text);
+  if(!parsed){ renderUnrecognized(answerArea, false); return; }
+  if(parsed.noTopic){ renderUnrecognized(answerArea, true); return; }
+
+  const {entity, intent, cc, countryLabel, lang, topic} = parsed;
+  const built = buildQuery(entity, cc, topic);
+  if(!built){ renderUnrecognized(answerArea, entity.id === 'legal'); return; }
+
+  renderUnderstood(understoodEl, {entity, intent, countryLabel, repo: built.repo, lang, topic});
+  sparqlDetails.hidden = false;
+  queryMeta.textContent = 'Endpoint: ' + REPO_LABEL[built.repo];
+  sparqlText.textContent = intent === 'count' ? built.countQuery : built.listQuery;
+
+  try{
+    if(intent === 'count'){
+      const rows = await sparql(REPOS[built.repo], built.countQuery);
+      if(reqId !== requestId) return;
+      const n = rows.length ? parseInt(rows[0].n.value, 10) : 0;
+      renderCount(answerArea, n, entity, countryLabel);
+      showResultActions({kind:'count', question:text, repo:built.repo, entity, countryLabel, count:n});
+    } else {
+      const [countRows, listRows] = await Promise.all([
+        sparql(REPOS[built.repo], built.countQuery),
+        sparql(REPOS[built.repo], built.listQuery),
+      ]);
+      if(reqId !== requestId) return;
+      const total = countRows.length ? parseInt(countRows[0].n.value, 10) : listRows.length;
+      renderList(answerArea, listRows, total, built.labelVar, built.uriVar, entity);
+      const exportedRows = listRows.map(row => ({
+        name: row[built.labelVar] ? row[built.labelVar].value : localName(row[built.uriVar].value),
+        uri: row[built.uriVar].value,
+      }));
+      showResultActions({kind:'list', question:text, repo:built.repo, entity, countryLabel, rows:exportedRows});
+    }
+  } catch(err){
+    if(reqId !== requestId) return;
+    await renderFetchError(answerArea, err, REPOS[built.repo], () => runQuery(text));
+  }
+}
+askBtn.addEventListener('click', () => runQuery());
+qInput.addEventListener('keydown', ev => { if(ev.key === 'Enter') runQuery(); });
+downloadCsvBtn.addEventListener('click', () => {
+  if(!lastResult) return;
+  const blob = new Blob([csvText(resultRows(lastResult))], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'era-ask-' + safeFilePart(lastResult.question) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+});
+copyLinkBtn.addEventListener('click', async () => {
+  const question = lastResult ? lastResult.question : qInput.value.trim();
+  if(!question) return;
+  try{
+    await navigator.clipboard.writeText(shareUrl(question));
+    copyLinkBtn.textContent = 'Copied';
+    setTimeout(() => { copyLinkBtn.textContent = 'Copy link'; }, 1400);
+  } catch{
+    copyLinkBtn.textContent = 'Copy failed';
+    setTimeout(() => { copyLinkBtn.textContent = 'Copy link'; }, 1400);
+  }
+});
+
+/* ---- Voice input ---- */
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognizer = null;
+if(!SpeechRecognitionCtor){
+  micBtn.disabled = true;
+  micBtn.title = 'Voice input needs a browser with speech recognition (e.g. Chrome or Edge)';
+} else {
+  micBtn.addEventListener('click', () => {
+    if(micBtn.classList.contains('listening')){ recognizer && recognizer.stop(); return; }
+    recognizer = new SpeechRecognitionCtor();
+    recognizer.lang = voiceLang.value;
+    recognizer.interimResults = false;
+    recognizer.maxAlternatives = 1;
+    recognizer.onstart = () => { micBtn.classList.add('listening'); micHint.className=''; micHint.textContent = 'Listening… speak your question.'; };
+    recognizer.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      qInput.value = transcript;
+      runQuery(transcript);
+    };
+    recognizer.onerror = (e) => { micHint.className = 'err'; micHint.textContent = 'Voice input error: ' + e.error; };
+    recognizer.onend = () => { micBtn.classList.remove('listening'); if(micHint.className !== 'err') micHint.textContent = ''; };
+    try{ recognizer.start(); } catch(err){ micHint.className='err'; micHint.textContent = 'Could not start voice input: ' + err.message; }
+  });
+}
+
+const initialQuestion = new URLSearchParams(location.search).get('q');
+if(initialQuestion){
+  qInput.value = initialQuestion;
+  runQuery(initialQuestion);
+}
+</script>
+</body>
+</html>
