@@ -62,12 +62,19 @@ properties filtered out. Query rationale in
 [sample-data/README.md](sample-data/README.md).
 
 **[era-rinf-value-explorer.html](scripts/assets/era-rinf-value-explorer.html)**
-— pick RINF parameters and countries, get every distinct value actually
-reported, with counts. Surfaces national practice and data-quality drift
-(e.g. Croatia publishing operational-point types under a different concept
-scheme than everyone else, typos included). Exports a transposed one-row-per-
-location sheet plus a network map — sections of line drawn as chords between
-their operational points' real coordinates, no map library, no tile server.
+— pick RINF parameters and countries (or, with a single country selected,
+extract its whole catalogue of populated parameters in one click), get every
+distinct value actually reported, with counts. Surfaces national practice
+and data-quality drift (e.g. Croatia publishing operational-point types under
+a different concept scheme than everyone else, typos included). Exports a
+transposed one-row-per-location sheet — country, start/end operational point,
+that section's own length (`era:lengthOfSectionOfLine`), and the value — plus
+a network map: sections of line drawn as chords between their operational
+points' real coordinates, over live OpenStreetMap/OpenRailwayMap tiles via
+Leaflet. The map's own background and legend/segment colours are a plain
+light theme with no green or teal (OpenStreetMap's land-cover rendering
+already uses green, which used to swallow a same-coloured segment), and it
+can be popped out into its own browser window with independent zoom.
 
 **[era-rcc-parameters.html](scripts/assets/era-rcc-parameters.html)** — pick
 one or more countries and one or more of their national lines (or "Select
