@@ -218,8 +218,8 @@
        (index&nbsp;1.1) and those at its operational points (index&nbsp;1.2). Only the latest validity window is
        used, and retired parameters are excluded. Export to CSV or Excel. Queries
        <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>
-       live from your browser. The network map additionally loads map tiles from OpenStreetMap and
-       <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a> when you draw
+       live from your browser. The network map additionally loads a plain Esri basemap and an
+       <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a> overlay when you draw
        it; nothing else is sent anywhere.</p>
   </header>
 
@@ -369,7 +369,7 @@
       mistake. The RCC parameter filter works the same way as the line picker: search, pick as many as you need, and
       the underlying query adds <code>FILTER(?rinfIndex IN (…))</code> for exactly those — leave it empty and every
       RCC parameter is returned, as before.</p>
-    <p><strong>The network map draws this run's sections geographically</strong>, over standard OpenStreetMap tiles
+    <p><strong>The network map draws this run's sections geographically</strong>, over a plain Esri basemap
       with the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
       &ldquo;standard&rdquo; layer overlaid for real track, station and line-number context — the same approach as
       the <a href="./values.html">RINF Parameter Values</a> network map. It draws only the &ldquo;along the
@@ -381,7 +381,7 @@
       domains into one legend would not mean anything — hover a section to see every value regardless of which
       colour is on top. With none picked, or none applicable to this line, the map still draws the topology in one
       colour. Unlike the rest of this tool, the map is not offline and not third-party-free: it fetches tiles from
-      openstreetmap.org and openrailwaymap.org as you pan and zoom.</p>
+      arcgisonline.com and openrailwaymap.org as you pan and zoom.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
       <a href="./values.html">RINF Parameter Values</a> · <a href="./routebook.html">Route Book</a></p>
   </footer>
@@ -1631,7 +1631,7 @@ window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; ap
  * does, through era:netReference/geo:hasGeometry — so a section is drawn as
  * the chord between the two points it runs between, exactly as the RINF
  * Parameter Values explorer draws its network map. This panel reuses that
- * approach on Leaflet, over OpenStreetMap tiles with the OpenRailwayMap
+ * approach on Leaflet, over a plain Esri basemap with the OpenRailwayMap
  * "standard" layer overlaid for real track and station context, trading
  * away this tool's usual offline, no-third-party property for this one
  * panel only.
@@ -1644,7 +1644,8 @@ const MAP_PALETTE = ['#5fd0ae','#5b9bd5','#f0a83a','#e8604f','#b98bd6','#7ac36a'
                      '#f2d06b','#6fd3e8','#e28fb4','#9aa8c9'];
 const MAP_NONE = '#3d4763';
 const MAP_LIMIT = 20000;
-const OSM_ATTRIB = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+const OSM_ATTRIB = 'Base map: © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, HERE, Garmin, © ' +
+  '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
 const ORM_ATTRIB = 'Railway style: <a href="https://creativecommons.org/licenses/by-sa/2.0/" ' +
   'target="_blank" rel="noopener">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/" target="_blank" ' +
   'rel="noopener">OpenRailwayMap</a>';
@@ -1725,7 +1726,12 @@ $('mapParamPicks').addEventListener('click', ev => {
 function ensureMap(){
   if(leafletMap) return leafletMap;
   leafletMap = L.map('mapCanvas', {preferCanvas: true, minZoom: 3, maxZoom: 19, worldCopyJump: false});
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: OSM_ATTRIB})
+  // Plain Esri basemap rather than tile.openstreetmap.org: that server actively
+  // 403-blocks apps it decides aren't following its usage policy (osm.wiki/Blocked),
+  // and a bare light basemap also keeps the section colours legible. Esri's tile
+  // scheme is z/y/x, the reverse of the standard z/x/y order used below.
+  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom: 19, attribution: OSM_ATTRIB})
     .addTo(leafletMap);
   orwLayer = L.tileLayer('https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',
     {maxZoom: 19, opacity: 0.85, attribution: ORM_ATTRIB});
@@ -1933,16 +1939,16 @@ async function drawNetworkMap(){
     $('mapNote').innerHTML = mapData.mode === 'plain'
       ? '<strong>Read this as topology, not alignment.</strong> Sections publish no geometry of their own — ' +
         'each is the straight chord between the two operational points it runs between, not the real track ' +
-        'curve. Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap “standard” style — both © their ' +
+        'curve. Base tiles: Esri. Railway overlay: OpenRailwayMap “standard” style — both © their ' +
         'contributors.'
       : mapData.mode === 'single'
       ? '<strong>Read this as topology, not alignment.</strong> Each section is the straight chord between the ' +
         'two operational points it runs between, not the real track curve. Grey means no value for this ' +
-        'parameter. Click a legend entry to hide it. Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap ' +
+        'parameter. Click a legend entry to hide it. Base tiles: Esri. Railway overlay: OpenRailwayMap ' +
         '“standard” style — both © their contributors.'
       : '<strong>Read this as topology, not alignment</strong> — and each colour is a parameter, not a value: ' +
         'pick which ones above, or click a legend entry to hide it. Where a section carries more than one, ' +
-        'whichever is drawn last wins the pixels — hover it to see every value. Base tiles: OpenStreetMap. ' +
+        'whichever is drawn last wins the pixels — hover it to see every value. Base tiles: Esri. ' +
         'Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
     $('mapReset').hidden = false;
   } catch(err){

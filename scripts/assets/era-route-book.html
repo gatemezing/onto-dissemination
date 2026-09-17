@@ -246,7 +246,8 @@
        operational points they run between, not shown by kilometre position alone. Export to CSV or Excel, or draw
        the selection on a network map. Queries
        <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>
-       live from your browser; the network map additionally loads tiles from OpenStreetMap and OpenRailwayMap when
+       live from your browser; the network map additionally loads a plain Esri basemap and an
+       <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a> overlay when
        you draw it.</p>
   </header>
 
@@ -365,15 +366,15 @@
       <em>Section</em> column and on the network map — the same property the
       <a href="./rcc.html">RCC Parameters</a> tool's map already draws chords between. A section missing either end
       keeps its kilometre position only, shown as <code>—</code> where even that isn't published.</p>
-    <p><strong>The network map draws every selected line's sections geographically</strong>, over standard
-      OpenStreetMap tiles with the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
+    <p><strong>The network map draws every selected line's sections geographically</strong>, over a plain
+      Esri basemap with the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
       &ldquo;standard&rdquo; layer overlaid for real track, station and line-number context. Sections publish no
       geometry of their own, so each is drawn as the straight chord between the two operational points it runs
       between — topology, not alignment. Each line gets its own colour from the legend; a thicker, brighter segment
       carries at least one D2 element from this run, a thin grey one was resolved but has none here. It reuses the
       operational-point names and geometry already fetched for the Section column, so drawing the map costs no
       further query. Unlike the rest of this tool, the map is not offline and not third-party-free: it fetches tiles
-      from openstreetmap.org and openrailwaymap.org as you pan and zoom.</p>
+      from arcgisonline.com and openrailwaymap.org as you pan and zoom.</p>
     <p><strong>Appendix D2 numbers the route book; the ontology carries the numbers but not the headings.</strong>
       ERA annotates each property with <code>era:tsiOPEAppendixD2Index</code> — the index of that term in
       &ldquo;Appendix D2: Elements the infrastructure manager has to provide to the railway undertaking for the Route
@@ -494,7 +495,8 @@ const POOL  = 6;        // concurrent requests, shared across every line in one 
 const TABLE_LIMIT = 300;
 const MAP_PALETTE = ['#5fd0ae','#5b9bd5','#f0a83a','#e8604f','#b98bd6','#7ac36a',
                      '#f2d06b','#6fd3e8','#e28fb4','#9aa8c9'];
-const OSM_ATTRIB = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+const OSM_ATTRIB = 'Base map: © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, HERE, Garmin, © ' +
+  '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
 const ORM_ATTRIB = 'Railway style: <a href="https://creativecommons.org/licenses/by-sa/2.0/" ' +
   'target="_blank" rel="noopener">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/" target="_blank" ' +
   'rel="noopener">OpenRailwayMap</a>';
@@ -1985,7 +1987,12 @@ $('mapLegend').addEventListener('click', ev => {
 function ensureMap(){
   if(leafletMap) return leafletMap;
   leafletMap = L.map('mapCanvas', {preferCanvas: true, minZoom: 3, maxZoom: 19, worldCopyJump: false});
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: OSM_ATTRIB})
+  // Plain Esri basemap rather than tile.openstreetmap.org: that server actively
+  // 403-blocks apps it decides aren't following its usage policy (osm.wiki/Blocked),
+  // and a bare light basemap also keeps the section colours legible. Esri's tile
+  // scheme is z/y/x, the reverse of the standard z/x/y order used below.
+  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom: 19, attribution: OSM_ATTRIB})
     .addTo(leafletMap);
   orwLayer = L.tileLayer('https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',
     {maxZoom: 19, opacity: 0.85, attribution: ORM_ATTRIB});
@@ -2041,7 +2048,7 @@ async function drawNetworkMap(){
     '(<code>era:opStart</code>/<code>era:opEnd</code>), not the real track curve. A brighter, thicker segment ' +
     'carries at least one D2 element from this run; a thin, faint one was resolved but has none here. ' +
     (keys.length > 1 ? 'Click a legend entry to hide that line. ' : '') +
-    'Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
+    'Base tiles: Esri. Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
   $('mapReset').hidden = false;
   $('mapBtn').disabled = false;
 }
