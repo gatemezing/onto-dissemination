@@ -14,6 +14,7 @@ browser and exports results as CSV or Excel.
 | Tool | URL |
 |---|---|
 | ERA Graph Explorer (bubble-graph, offline + live) | https://gatemezing.github.io/onto-dissemination/ |
+| Ask the ERA Graph (natural-language / voice query) | https://gatemezing.github.io/onto-dissemination/ask.html |
 | Holobox Frame (4-face pyramid hologram display) | https://gatemezing.github.io/onto-dissemination/holobox.html |
 | RDF Exporter | https://gatemezing.github.io/onto-dissemination/exporter.html |
 | RINF Parameter Values explorer | https://gatemezing.github.io/onto-dissemination/values.html |
@@ -45,6 +46,15 @@ demo works with no network at all, plus a live SPARQL mode for visitors who
 want to query the real graph and follow any resource's real outgoing and
 incoming links, including ERA's ontology and SKOS (controlled-vocabulary)
 graphs.
+
+**[era-ask.html](scripts/assets/era-ask.html)** — ask about railway
+infrastructure, organisations and EU rail law in plain language, typed or
+spoken (via the browser's built-in speech recognition), in English, French,
+German, Spanish or Italian. A small keyword-matched vocabulary — not a
+language model — turns a recognised question into a live SPARQL query across
+three endpoints (`rinf-plus`, `OCR-KG`, `era-lex`); an unrecognised question
+gets pointed at the sample questions rather than a guess, and the generated
+query is always one click away.
 
 **[era-holobox-frame.html](scripts/assets/era-holobox-frame.html)** — renders
 that same bubble-graph view natively across all four faces of a pyramid
