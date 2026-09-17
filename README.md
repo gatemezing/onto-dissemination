@@ -89,13 +89,15 @@ browser — no server involved, queries `graph.data.era.europa.eu` directly
 ## RINF Parameter Values explorer
 
 `scripts/assets/era-rinf-value-explorer.html` — pick any set of RINF
-parameters (ERA properties carrying an `era:rinfIndex`, up to 15 at a time),
-pick any set of countries, and get every distinct value actually reported,
-with how many resources carry each.
+parameters (ERA properties carrying an `era:rinfIndex`, up to 15 at a time —
+or every parameter that reports data at once, for a single country), pick
+any set of countries, and get every distinct value actually reported, with
+how many resources carry each.
 Downloads as CSV or as a real `.xlsx` workbook, optionally with a **full-data
 sheet**: one row per location, carrying country, start operational point, end
-operational point and the value. Single file, no build step, no server: it
-queries `graph.data.era.europa.eu` straight from the browser.
+operational point, that section's own length, and the value. Single file, no
+build step, no server: it queries `graph.data.era.europa.eu` straight from
+the browser.
 
 Why a railway expert would reach for it: the distinct-value list for a
 parameter is what exposes national practice and data-quality drift. Running
@@ -104,6 +106,13 @@ parameter is what exposes national practice and data-quality drift. Running
 publishes `concepts/op-types/70` — a different concept scheme for the same
 RINF parameter, with typos in the labels ("Tehnical change", "Shuting yard")
 to match.
+
+**Every parameter for one country, in one click.** Hand-picking parameters
+tops out at 15 — each one costs its own queries — but a reader who wants
+"everything RINF knows about my country" doesn't want to click through
+two hundred of them one at a time. Selecting exactly one country reveals an
+"Extract every RINF parameter for `<country>`" action that runs the whole
+catalogue of populated parameters against that country alone.
 
 **Retired parameters are excluded, and the fallout is reported.** The catalogue
 now omits every property marked `owl:deprecated` — 37 of the 331 RINF-indexed
@@ -136,24 +145,29 @@ than shipped blank. Each value column is named after its parameter, with a
 *— label* column beside it wherever the ontology labels the values — nominal track
 gauge `80` is the concept identifier, `760` is the gauge in millimetres.
 
-**A network map with no map library.** Sections of line publish no geometry of
-their own in any dataset except Croatia's (581 of 583 there, zero in Germany,
-France, the Netherlands or Estonia), but *every* operational point does through
-`era:netReference/geo:hasGeometry` — 101 of 101 in Estonia, 17,797 of 17,797 in
-Germany. So each section is drawn as the chord between the two points it runs
-between and coloured by the selected parameter's value: 7,366 sections across six
-countries render in about 2 s, and the Baltic 1520/1524 break-of-gauge separates
-from the 1435 network at a glance.
+**A network map, drawn from what the data actually has.** Sections of line
+publish no geometry of their own in any dataset except Croatia's (581 of 583
+there, zero in Germany, France, the Netherlands or Estonia), but *every*
+operational point does, through `era:netReference/geo:hasGeometry` — 101 of
+101 in Estonia, 17,797 of 17,797 in Germany. So each section is drawn as the
+straight chord between the two points it runs between, coloured by the
+selected parameter's value (or one flat colour per parameter, with several
+picked at once) — topology, not alignment, and the panel says so.
 
-Under it sits a basemap of European country outlines — Natural Earth 1:50m,
-public domain, clipped to the RINF area, simplified with Douglas-Peucker and
-delta-encoded to **52 KB** (143 rings, 6,803 points) so it embeds in the file
-rather than being fetched. Canvas, Web Mercator, wheel-zoom clamped between
-about 3 m and 25 km per pixel, a scale bar computed at the current centre
-latitude, drag-pan, hover tooltip, clickable legend and PNG export — with no
-tile server and no mapping library, so the panel loads instantly, works offline
-and sends nothing to a third party. It is topology, not alignment, and the panel
-says so.
+Drawn with [Leaflet](https://leafletjs.com/) over standard OpenStreetMap
+tiles, with the [OpenRailwayMap](https://www.openrailwaymap.org/) "standard"
+layer overlaid for real track, station and line-number context (a checkbox
+turns it off). This is the one panel in the tool that isn't offline or
+third-party-free — it fetches map tiles from openstreetmap.org and
+openrailwaymap.org as you pan and zoom. The panel renders on a plain light
+background rather than the app's own dark theme, since the tiles themselves
+are drawn for a light backdrop, and the segment/legend colours deliberately
+avoid green and teal — OpenStreetMap's own land-cover rendering already uses
+green, and a green segment used to all but disappear over a park or forest.
+Scroll to zoom, drag to pan, click a legend entry to hide it, and an "Open in
+new window" button pops the currently-drawn map out into its own browser
+window with its own independent zoom and pan — handy on a small screen or a
+second monitor at a booth.
 
 **Several parameters at once.** Each parameter is queried separately rather
 than batched into one `VALUES ?prop` query, which is the faster arrangement by
