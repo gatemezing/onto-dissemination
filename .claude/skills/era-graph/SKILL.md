@@ -55,7 +55,24 @@ Consequences:
 - **Make position `OPTIONAL`.** Report unpositioned places with `—` and sort them
   last rather than dropping them.
 - **Join organisation names on `era:organisationCode`**, not the body URI. RINF
-  has no names at all — all 660 `era:Body` there carry zero `foaf:name`.
+  has no names at all — all 660 `era:Body` there carry zero `foaf:name`. In
+  OCR-KG, the code is always exactly 4 alphanumeric characters (the
+  organisation URI itself ends in the code), and a lookup by common name must
+  check `foaf:nick` as well as `foaf:name` — some organisations (e.g. Adif)
+  are only findable by their short form, which OCR-KG models as `foaf:nick`
+  and never repeats in `foaf:name`. 4,139 OCR-KG organisations carry a
+  `foaf:nick`; searching only `foaf:name` silently misses all of them.
+- **The direction check isn't limited to Track↔SectionOfLine.** Austria's
+  tunnels reach their track via `era:hasPart` (reverse of every other
+  country's `era:isPartOf`) — the same variation, one hop further up the
+  part-whole chain (`era:Tunnel`→`era:Track`, not `era:Track`→
+  `era:SectionOfLine`). A bidirectional path
+  (`(era:isPartOf|^era:hasPart)*`) fixes the direction, but getting the
+  direction right doesn't guarantee every reference resolves: a handful of
+  Austrian tunnels still dead-end at a stub track URI with zero further
+  properties. That's a genuine data gap, not a query bug — confirm with a
+  targeted probe on the specific URI before assuming the query needs more
+  work.
 - **Probe the part-whole direction per country represented in the run, never
   once globally**, the moment a tool lets more than one line be picked at
   once. A single probe was safe when a run could only ever touch one line;
@@ -121,6 +138,33 @@ that looks like successful deduplication and is 99.6 % data loss.
 
 Always keep resources with no validity (`!BOUND(?b)`): **ten countries publish no
 dated validity at all** — SWE, ESP, IRL, EST, GRC, FIN, ROU, HRV, AUT, LUX.
+
+**The republishing pattern isn't unique to sections of line.** The same
+yearly-republish behaviour inflates the raw count of *any* resource type
+Germany asserts per place — confirmed for `OperationalPoint` (28,344 raw URIs
+in `graph/0080` alone vs 9,784 distinct by `era:uopid`) and `Siding`, with the
+inflation present *within a single dataset graph*, before cross-dataset
+duplication is even considered. **Dedup by the resource's real-world
+identifier, not its URI**: `era:uopid` for operational points,
+`era:tunnelIdentification` for tunnels. A plain `COUNT(DISTINCT ?uri)` is
+unsafe for any resource type a publisher dates this way; grouping by identity
+and taking `MAX`/`SAMPLE` per group is. era-ask.html's tunnel-length measure
+is immune for exactly this reason — grouping by `tunnelIdentification` before
+taking `MAX(length)` absorbs the duplication a raw-URI count would not.
+
+**Use one of the ten no-validity countries above as a known-safe control**
+when sanity-checking a new resource-count or aggregate query. Spain in
+particular has come up clean for every resource type checked so far; a query
+that looks right for Spain but comes back wildly inflated for Germany is
+confirming the republish-duplication issue, not surfacing a new bug.
+
+A "total line length per country" aggregate was attempted and abandoned this
+session on exactly this trap: even after per-place validity dedup, Germany's
+total stayed roughly 2× the real network size (most likely residual
+cross-dataset 0080/1080 duplication that per-place dedup alone doesn't
+catch). Getting it right needs the RCC/Route Book tools' full per-place
+validity-window *and* cross-dataset dedup machinery — treat "total
+length/count for a whole country" as a research task, not a same-day query.
 
 ## Rule 4 — the two-phase shape
 
