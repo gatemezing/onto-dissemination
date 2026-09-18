@@ -80,17 +80,18 @@ a different concept scheme than everyone else, typos included). Exports a
 transposed one-row-per-location sheet — country, start/end operational point,
 that section's own length (`era:lengthOfSectionOfLine`), and the value — plus
 a network map: sections of line drawn as chords between their operational
-points' real coordinates, over live OpenStreetMap/OpenRailwayMap tiles via
-Leaflet. The map's own background and legend/segment colours are a plain
-light theme with no green or teal (OpenStreetMap's land-cover rendering
-already uses green, which used to swallow a same-coloured segment), and it
-can be popped out into its own browser window with independent zoom.
+points' real coordinates, over a plain Esri basemap via Leaflet, with an
+OpenRailwayMap overlay available but off by default so its own colours never
+compete with the map's own. The map's legend/segment colours avoid green and
+teal (the overlay's own track rendering uses both), and it can be popped out
+into its own browser window with independent zoom.
 
 **[era-rcc-parameters.html](scripts/assets/era-rcc-parameters.html)** — pick
 one or more countries and one or more of their national lines (or "Select
 all"), and get every RINF parameter flagged `era:usedInRCCCalculations` —
 route-compatibility checking, positioned by kilometre post along the line and
-at its operational points. Includes a network map. Query set and the
+at its operational points. Includes a network map, poppable into its own
+window the same way the RINF Parameter Values map is. Query set and the
 five country-modelling variations it absorbs (line identity, part-whole
 direction, validity scoping, etc.) documented in
 [scripts/assets/rcc/README.md](scripts/assets/rcc/README.md).
@@ -102,7 +103,8 @@ a railway undertaking, with a coverage view showing which of the 46 D2
 elements a selection carries, which are published elsewhere, and which no
 manager populates at all. Sections of line are named by the operational
 points they run between rather than shown by kilometre position alone, and a
-network map draws the selection, one colour per line. Query set in
+network map draws the selection, one colour per line, poppable into its own
+window the same way the RINF Parameter Values map is. Query set in
 [scripts/assets/routebook/README.md](scripts/assets/routebook/README.md).
 
 **[era-interop-answers.html](scripts/assets/era-interop-answers.html)** — the

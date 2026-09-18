@@ -343,6 +343,7 @@
       <button class="btn" id="mapBtn">Draw map</button>
       <label class="chk" style="margin:0"><input type="checkbox" id="mapBase"> Railway overlay</label>
       <span class="grow"></span>
+      <button type="button" class="mini" id="mapPopBtn" hidden>Open in new window ↗</button>
       <button type="button" class="mini" id="mapReset" hidden>Reset view</button>
     </div>
     <div id="mapStatus" class="moreNote"></div>
@@ -378,7 +379,10 @@
       between regardless — topology, not alignment. Each line gets its own colour from the legend; a thicker, brighter segment
       carries at least one D2 element from this run, a thin grey one was resolved but has none here. It reuses the
       operational-point names and geometry already fetched for the Section column, so drawing the map costs no
-      further query. Unlike the rest of this tool, the map is not offline and not third-party-free: it fetches tiles
+      further query. &ldquo;Open in new window&rdquo; pops the same drawing out into its own browser window — no
+      further query either, just the current segments redrawn there — so it can be dragged to a second monitor or
+      given more room than the panel embedded here, the same as the <a href="./values.html">RINF Parameter
+      Values</a> map. Unlike the rest of this tool, the map is not offline and not third-party-free: it fetches tiles
       from arcgisonline.com and, if you turn the Railway overlay on, openrailwaymap.org as you pan and zoom.</p>
     <p><strong>Appendix D2 numbers the route book; the ontology carries the numbers but not the headings.</strong>
       ERA annotates each property with <code>era:tsiOPEAppendixD2Index</code> — the index of that term in
@@ -1968,6 +1972,7 @@ function mapSetup(){
   if(!r.sections) return;
   mapSegs = []; mapOff = new Set();
   $('mapWrap').hidden = true; $('mapLegend').hidden = true; $('mapReset').hidden = true;
+  $('mapPopBtn').hidden = true;
   $('mapStatus').textContent = 'Draws the selected line(s)’ sections between named operational points — press “Draw map”.';
 }
 
@@ -2037,6 +2042,7 @@ async function drawNetworkMap(){
   if(!mapSegs.length){
     $('mapStatus').textContent = 'No data — none of the selected sections have both ends named with geometry via era:opStart/era:opEnd.';
     $('mapWrap').hidden = true; $('mapLegend').hidden = true; $('mapReset').hidden = true;
+    $('mapPopBtn').hidden = true;
     $('mapBtn').disabled = false;
     return;
   }
@@ -2057,6 +2063,7 @@ async function drawNetworkMap(){
     (keys.length > 1 ? 'Click a legend entry to hide that line. ' : '') +
     'Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap “standard” style — both © their contributors.';
   $('mapReset').hidden = false;
+  $('mapPopBtn').hidden = false;
   $('mapBtn').disabled = false;
 }
 $('mapBase').addEventListener('change', () => {
@@ -2066,6 +2073,123 @@ $('mapBase').addEventListener('change', () => {
 $('mapBtn').addEventListener('click', drawNetworkMap);
 $('mapReset').addEventListener('click', () => { if(mapSegs.length) fitToSegments(); });
 window.addEventListener('resize', () => { if(leafletMap) leafletMap.invalidateSize(); });
+
+/* ------------------------------------------------------------------ *
+ * Pop the map out into its own browser window — a real second window with
+ * its own Leaflet instance and its own zoom/pan, so it can be dragged to a
+ * second monitor or just given more room than the panel embedded in the
+ * page. Nothing is re-queried: the segments currently on screen (already
+ * coloured and tooltipped, exactly as drawn) are serialized to JSON and
+ * redrawn from scratch there, over the same Esri/OpenRailwayMap tiles —
+ * the same approach as the RINF Parameter Values network map.
+ * ------------------------------------------------------------------ */
+function popoutSegments(){
+  const out = [];
+  for(const withData of [false, true]){
+    for(const s of mapSegs){
+      if(mapOff.has(s.key)) continue;
+      if((s.d2n > 0) !== withData) continue;
+      out.push({
+        A: s.A, B: s.B, color: keyColour(s.key), weight: withData ? 2.8 : 1.6, opacity: withData ? 0.95 : 0.5,
+        tooltip: '<b>' + esc(s.s || '?') + ' → ' + esc(s.t || '?') + '</b><br>' +
+          esc(s.cc) + ' ' + esc(s.line) + (s.d2n ? ' · ' + s.d2n + ' D2 element' + (s.d2n === 1 ? '' : 's') + ' here'
+                                                  : ' · no D2 rows on this section'),
+      });
+    }
+  }
+  return out;
+}
+
+function buildPopoutHTML(){
+  const segs = popoutSegments();
+  const keys = lineKeys();
+  const legend = keys.map(p => {
+    const k = p.cc + ':' + p.line;
+    return {label: esc(p.cc) + ' ' + esc(p.line), count: mapSegs.filter(s => s.key === k).length, color: keyColour(k)};
+  });
+  const title = keys.length === 1 ? (keys[0].cc + ' ' + keys[0].line) : keys.length + ' lines';
+  const note = $('mapNote').innerHTML;
+  const baseChecked = $('mapBase').checked;
+  const payload = JSON.stringify({segs, legend, title, note, baseChecked, osmAttrib: OSM_ATTRIB, ormAttrib: ORM_ATTRIB});
+  return '<!doctype html><html><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<title>' + esc(title) + ' — ERA Route Book network map</title>' +
+    '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" ' +
+      'integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">' +
+    '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" ' +
+      'integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""><\/script>' +
+    '<style>' +
+      'html,body{margin:0;height:100%;font-family:"Segoe UI",Arial,sans-serif;background:#e9edf3;color:#1c2333;}' +
+      '#bar{position:absolute;top:10px;left:10px;right:10px;z-index:1000;display:flex;gap:10px;align-items:center;' +
+        'flex-wrap:wrap;pointer-events:none;}' +
+      '#bar>*{pointer-events:auto;}' +
+      '#ttl{background:rgba(255,255,255,.92);border:1px solid #c7cddb;border-radius:8px;padding:7px 12px;' +
+        'font-size:13px;font-weight:600;box-shadow:0 6px 18px rgba(20,30,55,.18);}' +
+      '#ovl{background:rgba(255,255,255,.92);border:1px solid #c7cddb;border-radius:8px;padding:6px 11px;' +
+        'font-size:12px;display:flex;align-items:center;gap:6px;box-shadow:0 6px 18px rgba(20,30,55,.18);}' +
+      '#map{position:absolute;inset:0;}' +
+      '#legend{position:absolute;bottom:10px;left:10px;z-index:1000;background:rgba(255,255,255,.92);' +
+        'border:1px solid #c7cddb;border-radius:8px;padding:8px 10px;font-size:12px;max-width:min(320px,42vw);' +
+        'max-height:40vh;overflow:auto;box-shadow:0 6px 18px rgba(20,30,55,.18);}' +
+      '#legend div{display:flex;align-items:center;gap:7px;padding:2px 0;}' +
+      '#legend .sw{width:14px;height:3px;border-radius:2px;flex:none;}' +
+      '#legend .ct{color:#5b6472;margin-left:auto;font-variant-numeric:tabular-nums;}' +
+      '#note{position:absolute;bottom:10px;right:10px;z-index:1000;background:rgba(255,255,255,.92);' +
+        'border:1px solid #c7cddb;border-radius:8px;padding:8px 11px;font-size:11px;max-width:38vw;' +
+        'line-height:1.5;box-shadow:0 6px 18px rgba(20,30,55,.18);}' +
+      '.leaflet-tooltip.eraTip{background:rgba(255,255,255,.97);border:1px solid #c7cddb;color:#1c2333;' +
+        'border-radius:7px;padding:7px 10px;font-size:12px;line-height:1.45;max-width:270px;}' +
+      '.leaflet-tooltip.eraTip b{color:#1c56a8;}' +
+    '</style></head><body>' +
+      '<div id="bar"><div id="ttl"></div><label id="ovl"><input type="checkbox" id="ovlChk"> Railway overlay</label></div>' +
+      '<div id="map"></div>' +
+      '<div id="legend"></div>' +
+      '<div id="note"></div>' +
+      '<script>' +
+        'var DATA = ' + payload + ';' +
+        'document.getElementById("ttl").textContent = DATA.title;' +
+        'document.getElementById("note").innerHTML = DATA.note;' +
+        'document.getElementById("legend").innerHTML = DATA.legend.map(function(it){' +
+          'return "<div><span class=\\"sw\\" style=\\"background:" + it.color + "\\"></span><span>" + it.label + ' +
+            '"</span><span class=\\"ct\\">" + it.count.toLocaleString("en-GB") + "</span></div>";' +
+        '}).join("");' +
+        'var map = L.map("map", {preferCanvas:true, minZoom:3, maxZoom:19, worldCopyJump:false});' +
+        'L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, attribution: DATA.osmAttrib}).addTo(map);' +
+        'var orw = L.tileLayer("https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png", {maxZoom:19, opacity:0.85, attribution: DATA.ormAttrib});' +
+        'var ovlChk = document.getElementById("ovlChk");' +
+        'ovlChk.checked = DATA.baseChecked;' +
+        'if(DATA.baseChecked) orw.addTo(map);' +
+        'ovlChk.addEventListener("change", function(){ if(ovlChk.checked) orw.addTo(map); else map.removeLayer(orw); });' +
+        'L.control.scale({metric:true, imperial:false}).addTo(map);' +
+        'var pts = [];' +
+        'DATA.segs.forEach(function(s){' +
+          'L.polyline([s.A, s.B], {color:s.color, weight:s.weight, opacity:s.opacity})' +
+            '.bindTooltip(s.tooltip, {className:"eraTip", sticky:true}).addTo(map);' +
+          'pts.push(s.A); pts.push(s.B);' +
+        '});' +
+        'if(pts.length) map.fitBounds(L.latLngBounds(pts), {padding:[24,24]});' +
+        'else map.setView([50,10], 4);' +
+      '<\/script>' +
+    '</body></html>';
+}
+
+function openMapWindow(){
+  if(!mapSegs.length) return;
+  // A blob: URL navigation rather than document.write() into a blank window:
+  // a real URL loads and parses exactly like any other page (document.write
+  // is a legacy API some browsers throttle or warn about for a blocking
+  // external script like Leaflet's), and it is what lets the pop-out be
+  // opened, resized and refreshed like a normal window.
+  const url = URL.createObjectURL(new Blob([buildPopoutHTML()], {type: 'text/html'}));
+  const w = window.open(url, '_blank');
+  if(!w){
+    URL.revokeObjectURL(url);
+    $('mapStatus').textContent = 'Your browser blocked the pop-up window — allow pop-ups for this page and try again.';
+    return;
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+$('mapPopBtn').addEventListener('click', openMapWindow);
 
 /* XLSX writer — store-only ZIP, no dependencies. */
 let CRC_TABLE = null;
