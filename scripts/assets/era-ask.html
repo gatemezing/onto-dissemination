@@ -177,7 +177,8 @@
        own speech recognition (Chrome/Edge); it is not supported in every browser. This is a demo of a small,
        fixed vocabulary — tunnels and tunnel length, freight terminals, stations, border points, operational
        points, sections of line, railway lines, high-speed line kilometres, infrastructure managers, railway
-       undertakings, and EU rail legislation by topic — not a general question-answering system.</p>
+       undertakings, an organisation looked up by its code or its name, and EU rail legislation by topic — not
+       a general question-answering system.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
        <a href="./values.html">RINF Parameter Values</a> · <a href="./rcc.html">RCC Parameters</a> ·
        <a href="./routebook.html">Route Book</a></p>
@@ -328,6 +329,17 @@ const ENTITIES = [
       es:['empresa ferroviaria','empresas ferroviarias'],
       it:['impresa ferroviaria','imprese ferroviarie'],
   }},
+  { id:'orgcode', kind:'orgcode', displayName:'organisation', patterns:{
+      // Deliberately just the bare word: no other entity's vocabulary uses
+      // it, so it's a safe, broad net for the many ways this gets phrased —
+      // "organisation code 0088", "who is code 0088", "code 0088", "what's
+      // the code for Infrabel", "organisation code for SNCF" all match.
+      // German commonly compounds this into one word ("Organisationscode"),
+      // which a bare "code" word-boundary match can't see inside — so that
+      // compound (and its hyphenated form) is listed explicitly too.
+      en:['code'], fr:['code'], de:['code','organisationscode','organisations-code'],
+      es:['código','codigo'], it:['codice'],
+  }},
   { id:'legal', kind:'lex', displayName:'legislation', patterns:{
       en:['regulation','regulations','directive','directives','legal act','legal acts','decision','decisions'],
       fr:['règlement','reglement','règlements','reglements','directive','directives'],
@@ -365,6 +377,18 @@ const ABOUT_WORDS = {
   es:['acerca de','concerniente a','sobre'],
   it:['riguardo a','concernente','su'],
 };
+// "code for X" / "code of X" — the connector words that introduce an
+// organisation *name* rather than a code, for the reverse direction of the
+// organisation-code lookup (asking for the code given the name, instead of
+// the name given the code).
+const FOR_WORDS = {
+  en:['for','of'], fr:['de','pour'], de:['für','fuer','von'],
+  es:['de','para'], it:['di','per'],
+};
+// Leading articles stripped off an extracted organisation name — "für die
+// ÖBB" should search for "ÖBB", not "die ÖBB", which would only ever match
+// a name that happened to contain the literal word "die" too.
+const LEADING_ARTICLES = /^(?:(?:the|die|der|das|den|dem|le|la|les|il|lo|gli|i|el|los|las)\s+|l['’])/i;
 
 /* ------------------------------------------------------------------ *
  * Matching helpers
@@ -398,6 +422,62 @@ function extractTopic(norm, lang, entity){
     rest = rest.replace(phraseRe(p), ' ');
   rest = rest.replace(/[?.!,;:]+/g, ' ').replace(/\s+/g, ' ').trim();
   return rest || null;
+}
+
+// Organisation codes are always exactly 4 alphanumeric characters (e.g.
+// "0088", "LQB6") — found by stripping the entity's own trigger phrase (so
+// "code" from "organisation code" is never mistaken for the code itself),
+// then taking the first 4-character token that contains a digit. That last
+// condition is the important part: plenty of ordinary 4-letter words ("give",
+// "name", "code" itself) would otherwise match just as well, and real
+// organisation codes are alphanumeric, not plain words. Case is preserved —
+// unlike everywhere else this file matches on, a code is compared literally.
+function extractCode(rawText, lang, entity){
+  let stripped = rawText;
+  for(const p of (entity.patterns[lang] || []))
+    stripped = stripped.replace(new RegExp(escapeRegex(p), 'gi'), ' ');
+  const candidates = stripped.match(/\b[A-Za-z0-9]{4}\b/g) || [];
+  const withDigit = candidates.find(c => /\d/.test(c));
+  return withDigit ? withDigit.toUpperCase() : null;
+}
+
+// The reverse direction: "what's the code for Infrabel" gives a name, not a
+// code. Works on the normalized text throughout (like extractTopic), not the
+// raw one — mixing the two would misalign string offsets, since stripping
+// accents can shorten the string.
+// Unlike every other extractor here, this one deliberately works on the raw
+// text, not the accent-stripped normalized form — an organisation name is
+// the literal search term sent to the endpoint, and "Réseau" normalized to
+// "reseau" no longer CONTAINS-matches "Sncf Réseau" in the live data. That
+// means indices can't be borrowed from a norm-based search (accent-stripping
+// can shorten the string), so matching happens directly against rawText.
+function extractOrgName(rawText, lang, entity){
+  // Every language's connector words, not just the detected one: an org-name
+  // question rarely carries a count/list trigger or a non-English country
+  // name (the two signals detectLanguage has to go on), so it very often
+  // defaults to English — and then "für" would never be found in a German
+  // sentence at all. Entity matching already searches every language
+  // regardless of detected lang for the same reason; this mirrors that.
+  const words = LANGS.flatMap(l => FOR_WORDS[l] || []);
+  for(const w of words){
+    const re = new RegExp('\\b' + escapeRegex(w) + '\\b', 'gi');
+    let m, last = null;
+    while((m = re.exec(rawText)) !== null) last = m;
+    if(last){
+      const name = rawText.slice(last.index + last[0].length).replace(/[?.!,;:]+$/, '').trim();
+      if(name) return name.replace(LEADING_ARTICLES, '').trim() || name;
+    }
+  }
+  // Fallback: strip the trigger word and any intent triggers (every
+  // language's, for the same reason as above), and use what's left.
+  let rest = rawText;
+  for(const l of LANGS){
+    for(const p of [...(entity.patterns[l]||[]), ...(COUNT_TRIGGERS[l]||[]), ...(LIST_TRIGGERS[l]||[])])
+      rest = rest.replace(new RegExp('\\b' + escapeRegex(p) + '\\b', 'gi'), ' ');
+  }
+  rest = rest.replace(/[?.!,;:]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if(!rest) return null;
+  return rest.replace(LEADING_ARTICLES, '').trim() || rest;
 }
 
 // Best-guess sentence language, from signals that are actually distinctive
@@ -453,13 +533,22 @@ function parseQuestion(text){
 
   const countMatched = anyMatch(norm, COUNT_TRIGGERS[lang]);
   const listMatched = anyMatch(norm, LIST_TRIGGERS[lang]);
-  const defaultIntent = entity.id === 'legal' ? 'list' : 'count';
+  const defaultIntent = (entity.id === 'legal' || entity.kind === 'orgcode') ? 'list' : 'count';
   const intent = countMatched ? 'count' : (listMatched ? 'list' : defaultIntent);
 
   const topic = entity.id === 'legal' ? extractTopic(norm, lang, entity) : null;
   if(entity.id === 'legal' && !topic) return {entity, lang, cc, countryLabel, intent, topic: null, noTopic: true};
 
-  return {entity, lang, cc, countryLabel, intent, topic};
+  // Organisation lookups run both directions: a code (extracted first, since
+  // it's the unambiguous, tightly-shaped signal) or, failing that, a name.
+  let orgCode = null, orgName = null;
+  if(entity.kind === 'orgcode'){
+    orgCode = extractCode(text, lang, entity);
+    if(!orgCode) orgName = extractOrgName(text, lang, entity);
+    if(!orgCode && !orgName) return {entity, lang, cc, countryLabel, intent, topic: null, noCode: true};
+  }
+
+  return {entity, lang, cc, countryLabel, intent, topic, orgCode, orgName};
 }
 
 /* ------------------------------------------------------------------ *
@@ -469,7 +558,7 @@ function parseQuestion(text){
  * ------------------------------------------------------------------ */
 function countryUri(cc){ return cc ? 'http://publications.europa.eu/resource/authority/country/' + cc : null; }
 
-function buildQuery(entity, cc, topic){
+function buildQuery(entity, cc, topic, orgCode, orgName){
   const cUri = countryUri(cc);
   if(entity.kind === 'measure' && entity.measureType === 'highspeed'){
     // Sections whose length is already published in kilometres, joined to
@@ -530,6 +619,27 @@ function buildQuery(entity, cc, topic){
     const roleUri = 'http://data.europa.eu/949/concepts/organisation-roles/' + entity.role;
     const filter = cUri ? `?addr locn:adminUnitL1 <${cUri}> .` : '';
     const base = `?org a org:Organization ; foaf:name ?name ; era:role ?roleInst ; org:hasSite ?site .\n  ?roleInst era:hasOrganisationRole <${roleUri}> .\n  ?site org:siteAddress ?addr .\n  ${filter}`;
+    return {
+      repo:'ocr', labelVar:'name', uriVar:'org',
+      countQuery: `${PFX}\nSELECT (COUNT(DISTINCT ?org) AS ?n) WHERE {\n  ${base}\n}`,
+      listQuery: `${PFX}\nSELECT DISTINCT ?org ?name WHERE {\n  ${base}\n} ORDER BY ?name LIMIT 200`,
+    };
+  }
+  if(entity.kind === 'orgcode'){
+    if(!orgCode && !orgName) return null;
+    // Organisation URIs end in the code itself (.../organisation/0088), so
+    // the generic list renderer's "Resource" column — already just the
+    // URI's last path segment — shows the code for free on a name search,
+    // with no special-casing needed for that direction.
+    // A name search also checks foaf:nick — the short form ("ADIF") many
+    // organisations publish alongside their full legal name ("Administrador
+    // de Infraestructuras Ferroviarias"), which is what people actually ask
+    // for far more often than the legal name. ?name (the full name) is still
+    // what's shown; the nick is only ever used to decide a match.
+    const nameLit = orgName ? JSON.stringify(orgName.toLowerCase()) : null;
+    const base = orgCode
+      ? `?org a org:Organization ; foaf:name ?name ; era:organisationCode ${JSON.stringify(orgCode)} .`
+      : `?org a org:Organization ; foaf:name ?name .\n  OPTIONAL { ?org foaf:nick ?nick }\n  FILTER(CONTAINS(LCASE(?name), ${nameLit}) || (BOUND(?nick) && CONTAINS(LCASE(?nick), ${nameLit})))`;
     return {
       repo:'ocr', labelVar:'name', uriVar:'org',
       countQuery: `${PFX}\nSELECT (COUNT(DISTINCT ?org) AS ?n) WHERE {\n  ${base}\n}`,
@@ -639,10 +749,11 @@ function resultRows(result){
 /* ------------------------------------------------------------------ *
  * Rendering
  * ------------------------------------------------------------------ */
-function renderUnderstood(el, {entity, intent, countryLabel, repo, lang, topic}){
-  const what = entity.id === 'legal' ? `legislation mentioning “${topic}”` : entity.displayName;
-  const scope = entity.id === 'legal' ? '' : (countryLabel ? ' in ' + esc(countryLabel) : ' across Europe');
-  const verb = entity.kind === 'measure' ? 'total kilometres of ' : (intent === 'count' ? 'how many ' : 'list of ');
+function renderUnderstood(el, {entity, intent, countryLabel, repo, lang, topic, orgCode, orgName}){
+  let what = entity.displayName, scope = countryLabel ? ' in ' + esc(countryLabel) : ' across Europe', verb = intent === 'count' ? 'how many ' : 'list of ';
+  if(entity.id === 'legal'){ what = `legislation mentioning “${topic}”`; scope = ''; verb = 'list of '; }
+  else if(entity.kind === 'orgcode'){ what = orgCode ? `the organisation with code “${orgCode}”` : `the organisation named “${orgName}”`; scope = ''; verb = ''; }
+  else if(entity.kind === 'measure'){ verb = 'total kilometres of '; }
   el.hidden = false;
   el.innerHTML = 'Understood as <b>' + verb + esc(what) + '</b>' +
     scope + ' — querying <b>' + esc(REPO_LABEL[repo]) + '</b> (' + LANG_NAME[lang] + ' detected).';
@@ -684,10 +795,12 @@ function renderList(el, rows, total, labelVar, uriVar, entity){
     ' result' + (rows.length === 1 ? '' : 's') + '.</p>' +
     (entity.caveat ? '<p class="moreNote">' + esc(entity.caveat) + '</p>' : '');
 }
-function renderUnrecognized(el, noTopic){
+function renderUnrecognized(el, noTopic, noCode){
   el.innerHTML = '<p class="moreNote">' + (noTopic
     ? 'That sounds like a legislation question, but I couldn’t tell what topic to search for — try “regulations about tunnels” or “directives on signalling”.'
-    : 'I didn’t recognise a question shape in that. Try mentioning tunnels, tunnel length, freight terminals, stations, border points, operational points, sections of line, railway lines, high-speed line kilometres, infrastructure managers, railway undertakings, or a legislation topic — or click one of the sample questions above.'
+    : noCode
+    ? 'That sounds like an organisation lookup, but I couldn’t find a code or a name in it — try “organisation code 0088” or “what’s the code for Infrabel”.'
+    : 'I didn’t recognise a question shape in that. Try mentioning tunnels, tunnel length, freight terminals, stations, border points, operational points, sections of line, railway lines, high-speed line kilometres, infrastructure managers, railway undertakings, an organisation code or name, or a legislation topic — or click one of the sample questions above.'
   ) + '</p>';
 }
 
@@ -722,6 +835,8 @@ const SAMPLES = [
   {tag:'rinf-plus', q:'How many kilometres of tunnel does Italy have?'},
   {tag:'rinf-plus', q:'How many operational points does Spain have?'},
   {tag:'rinf-plus', q:'How many sections of line does Spain have?'},
+  {tag:'OCR-KG',    q:'What is the name of organisation code 0088?'},
+  {tag:'OCR-KG',    q:'What is the organisation code for Infrabel?'},
 ];
 samplesEl.innerHTML = SAMPLES.map((s, i) =>
   '<button type="button" class="chip" data-i="' + i + '"><span class="tag">' + esc(s.tag) + '</span>' + esc(s.q) + '</button>'
@@ -757,12 +872,13 @@ async function runQuery(rawText){
   const parsed = parseQuestion(text);
   if(!parsed){ renderUnrecognized(answerArea, false); return; }
   if(parsed.noTopic){ renderUnrecognized(answerArea, true); return; }
+  if(parsed.noCode){ renderUnrecognized(answerArea, false, true); return; }
 
-  const {entity, intent, cc, countryLabel, lang, topic} = parsed;
-  const built = buildQuery(entity, cc, topic);
+  const {entity, intent, cc, countryLabel, lang, topic, orgCode, orgName} = parsed;
+  const built = buildQuery(entity, cc, topic, orgCode, orgName);
   if(!built){ renderUnrecognized(answerArea, entity.id === 'legal'); return; }
 
-  renderUnderstood(understoodEl, {entity, intent, countryLabel, repo: built.repo, lang, topic});
+  renderUnderstood(understoodEl, {entity, intent, countryLabel, repo: built.repo, lang, topic, orgCode, orgName});
   sparqlDetails.hidden = false;
   queryMeta.textContent = 'Endpoint: ' + REPO_LABEL[built.repo];
   sparqlText.textContent = entity.kind === 'measure' ? built.measureQuery : (intent === 'count' ? built.countQuery : built.listQuery);
