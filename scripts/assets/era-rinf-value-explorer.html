@@ -393,7 +393,7 @@
       <code>era:inCountry</code> returns <em>zero</em> values, while the dataset scope returns the real 43.</p>
     <p><strong>An empty result is a fact, not a failure — and the tool now says which.</strong> Coverage is very
       uneven: <em>Estonia</em> publishes <strong>56</strong> of the 294 live RINF parameters, against Ireland's 82,
-      Germany's 113, Spain's 126 and France's 145. So for most parameters a single sparse country returns nothing,
+      Germany's 112, Spain's 126 and France's 148. So for most parameters a single sparse country returns nothing,
       which used to look identical to a broken query. Every run now reports one chip per selected parameter saying
       either how many values it found or <em>no data</em> and where, empty parameters appear as explicit rows in the
       table rather than being omitted, and a failed request is labelled <em>query error</em> so the two can never be
@@ -412,12 +412,13 @@
       of their own — confirmed against the live graph, and unique to junctions there, never a real station. It looks
       unusual next to a row reading <code>Haussmann-St-Lazare</code>, but it is exactly what the infrastructure
       manager published, not a labelling failure in this tool.</p>
-    <p><strong>The network map is topology, not alignment.</strong> Sections of line publish no geometry of their
-      own in any dataset except Croatia's — 581 of 583 there, zero in Germany, France, the Netherlands and Estonia —
-      but <strong>every operational point does</strong>, through
-      <code>era:netReference/geo:hasGeometry</code>: 101 of 101 in Estonia, 17,797 of 17,797 in Germany. A section is
-      therefore drawn as the straight chord between the two points it runs between, which is exact for what connects
-      to what and wrong for the shape of the route. It is drawn on
+    <p><strong>The network map is topology, not alignment.</strong> Sections of line now publish their own geometry
+      almost everywhere — 80,286 of 80,287 live sections, not just Croatia's 583 any more — and
+      <strong>every operational point does too</strong>, through
+      <code>era:netReference/geo:hasGeometry</code>: 101 of 101 in Estonia, 28,344 of 28,344 in Germany. This map
+      draws each section as the straight chord between its two operational points regardless, rather than that
+      now-available real curve — a simplification carried over from before section geometry was widely published,
+      not a limit of today's data. It is drawn on
       <a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a>, over a plain Esri basemap; the
       “Railway overlay” checkbox adds the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
       <em>standard</em> layer for real track, station and line-number context, off by default so its own colours
@@ -433,8 +434,8 @@
       a section of line, giving its start and end operational point and that section's own length
       (<code>era:lengthOfSectionOfLine</code>, RINF 1.1.0.0.0.5) alongside whichever parameter you actually picked;
       a station track hangs off an operational point, which is named instead and carries no section length. Where a
-      value sits on a shared sub-object — a contact line system, ETCS or train
-      detection system, reused across many tracks — the row reports the track that points at it, since the
+      value sits on a shared sub-object — a contact line system, ETCS equipment, a train
+      detection system, or a trackside hot axle box detector, reused across many tracks — the row reports the track that points at it, since the
       sub-object carries no location of its own. 216 of the 227 populated parameters have such a path; the rest
       have the option greyed out. The row budget is split evenly across the countries you pick, so a large
       selection never drops one of them entirely.</p>
@@ -444,7 +445,8 @@
     <p>← Back to the <a href="./">ERA Graph Explorer</a> (bubble-graph &ldquo;follow your nose&rdquo; demo)
       · <a href="./exporter.html">RDF Exporter</a> (export any resource URI as RDF/XML)
       · <a href="./rcc.html">RCC Parameters</a> (route-compatibility parameters along one national line, by kilometre)
-      · <a href="./routebook.html">Route Book</a> (TSI OPE Appendix D2 elements for one national line).</p>
+      · <a href="./routebook.html">Route Book</a> (TSI OPE Appendix D2 elements for one national line)
+      · <a href="./ask.html">Ask the Graph</a> (plain-language / voice questions, typed or spoken).</p>
   </footer>
 </div>
 <script>
@@ -1665,13 +1667,15 @@ $('detailCsvBtn').addEventListener('click', () => {
 /* ------------------------------------------------------------------ *
  * Network map
  *
- * Sections of line carry no geometry of their own in almost every dataset —
- * only Croatia publishes it — but every operational point does, through
- * era:netReference/geo:hasGeometry. So a section is drawn as the chord between
- * the two points it runs between. That is a topological map, not an alignment:
- * it shows what connects to what and what each stretch is worth on the chosen
- * parameter(s), and it must not be read as the route on the ground. The panel
- * says so in as many words.
+ * Sections of line now carry their own geometry almost everywhere too (not
+ * just Croatia, as when this map was first built) — every operational point
+ * still does as well, through era:netReference/geo:hasGeometry — but this map
+ * draws a section as the chord between the two points it runs between
+ * regardless, a simplification carried over from before section geometry was
+ * widely published rather than a limit of today's data. That is a
+ * topological map, not an alignment: it shows what connects to what and what
+ * each stretch is worth on the chosen parameter(s), and it must not be read
+ * as the route on the ground. The panel says so in as many words.
  *
  * Drawn with Leaflet over a plain Esri basemap, with the OpenRailwayMap
  * "standard" layer available as an off-by-default overlay for real track,
@@ -1981,9 +1985,9 @@ async function drawNetwork(){
       : fmt(segCount) + ' sections of line in scope, over ' + picks.length + ' parameters, drawn in ' +
         mapData.elapsed.toFixed(1) + 's' + (segCount >= MAP_LIMIT ? ' (capped)' : '') + '.';
     $('mapNote').innerHTML = mapData.mode === 'single'
-      ? '<strong>Read this as topology, not alignment.</strong> Sections of line publish no ' +
-        'geometry of their own in any dataset but Croatia’s, so each is drawn as the straight chord between the ' +
-        'two operational points it runs between — the real track curves, and the length on screen is not the ' +
+      ? '<strong>Read this as topology, not alignment.</strong> Sections of line now publish their own ' +
+        'geometry almost everywhere too, but each is still drawn as the straight chord between the two ' +
+        'operational points it runs between rather than that real curve, so the length on screen is not the ' +
         'length on the ground. Grey means the section carries no value for this parameter. Scroll to zoom, drag to ' +
         'pan, click a legend entry to hide it. Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap ' +
         '“standard” style — both © their contributors.'

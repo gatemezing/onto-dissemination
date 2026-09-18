@@ -373,13 +373,13 @@
     <p><strong>The network map draws every selected line's sections geographically</strong>, over a plain
       Esri basemap; the &ldquo;Railway overlay&rdquo; checkbox adds the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
       &ldquo;standard&rdquo; layer for real track, station and line-number context, off by default so its own
-      colours never compete with each line's own legend colour. Sections publish no
-      geometry of their own, so each is drawn as the straight chord between the two operational points it runs
-      between — topology, not alignment. Each line gets its own colour from the legend; a thicker, brighter segment
+      colours never compete with each line's own legend colour. Sections now publish their own geometry almost
+      everywhere too, but each is still drawn as the straight chord between the two operational points it runs
+      between regardless — topology, not alignment. Each line gets its own colour from the legend; a thicker, brighter segment
       carries at least one D2 element from this run, a thin grey one was resolved but has none here. It reuses the
       operational-point names and geometry already fetched for the Section column, so drawing the map costs no
       further query. Unlike the rest of this tool, the map is not offline and not third-party-free: it fetches tiles
-      from arcgisonline.com and openrailwaymap.org as you pan and zoom.</p>
+      from arcgisonline.com and, if you turn the Railway overlay on, openrailwaymap.org as you pan and zoom.</p>
     <p><strong>Appendix D2 numbers the route book; the ontology carries the numbers but not the headings.</strong>
       ERA annotates each property with <code>era:tsiOPEAppendixD2Index</code> — the index of that term in
       &ldquo;Appendix D2: Elements the infrastructure manager has to provide to the railway undertaking for the Route
@@ -404,7 +404,7 @@
     <p id="gapFootnote"><strong>Managers model their networks differently, and the tool absorbs the differences
       rather than dropping the countries that have them.</strong> Every infrastructure manager publishes national
       lines; not all publish them the same way, and a query written against one style silently returns nothing for
-      the others. Four variations are handled here:</p>
+      the others. Five variations are handled here:</p>
     <ul>
       <li><strong>Line identity.</strong> 9,543 of the 9,642 <code>era:LinearPositioningSystem</code> resources carry
         <code>era:lineId</code>. The 99 that do not are Croatia's 55 and Norway's 32, which put the identifier in the
@@ -1916,10 +1916,11 @@ window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; $(
 /* ------------------------------------------------------------------ *
  * Network map
  *
- * Sections publish no geometry of their own, but every operational point
- * does, through era:netReference/geo:hasGeometry — so a section is drawn as
- * the chord between the two points it runs between, exactly as the RCC
- * Parameters tool draws its map. Unlike that tool, nothing is re-queried to
+ * Sections now publish their own geometry almost everywhere too, and every
+ * operational point does as well, through era:netReference/geo:hasGeometry —
+ * but a section is still drawn as the chord between the two points it runs
+ * between regardless, exactly as the RCC Parameters tool draws its map.
+ * Unlike that tool, nothing is re-queried to
  * draw this one: the operational-point names and geometry were already
  * fetched for the Section column by run(), via sectionEndpointsQuery.
  * ------------------------------------------------------------------ */
@@ -2049,9 +2050,9 @@ async function drawNetworkMap(){
   const keys = lineKeys();
   $('mapStatus').textContent = fmt(mapSegs.length) + ' section' + (mapSegs.length === 1 ? '' : 's') +
     ' drawn across ' + keys.length + ' line' + (keys.length === 1 ? '' : 's') + '.';
-  $('mapNote').innerHTML = '<strong>Read this as topology, not alignment.</strong> Sections publish no geometry of ' +
-    'their own — each is the straight chord between the two operational points it runs between ' +
-    '(<code>era:opStart</code>/<code>era:opEnd</code>), not the real track curve. A brighter, thicker segment ' +
+  $('mapNote').innerHTML = '<strong>Read this as topology, not alignment.</strong> Sections now publish their own ' +
+    'geometry almost everywhere too, but each is still drawn as the straight chord between the two operational ' +
+    'points it runs between (<code>era:opStart</code>/<code>era:opEnd</code>), not that real track curve. A brighter, thicker segment ' +
     'carries at least one D2 element from this run; a thin, faint one was resolved but has none here. ' +
     (keys.length > 1 ? 'Click a legend entry to hide that line. ' : '') +
     'Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap “standard” style — both © their contributors.';

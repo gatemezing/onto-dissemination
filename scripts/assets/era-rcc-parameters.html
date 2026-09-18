@@ -374,15 +374,16 @@
       &ldquo;standard&rdquo; layer for real track, station and line-number context, off by default so its own
       colours never compete with the parameter colours you're there to read — the same approach as
       the <a href="./values.html">RINF Parameter Values</a> network map. It draws only the &ldquo;along the
-      line&rdquo; side: sections publish no geometry of their own, but every operational point does, so each section
-      is the straight chord between the two operational points it runs between — topology, not alignment, exactly
+      line&rdquo; side: sections now publish their own geometry almost everywhere too, and every operational point
+      does as well, but each section is still the straight chord between the two operational points it runs
+      between regardless — topology, not alignment, exactly
       as for the table above. It reuses the parameter values already fetched for the table rather than re-querying
       them, so drawing the map only costs one further request for geometry. One RCC parameter colours by its
       distinct values; several colour by parameter instead, one flat colour each, since mixing unrelated value
       domains into one legend would not mean anything — hover a section to see every value regardless of which
       colour is on top. With none picked, or none applicable to this line, the map still draws the topology in one
       colour. Unlike the rest of this tool, the map is not offline and not third-party-free: it fetches tiles from
-      arcgisonline.com and openrailwaymap.org as you pan and zoom.</p>
+      arcgisonline.com and, if you turn the Railway overlay on, openrailwaymap.org as you pan and zoom.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
       <a href="./values.html">RINF Parameter Values</a> · <a href="./routebook.html">Route Book</a> ·
       <a href="./ask.html">Ask the Graph</a></p>
@@ -1647,10 +1648,11 @@ window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; ap
 /* ------------------------------------------------------------------ *
  * Network map
  *
- * Sections publish no geometry of their own, but every operational point
- * does, through era:netReference/geo:hasGeometry — so a section is drawn as
- * the chord between the two points it runs between, exactly as the RINF
- * Parameter Values explorer draws its network map. This panel reuses that
+ * Sections now publish their own geometry almost everywhere too, and every
+ * operational point does as well, through era:netReference/geo:hasGeometry —
+ * but a section is still drawn as the chord between the two points it runs
+ * between regardless, exactly as the RINF Parameter Values explorer draws
+ * its network map. This panel reuses that
  * approach on Leaflet, over a plain Esri basemap with the OpenRailwayMap
  * "standard" layer overlaid for real track and station context, trading
  * away this tool's usual offline, no-third-party property for this one
@@ -1963,9 +1965,9 @@ async function drawNetworkMap(){
     $('mapStatus').textContent = fmt(mapData.segs.length) + ' section' + (mapData.segs.length === 1 ? '' : 's') +
       ' drawn in ' + elapsed.toFixed(1) + 's' + (sols.length >= MAP_LIMIT ? ' (capped)' : '') + '.';
     $('mapNote').innerHTML = mapData.mode === 'plain'
-      ? '<strong>Read this as topology, not alignment.</strong> Sections publish no geometry of their own — ' +
-        'each is the straight chord between the two operational points it runs between, not the real track ' +
-        'curve. Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap “standard” style — both © their ' +
+      ? '<strong>Read this as topology, not alignment.</strong> Sections now publish their own geometry almost ' +
+        'everywhere too, but each is still drawn as the straight chord between the two operational points it runs ' +
+        'between, not that real track curve. Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap “standard” style — both © their ' +
         'contributors.'
       : mapData.mode === 'single'
       ? '<strong>Read this as topology, not alignment.</strong> Each section is the straight chord between the ' +
