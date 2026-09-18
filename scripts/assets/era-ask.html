@@ -175,9 +175,9 @@
     <p>Every answer is a live SPARQL query run from your browser — nothing is sent anywhere else, and the exact
        query is always one click away under &ldquo;Show the SPARQL query&rdquo;. Voice input uses your browser's
        own speech recognition (Chrome/Edge); it is not supported in every browser. This is a demo of a small,
-       fixed vocabulary — tunnels, freight terminals, stations, border points, railway lines, high-speed line
-       kilometres, infrastructure managers, railway undertakings, and EU rail legislation by topic — not a
-       general question-answering system.</p>
+       fixed vocabulary — tunnels and tunnel length, freight terminals, stations, border points, operational
+       points, sections of line, railway lines, high-speed line kilometres, infrastructure managers, railway
+       undertakings, and EU rail legislation by topic — not a general question-answering system.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
        <a href="./values.html">RINF Parameter Values</a> · <a href="./rcc.html">RCC Parameters</a> ·
        <a href="./routebook.html">Route Book</a></p>
@@ -261,13 +261,24 @@ const ENTITIES = [
       es:['punto fronterizo','puntos fronterizos'],
       it:['punto di frontiera','punti di frontiera'],
   }},
+  { id:'tunnellength', kind:'measure', measureType:'tunnellength', unit:'km', displayName:'tunnels',
+    countUnit:['tunnel','tunnels'],
+    caveat:'Sums each tunnel once by its own identification code, even where it’s reported per track inside — the same tunnel otherwise gets counted (and summed) once per track. Reached via era:isPartOf (either direction — publishers differ) up to whichever section or point actually records the country, since a tunnel itself rarely does; a tunnel whose chain dead-ends at a stub resource with no country anywhere above it (Austria’s do) isn’t counted.',
+    patterns:{
+      en:['tunnel length','tunnel lengths','length of tunnel','length of tunnels','kilometres of tunnel','kilometers of tunnel','km of tunnel'],
+      fr:['longueur de tunnel','longueur des tunnels','longueur de tunnels','kilomètres de tunnel','kilometres de tunnel','km de tunnel'],
+      de:['tunnellänge','tunnellaenge','länge der tunnel','laenge der tunnel','kilometer tunnel','tunnelkilometer'],
+      es:['longitud de túnel','longitud de tunel','longitud de túneles','longitud de tuneles','kilómetros de túnel','kilometros de tunel','km de túnel'],
+      it:['lunghezza della galleria','lunghezza delle gallerie','lunghezza galleria','chilometri di galleria','chilometri di gallerie','km di galleria'],
+  }},
   { id:'tunnel', kind:'class', cls:'Tunnel', displayName:'tunnels',
     caveat:'Counts only tunnels that record a country in the live data — a little over half of all tunnels do.',
     patterns:{
       en:['tunnel','tunnels'], fr:['tunnel','tunnels'], de:['tunnel','tunneln'],
       es:['túnel','tunel','túneles','tuneles'], it:['galleria','gallerie','tunnel'],
   }},
-  { id:'highspeed', kind:'measure', unit:'km', threshold:250, displayName:'high-speed line',
+  { id:'highspeed', kind:'measure', measureType:'highspeed', unit:'km', threshold:250, displayName:'high-speed line',
+    countUnit:['section of line','sections of line'],
     caveat:'Counts sections where at least one track is rated for at least 250 km/h — the EU threshold for a new high-speed line. A country that doesn’t publish maximum permitted speed for a section isn’t counted, so this is a floor, not a ceiling.',
     patterns:{
       en:['high speed line','high-speed line','high speed lines','high-speed lines','high speed rail','high-speed rail'],
@@ -275,6 +286,24 @@ const ENTITIES = [
       de:['hochgeschwindigkeitsstrecke','hochgeschwindigkeitsstrecken','hochgeschwindigkeitsbahn'],
       es:['línea de alta velocidad','linea de alta velocidad','líneas de alta velocidad','lineas de alta velocidad','alta velocidad'],
       it:['linea ad alta velocità','linee ad alta velocità','linea ad alta velocita','alta velocità','alta velocita'],
+  }},
+  { id:'section', kind:'class', cls:'SectionOfLine', displayName:'sections of line',
+    caveat:'Some countries republish the same stretch of line every year as a fresh resource, and this counts every one of them — a country that does that (Germany among them) will show more than its real number of physical sections. Countries that publish no validity dates at all, Spain among them, aren’t affected.',
+    patterns:{
+      en:['section of line','sections of line','line section','line sections'],
+      fr:['section de ligne','sections de ligne','tronçon de ligne','troncon de ligne'],
+      de:['streckenabschnitt','streckenabschnitte','abschnitt der strecke'],
+      es:['sección de línea','seccion de linea','secciones de línea','secciones de linea'],
+      it:['sezione di linea','sezioni di linea'],
+  }},
+  { id:'oppoint', kind:'class', cls:'OperationalPoint', displayName:'operational points',
+    caveat:'Some countries publish more than one dated resource for the same physical point, and this counts every one of them — a country that does that (Germany among them) will show more than its real number. Countries that publish no validity dates at all, Spain among them, aren’t affected.',
+    patterns:{
+      en:['operational point','operational points'],
+      fr:['point opérationnel','points opérationnels','point operationnel','points operationnels'],
+      de:['betriebsstelle','betriebsstellen'],
+      es:['punto operacional','puntos operacionales','punto operativo','puntos operativos'],
+      it:['punto operativo','punti operativi'],
   }},
   { id:'line', kind:'lps', displayName:'railway lines',
     caveat:'Country results follow each line’s published sections, because line resources do not normally record a country directly.',
@@ -442,7 +471,7 @@ function countryUri(cc){ return cc ? 'http://publications.europa.eu/resource/aut
 
 function buildQuery(entity, cc, topic){
   const cUri = countryUri(cc);
-  if(entity.kind === 'measure'){
+  if(entity.kind === 'measure' && entity.measureType === 'highspeed'){
     // Sections whose length is already published in kilometres, joined to
     // any track rated at or above the threshold speed. A section can carry
     // several tracks (e.g. up/down), so the length is taken once per section
@@ -452,6 +481,21 @@ function buildQuery(entity, cc, topic){
     return {
       repo:'rinf',
       measureQuery: `${PFX}\nSELECT (SUM(?length) AS ?totalKm) (COUNT(DISTINCT ?sol) AS ?n) WHERE {\n  SELECT DISTINCT ?sol (MAX(?len1) AS ?length) WHERE {\n    ?sol a era:SectionOfLine ; era:lengthOfSectionOfLine ?len1 ; era:hasPart ?track .${countryClause}\n    ?track era:maximumPermittedSpeed ?speed .\n    FILTER(?speed >= ${entity.threshold})\n  } GROUP BY ?sol\n}`,
+    };
+  }
+  if(entity.kind === 'measure' && entity.measureType === 'tunnellength'){
+    // era:lengthOfTunnel is in metres, not km (unlike era:lengthOfSectionOfLine),
+    // hence the /1000. A tunnel is reported once per track running through it,
+    // sometimes with slightly different lengths for the same physical tunnel,
+    // so it's deduplicated by its own identification code (falling back to a
+    // label, then the URI) and only the longest reported value is kept per
+    // tunnel — matching ERA's own published RINF Data Stories query for this.
+    // A tunnel itself rarely carries era:inCountry, so country scoping walks
+    // up era:isPartOf* to whichever section or point does.
+    const countryClause = cUri ? `\n    ?t (era:isPartOf|^era:hasPart)* ?parent .\n    ?parent era:inCountry <${cUri}> .` : '';
+    return {
+      repo:'rinf',
+      measureQuery: `${PFX}\nSELECT (SUM(?length)/1000 AS ?totalKm) (COUNT(*) AS ?n) WHERE {\n  SELECT DISTINCT ?tunnelId (MAX(?len1) AS ?length) WHERE {\n    ?t a era:Tunnel ; era:lengthOfTunnel ?len1 .${countryClause}\n    OPTIONAL { ?t era:tunnelIdentification ?id }\n    OPTIONAL { ?t rdfs:label ?lbl }\n    BIND(COALESCE(?id, ?lbl, STR(?t)) AS ?tunnelId)\n  } GROUP BY ?tunnelId\n}`,
     };
   }
   if(entity.kind === 'class'){
@@ -604,12 +648,15 @@ function renderUnderstood(el, {entity, intent, countryLabel, repo, lang, topic})
     scope + ' — querying <b>' + esc(REPO_LABEL[repo]) + '</b> (' + LANG_NAME[lang] + ' detected).';
 }
 function renderMeasure(el, totalKm, n, entity, countryLabel){
+  const unitSingular = entity.countUnit ? entity.countUnit[0] : 'section of line';
+  const unitPlural = entity.countUnit ? entity.countUnit[1] : 'sections of line';
+  const unit = n === 1 ? unitSingular : unitPlural;
   el.innerHTML = `<div class="statGrid"><div class="statTile">
     <div class="n">${fmt(Math.round(totalKm))} km</div>
     <div class="l">${esc(entity.displayName)}${countryLabel ? ' in ' + esc(countryLabel) : ' in Europe'}</div>
   </div></div>` +
-  '<p class="moreNote">Across ' + fmt(n) + ' section' + (n === 1 ? '' : 's') + ' of line.</p>' +
-  (n === 0 ? '<p class="moreNote">No matching sections in the live graph right now — try a different country, or drop the country for the EU-wide picture.</p>' : '') +
+  '<p class="moreNote">Across ' + fmt(n) + ' ' + esc(unit) + '.</p>' +
+  (n === 0 ? '<p class="moreNote">No matching ' + esc(unitPlural) + ' in the live graph right now — try a different country, or drop the country for the EU-wide picture.</p>' : '') +
   (entity.caveat ? '<p class="moreNote">' + esc(entity.caveat) + '</p>' : '');
 }
 function renderCount(el, n, entity, countryLabel){
@@ -640,7 +687,7 @@ function renderList(el, rows, total, labelVar, uriVar, entity){
 function renderUnrecognized(el, noTopic){
   el.innerHTML = '<p class="moreNote">' + (noTopic
     ? 'That sounds like a legislation question, but I couldn’t tell what topic to search for — try “regulations about tunnels” or “directives on signalling”.'
-    : 'I didn’t recognise a question shape in that. Try mentioning tunnels, freight terminals, stations, border points, railway lines, high-speed line kilometres, infrastructure managers, railway undertakings, or a legislation topic — or click one of the sample questions above.'
+    : 'I didn’t recognise a question shape in that. Try mentioning tunnels, tunnel length, freight terminals, stations, border points, operational points, sections of line, railway lines, high-speed line kilometres, infrastructure managers, railway undertakings, or a legislation topic — or click one of the sample questions above.'
   ) + '</p>';
 }
 
@@ -665,13 +712,16 @@ const copyLinkBtn = document.getElementById('copyLinkBtn');
 
 const SAMPLES = [
   {tag:'rinf-plus', q:'Give me all the tunnels in Europe'},
-  {tag:'rinf-plus', q:'How many freight stations does Germany have?'},
+  {tag:'rinf-plus', q:'How many freight terminals are there across all countries?'},
   {tag:'rinf-plus', q:'How many tunnels does Italy have?'},
   {tag:'OCR-KG',    q:'Which organisations manage infrastructure in Spain?'},
   {tag:'era-lex',   q:'Find regulations about signalling'},
   {tag:'rinf-plus', q:'How many kilometres of high-speed line are there in Europe?'},
   {tag:'OCR-KG',    q:'Which railway undertakings operate in the Netherlands?'},
   {tag:'rinf-plus', q:'How many border points are there in Europe?'},
+  {tag:'rinf-plus', q:'How many kilometres of tunnel does Italy have?'},
+  {tag:'rinf-plus', q:'How many operational points does Spain have?'},
+  {tag:'rinf-plus', q:'How many sections of line does Spain have?'},
 ];
 samplesEl.innerHTML = SAMPLES.map((s, i) =>
   '<button type="button" class="chip" data-i="' + i + '"><span class="tag">' + esc(s.tag) + '</span>' + esc(s.q) + '</button>'
