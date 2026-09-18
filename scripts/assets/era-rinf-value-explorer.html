@@ -406,6 +406,12 @@
       Each parameter's value column is named after the parameter itself, with a <em>— label</em> column beside it
       wherever the ontology labels those values — which matters more than it sounds: nominal track gauge
       <code>80</code> is the concept's identifier, and <code>760</code> is the gauge in millimetres.</p>
+    <p><strong><em>Start OP</em> and <em>End OP</em> are always <code>era:opName</code>, verbatim.</strong> For an
+      unstaffed junction, that is not always a place name: France's SNCF Réseau names 38 of its junction operational
+      points after the two lines that cross there (e.g. <code>001379-1/979000-1</code>) rather than giving them one
+      of their own — confirmed against the live graph, and unique to junctions there, never a real station. It looks
+      unusual next to a row reading <code>Haussmann-St-Lazare</code>, but it is exactly what the infrastructure
+      manager published, not a labelling failure in this tool.</p>
     <p><strong>The network map is topology, not alignment.</strong> Sections of line publish no geometry of their
       own in any dataset except Croatia's — 581 of 583 there, zero in Germany, France, the Netherlands and Estonia —
       but <strong>every operational point does</strong>, through
