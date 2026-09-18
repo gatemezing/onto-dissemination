@@ -341,7 +341,7 @@
     <div class="mapBar">
       <span class="fieldLabel" style="margin:0">Selected lines, coloured individually</span>
       <button class="btn" id="mapBtn">Draw map</button>
-      <label class="chk" style="margin:0"><input type="checkbox" id="mapBase" checked> Railway overlay</label>
+      <label class="chk" style="margin:0"><input type="checkbox" id="mapBase"> Railway overlay</label>
       <span class="grow"></span>
       <button type="button" class="mini" id="mapReset" hidden>Reset view</button>
     </div>
@@ -367,8 +367,9 @@
       <a href="./rcc.html">RCC Parameters</a> tool's map already draws chords between. A section missing either end
       keeps its kilometre position only, shown as <code>—</code> where even that isn't published.</p>
     <p><strong>The network map draws every selected line's sections geographically</strong>, over a plain
-      Esri basemap with the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
-      &ldquo;standard&rdquo; layer overlaid for real track, station and line-number context. Sections publish no
+      Esri basemap; the &ldquo;Railway overlay&rdquo; checkbox adds the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
+      &ldquo;standard&rdquo; layer for real track, station and line-number context, off by default so its own
+      colours never compete with each line's own legend colour. Sections publish no
       geometry of their own, so each is drawn as the straight chord between the two operational points it runs
       between — topology, not alignment. Each line gets its own colour from the legend; a thicker, brighter segment
       carries at least one D2 element from this run, a thin grey one was resolved but has none here. It reuses the
@@ -2049,7 +2050,7 @@ async function drawNetworkMap(){
     '(<code>era:opStart</code>/<code>era:opEnd</code>), not the real track curve. A brighter, thicker segment ' +
     'carries at least one D2 element from this run; a thin, faint one was resolved but has none here. ' +
     (keys.length > 1 ? 'Click a legend entry to hide that line. ' : '') +
-    'Base tiles: Esri. Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
+    'Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap “standard” style — both © their contributors.';
   $('mapReset').hidden = false;
   $('mapBtn').disabled = false;
 }

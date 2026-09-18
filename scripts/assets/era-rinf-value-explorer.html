@@ -165,12 +165,11 @@
   #mapCanvas{width:100%;height:100%;background:#e9edf3;}
 
   /* ---- Leaflet: a plain light theme, not the app's own dark one ----
-     The map tiles (OpenStreetMap, OpenRailwayMap) are drawn for a light
+     The map tiles (Esri, optionally OpenRailwayMap) are drawn for a light
      background; forcing the app's dark panel colour underneath and around
-     them muddied the tiles and made some legend/segment colours (a green
-     that reads fine on a dark chip reads invisible over the tiles' own
-     land-cover green) hard to tell apart from the basemap itself. This
-     block is deliberately its own light theme, scoped to the map only. */
+     them muddied the tiles and made some legend/segment colours hard to
+     tell apart from the basemap itself. This block is deliberately its own
+     light theme, scoped to the map only. */
   .leaflet-container{background:#e9edf3;font-family:inherit;color:#1c2333;}
   .leaflet-control-zoom a{background:#fff;color:#1c2333;border-color:#c7cddb !important;}
   .leaflet-control-zoom a:hover{background:#eef1f6;}
@@ -277,7 +276,7 @@
        countries, and extract every distinct value actually reported, with how many resources carry it. Export as
        CSV or Excel, optionally with a full-data sheet listing every location: country, start and end operational
        point, that section's length, and the value. Queries <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a> live from your browser. The network map additionally loads
-       map tiles from OpenStreetMap and <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a> when you draw it; nothing else is sent anywhere.</p>
+       a plain Esri basemap, and an <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a> overlay if you turn it on, when you draw it; nothing else is sent anywhere.</p>
   </header>
 
   <div class="panel">
@@ -363,7 +362,7 @@
       <span class="fieldLabel" style="margin:0">Colour the network by</span>
       <div id="mapParamPicks" class="mapParamPicks" role="group" aria-label="Parameters to draw on the map"></div>
       <button class="btn" id="mapBtn">Draw map</button>
-      <label class="chk" style="margin:0"><input type="checkbox" id="mapBase" checked> Railway overlay</label>
+      <label class="chk" style="margin:0"><input type="checkbox" id="mapBase"> Railway overlay</label>
       <span class="grow"></span>
       <button type="button" class="mini" id="mapPopBtn" hidden>Open in new window ↗</button>
       <button type="button" class="mini" id="mapReset" hidden>Reset view</button>
@@ -413,11 +412,12 @@
       <code>era:netReference/geo:hasGeometry</code>: 101 of 101 in Estonia, 17,797 of 17,797 in Germany. A section is
       therefore drawn as the straight chord between the two points it runs between, which is exact for what connects
       to what and wrong for the shape of the route. It is drawn on
-      <a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a>, over standard OpenStreetMap tiles
-      with the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
-      <em>standard</em> layer overlaid for real track, station and line-number context — the “Railway overlay”
-      checkbox turns that layer off. Unlike the rest of the tool, this panel is not offline and not third-party-free:
-      it fetches map tiles from openstreetmap.org and openrailwaymap.org as you pan and zoom.</p>
+      <a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a>, over a plain Esri basemap; the
+      “Railway overlay” checkbox adds the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
+      <em>standard</em> layer for real track, station and line-number context, off by default so its own colours
+      never compete with the parameter colours you're there to read. Unlike the rest of the tool, this panel is not
+      offline and not third-party-free: it fetches map tiles from arcgisonline.com and, if you turn the overlay
+      on, openrailwaymap.org as you pan and zoom.</p>
     <p><strong>Known limits.</strong> One dataset is not single-country: Austria’s <code>0081</code> is 99.76 % Austrian
       (13 of 5 402 country-tagged resources are Liechtenstein, Swiss or German border objects). Liechtenstein and the
       United Kingdom appear in the data but publish no dataset of their own, so they have no country entry. The shared
@@ -1564,7 +1564,7 @@ function locationColumns(rows){
 
 /* Keyed by (parameter, value): two parameters can share a value string while
    meaning entirely different things. */
-const labelKey = (paramUri, value) => paramUri + ' ' + value;
+const labelKey = (paramUri, value) => paramUri + '\u0000' + value;
 function labelIndex(){
   return new Map(lastRun.rows.map(x => [labelKey(x.param.u, x.value), x.label || '']));
 }
@@ -1611,7 +1611,7 @@ function transposedTable(){
   const loc = locationColumns(r.detail);
   const labelOf = labelIndex();
   const rowsByKey = new Map();
-  const key = d => [d.country || '', d.start || '', d.end || '', d.op || '', d.res || ''].join(' ');
+  const key = d => [d.country || '', d.start || '', d.end || '', d.op || '', d.res || ''].join('\u0000');
   for(const d of r.detail){
     let row = rowsByKey.get(key(d));
     if(!row){ row = {d, vals: new Map(), labs: new Map()}; rowsByKey.set(key(d), row); }
@@ -1667,11 +1667,13 @@ $('detailCsvBtn').addEventListener('click', () => {
  * parameter(s), and it must not be read as the route on the ground. The panel
  * says so in as many words.
  *
- * Drawn with Leaflet over standard OpenStreetMap tiles, with the
- * OpenRailwayMap "standard" layer overlaid for real track, station and
- * line-number context. That trades away this tool's usual offline,
- * no-third-party property for this one panel only — every other query in the
- * tool still runs against graph.data.era.europa.eu alone.
+ * Drawn with Leaflet over a plain Esri basemap, with the OpenRailwayMap
+ * "standard" layer available as an off-by-default overlay for real track,
+ * station and line-number context — off by default so its own colours never
+ * compete with the parameter colours this map exists to show. That trades
+ * away this tool's usual offline, no-third-party property for this one panel
+ * only — every other query in the tool still runs against
+ * graph.data.era.europa.eu alone.
  *
  * One parameter picked colours by that parameter's distinct values, exactly
  * as before. Several parameters picked colours by parameter instead — one
@@ -1683,15 +1685,16 @@ $('detailCsvBtn').addEventListener('click', () => {
  * ------------------------------------------------------------------ */
 const MAP_LIMIT = 30000;
 const MAP_SEP = '|~|';
-/* No green or teal: the OpenStreetMap/OpenRailwayMap tiles underneath already
-   use green for land cover, so a green segment all but disappears over a
-   forest or park. Eight hues chosen to stay mutually distinct and to read
-   clearly over a light basemap instead. */
+/* No green or teal: green land cover used to be part of the default base
+   tiles (and still appears if the OpenRailwayMap overlay is turned on), so a
+   green segment could all but disappear. Eight hues chosen to stay mutually
+   distinct and to read clearly over a light basemap instead. */
 const MAP_PALETTE = ['#2a78d6','#e34948','#eb6834','#4a3aa7',
                      '#e87ba4','#eda100','#1c3f6e','#7a4419'];
 const MAP_NONE = '#b7bcc4';     // segment carries no value for this parameter
 const MAP_OTHER = '#5f6672';    // segment's value didn't make the legend's top slots
-const OSM_ATTRIB = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+const OSM_ATTRIB = 'Base map: © <a href="https://www.esri.com" target="_blank" rel="noopener">Esri</a>, HERE, Garmin, © ' +
+  '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
 const ORM_ATTRIB = 'Railway style: <a href="https://creativecommons.org/licenses/by-sa/2.0/" ' +
   'target="_blank" rel="noopener">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/" target="_blank" ' +
   'rel="noopener">OpenRailwayMap</a>';
@@ -1783,7 +1786,12 @@ function mapParamOptions(){
 function ensureMap(){
   if(leafletMap) return leafletMap;
   leafletMap = L.map('mapCanvas', {preferCanvas: true, minZoom: 3, maxZoom: 19, worldCopyJump: false});
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: OSM_ATTRIB})
+  // Plain Esri basemap rather than tile.openstreetmap.org: that server actively
+  // 403-blocks apps it decides aren't following its usage policy (osm.wiki/Blocked),
+  // and a bare light basemap also keeps the parameter colours legible. Esri's tile
+  // scheme is z/y/x, the reverse of the standard z/x/y order used below.
+  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom: 19, attribution: OSM_ATTRIB})
     .addTo(leafletMap);
   orwLayer = L.tileLayer('https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',
     {maxZoom: 19, opacity: 0.85, attribution: ORM_ATTRIB});
@@ -1954,13 +1962,13 @@ async function drawNetwork(){
         'geometry of their own in any dataset but Croatia’s, so each is drawn as the straight chord between the ' +
         'two operational points it runs between — the real track curves, and the length on screen is not the ' +
         'length on the ground. Grey means the section carries no value for this parameter. Scroll to zoom, drag to ' +
-        'pan, click a legend entry to hide it. Base tiles: OpenStreetMap. Railway overlay: OpenRailwayMap ' +
+        'pan, click a legend entry to hide it. Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap ' +
         '“standard” style — both © their contributors.'
       : '<strong>Read this as topology, not alignment</strong> — same caveat as one parameter, and here each ' +
         'colour is a parameter, not a value: pick which ones above, or click a legend entry to hide it. Grey ' +
         'means none of the visible parameters have a value for that section. Where a section carries more than ' +
         'one, whichever is drawn last wins the pixels on screen — hover it to see every value. Base tiles: ' +
-        'OpenStreetMap. Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
+        'Esri. Railway overlay (off by default): OpenRailwayMap “standard” style — both © their contributors.';
     $('mapReset').hidden = false;
     $('mapPopBtn').hidden = false;
   } catch(err){
@@ -2045,8 +2053,7 @@ window.addEventListener('resize', () => { if(leafletMap) leafletMap.invalidateSi
  * second monitor or just given more room than the panel embedded in the
  * page. Nothing is re-queried: the segments currently on screen (already
  * coloured and tooltipped, exactly as drawn) are serialized to JSON and
- * redrawn from scratch there, over the same OpenStreetMap/OpenRailwayMap
- * tiles.
+ * redrawn from scratch there, over the same Esri/OpenRailwayMap tiles.
  * ------------------------------------------------------------------ */
 function popoutSegments(){
   const out = [];
@@ -2129,7 +2136,7 @@ function buildPopoutHTML(){
             '"</span><span class=\\"ct\\">" + it.count.toLocaleString("en-GB") + "</span></div>";' +
         '}).join("");' +
         'var map = L.map("map", {preferCanvas:true, minZoom:3, maxZoom:19, worldCopyJump:false});' +
-        'L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution: DATA.osmAttrib}).addTo(map);' +
+        'L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, attribution: DATA.osmAttrib}).addTo(map);' +
         'var orw = L.tileLayer("https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png", {maxZoom:19, opacity:0.85, attribution: DATA.ormAttrib});' +
         'var ovlChk = document.getElementById("ovlChk");' +
         'ovlChk.checked = DATA.baseChecked;' +

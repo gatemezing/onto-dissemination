@@ -314,7 +314,7 @@
       <span class="fieldLabel" style="margin:0">Colour the line by</span>
       <div id="mapParamPicks" class="mapParamPicks" role="group" aria-label="Parameters to draw on the map"></div>
       <button class="btn" id="mapBtn">Draw map</button>
-      <label class="chk" style="margin:0"><input type="checkbox" id="mapBase" checked> Railway overlay</label>
+      <label class="chk" style="margin:0"><input type="checkbox" id="mapBase"> Railway overlay</label>
       <span class="grow"></span>
       <button type="button" class="mini" id="mapReset" hidden>Reset view</button>
     </div>
@@ -369,9 +369,10 @@
       mistake. The RCC parameter filter works the same way as the line picker: search, pick as many as you need, and
       the underlying query adds <code>FILTER(?rinfIndex IN (…))</code> for exactly those — leave it empty and every
       RCC parameter is returned, as before.</p>
-    <p><strong>The network map draws this run's sections geographically</strong>, over a plain Esri basemap
-      with the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
-      &ldquo;standard&rdquo; layer overlaid for real track, station and line-number context — the same approach as
+    <p><strong>The network map draws this run's sections geographically</strong>, over a plain Esri basemap;
+      the &ldquo;Railway overlay&rdquo; checkbox adds the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
+      &ldquo;standard&rdquo; layer for real track, station and line-number context, off by default so its own
+      colours never compete with the parameter colours you're there to read — the same approach as
       the <a href="./values.html">RINF Parameter Values</a> network map. It draws only the &ldquo;along the
       line&rdquo; side: sections publish no geometry of their own, but every operational point does, so each section
       is the straight chord between the two operational points it runs between — topology, not alignment, exactly
@@ -1940,17 +1941,17 @@ async function drawNetworkMap(){
     $('mapNote').innerHTML = mapData.mode === 'plain'
       ? '<strong>Read this as topology, not alignment.</strong> Sections publish no geometry of their own — ' +
         'each is the straight chord between the two operational points it runs between, not the real track ' +
-        'curve. Base tiles: Esri. Railway overlay: OpenRailwayMap “standard” style — both © their ' +
+        'curve. Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap “standard” style — both © their ' +
         'contributors.'
       : mapData.mode === 'single'
       ? '<strong>Read this as topology, not alignment.</strong> Each section is the straight chord between the ' +
         'two operational points it runs between, not the real track curve. Grey means no value for this ' +
-        'parameter. Click a legend entry to hide it. Base tiles: Esri. Railway overlay: OpenRailwayMap ' +
+        'parameter. Click a legend entry to hide it. Base tiles: Esri. Railway overlay (off by default): OpenRailwayMap ' +
         '“standard” style — both © their contributors.'
       : '<strong>Read this as topology, not alignment</strong> — and each colour is a parameter, not a value: ' +
         'pick which ones above, or click a legend entry to hide it. Where a section carries more than one, ' +
         'whichever is drawn last wins the pixels — hover it to see every value. Base tiles: Esri. ' +
-        'Railway overlay: OpenRailwayMap “standard” style — both © their contributors.';
+        'Railway overlay (off by default): OpenRailwayMap “standard” style — both © their contributors.';
     $('mapReset').hidden = false;
   } catch(err){
     await setFetchErrorStatus($('mapStatus'), 'moreNote err', err, ENDPOINT, drawNetworkMap);
