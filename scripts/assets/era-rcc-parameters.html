@@ -728,6 +728,22 @@ function uriValues(varName, uris){
   return `  VALUES ?${varName} { ${uris.map(u => '<' + u + '>').join(' ')} }`;
 }
 
+/* Some RCC parameters (era:umax2 among them) are not asserted on the track
+   itself but one hop further out, on a sub-object the track points at — a
+   ContactLineSystem for electrification parameters, an ETCS-equipment
+   resource, a train-detection system, a trackside hot-axle-box detector.
+   ?track ?parameter ?value0 alone silently finds nothing for these: not an
+   error, just an empty OPTIONAL, so the parameter quietly never appears in
+   the table. Measured against DEU line 4000's 300 sections: +21% query time
+   (3.8s to 4.6s) for +30% more rows (15,041 to 19,511) — worth it, and
+   nowhere near the endpoint's 120s limit. */
+const VIA_HOPS = ['contactLineSystem', 'etcs', 'trainDetectionSystem', 'tracksideHabd'];
+function paramValueBlock(subjectVar){
+  const branches = ['{ ?' + subjectVar + ' ?parameter ?value0 }',
+    ...VIA_HOPS.map(hop => '{ ?' + subjectVar + ' era:' + hop + ' ?via_' + hop + ' . ?via_' + hop + ' ?parameter ?value0 }')];
+  return '  ' + branches.join('\n  UNION\n  ');
+}
+
 /* ---- phase 2: the RCC parameters on those places ---- */
 function trackParamsQuery(sols, only, dir){
   return `${PREFIXES}
@@ -737,7 +753,8 @@ WHERE {
 ${paramBlock('1.1', only)}
 ${uriValues('sol', sols)}
   ${part('sol', 'track', dir)}
-  ?track rdfs:label ?trackName ; ?parameter ?value0 .
+  ?track rdfs:label ?trackName .
+${paramValueBlock('track')}
 ${valueBlock()}
 }
 GROUP BY ?sol ?trackName ?rinfIndex ?parameterLabel`;
@@ -752,7 +769,8 @@ WHERE {
 ${paramBlock('1.2', only)}
 ${uriValues('op', ops)}
   ${part('op', 'track', dir)}
-  ?track rdfs:label ?trackName ; ?parameter ?value0 .
+  ?track rdfs:label ?trackName .
+${paramValueBlock('track')}
   ${typeValues}
   ?track a ?type .
   # France repeats tracks inside one operational point, so the newest track
@@ -1909,8 +1927,14 @@ async function drawNetworkMap(){
       const counts = new Map();
       segs.forEach(x => counts.set(x.v, (counts.get(x.v) || 0) + 1));
       const ranked = [...counts.entries()].filter(x => x[0] !== null).sort((a, b) => b[1] - a[1]);
+      // Colours start at this parameter's own palette slot (the same one its
+      // chip showed above) rather than always restarting at slot 0, so
+      // toggling every other parameter off doesn't change the colour of the
+      // one left on screen.
+      const paletteOffset = picks[0].i % MAP_PALETTE.length;
       const colour = new Map();
-      ranked.slice(0, MAP_PALETTE.length).forEach((x, i) => colour.set(x[0], MAP_PALETTE[i]));
+      ranked.slice(0, MAP_PALETTE.length).forEach((x, i) =>
+        colour.set(x[0], MAP_PALETTE[(paletteOffset + i) % MAP_PALETTE.length]));
       mapData = {mode: 'single', segs, colour, ranked,
                  otherCount: ranked.slice(MAP_PALETTE.length).reduce((s, x) => s + x[1], 0),
                  noneCount: counts.get(null) || 0, elapsed};

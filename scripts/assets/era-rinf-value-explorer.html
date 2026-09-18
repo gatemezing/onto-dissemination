@@ -1723,8 +1723,19 @@ function buildMapQuery(params){
     '       (GROUP_CONCAT(DISTINCT ?v' + i + '; separator="' + MAP_SEP + '") AS ?value' + i + ')');
   const optionals = params.flatMap((e, i) => {
     const propUri = safeUri(e.u);
-    return ['    OPTIONAL { { ?sol <' + propUri + '> ?v' + i + ' }',
-            '               UNION { ?trk' + i + ' era:isPartOf ?sol . ?trk' + i + ' <' + propUri + '> ?v' + i + ' } }'];
+    const branches = ['{ ?sol <' + propUri + '> ?v' + i + ' }',
+      '{ ?trk' + i + ' era:isPartOf ?sol . ?trk' + i + ' <' + propUri + '> ?v' + i + ' }'];
+    // Some parameters (the catalogue's "via:" shape — e.g. era:umax2, which
+    // actually sits on the track's era:ContactLineSystem, not the track
+    // itself) live one hop further out on a sub-object. Without this branch
+    // the map found geometry for every section but a value for none of them:
+    // ?trk era:isPartOf ?sol never matches a ContactLineSystem directly.
+    if((e.loc || '').startsWith('via:')){
+      const viaUri = safeUri('http://data.europa.eu/949/' + e.loc.slice(4));
+      branches.push('{ ?trk' + i + 'v era:isPartOf ?sol . ?trk' + i + 'v <' + viaUri + '> ?sub' + i + ' . ' +
+        '?sub' + i + ' <' + propUri + '> ?v' + i + ' }');
+    }
+    return ['    OPTIONAL { ' + branches.join('\n               UNION ') + ' }'];
   });
   return ['PREFIX era: <http://data.europa.eu/949/>',
     'PREFIX geo: <http://www.opengis.net/ont/geosparql#>',
@@ -1901,12 +1912,18 @@ async function drawNetwork(){
         return;
       }
       /* Rank values by how much network carries them, so the legend is ordered
-         by what the reader will actually see on screen. */
+         by what the reader will actually see on screen. Colours start at this
+         parameter's own palette slot (the same one its chip showed in "Colour
+         the network by" above) rather than always restarting at slot 0 — so
+         toggling every other parameter off doesn't change the colour of the
+         one left on screen. */
       const counts = new Map();
       segs.forEach(x => counts.set(x.v, (counts.get(x.v) || 0) + 1));
       const ranked = [...counts.entries()].filter(x => x[0] !== null).sort((a, b) => b[1] - a[1]);
+      const paletteOffset = picks[0].i % MAP_PALETTE.length;
       const colour = new Map();
-      ranked.slice(0, MAP_PALETTE.length).forEach((x, i) => colour.set(x[0], MAP_PALETTE[i]));
+      ranked.slice(0, MAP_PALETTE.length).forEach((x, i) =>
+        colour.set(x[0], MAP_PALETTE[(paletteOffset + i) % MAP_PALETTE.length]));
       mapData = {mode: 'single', segs, param: e, colour, ranked,
                  otherCount: ranked.slice(MAP_PALETTE.length).reduce((s, x) => s + x[1], 0),
                  noneCount: counts.get(null) || 0, elapsed};
