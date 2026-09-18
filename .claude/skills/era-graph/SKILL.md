@@ -63,6 +63,41 @@ Consequences:
   a Croatia line with any other country's would otherwise silently apply the
   wrong direction to Croatia's side of it.
 
+## Rule 2b — some "along the line" parameters sit one hop further out
+
+`?track era:isPartOf ?sol . ?track <prop> ?value` is the right join for most
+RCC/RINF track-level parameters, but not all of them: **47 of 294 catalogued
+parameters (16%) are not asserted on the track itself** — they're on a
+sub-object the track points at instead. There are four such hops, found by
+checking each parameter's real `rdfs:domain` against the live data rather than
+assuming "along the line" always means "on the track":
+
+| Sub-object | Reached via | Example parameter |
+|---|---|---|
+| `era:ContactLineSystem` | `?track era:contactLineSystem ?sub` | `era:umax2` (10 params) |
+| ETCS equipment | `?track era:etcs ?sub` | `era:etcsLevelType` (26 params) |
+| Train detection system | `?track era:trainDetectionSystem ?sub` | (6 params) |
+| Trackside HABD | `?track era:tracksideHabd ?sub` | (5 params) |
+
+The failure mode is silent and total: `?track <prop> ?value` inside an
+`OPTIONAL` just never binds, so the parameter doesn't error — it quietly
+shows "no data" for **every** section, including ones that plainly carry it
+(discovered when `era:umax2` — 22,120 raw statements in the graph — showed
+zero matches for any positioned section of the French network). A geometry
+count that looks right (topology resolved, sections drawn) is not evidence
+the *values* joined correctly; check the values landed too.
+
+Where per-parameter shape is known ahead of time (era-route-book.html has a
+small, curated set of D2 indices), emit only the one correct shape per
+parameter. Where the parameter set is discovered live (era-rcc-parameters.html
+picks whatever currently carries `era:usedInRCCCalculations`), union all four
+hops plus the direct case — measured at +21% query time for +30% more (real,
+previously-missing) rows on a 300-section chunk, nowhere near the endpoint's
+120s limit. Don't add the sub-object hops to every query defensively, though:
+adding a `UNION` per hop that never matches for a given property still costs
+the query planner something, so only widen a specific query once you know
+(from the catalogue, or from a live domain check) that it needs it.
+
 ## Rule 3 — validity: newest window **per place**, never per line
 
 Managers republish. Without a filter you mix current and superseded descriptions.
