@@ -175,8 +175,9 @@
     <p>Every answer is a live SPARQL query run from your browser — nothing is sent anywhere else, and the exact
        query is always one click away under &ldquo;Show the SPARQL query&rdquo;. Voice input uses your browser's
        own speech recognition (Chrome/Edge); it is not supported in every browser. This is a demo of a small,
-       fixed vocabulary — tunnels, freight terminals, stations, border points, railway lines, infrastructure
-       managers, railway undertakings, and EU rail legislation by topic — not a general question-answering system.</p>
+       fixed vocabulary — tunnels, freight terminals, stations, border points, railway lines, high-speed line
+       kilometres, infrastructure managers, railway undertakings, and EU rail legislation by topic — not a
+       general question-answering system.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./exporter.html">RDF Exporter</a> ·
        <a href="./values.html">RINF Parameter Values</a> · <a href="./rcc.html">RCC Parameters</a> ·
        <a href="./routebook.html">Route Book</a></p>
@@ -265,6 +266,15 @@ const ENTITIES = [
     patterns:{
       en:['tunnel','tunnels'], fr:['tunnel','tunnels'], de:['tunnel','tunneln'],
       es:['túnel','tunel','túneles','tuneles'], it:['galleria','gallerie','tunnel'],
+  }},
+  { id:'highspeed', kind:'measure', unit:'km', threshold:250, displayName:'high-speed line',
+    caveat:'Counts sections where at least one track is rated for at least 250 km/h — the EU threshold for a new high-speed line. A country that doesn’t publish maximum permitted speed for a section isn’t counted, so this is a floor, not a ceiling.',
+    patterns:{
+      en:['high speed line','high-speed line','high speed lines','high-speed lines','high speed rail','high-speed rail'],
+      fr:['ligne à grande vitesse','lignes à grande vitesse','ligne a grande vitesse','lignes a grande vitesse','grande vitesse'],
+      de:['hochgeschwindigkeitsstrecke','hochgeschwindigkeitsstrecken','hochgeschwindigkeitsbahn'],
+      es:['línea de alta velocidad','linea de alta velocidad','líneas de alta velocidad','lineas de alta velocidad','alta velocidad'],
+      it:['linea ad alta velocità','linee ad alta velocità','linea ad alta velocita','alta velocità','alta velocita'],
   }},
   { id:'line', kind:'lps', displayName:'railway lines',
     caveat:'Country results follow each line’s published sections, because line resources do not normally record a country directly.',
@@ -432,6 +442,18 @@ function countryUri(cc){ return cc ? 'http://publications.europa.eu/resource/aut
 
 function buildQuery(entity, cc, topic){
   const cUri = countryUri(cc);
+  if(entity.kind === 'measure'){
+    // Sections whose length is already published in kilometres, joined to
+    // any track rated at or above the threshold speed. A section can carry
+    // several tracks (e.g. up/down), so the length is taken once per section
+    // (MAX over an inner DISTINCT-?sol subquery) rather than once per track,
+    // or a two-track section would be double-counted.
+    const countryClause = cUri ? `\n    ?sol era:inCountry <${cUri}> .` : '';
+    return {
+      repo:'rinf',
+      measureQuery: `${PFX}\nSELECT (SUM(?length) AS ?totalKm) (COUNT(DISTINCT ?sol) AS ?n) WHERE {\n  SELECT DISTINCT ?sol (MAX(?len1) AS ?length) WHERE {\n    ?sol a era:SectionOfLine ; era:lengthOfSectionOfLine ?len1 ; era:hasPart ?track .${countryClause}\n    ?track era:maximumPermittedSpeed ?speed .\n    FILTER(?speed >= ${entity.threshold})\n  } GROUP BY ?sol\n}`,
+    };
+  }
   if(entity.kind === 'class'){
     const filter = cUri ? `?t era:inCountry <${cUri}> .` : '';
     return {
@@ -561,6 +583,9 @@ function resultRows(result){
   if(result.kind === 'count'){
     return [['Question','Endpoint','Entity','Scope','Count'], [...common, result.count]];
   }
+  if(result.kind === 'measure'){
+    return [['Question','Endpoint','Entity','Scope','Total km','Sections'], [...common, result.totalKm, result.sections]];
+  }
   return [
     ['Question','Endpoint','Entity','Scope','Name','Resource'],
     ...result.rows.map(row => [...common, row.name, row.uri]),
@@ -573,9 +598,19 @@ function resultRows(result){
 function renderUnderstood(el, {entity, intent, countryLabel, repo, lang, topic}){
   const what = entity.id === 'legal' ? `legislation mentioning “${topic}”` : entity.displayName;
   const scope = entity.id === 'legal' ? '' : (countryLabel ? ' in ' + esc(countryLabel) : ' across Europe');
+  const verb = entity.kind === 'measure' ? 'total kilometres of ' : (intent === 'count' ? 'how many ' : 'list of ');
   el.hidden = false;
-  el.innerHTML = 'Understood as <b>' + (intent === 'count' ? 'how many ' : 'list of ') + esc(what) + '</b>' +
+  el.innerHTML = 'Understood as <b>' + verb + esc(what) + '</b>' +
     scope + ' — querying <b>' + esc(REPO_LABEL[repo]) + '</b> (' + LANG_NAME[lang] + ' detected).';
+}
+function renderMeasure(el, totalKm, n, entity, countryLabel){
+  el.innerHTML = `<div class="statGrid"><div class="statTile">
+    <div class="n">${fmt(Math.round(totalKm))} km</div>
+    <div class="l">${esc(entity.displayName)}${countryLabel ? ' in ' + esc(countryLabel) : ' in Europe'}</div>
+  </div></div>` +
+  '<p class="moreNote">Across ' + fmt(n) + ' section' + (n === 1 ? '' : 's') + ' of line.</p>' +
+  (n === 0 ? '<p class="moreNote">No matching sections in the live graph right now — try a different country, or drop the country for the EU-wide picture.</p>' : '') +
+  (entity.caveat ? '<p class="moreNote">' + esc(entity.caveat) + '</p>' : '');
 }
 function renderCount(el, n, entity, countryLabel){
   el.innerHTML = `<div class="statGrid"><div class="statTile">
@@ -605,7 +640,7 @@ function renderList(el, rows, total, labelVar, uriVar, entity){
 function renderUnrecognized(el, noTopic){
   el.innerHTML = '<p class="moreNote">' + (noTopic
     ? 'That sounds like a legislation question, but I couldn’t tell what topic to search for — try “regulations about tunnels” or “directives on signalling”.'
-    : 'I didn’t recognise a question shape in that. Try mentioning tunnels, freight terminals, stations, border points, railway lines, infrastructure managers, railway undertakings, or a legislation topic — or click one of the sample questions above.'
+    : 'I didn’t recognise a question shape in that. Try mentioning tunnels, freight terminals, stations, border points, railway lines, high-speed line kilometres, infrastructure managers, railway undertakings, or a legislation topic — or click one of the sample questions above.'
   ) + '</p>';
 }
 
@@ -634,6 +669,9 @@ const SAMPLES = [
   {tag:'rinf-plus', q:'How many tunnels does Italy have?'},
   {tag:'OCR-KG',    q:'Which organisations manage infrastructure in Spain?'},
   {tag:'era-lex',   q:'Find regulations about signalling'},
+  {tag:'rinf-plus', q:'How many kilometres of high-speed line are there in Europe?'},
+  {tag:'OCR-KG',    q:'Which railway undertakings operate in the Netherlands?'},
+  {tag:'rinf-plus', q:'How many border points are there in Europe?'},
 ];
 samplesEl.innerHTML = SAMPLES.map((s, i) =>
   '<button type="button" class="chip" data-i="' + i + '"><span class="tag">' + esc(s.tag) + '</span>' + esc(s.q) + '</button>'
@@ -677,10 +715,17 @@ async function runQuery(rawText){
   renderUnderstood(understoodEl, {entity, intent, countryLabel, repo: built.repo, lang, topic});
   sparqlDetails.hidden = false;
   queryMeta.textContent = 'Endpoint: ' + REPO_LABEL[built.repo];
-  sparqlText.textContent = intent === 'count' ? built.countQuery : built.listQuery;
+  sparqlText.textContent = entity.kind === 'measure' ? built.measureQuery : (intent === 'count' ? built.countQuery : built.listQuery);
 
   try{
-    if(intent === 'count'){
+    if(entity.kind === 'measure'){
+      const rows = await sparql(REPOS[built.repo], built.measureQuery);
+      if(reqId !== requestId) return;
+      const totalKm = rows.length && rows[0].totalKm ? parseFloat(rows[0].totalKm.value) : 0;
+      const n = rows.length && rows[0].n ? parseInt(rows[0].n.value, 10) : 0;
+      renderMeasure(answerArea, totalKm, n, entity, countryLabel);
+      showResultActions({kind:'measure', question:text, repo:built.repo, entity, countryLabel, totalKm, sections:n});
+    } else if(intent === 'count'){
       const rows = await sparql(REPOS[built.repo], built.countQuery);
       if(reqId !== requestId) return;
       const n = rows.length ? parseInt(rows[0].n.value, 10) : 0;
