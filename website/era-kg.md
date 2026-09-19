@@ -139,7 +139,7 @@ Explore practical questions about the European railway infrastructure through ma
 Browse the definitions and relationships used to describe railway infrastructure and vehicle-type data.
 
 **ERA controlled vocabularies**  
-Explore the harmonised values used for railway parameters through [EU Vocabularies](https://op.europa.eu/en/web/eu-vocabularies/era).
+Explore the harmonised values used for railway parameters through the [ERA SKOS schemes](https://rinf.data.era.europa.eu/era-vocabulary/era-skos) and the [ERA Telematics SKOS schemes](https://rinf.data.era.europa.eu/era-vocabulary/era-telem-skos).
 
 ### For data specialists and developers
 
@@ -150,7 +150,7 @@ Run structured queries against the RINF Knowledge Graph, with other registers ad
 Download the ontology and inspect releases, documentation and change history in the [ERA Ontology GitLab repository](https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology).
 
 **Knowledge Graph mappings**  
-See how source data for RINF is transformed into RDF in the [ERA KG Mappings](https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-kg-mappings) project (RML/YARRRML mappings).
+See how source data for RINF is transformed into RDF in [RINF XML2RDF](https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/rinf-plus/-/tree/main/RINF%20XML2RDF%20data%20transformation?ref_type=heads).
 
 **Controlled vocabularies and validation rules**  
 Reuse the SKOS concept schemes and SHACL shapes supporting consistent railway data.
