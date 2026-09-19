@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">ERA Knowledge Graph architecture</title>
+  <desc id="desc">ERA source registers flow through semantic transformation and validation into the ERA Knowledge Graph, which supports APIs, SPARQL, maps, Data Stories and applications.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f8fc"/>
+      <stop offset="1" stop-color="#e9f1f8"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#12324a" flood-opacity="0.15"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#356f95"/>
+    </marker>
+    <style>
+      .heading{font:700 38px Arial,sans-serif;fill:#17324d}.subtitle{font:400 20px Arial,sans-serif;fill:#506879}
+      .stage{font:700 15px Arial,sans-serif;letter-spacing:1.5px;fill:#356f95}.label{font:700 23px Arial,sans-serif;fill:#17324d}
+      .small{font:400 17px Arial,sans-serif;fill:#425b6d}.white{fill:#fff}.box{fill:#fff;stroke:#c4d5e2;stroke-width:2}
+      .source{fill:#e7f2fa;stroke:#78a8c6;stroke-width:2}.semantic{fill:#e9f5ef;stroke:#69a481;stroke-width:2}
+      .validation{fill:#fff4df;stroke:#d6a54e;stroke-width:2}.kg{fill:#173f61;stroke:#173f61;stroke-width:2}
+      .output{fill:#f1edfa;stroke:#9278bd;stroke-width:2}.line{stroke:#356f95;stroke-width:4;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1600" height="760" fill="url(#bg)"/>
+  <text x="80" y="78" class="heading">From railway registers to interoperable data services</text>
+  <text x="80" y="114" class="subtitle">ERA connects common semantics, automated quality checks and reusable access channels.</text>
+
+  <text x="85" y="178" class="stage">1 · SOURCE DATA</text>
+  <rect x="80" y="200" width="250" height="330" rx="22" class="source" filter="url(#shadow)"/>
+  <text x="205" y="242" text-anchor="middle" class="label">ERA registers</text>
+  <rect x="112" y="266" width="186" height="42" rx="11" class="box"/>
+  <text x="205" y="294" text-anchor="middle" class="label">RINF</text>
+  <rect x="112" y="318" width="186" height="42" rx="11" class="box"/>
+  <text x="205" y="346" text-anchor="middle" class="label">ERATV</text>
+  <rect x="112" y="370" width="186" height="42" rx="11" class="box"/>
+  <text x="205" y="398" text-anchor="middle" class="label">EVR</text>
+  <rect x="112" y="422" width="186" height="42" rx="11" class="box"/>
+  <text x="205" y="450" text-anchor="middle" class="label">ERADIS</text>
+  <rect x="112" y="474" width="186" height="42" rx="11" class="box"/>
+  <text x="205" y="502" text-anchor="middle" class="label">OCR</text>
+
+  <path d="M330 365 H390" class="line"/>
+  <text x="405" y="178" class="stage">2 · SEMANTIC TRANSFORMATION</text>
+  <rect x="390" y="200" width="310" height="330" rx="22" class="semantic" filter="url(#shadow)"/>
+  <text x="545" y="246" text-anchor="middle" class="label">Shared meaning</text>
+  <rect x="425" y="276" width="240" height="64" rx="12" class="box"/>
+  <text x="545" y="316" text-anchor="middle" class="label">ERA Ontology</text>
+  <rect x="425" y="358" width="240" height="64" rx="12" class="box"/>
+  <text x="545" y="386" text-anchor="middle" class="label">SKOS</text>
+  <text x="545" y="410" text-anchor="middle" class="small">Controlled vocabularies</text>
+  <rect x="425" y="440" width="240" height="58" rx="12" class="box"/>
+  <text x="545" y="476" text-anchor="middle" class="label">RML mappings</text>
+
+  <path d="M700 365 H760" class="line"/>
+  <text x="775" y="178" class="stage">3 · VALIDATION</text>
+  <rect x="760" y="200" width="240" height="330" rx="22" class="validation" filter="url(#shadow)"/>
+  <text x="880" y="246" text-anchor="middle" class="label">Quality checks</text>
+  <circle cx="880" cy="335" r="55" fill="#fff" stroke="#d6a54e" stroke-width="3"/>
+  <path d="M850 335 l20 20 42-48" fill="none" stroke="#4b8a61" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="880" y="430" text-anchor="middle" class="label">SHACL</text>
+  <text x="880" y="458" text-anchor="middle" class="small">Consistency</text>
+  <text x="880" y="484" text-anchor="middle" class="small">Completeness · Accuracy</text>
+
+  <path d="M1000 365 H1060" class="line"/>
+  <text x="1075" y="178" class="stage">4 · CONNECTED DATA</text>
+  <rect x="1060" y="200" width="250" height="330" rx="22" class="kg" filter="url(#shadow)"/>
+  <circle cx="1185" cy="326" r="18" fill="#9ed3ef"/>
+  <circle cx="1122" cy="390" r="14" fill="#fff"/>
+  <circle cx="1248" cy="390" r="14" fill="#fff"/>
+  <circle cx="1185" cy="449" r="14" fill="#b5dfc4"/>
+  <path d="M1172 340 L1132 379 M1198 340 L1238 379 M1136 399 L1172 440 M1234 399 L1198 440" stroke="#dbeaf4" stroke-width="5"/>
+  <text x="1185" y="250" text-anchor="middle" class="label white">ERA Knowledge</text>
+  <text x="1185" y="278" text-anchor="middle" class="label white">Graph</text>
+  <text x="1185" y="497" text-anchor="middle" class="small white">Connected railway data</text>
+
+  <path d="M1310 365 H1370" class="line"/>
+  <text x="1385" y="178" class="stage">5 · REUSE</text>
+  <rect x="1370" y="200" width="170" height="330" rx="22" class="output" filter="url(#shadow)"/>
+  <rect x="1394" y="232" width="122" height="52" rx="11" class="box"/>
+  <text x="1455" y="265" text-anchor="middle" class="label">APIs</text>
+  <rect x="1394" y="300" width="122" height="52" rx="11" class="box"/>
+  <text x="1455" y="333" text-anchor="middle" class="label">SPARQL</text>
+  <rect x="1394" y="368" width="122" height="52" rx="11" class="box"/>
+  <text x="1455" y="401" text-anchor="middle" class="label">Maps</text>
+  <rect x="1394" y="436" width="122" height="66" rx="11" class="box"/>
+  <text x="1455" y="464" text-anchor="middle" class="label">Data Stories</text>
+  <text x="1455" y="488" text-anchor="middle" class="small">&amp; applications</text>
+
+  <rect x="80" y="596" width="1460" height="92" rx="18" fill="#fff" stroke="#c4d5e2" stroke-width="2"/>
+  <text x="800" y="634" text-anchor="middle" class="label">A common semantic layer for the Single European Railway Area</text>
+  <text x="800" y="666" text-anchor="middle" class="small">Findable · understandable · interoperable · reusable railway information</text>
+</svg>
