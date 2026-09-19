@@ -13,9 +13,9 @@ The Knowledge Graph supports ERA's objective of improving data interoperability 
 **Primary actions**
 
 - [Explore RINF Data Stories](https://rinf.data.era.europa.eu/data-stories)
-- Browse the ERA Ontology
-- Query the Knowledge Graph
-- Access technical resources
+- [Browse the ERA Ontology](https://rinf.data.era.europa.eu/era-vocabulary/)
+- [Query the Knowledge Graph](https://graph.data.era.europa.eu/)
+- [Access technical resources](https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology)
 
 ### Find your way in
 
@@ -81,7 +81,14 @@ The ERA Ontology is a Technical Document issued by ERA pursuant to Article 4(8) 
 
 **Current release:** ERA Ontology v3.3.4 (12 August 2026) — see all [ontology releases](https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology/-/releases). The Knowledge Graph itself is refreshed from source registers on an ongoing basis as new data is published.
 
-**Service status:** *a live status indicator for the SPARQL query service and the Data Stories application should appear here.*
+Each domain's technical annex — the detailed Application Guide behind the ontology — is published separately:
+
+| Domain | Application Guide |
+|---|---|
+| RINF | [rinf-appGuide](https://rinf.data.era.europa.eu/era-vocabulary/rinf-appGuide/) |
+| EVR | [evr-appGuide](https://rinf.data.era.europa.eu/era-vocabulary/evr-appGuide/) |
+| ERADIS | [eradis-appGuide](https://rinf.data.era.europa.eu/era-vocabulary/eradis-appGuide/) |
+| ERATV | [eratv-appGuide](https://rinf.data.era.europa.eu/era-vocabulary/eratv-appGuide/) |
 
 ## What can users do with the Knowledge Graph?
 
@@ -95,7 +102,7 @@ The Knowledge Graph can support questions such as:
 - Which infrastructure characteristics may be relevant to route-compatibility checks?
 - Which infrastructure characteristics may be relevant to create a digital route book?
 - How can RINF information be combined with other European datasets?
-- How can machines send future-proof vehicule data for faster verification and authorization?
+- How can machines send future-proof vehicle data for faster verification and authorisation?
 
 ### Featured Data Stories
 
@@ -128,7 +135,7 @@ Flags operational points that appear isolated in the data — useful for spottin
 **[RINF Data Stories](https://rinf.data.era.europa.eu/data-stories)**  
 Explore practical questions about the European railway infrastructure through maps, tables and explanatory examples.
 
-**ERA Ontology**  
+**[ERA Ontology](https://rinf.data.era.europa.eu/era-vocabulary/)**  
 Browse the definitions and relationships used to describe railway infrastructure and vehicle-type data.
 
 **ERA controlled vocabularies**  
@@ -174,6 +181,3 @@ ERA welcomes feedback on:
 - potential reuse cases.
 
 Technical issues and proposed changes should be submitted through the relevant ERA GitLab project. General questions can be sent to the ERA Interoperable Data Programme team at [servicedesk@era.europa.eu](mailto:servicedesk@era.europa.eu).
-
----
-
