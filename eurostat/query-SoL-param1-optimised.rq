@@ -4,21 +4,6 @@
 # Measured 2026-09-26 against the live RINF KG: all 30 columns, 129,508 rows,
 # 92 MB CSV, ~60 s for the whole EU in one request.
 #
-# The original query returned only 4 of its 30 columns because most of its
-# predicates no longer exist in the live graph. Corrections applied:
-#
-#   era:track                     -> era:hasPart              (era:track: 0 statements)
-#   era:imCode                    -> era:infrastructureManager/era:roleOf/era:organisationCode
-#   era:lineNationalId            -> era:nationalLine + era:lineId on the LPS
-#   era:validityStartDate/EndDate -> era:validity/time:hasBeginning|hasEnd/time:inXSDDate
-#   era:etcsLevel                 -> era:etcs                 (era:etcsLevel: 0 statements)
-#   era:opStart/^era:canonicalURI -> era:opStart              (canonicalURI runs raw->canonical,
-#                                                              so the inverse never matched; the
-#                                                              raw OP already carries opName/uopid)
-#   FROM <.../graph/rinf> + <.../graph/skos> removed - those named graphs do not
-#   exist in rinf-plus, so the FROM clause alone returned zero rows.
-#   The missing PREFIX skos: declaration is also added (the original is a 400).
-#
 # Performance: the joins were never the problem (~8 s). The cost was row
 # multiplication and result size. Operational points carry several era:opName
 # and era:uopid values (up to 16 for DEU) because the per-IM named graphs are
