@@ -1,0 +1,145 @@
+# Optimised version of query-SoL-param1.rq
+#
+# Endpoint: https://graph.data.era.europa.eu/repositories/rinf-plus
+# Measured 2026-09-26 against the live RINF KG: all 30 columns, 129,508 rows,
+# 92 MB CSV, ~60 s for the whole EU in one request.
+#
+# The original query returned only 4 of its 30 columns because most of its
+# predicates no longer exist in the live graph. Corrections applied:
+#
+#   era:track                     -> era:hasPart              (era:track: 0 statements)
+#   era:imCode                    -> era:infrastructureManager/era:roleOf/era:organisationCode
+#   era:lineNationalId            -> era:nationalLine + era:lineId on the LPS
+#   era:validityStartDate/EndDate -> era:validity/time:hasBeginning|hasEnd/time:inXSDDate
+#   era:etcsLevel                 -> era:etcs                 (era:etcsLevel: 0 statements)
+#   era:opStart/^era:canonicalURI -> era:opStart              (canonicalURI runs raw->canonical,
+#                                                              so the inverse never matched; the
+#                                                              raw OP already carries opName/uopid)
+#   FROM <.../graph/rinf> + <.../graph/skos> removed - those named graphs do not
+#   exist in rinf-plus, so the FROM clause alone returned zero rows.
+#   The missing PREFIX skos: declaration is also added (the original is a 400).
+#
+# Performance: the joins were never the problem (~8 s). The cost was row
+# multiplication and result size. Operational points carry several era:opName
+# and era:uopid values (up to 16 for DEU) because the per-IM named graphs are
+# queried as a union, and Austrian tracks carry up to 3 gauges x 3 contact-line
+# systems x 6 ETCS levels, which multiply into a cartesian product. Aggregating
+# every multi-valued field with GROUP_CONCAT and grouping at the real grain
+# (section, track) cut AUT from 34,412 rows/90 s to 6,565 rows/5 s and brought
+# the EU-wide query under the endpoint's 120 s limit. SELECT DISTINCT over 30
+# wide columns was also removed - it cost ~60 s and de-duplicated nothing.
+#
+# Multi-valued fields are returned pipe-separated ("|"), e.g. an operational
+# point renamed between publications gives "Technical change|BP SNCF Réseau LISEA".
+
+#
+# To go faster: run one country per request in parallel (uncomment the FILTER
+# below). 28 countries at 6 concurrent requests completes in ~19-31 s. Germany
+# alone is ~19 s and sets the floor; sharding it further does not help, because
+# the cost is the join, not the transfer.
+#
+# Request with:
+#   curl -X POST https://graph.data.era.europa.eu/repositories/rinf-plus \
+#        -H "Accept: text/csv" --data-urlencode "query@query-SoL-param1-optimised.rq"
+#   (CSV is far smaller than application/sparql-results+json; the endpoint does
+#    not honour gzip.)
+
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+
+SELECT
+	?sectionofline
+	?sectionofline_incountry
+	?sectionofline_lengthofsectionofline
+	?sectionofline_track
+	(GROUP_CONCAT(DISTINCT ?imCode;       SEPARATOR="|") AS ?sectionofline_imcode)
+	(GROUP_CONCAT(DISTINCT ?lineLabel;    SEPARATOR="|") AS ?sectionofline_linenationalid_label)
+	(GROUP_CONCAT(DISTINCT ?solNature;    SEPARATOR="|") AS ?sectionofline_solnature)
+	(SAMPLE(?opStart)                                    AS ?sectionofline_opstart)
+	(GROUP_CONCAT(DISTINCT ?opStartName;  SEPARATOR="|") AS ?sectionofline_opstart_opname)
+	(GROUP_CONCAT(DISTINCT ?opStartUopid; SEPARATOR="|") AS ?sectionofline_opstart_uopid)
+	(SAMPLE(?opStartLoc) AS ?sectionofline_opstart_location)
+	(SAMPLE(?opStartLat) AS ?sectionofline_opstart_location_lat)
+	(SAMPLE(?opStartLng) AS ?sectionofline_opstart_location_lng)
+	(SAMPLE(?opEnd)                                      AS ?sectionofline_opend)
+	(GROUP_CONCAT(DISTINCT ?opEndName;    SEPARATOR="|") AS ?sectionofline_opend_opname)
+	(GROUP_CONCAT(DISTINCT ?opEndUopid;   SEPARATOR="|") AS ?sectionofline_opend_uopid)
+	(SAMPLE(?opEndLoc) AS ?sectionofline_opend_location)
+	(SAMPLE(?opEndLat) AS ?sectionofline_opend_location_lat)
+	(SAMPLE(?opEndLng) AS ?sectionofline_opend_location_lng)
+	(GROUP_CONCAT(DISTINCT ?validFrom;    SEPARATOR="|") AS ?sectionofline_validitystartdate)
+	(GROUP_CONCAT(DISTINCT ?validTo;      SEPARATOR="|") AS ?sectionofline_validityenddate)
+	(GROUP_CONCAT(DISTINCT ?tenClass;     SEPARATOR="|") AS ?sectionofline_track_tenclassification)
+	(GROUP_CONCAT(DISTINCT ?maxSpeed;     SEPARATOR="|") AS ?sectionofline_track_maximumpermittedspeed)
+	(GROUP_CONCAT(DISTINCT ?freight;      SEPARATOR="|") AS ?sectionofline_track_freightcorridor)
+	(GROUP_CONCAT(DISTINCT ?gauge;        SEPARATOR="|") AS ?sectionofline_track_wheelsetgauge)
+	(GROUP_CONCAT(DISTINCT ?cls;          SEPARATOR="|") AS ?sectionofline_track_contactlinesystem)
+	(GROUP_CONCAT(DISTINCT ?clsType;      SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_contactlinesystemtype)
+	(GROUP_CONCAT(DISTINCT ?energy;       SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_energysupplysystem)
+	(GROUP_CONCAT(DISTINCT ?etcsType;     SEPARATOR="|") AS ?sectionofline_track_etcslevel_etcsleveltype)
+	(GROUP_CONCAT(DISTINCT ?gsmr;         SEPARATOR="|") AS ?sectionofline_track_gsmrversion)
+
+WHERE {
+	?sectionofline a era:SectionOfLine ;
+		era:inCountry ?sectionofline_incountry ;
+		era:lengthOfSectionOfLine ?sectionofline_lengthofsectionofline .
+
+	# Chunking: uncomment and run one country per request in parallel (~19-31 s for all 28).
+	#FILTER(?sectionofline_incountry = <http://publications.europa.eu/resource/authority/country/FRA>)
+
+	OPTIONAL { ?sectionofline era:solNature ?solNature. }
+	OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode. }
+
+	OPTIONAL {
+		?sectionofline era:nationalLine ?lps.
+		OPTIONAL { ?lps era:lineId ?lineId. }
+		# LPS labels are language-tagged; without this filter every language
+		# variant becomes its own group and multiplies the result.
+		OPTIONAL { ?lps rdfs:label ?lpsLabel. FILTER(langMatches(lang(?lpsLabel), "en")) }
+		BIND(COALESCE(?lineId, ?lpsLabel) AS ?lineLabel)
+	}
+
+	OPTIONAL {
+		?sectionofline era:opStart ?opStart.
+		OPTIONAL { ?opStart era:opName ?opStartName. }
+		OPTIONAL { ?opStart era:uopid ?opStartUopid. }
+		OPTIONAL { ?opStart geo:location ?opStartLoc.
+			?opStartLoc geo:lat ?opStartLat ; geo:long ?opStartLng. }
+	}
+	OPTIONAL {
+		?sectionofline era:opEnd ?opEnd.
+		OPTIONAL { ?opEnd era:opName ?opEndName. }
+		OPTIONAL { ?opEnd era:uopid ?opEndUopid. }
+		OPTIONAL { ?opEnd geo:location ?opEndLoc.
+			?opEndLoc geo:lat ?opEndLat ; geo:long ?opEndLng. }
+	}
+
+	OPTIONAL {
+		?sectionofline era:validity ?solValidity.
+		OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom. }
+		OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo. }
+	}
+
+	OPTIONAL {
+		?sectionofline era:hasPart ?sectionofline_track.
+		OPTIONAL { ?sectionofline_track era:tenClassification/skos:prefLabel ?tenClass. }
+		OPTIONAL { ?sectionofline_track era:maximumPermittedSpeed ?maxSpeed. }
+		OPTIONAL { ?sectionofline_track era:freightCorridor/skos:prefLabel ?freight. }
+		OPTIONAL { ?sectionofline_track era:wheelSetGauge/skos:prefLabel ?gauge. }
+		OPTIONAL {
+			?sectionofline_track era:contactLineSystem ?cls.
+			OPTIONAL { ?cls era:contactLineSystemType ?clsType. }
+			OPTIONAL { ?cls era:energySupplySystem ?energy. }
+		}
+		OPTIONAL { ?sectionofline_track era:etcs/era:etcsLevelType ?etcsType. }
+		OPTIONAL { ?sectionofline_track era:gsmRVersion ?gsmr. }
+	}
+}
+GROUP BY
+	?sectionofline
+	?sectionofline_incountry
+	?sectionofline_lengthofsectionofline
+	?sectionofline_track

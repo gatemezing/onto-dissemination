@@ -1,0 +1,158 @@
+# Optimised version of tent-query-v1.rq
+#
+# Endpoint: https://graph.data.era.europa.eu/repositories/rinf-plus
+# Measured 2026-09-27 against the live RINF KG:
+#   whole EU, one request  : 129,508 rows, 38 MB CSV, ~52 s
+#   one country per request: ~19-21 s wall clock for all 28 at 6 concurrent
+#                            requests (identical output; DEU sets the floor)
+#
+# NEW COLUMNS (as requested): era:partOfTENT, era:typeOfTraffic and
+# era:europeanTransportCorridor. From a track, typeOfTraffic and
+# europeanTransportCorridor are reachable ONLY through era:partOfTENT - asserted
+# directly on the track they have 0 statements. partOfTENT points at a
+# TENTCorridor/TENCorridor node which carries era:tentNetworkLevel,
+# era:typeOfTraffic and era:europeanTransportCorridor. era:tentNetworkLevel is
+# included too, since it is the post-2024 TEN-T network level and comes free
+# from the same node.
+#
+# PERFORMANCE. The original pattern - one OPTIONAL + BIND(1) per flag - needs
+# one left-join per flag, and would need 31 of them once the new columns are
+# added. Instead each source property is joined ONCE and all of its flags are
+# pivoted out with COALESCE(MAX(IF(...)), 0): 5 joins instead of 31. Measured
+# against an EXISTS-per-flag variant (31 EXISTS, no cross product) on France:
+# 11.2 s for this version vs 22.9 s for EXISTS, byte-identical output.
+# COALESCE is essential, not decorative: IF() on an unbound variable raises an
+# error, the aggregate then yields no value, and the flag comes back empty
+# instead of 0 - which is why the original wrapped its MAX() calls too.
+# Operational-point names and validity dates are GROUP_CONCAT-ed rather than
+# grouped, because one OP carries several era:opName values (up to 16 for DEU,
+# since the per-IM named graphs are read as a union) and grouping on them
+# multiplies the rows several-fold.
+#
+# DATA AVAILABILITY - genuine publication gaps, not query faults. Verified
+# per-country track statement counts:
+#   era:freightCorridor            16 countries; DEU 14,591 ... FRA only 3, FIN 1
+#   era:europeanTransportCorridor  4 countries only: PRT 484, LTU 312, LUX 141, AUT 14
+#   era:typeOfTraffic              widely published: DEU 21,036, FRA 15,755, CHE 6,335
+# So the *ETC columns are 0 for every country except those four, and the RFC
+# columns are ~0 for France. Sanity check that the ETC columns work: Portugal
+# returns 484 rows with AtlanticETC = 1. EU-wide only 5 of the 9 ETC corridors
+# have any data at all (Atlantic 484, North Sea-Baltic 156, North Sea-Rhine-
+# Mediterranean 141, Baltic-Adriatic 7, Rhine-Danube 7); the other four are
+# genuinely unpopulated today. Every one of the 17 original TEN-T/RFC flags,
+# by contrast, now carries real signal - e.g. Off TEN 40.0%, TEN-T
+# Comprehensive 25.3%, Rhine-Danube RFC 5.1% of the 129,496 rows.
+# era:tentNetworkLevel also carries 133 statements under two codes (40, 50) that
+# have no label in the ten-t-network-levels scheme - upstream data drift; they
+# are deliberately not mapped to a column. They cannot affect this query's
+# output in any case: they sit on era:PlatformEdge and era:Siding resources,
+# not on the era:partOfTENT corridor nodes, and none of them is reachable from
+# a track or a section of line. All 133 are Austrian. See
+# tent-network-level-unlabelled-codes.rq for the per-country extract.
+#
+# Request with:
+#   curl -X POST https://graph.data.era.europa.eu/repositories/rinf-plus \
+#        -H "Accept: text/csv" --data-urlencode "query@tent-query-v1-optimised.rq"
+
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX tenc: <http://data.europa.eu/949/concepts/ten-classifications/>
+PREFIX frc:  <http://data.europa.eu/949/concepts/freight-corridor/>
+PREFIX lvl:  <http://data.europa.eu/949/concepts/ten-t-network-levels/>
+PREFIX tt:   <http://data.europa.eu/949/concepts/traffic-types/>
+PREFIX etc:  <http://data.europa.eu/949/concepts/european-transport-corridors/>
+
+SELECT
+	?sectionofline
+	?sectionofline_incountry
+	?sectionofline_track
+	(GROUP_CONCAT(DISTINCT ?imCode;      SEPARATOR="|") AS ?sectionofline_imcode)
+	(GROUP_CONCAT(DISTINCT ?lineLabel;   SEPARATOR="|") AS ?sectionofline_linenationalid_label)
+	(GROUP_CONCAT(DISTINCT ?opStartName; SEPARATOR="|") AS ?sectionofline_opstart_opname)
+	(GROUP_CONCAT(DISTINCT ?opEndName;   SEPARATOR="|") AS ?sectionofline_opend_opname)
+	(GROUP_CONCAT(DISTINCT ?validFrom;   SEPARATOR="|") AS ?sectionofline_validitystartdate)
+	(GROUP_CONCAT(DISTINCT ?validTo;     SEPARATOR="|") AS ?sectionofline_validityenddate)
+
+	# TEN-T classification (era:tenClassification) - one join, six flags
+	(COALESCE(MAX(IF(?ten = tenc:10, 1, 0)), 0) AS ?TENTComprehensiveNetwork)
+	(COALESCE(MAX(IF(?ten = tenc:20, 1, 0)), 0) AS ?TENTCoreFreightNetwork)
+	(COALESCE(MAX(IF(?ten = tenc:30, 1, 0)), 0) AS ?TENTCorePassengerNetwork)
+	(COALESCE(MAX(IF(?ten = tenc:40, 1, 0)), 0) AS ?OffTEN)
+	(COALESCE(MAX(IF(?ten = tenc:50, 1, 0)), 0) AS ?TENTExtendedCoreFreightNetwork)
+	(COALESCE(MAX(IF(?ten = tenc:60, 1, 0)), 0) AS ?TENTExtendedCorePassengerNetwork)
+
+	# Rail freight corridors (era:freightCorridor) - one join, eleven flags
+	(COALESCE(MAX(IF(?fc = frc:10,  1, 0)), 0) AS ?RhineAlpineRFC)
+	(COALESCE(MAX(IF(?fc = frc:20,  1, 0)), 0) AS ?NorthSeaMediterraneanRFC)
+	(COALESCE(MAX(IF(?fc = frc:30,  1, 0)), 0) AS ?ScandinavianMediterraneanRFC)
+	(COALESCE(MAX(IF(?fc = frc:40,  1, 0)), 0) AS ?AtlanticRFC)
+	(COALESCE(MAX(IF(?fc = frc:50,  1, 0)), 0) AS ?BalticAdriaticRFC)
+	(COALESCE(MAX(IF(?fc = frc:60,  1, 0)), 0) AS ?MediterraneanRFC)
+	(COALESCE(MAX(IF(?fc = frc:70,  1, 0)), 0) AS ?OrientEastMedRFC)
+	(COALESCE(MAX(IF(?fc = frc:80,  1, 0)), 0) AS ?NorthSeaBalticRFC)
+	(COALESCE(MAX(IF(?fc = frc:90,  1, 0)), 0) AS ?RhineDanubeRFC)
+	(COALESCE(MAX(IF(?fc = frc:100, 1, 0)), 0) AS ?AlpineWesternBalkanRFC)
+	(COALESCE(MAX(IF(?fc = frc:110, 1, 0)), 0) AS ?AmberRFC)
+
+	# TEN-T network level, via era:partOfTENT -> era:tentNetworkLevel
+	(COALESCE(MAX(IF(?lvl = lvl:01, 1, 0)), 0) AS ?TENTCoreNetworkLevel)
+	(COALESCE(MAX(IF(?lvl = lvl:02, 1, 0)), 0) AS ?TENTExtendedCoreNetworkLevel)
+	(COALESCE(MAX(IF(?lvl = lvl:03, 1, 0)), 0) AS ?TENTComprehensiveNetworkLevel)
+
+	# Type of traffic, via era:partOfTENT -> era:typeOfTraffic
+	(COALESCE(MAX(IF(?tt = tt:01, 1, 0)), 0) AS ?PassengerTraffic)
+	(COALESCE(MAX(IF(?tt = tt:02, 1, 0)), 0) AS ?FreightTraffic)
+
+	# European Transport Corridors, via era:partOfTENT -> era:europeanTransportCorridor
+	(COALESCE(MAX(IF(?etc = etc:01, 1, 0)), 0) AS ?ScandinavianMediterraneanETC)
+	(COALESCE(MAX(IF(?etc = etc:02, 1, 0)), 0) AS ?NorthSeaBalticETC)
+	(COALESCE(MAX(IF(?etc = etc:03, 1, 0)), 0) AS ?MediterraneanETC)
+	(COALESCE(MAX(IF(?etc = etc:04, 1, 0)), 0) AS ?BalticSeaAdriaticSeaETC)
+	(COALESCE(MAX(IF(?etc = etc:05, 1, 0)), 0) AS ?AtlanticETC)
+	(COALESCE(MAX(IF(?etc = etc:06, 1, 0)), 0) AS ?RhineDanubeETC)
+	(COALESCE(MAX(IF(?etc = etc:07, 1, 0)), 0) AS ?BalticSeaBlackSeaAegeanSeaETC)
+	(COALESCE(MAX(IF(?etc = etc:08, 1, 0)), 0) AS ?WesternBalkansEasternMediterraneanETC)
+	(COALESCE(MAX(IF(?etc = etc:09, 1, 0)), 0) AS ?NorthSeaRhineMediterraneanETC)
+
+WHERE {
+	?sectionofline a era:SectionOfLine ;
+		era:inCountry ?sectionofline_incountry .
+
+	# Chunking: uncomment and run one country per request in parallel
+	# (~19-21 s for all 28 at 6 concurrent requests, vs ~52 s in one request).
+	#FILTER(?sectionofline_incountry = <http://publications.europa.eu/resource/authority/country/FRA>)
+
+	OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode. }
+
+	OPTIONAL {
+		?sectionofline era:nationalLine ?lps.
+		OPTIONAL { ?lps era:lineId ?lineId. }
+		# LPS labels are language-tagged; without this filter each language
+		# variant becomes its own group and multiplies the result.
+		OPTIONAL { ?lps rdfs:label ?lpsLabel. FILTER(langMatches(lang(?lpsLabel), "en")) }
+		BIND(COALESCE(?lineId, ?lpsLabel) AS ?lineLabel)
+	}
+
+	OPTIONAL { ?sectionofline era:opStart/era:opName ?opStartName. }
+	OPTIONAL { ?sectionofline era:opEnd/era:opName ?opEndName. }
+
+	OPTIONAL {
+		?sectionofline era:validity ?solValidity.
+		OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom. }
+		OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo. }
+	}
+
+	OPTIONAL {
+		?sectionofline era:hasPart ?sectionofline_track.
+		OPTIONAL { ?sectionofline_track era:tenClassification ?ten. }
+		OPTIONAL { ?sectionofline_track era:freightCorridor ?fc. }
+		OPTIONAL {
+			?sectionofline_track era:partOfTENT ?tent.
+			OPTIONAL { ?tent era:tentNetworkLevel ?lvl. }
+			OPTIONAL { ?tent era:typeOfTraffic ?tt. }
+			OPTIONAL { ?tent era:europeanTransportCorridor ?etc. }
+		}
+	}
+}
+GROUP BY ?sectionofline ?sectionofline_incountry ?sectionofline_track

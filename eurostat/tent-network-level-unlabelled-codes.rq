@@ -1,0 +1,90 @@
+# Data-quality extract: era:tentNetworkLevel values that have no label
+#
+# Endpoint: https://graph.data.era.europa.eu/repositories/rinf-plus
+# Measured 2026-09-27: 133 statements, 133 resources, runs in under 1 s.
+#
+# The ten-t-network-levels scheme labels only three concepts - 01 "Core
+# network", 02 "Extended core network", 03 "Comprehensive network". Two further
+# codes are in use in the data and have no skos:prefLabel in the scheme:
+#   .../concepts/ten-t-network-levels/40  (119 statements)
+#   .../concepts/ten-t-network-levels/50  ( 14 statements)
+#
+# These sit on era:PlatformEdge (75) and era:Siding (58) resources - NOT on the
+# era:partOfTENT corridor nodes where the labelled levels live. None of them is
+# reachable from a track or a section of line, and none carries era:inCountry,
+# so the country is taken from the resource URI, whose shape is
+#   .../functionalInfrastructure/{platformEdges|sidings}/{CC}/{IM code}/{local id}
+# and cross-checked against era:infrastructureManager. Only the 58 sidings have
+# a parent with era:inCountry, hence ?parent_country is often empty.
+#
+# Note the counts: 133 resources carry 147 tentNetworkLevel statements, so some
+# resources assert an unlabelled code alongside a labelled one - ?all_levels
+# shows every level on the resource so those cases are visible.
+#
+# Result, measured 2026-09-27 - all 133 are Austrian, all passenger traffic:
+#   code 40  119 resources (65 PlatformEdge, 54 Siding)  all_levels = "40" only
+#   code 50   14 resources (10 PlatformEdge,  4 Siding)  all_levels = "03|50"
+#   IM codes: 3023 (82), 3035 (19), 3782 (18), 3787 (14)
+# The two codes therefore fail differently, which matters for how they are
+# handled downstream: every code-50 resource also carries the valid code 03
+# ("Comprehensive network"), so 50 reads as a spurious extra value that can be
+# ignored; the 119 code-40 resources carry no other level at all, so for those
+# the TEN-T network level is effectively missing, not merely mislabelled.
+#
+# Request with:
+#   curl -X POST https://graph.data.era.europa.eu/repositories/rinf-plus \
+#        -H "Accept: text/csv" \
+#        --data-urlencode "query@tent-network-level-unlabelled-codes.rq"
+
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT
+	?country
+	?unlabelled_level_code
+	?resource_type
+	?im_code
+	?resource_label
+	?element_id
+	?resource
+	(GROUP_CONCAT(DISTINCT ?all_level_code; SEPARATOR="|") AS ?all_levels)
+	(GROUP_CONCAT(DISTINCT ?traffic_label;  SEPARATOR="|") AS ?type_of_traffic)
+	(GROUP_CONCAT(DISTINCT ?parentCountry;  SEPARATOR="|") AS ?parent_country)
+WHERE {
+	VALUES ?unlabelledLevel {
+		<http://data.europa.eu/949/concepts/ten-t-network-levels/40>
+		<http://data.europa.eu/949/concepts/ten-t-network-levels/50>
+	}
+	?resource era:tentNetworkLevel ?unlabelledLevel .
+
+	BIND(STRAFTER(STR(?unlabelledLevel), "ten-t-network-levels/") AS ?unlabelled_level_code)
+
+	# Country and IM code are only available from the URI for these resources.
+	BIND(STRAFTER(STR(?resource), "/functionalInfrastructure/") AS ?uriTail)
+	BIND(STRBEFORE(STRAFTER(?uriTail, "/"), "/") AS ?country)
+
+	OPTIONAL { ?resource a ?type .
+		FILTER(?type IN (era:PlatformEdge, era:Siding))
+		BIND(STRAFTER(STR(?type), "949/") AS ?resource_type) }
+
+	OPTIONAL { ?resource era:infrastructureManager/era:roleOf/era:organisationCode ?im_code. }
+	OPTIONAL { ?resource rdfs:label ?resource_label. }
+	OPTIONAL { ?resource era:platformId ?platformId. }
+	OPTIONAL { ?resource era:sidingId ?sidingId. }
+	BIND(COALESCE(?platformId, ?sidingId) AS ?element_id)
+
+	# Every level on this resource, so a code that coexists with a labelled one is visible.
+	OPTIONAL { ?resource era:tentNetworkLevel ?anyLevel.
+		BIND(STRAFTER(STR(?anyLevel), "ten-t-network-levels/") AS ?all_level_code) }
+
+	OPTIONAL { ?resource era:typeOfTraffic ?traffic.
+		OPTIONAL { ?traffic skos:prefLabel ?trafficPref. }
+		BIND(COALESCE(?trafficPref, STRAFTER(STR(?traffic), "traffic-types/")) AS ?traffic_label) }
+
+	# Only the sidings hang off a parent that carries a country.
+	OPTIONAL { ?parent era:hasPart ?resource . ?parent era:inCountry ?parentCC.
+		BIND(STRAFTER(STR(?parentCC), "country/") AS ?parentCountry) }
+}
+GROUP BY ?country ?unlabelled_level_code ?resource_type ?im_code ?resource_label ?element_id ?resource
+ORDER BY ?country ?unlabelled_level_code ?resource_type ?element_id

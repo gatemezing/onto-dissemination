@@ -1,0 +1,134 @@
+country,unlabelled_level_code,resource_type,im_code,resource_label,element_id,resource,all_levels,type_of_traffic,parent_country
+AT,40,PlatformEdge,3035,St. Anton im Montafon (in Amo) Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34034_221_1,40,Passenger,
+AT,40,PlatformEdge,3035,Tschagguns H-Lst (Awanst) Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34038_t11%20(t11)_1,40,Passenger,
+AT,40,PlatformEdge,3035,Bludenz-Moos Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34042_q11%20(q21)_1,40,Passenger,
+AT,40,PlatformEdge,3035,Loruens Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34044_r11%20(r11)_1,40,Passenger,
+AT,40,PlatformEdge,3035,Kaltenbrunnen Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34045_s11_1,40,Passenger,
+AT,40,PlatformEdge,3035,Schruns Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34046_421_1,40,Passenger,
+AT,40,PlatformEdge,3035,Vandans (in Amo) Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34047_271_1,40,Passenger,
+AT,40,PlatformEdge,3782,Moenchhof-Halbturn Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT02769_3_1,40,Passenger,
+AT,40,PlatformEdge,3782,Bad Neusiedl am See Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33020_3_1,40,Passenger,
+AT,40,PlatformEdge,3782,Gols Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33022_3_1,40,Passenger,
+AT,40,PlatformEdge,3782,Frauenkirchen Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33025_2_1,40,Passenger,
+AT,40,PlatformEdge,3782,St. Andrae am Zicksee Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33026_3_1,40,Passenger,
+AT,40,PlatformEdge,3782,Wallern im Burgenland Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33027_3_1,40,Passenger,
+AT,40,PlatformEdge,3782,Pamhagen Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33028_2_1,40,Passenger,
+AT,40,PlatformEdge,3035,Brunnenfeld-Stallehr (in Brd) Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT01046_101_1,40,Passenger,
+AT,40,PlatformEdge,3782,Weiden am See Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33021_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Feldbach Landesbahn Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35015_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Oedt Siedlung Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35016_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Oedt Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35017_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Praediberg Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35018_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Fischa Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35019_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Burgfried Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35020_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Gnas Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35021_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Katzendorf Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35022_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Maierdorf Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35023_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Hofstaetten Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35024_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Trautmannsdorf Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35025_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Bad Gleichenberg Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35026_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Deutschfeistritz Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35002_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Zitoll Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35003_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Prenning Viertler Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35004_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Prenning Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35005_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Waldstein Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35006_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Himberg  Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35007_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Guggenbach Pulverwerksiedlung Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35008_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Guggenbach Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35010_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Guggenbach Warthkogelsiedlung Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35011_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,UEbelbach Vormarkt Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35012_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,UEbelbach Bahnhof Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35013_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Albersdorf Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35033_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Wollsdorf Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35035_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,St. Ruprecht a.d.R. Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35037_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Unterfladnitz Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35038_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Weiz Preding Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35041_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Weiz Interspar Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35043_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Weiz Bahnhof Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35044_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Weiz Zentrum Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35045_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Weiz Nord Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35047_1_1,40,Passenger,
+AT,40,PlatformEdge,3023,Gleisdorf-West Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/ATGw%20StLB_1_1,40,Passenger,
+AT,40,PlatformEdge,3035,St. Anton im Montafon (in Amo) Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34034_222_2,40,Passenger,
+AT,40,PlatformEdge,3035,Schruns Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3035/AT34046_422_2,40,Passenger,
+AT,40,PlatformEdge,3782,Moenchhof-Halbturn Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT02769_1_2,40,Passenger,
+AT,40,PlatformEdge,3782,Bad Neusiedl am See Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33020_1_2,40,Passenger,
+AT,40,PlatformEdge,3782,Gols Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33022_1_2,40,Passenger,
+AT,40,PlatformEdge,3782,Frauenkirchen Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33025_1_2,40,Passenger,
+AT,40,PlatformEdge,3782,St. Andrae am Zicksee Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33026_1_2,40,Passenger,
+AT,40,PlatformEdge,3782,Wallern im Burgenland Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33027_1_2,40,Passenger,
+AT,40,PlatformEdge,3782,Pamhagen Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3782/AT33028_1_2,40,Passenger,
+AT,40,PlatformEdge,3023,Feldbach Landesbahn Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35015_2_2,40,Passenger,
+AT,40,PlatformEdge,3023,Gnas Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35021_2_2,40,Passenger,
+AT,40,PlatformEdge,3023,Maierdorf Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35023_2_2,40,Passenger,
+AT,40,PlatformEdge,3023,Bad Gleichenberg Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35026_2_2,40,Passenger,
+AT,40,PlatformEdge,3023,Waldstein Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35006_2_2,40,Passenger,
+AT,40,PlatformEdge,3023,St. Ruprecht a.d.R. Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35037_2_2,40,Passenger,
+AT,40,PlatformEdge,3023,Unterfladnitz Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3023/AT35038_2_2,40,Passenger,
+AT,40,Siding,3023,601+602+603+604_1019805844,1001+1002+1003,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_601+602+603+604,40,Passenger,AUT
+AT,40,Siding,3023,102_1019787668,101,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35015_102,40,Passenger,AUT
+AT,40,Siding,3023,103_1019787691,102,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35015_103,40,Passenger,AUT
+AT,40,Siding,3023,3_1019815245,102a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35013_3,40,Passenger,AUT
+AT,40,Siding,3023,3a_1019815268,102b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35013_3a,40,Passenger,AUT
+AT,40,Siding,3023,104_1019787714,103,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35015_104,40,Passenger,AUT
+AT,40,Siding,3023,3_1019787622,104,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35015_3,40,Passenger,AUT
+AT,40,Siding,3035,8b_9902948,10b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34046_8b,40,Passenger,AUT
+AT,40,Siding,3023,801+802+803+804+805_1019805867,1201,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_801+802+803+804+805,40,Passenger,AUT
+AT,40,Siding,3023,102a_1019815291,1a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35013_102a,40,Passenger,AUT
+AT,40,Siding,3023,3a_1019787576,1b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35026_3a,40,Passenger,AUT
+AT,40,Siding,3023,2_1019787737,2,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35021_2,40,Passenger,AUT
+AT,40,Siding,3023,1b_1019787553,2,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35026_1b,40,Passenger,AUT
+AT,40,Siding,3023,2_1019815153,2,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35001_2,40,Passenger,AUT
+AT,40,Siding,3023,2_1019815337,2,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35006_2,40,Passenger,AUT
+AT,40,Siding,3035,213a_9902990,213a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34034_213a,40,Passenger,AUT
+AT,40,Siding,3035,215a_9903011,215a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34034_215a,40,Passenger,AUT
+AT,40,Siding,3023,259_1019805936,259,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35043_259,40,Passenger,AUT
+AT,40,Siding,3023,262+263+264_1019805683,262,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_262+263+264,40,Passenger,AUT
+AT,40,Siding,3023,1001+1002+1003_1019805890,262+263+264,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_1001+1002+1003,40,Passenger,AUT
+AT,40,Siding,3782,2a_201743972,2a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3782/AT33027_2a,40,Passenger,AUT
+AT,40,Siding,3023,2a_1019815360,2a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35006_2a,40,Passenger,AUT
+AT,40,Siding,3035,10b_9902969,2b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34046_10b,40,Passenger,AUT
+AT,40,Siding,3023,101_1019787645,3,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35015_101,40,Passenger,AUT
+AT,40,Siding,3023,3_1019787875,3,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35018_3,40,Passenger,AUT
+AT,40,Siding,3023,3_1019787760,3,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35021_3,40,Passenger,AUT
+AT,40,Siding,3023,3_1019787829,3,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35023_3,40,Passenger,AUT
+AT,40,Siding,3023,3_1019787898,3,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35025_3,40,Passenger,AUT
+AT,40,Siding,3023,3_1019815176,3,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35009_3,40,Passenger,AUT
+AT,40,Siding,3023,102b_1019815314,3,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35013_102b,40,Passenger,AUT
+AT,40,Siding,3023,307_1019805660,307,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35038_307,40,Passenger,AUT
+AT,40,Siding,3023,311+312+313+316_1019805775,311+312+313+316,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_311+312+313+316,40,Passenger,AUT
+AT,40,Siding,3023,1201_1019805913,314,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_1201,40,Passenger,AUT
+AT,40,Siding,3023,262_1019805752,317,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_262,40,Passenger,AUT
+AT,40,Siding,3035,363_9903032,363,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34049_363,40,Passenger,AUT
+AT,40,Siding,3035,392_9903053,392,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34038_392,40,Passenger,AUT
+AT,40,Siding,3023,3a_1019787783,3a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35021_3a,40,Passenger,AUT
+AT,40,Siding,3023,3a_1019787852,3a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35023_3a,40,Passenger,AUT
+AT,40,Siding,3023,3b_1019787599,3a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35026_3b,40,Passenger,AUT
+AT,40,Siding,3023,3a_1019815199,3a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35009_3a,40,Passenger,AUT
+AT,40,Siding,3023,1a_1019815222,3a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35013_1a,40,Passenger,AUT
+AT,40,Siding,3023,3b_1019787806,3b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35021_3b,40,Passenger,AUT
+AT,40,Siding,3023,4_1019787530,3b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35026_4,40,Passenger,AUT
+AT,40,Siding,3023,2_1019787507,4,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35026_2,40,Passenger,AUT
+AT,40,Siding,3023,314_1019805706,402,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_314,40,Passenger,AUT
+AT,40,Siding,3782,4SU_201742475,4SU,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3782/AT33025_4SU,40,Passenger,AUT
+AT,40,Siding,3035,2b_9902885,4b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34046_2b,40,Passenger,AUT
+AT,40,Siding,3023,317_1019805729,501+502,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_317,40,Passenger,AUT
+AT,40,Siding,3782,5a_201743004,5a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3782/AT02769_5a,40,Passenger,AUT
+AT,40,Siding,3023,402_1019805798,601+602+603+604,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_402,40,Passenger,AUT
+AT,40,Siding,3035,4b_9902906,6b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34046_4b,40,Passenger,AUT
+AT,40,Siding,3023,501+502_1019805821,801+802+803+804+805,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35044_501+502,40,Passenger,AUT
+AT,40,Siding,3035,6b_9902927,8b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3035/AT34046_6b,40,Passenger,AUT
+AT,40,Siding,3023,Blockabschnitt 257 Blockabschnitt 258_1019805959,Blockabschnitt 257 Blockabschnitt 258,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3023/AT35041_Blockabschnitt%20257%20Blockabschnitt%20258,40,Passenger,AUT
+AT,50,PlatformEdge,3787,Neufeld an der Leitha Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33212_2_1,03|50,Passenger,
+AT,50,PlatformEdge,3787,Muellendorf Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33213_2_1,03|50,Passenger,
+AT,50,PlatformEdge,3787,Drassburg Hst Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33215_1_1,03|50,Passenger,
+AT,50,PlatformEdge,3787,Baumgarten Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33216_2_1,03|50,Passenger,
+AT,50,PlatformEdge,3787,Wulkaprodersdorf Bahnsteig 1,1,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33214_5a_1,03|50,Passenger,
+AT,50,PlatformEdge,3787,Neufeld an der Leitha Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33212_1_2,03|50,Passenger,
+AT,50,PlatformEdge,3787,Muellendorf Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33213_1_2,03|50,Passenger,
+AT,50,PlatformEdge,3787,Baumgarten Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33216_1_2,03|50,Passenger,
+AT,50,PlatformEdge,3787,Wulkaprodersdorf Bahnsteig 2,2,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33214_3_2,03|50,Passenger,
+AT,50,PlatformEdge,3787,Wulkaprodersdorf Bahnsteig 3,3,http://data.europa.eu/949/functionalInfrastructure/platformEdges/AT/3787/AT33214_1_3,03|50,Passenger,
+AT,50,Siding,3787,12b_246776772,10,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3787/AT33214_12b,03|50,Passenger,AUT
+AT,50,Siding,3787,8a_246776374,12b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3787/AT33214_8a,03|50,Passenger,AUT
+AT,50,Siding,3787,7b_246776656,7b,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3787/AT33214_7b,03|50,Passenger,AUT
+AT,50,Siding,3787,10_246776513,8a,http://data.europa.eu/949/functionalInfrastructure/sidings/AT/3787/AT33214_10,03|50,Passenger,AUT

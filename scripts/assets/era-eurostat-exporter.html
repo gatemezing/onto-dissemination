@@ -1,0 +1,731 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERA Eurostat Exporter</title>
+<style>
+  :root{
+    --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
+    --blue:#5b9bd5; --green:#7ac36a; --teal:#5fd0ae; --orange:#f0a83a;
+    --paper:#eef2ff; --panel:rgba(16,22,38,.92); --line:rgba(255,255,255,.14);
+    --muted:#aebbdd; --danger:#f26d6d;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;
+    background:radial-gradient(1400px 900px at 50% 0%, var(--bg2), var(--bg1) 70%);
+    font-family:"Segoe UI",Arial,sans-serif;color:var(--paper);}
+  #app{max-width:860px;margin:0 auto;padding:28px 20px 60px;}
+
+  header h1{font-size:22px;margin:0 0 6px;font-weight:700;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  header p{margin:0 0 24px;color:var(--muted);font-size:13.5px;line-height:1.5;max-width:70ch;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);margin-bottom:18px;}
+
+  label.fieldLabel{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);margin-bottom:8px;}
+
+  fieldset{border:none;padding:0;margin:0 0 18px;}
+  legend{padding:0;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;}
+  .modeOption{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:9px;
+    border:1px solid var(--line);margin-bottom:7px;cursor:pointer;transition:background .15s,border-color .15s;}
+  .modeOption:hover{background:rgba(255,255,255,.04);}
+  .modeOption input{margin-top:3px;flex:none;}
+  .modeOption.selected{border-color:var(--blue);background:rgba(91,155,213,.08);}
+  .modeOption .modeTitle{font-weight:600;font-size:13px;}
+  .modeOption .modeDesc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
+  .badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--teal);border:1px solid rgba(95,208,174,.5);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px;}
+
+  select#countrySel{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--paper);
+    padding:10px 12px;border-radius:8px;font-size:13.5px;}
+  select#countrySel:focus-visible{outline:2px solid var(--blue);}
+  option{background:#111a2e;color:var(--paper);}
+  #scopeHint{font-size:12px;color:var(--teal);margin-top:8px;min-height:16px;line-height:1.4;}
+
+  button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
+    padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;}
+  button.btn:hover:not(:disabled){background:linear-gradient(180deg,#33456b,#22304d);}
+  button.btn:disabled{opacity:.5;cursor:not-allowed;}
+  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);width:100%;margin-top:4px;padding:12px;font-size:14px;}
+  button.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#4a89e0,#3568b3);}
+  button.btn.secondary{background:linear-gradient(180deg,#2f6b52,#1f4a38);}
+  button.btn.secondary:hover:not(:disabled){background:linear-gradient(180deg,#37805f,#255a43);}
+  button.btn.mini{padding:5px 11px;font-size:11.5px;font-weight:600;}
+  button:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+
+  #statusArea{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin:14px 0;min-height:20px;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);
+    animation:spin .8s linear infinite;flex:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #statusArea.error{color:var(--danger);display:block;}
+  #statusArea.success{color:var(--green);}
+  .fetchErr .h{font-weight:700;margin-bottom:2px;}
+  .fetchErr .b{line-height:1.5;}
+  .fetchErr .retryBtn{background:none;border:none;color:var(--blue);text-decoration:underline;
+    cursor:pointer;font:inherit;padding:0;margin-left:4px;}
+  .fetchErr details{margin-top:5px;}
+  .fetchErr summary{cursor:pointer;font-size:11px;color:var(--muted);}
+  .fetchErr .tech{display:block;margin-top:4px;font-size:11px;font-family:"SF Mono",Consolas,monospace;
+    color:var(--muted);white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);
+    padding:6px 8px;border-radius:6px;}
+
+  .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;margin-bottom:16px;}
+  .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+  .statTile .n{font-size:20px;font-weight:700;}
+  .statTile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+
+  .resultActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+  h3.sectionTitle{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+    margin:20px 0 8px;font-weight:600;}
+
+  table.stats{width:100%;border-collapse:collapse;font-size:12px;}
+  table.stats th,table.stats td{text-align:left;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.07);}
+  table.stats th{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600;}
+  table.stats td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  table.stats td.col{font-family:"SF Mono",Consolas,monospace;font-size:11px;word-break:break-all;}
+  .bar{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:3px;overflow:hidden;}
+  .bar i{display:block;height:100%;background:var(--blue);}
+  .bar.zero i{background:var(--danger);}
+  .bar.full i{background:var(--green);}
+  .tableWrap{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+
+  details{margin-top:16px;}
+  summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
+  pre.code{background:#050810;border:1px solid var(--line);border-radius:8px;padding:12px;
+    font-size:11px;font-family:"SF Mono",Consolas,monospace;white-space:pre;word-break:normal;
+    max-height:420px;overflow:auto;margin-top:10px;color:#b9c6ea;}
+  #preview{white-space:pre;}
+
+  footer{font-size:11.5px;color:var(--muted);margin-top:22px;line-height:1.6;}
+  footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;}
+  a{color:var(--blue);}
+
+  @media (max-width:520px){
+    #app{padding:20px 14px 40px;}
+    .statGrid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>ERA Eurostat Exporter</h1>
+    <p>Export the two optimised Eurostat extracts as CSV, straight from the live RINF knowledge graph — sections of line with their track parameters, or the TEN-T / corridor classification flags. Both queries are the tested versions in
+    <a href="https://github.com/gatemezing/onto-dissemination/tree/main/eurostat">eurostat/</a>: they use the predicates the graph actually carries today, aggregate multi-valued fields instead of multiplying rows, and can be run per country or across the whole EU.</p>
+  </header>
+
+  <div class="panel">
+    <fieldset>
+      <legend>Dataset</legend>
+      <label class="modeOption" data-ds="sol">
+        <input type="radio" name="ds" value="sol" checked>
+        <span>
+          <span class="modeTitle">Sections of line + track parameters<span class="badge">30 columns</span></span>
+          <span class="modeDesc">Length, infrastructure manager, national line, start/end operational points, validity, TEN classification, permitted speed, gauge, contact-line system, ETCS level, GSM-R. One row per section of line and track. Mirrors <code>query-SoL-param1-optimised.rq</code>.</span>
+        </span>
+      </label>
+      <label class="modeOption" data-ds="tent">
+        <input type="radio" name="ds" value="tent">
+        <span>
+          <span class="modeTitle">TEN-T &amp; corridor flags<span class="badge">40 columns</span></span>
+          <span class="modeDesc">0/1 flags for the six TEN-T classifications, eleven rail freight corridors, three TEN-T network levels, two traffic types and nine European Transport Corridors. Mirrors <code>tent-query-v1-optimised.rq</code>.</span>
+        </span>
+      </label>
+    </fieldset>
+
+    <label class="fieldLabel" for="countrySel">Scope</label>
+    <select id="countrySel">
+      <option value="">Loading countries…</option>
+    </select>
+    <div id="scopeHint"></div>
+
+    <button id="exportBtn" class="btn primary" type="button" disabled>Export CSV</button>
+  </div>
+
+  <div id="statusArea" role="status" aria-live="polite"></div>
+
+  <div id="resultArea" class="panel" hidden>
+    <div class="statGrid">
+      <div class="statTile"><div class="n" id="statRows">–</div><div class="l">Rows</div></div>
+      <div class="statTile"><div class="n" id="statSections">–</div><div class="l">Sections of line</div></div>
+      <div class="statTile"><div class="n" id="statTracks">–</div><div class="l">Tracks</div></div>
+      <div class="statTile"><div class="n" id="statCountries">–</div><div class="l">Countries</div></div>
+      <div class="statTile"><div class="n" id="statSize">–</div><div class="l">File size</div></div>
+      <div class="statTile"><div class="n" id="statTime">–</div><div class="l">Query time</div></div>
+    </div>
+    <div class="resultActions">
+      <button id="downloadBtn" class="btn secondary" type="button">Download .csv</button>
+      <span id="fileNameHint" style="font-size:11.5px;color:var(--muted);"></span>
+    </div>
+
+    <div id="flagsBlock" hidden>
+      <h3 class="sectionTitle">Classification flags — rows set to 1</h3>
+      <div class="tableWrap"><table class="stats" id="flagsTable"></table></div>
+    </div>
+
+    <h3 class="sectionTitle">Column coverage — values actually present</h3>
+    <div class="tableWrap"><table class="stats" id="colsTable"></table></div>
+
+    <details>
+      <summary>Preview the CSV (first 50 rows)</summary>
+      <pre class="code" id="preview"></pre>
+    </details>
+  </div>
+
+  <details id="queryDetails" class="panel" style="margin-top:0;">
+    <summary>See the SPARQL query that will be sent</summary>
+    <div class="resultActions" style="margin-top:12px;">
+      <button id="copyQueryBtn" class="btn mini" type="button">Copy query</button>
+      <span id="copyHint" style="font-size:11.5px;color:var(--teal);"></span>
+    </div>
+    <pre class="code" id="queryText"></pre>
+  </details>
+
+  <footer>
+    Queries <code>graph.data.era.europa.eu/repositories/rinf-plus</code> directly from your browser (open CORS, no
+    server involved), asking for <code>text/csv</code> — far smaller than JSON results, and the endpoint does not honour gzip.
+    Multi-valued fields are returned pipe-separated (<code>|</code>), because one operational point can carry several
+    <code>era:opName</code> values once the per-infrastructure-manager graphs are read as a union.
+    Per-country export is the fast path, usually seconds; the whole EU in one request stays under the endpoint's 120&nbsp;s limit but takes a minute or two, and downloads tens of megabytes.
+    <br>← Back to the <a href="./">ERA Graph Explorer</a> (bubble-graph "follow your nose" demo)
+    · <a href="./exporter.html">RDF Exporter</a> (any resource URI as RDF/XML)
+    · <a href="./values.html">RINF Parameter Values</a> (distinct values per parameter, by country)
+    · <a href="./rcc.html">RCC Parameters</a> (route-compatibility parameters along one national line)
+    · <a href="./routebook.html">Route Book</a> (TSI OPE Appendix D2 elements for one national line)
+    · <a href="./ask.html">Ask the Graph</a> (plain-language / voice questions).
+  </footer>
+</div>
+
+<script>
+const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
+const COUNTRY_BASE = 'http://publications.europa.eu/resource/authority/country/';
+
+/* ------------------------------------------------------------------ *
+ * Fetch error diagnosis — same approach as the other tools here.
+ *
+ * Browsers deliberately hide *why* a cross-origin request failed: a CORS
+ * block, a DNS failure, "connection refused" and being offline all throw the
+ * same generic TypeError. Telling them apart takes a follow-up probe, not
+ * reading err.message — a plain no-cors fetch to the same origin resolves
+ * (even though its body can't be read) whenever the server is reachable at
+ * all, and rejects only on a genuine connectivity failure. */
+async function describeFetchError(err, endpoint){
+  if(err && err.name === 'AbortError')
+    return {title:'Timed out', message:'The request took too long and was cancelled. A whole-EU export needs a minute or two — try a single country, or run it again.', detail:String(err.message || err)};
+  const m = /^HTTP (\d+)/.exec((err && err.message) || '');
+  if(m){
+    const code = +m[1];
+    const KNOWN = {
+      400:['The endpoint rejected this query', 'This is almost always a bug in this tool’s query, not something you did — worth reporting.'],
+      403:['The endpoint refused this request', 'Access to this query or resource may be restricted right now.'],
+      404:['The endpoint address has changed', 'This tool may be pointing at a URL that no longer exists.'],
+      500:['The endpoint hit an internal error', 'This is on the server side — try again in a moment.'],
+      502:['The endpoint is temporarily unreachable', 'A gateway in front of it returned an error — try again shortly.'],
+      503:['The endpoint is overloaded, or the query exceeded its 120 s limit', 'Try a single country rather than the whole EU, or run it again in a moment.'],
+      504:['The endpoint took too long to respond', 'It may be under heavy load — try a single country, or run it again.'],
+    };
+    const known = KNOWN[code] || ['The endpoint returned an error', 'HTTP ' + code + ' — see technical detail below.'];
+    return {title:known[0], message:known[1], detail:err.message};
+  }
+  let reachable = false;
+  try{ await fetch(new URL(endpoint).origin + '/', {mode:'no-cors', cache:'no-store'}); reachable = true; }
+  catch{ reachable = false; }
+  if(reachable)
+    return {
+      title:'Blocked by your browser, not by you',
+      message:'The server responded, but didn’t grant this page permission to read cross-origin responses (a missing CORS header). That’s a configuration issue on the endpoint’s side — there is nothing to fix here or in your browser.',
+      detail:String((err && err.message) || err),
+    };
+  return {
+    title:'Could not reach the server',
+    message:(typeof navigator !== 'undefined' && navigator.onLine === false)
+      ? 'Your device appears to be offline — check your connection and try again.'
+      : 'The endpoint didn’t respond at all. It may be down, or something on your network (firewall, VPN, ad-blocker) is blocking the request.',
+    detail:String((err && err.message) || err),
+  };
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function renderFetchError(el, diag, retry){
+  el.innerHTML =
+    '<div class="fetchErr"><div class="h">' + esc(diag.title) + '</div>' +
+    '<div class="b">' + esc(diag.message) + (retry ? ' <button type="button" class="retryBtn">Try again</button>' : '') + '</div>' +
+    '<details><summary>Technical detail</summary><code class="tech">' + esc(diag.detail) + '</code></details></div>';
+  if(retry){ const b = el.querySelector('.retryBtn'); if(b) b.addEventListener('click', retry); }
+}
+async function setFetchErrorStatus(el, className, err, endpoint, retry){
+  if(className !== null) el.className = className;
+  const diag = await describeFetchError(err, endpoint);
+  renderFetchError(el, diag, retry);
+}
+
+/* ------------------------------------------------------------------ *
+ * The two queries. These mirror eurostat/query-SoL-param1-optimised.rq and
+ * eurostat/tent-query-v1-optimised.rq — keep them in step with those files,
+ * which carry the measurements and the reasoning behind every correction.
+ * ##FILTER## is replaced by a country FILTER, or by nothing for the whole EU. */
+
+const QUERY_SOL = `PREFIX era: <http://data.europa.eu/949/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+
+SELECT
+	?sectionofline
+	?sectionofline_incountry
+	?sectionofline_lengthofsectionofline
+	?sectionofline_track
+	(GROUP_CONCAT(DISTINCT ?imCode;       SEPARATOR="|") AS ?sectionofline_imcode)
+	(GROUP_CONCAT(DISTINCT ?lineLabel;    SEPARATOR="|") AS ?sectionofline_linenationalid_label)
+	(GROUP_CONCAT(DISTINCT ?solNature;    SEPARATOR="|") AS ?sectionofline_solnature)
+	(SAMPLE(?opStart)                                    AS ?sectionofline_opstart)
+	(GROUP_CONCAT(DISTINCT ?opStartName;  SEPARATOR="|") AS ?sectionofline_opstart_opname)
+	(GROUP_CONCAT(DISTINCT ?opStartUopid; SEPARATOR="|") AS ?sectionofline_opstart_uopid)
+	(SAMPLE(?opStartLoc) AS ?sectionofline_opstart_location)
+	(SAMPLE(?opStartLat) AS ?sectionofline_opstart_location_lat)
+	(SAMPLE(?opStartLng) AS ?sectionofline_opstart_location_lng)
+	(SAMPLE(?opEnd)                                      AS ?sectionofline_opend)
+	(GROUP_CONCAT(DISTINCT ?opEndName;    SEPARATOR="|") AS ?sectionofline_opend_opname)
+	(GROUP_CONCAT(DISTINCT ?opEndUopid;   SEPARATOR="|") AS ?sectionofline_opend_uopid)
+	(SAMPLE(?opEndLoc) AS ?sectionofline_opend_location)
+	(SAMPLE(?opEndLat) AS ?sectionofline_opend_location_lat)
+	(SAMPLE(?opEndLng) AS ?sectionofline_opend_location_lng)
+	(GROUP_CONCAT(DISTINCT ?validFrom;    SEPARATOR="|") AS ?sectionofline_validitystartdate)
+	(GROUP_CONCAT(DISTINCT ?validTo;      SEPARATOR="|") AS ?sectionofline_validityenddate)
+	(GROUP_CONCAT(DISTINCT ?tenClass;     SEPARATOR="|") AS ?sectionofline_track_tenclassification)
+	(GROUP_CONCAT(DISTINCT ?maxSpeed;     SEPARATOR="|") AS ?sectionofline_track_maximumpermittedspeed)
+	(GROUP_CONCAT(DISTINCT ?freight;      SEPARATOR="|") AS ?sectionofline_track_freightcorridor)
+	(GROUP_CONCAT(DISTINCT ?gauge;        SEPARATOR="|") AS ?sectionofline_track_wheelsetgauge)
+	(GROUP_CONCAT(DISTINCT ?cls;          SEPARATOR="|") AS ?sectionofline_track_contactlinesystem)
+	(GROUP_CONCAT(DISTINCT ?clsType;      SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_contactlinesystemtype)
+	(GROUP_CONCAT(DISTINCT ?energy;       SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_energysupplysystem)
+	(GROUP_CONCAT(DISTINCT ?etcsType;     SEPARATOR="|") AS ?sectionofline_track_etcslevel_etcsleveltype)
+	(GROUP_CONCAT(DISTINCT ?gsmr;         SEPARATOR="|") AS ?sectionofline_track_gsmrversion)
+
+WHERE {
+	?sectionofline a era:SectionOfLine ;
+		era:inCountry ?sectionofline_incountry ;
+		era:lengthOfSectionOfLine ?sectionofline_lengthofsectionofline .
+##FILTER##
+	OPTIONAL { ?sectionofline era:solNature ?solNature. }
+	OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode. }
+
+	OPTIONAL {
+		?sectionofline era:nationalLine ?lps.
+		OPTIONAL { ?lps era:lineId ?lineId. }
+		# LPS labels are language-tagged; without this filter every language
+		# variant becomes its own group and multiplies the result.
+		OPTIONAL { ?lps rdfs:label ?lpsLabel. FILTER(langMatches(lang(?lpsLabel), "en")) }
+		BIND(COALESCE(?lineId, ?lpsLabel) AS ?lineLabel)
+	}
+
+	OPTIONAL {
+		?sectionofline era:opStart ?opStart.
+		OPTIONAL { ?opStart era:opName ?opStartName. }
+		OPTIONAL { ?opStart era:uopid ?opStartUopid. }
+		OPTIONAL { ?opStart geo:location ?opStartLoc.
+			?opStartLoc geo:lat ?opStartLat ; geo:long ?opStartLng. }
+	}
+	OPTIONAL {
+		?sectionofline era:opEnd ?opEnd.
+		OPTIONAL { ?opEnd era:opName ?opEndName. }
+		OPTIONAL { ?opEnd era:uopid ?opEndUopid. }
+		OPTIONAL { ?opEnd geo:location ?opEndLoc.
+			?opEndLoc geo:lat ?opEndLat ; geo:long ?opEndLng. }
+	}
+
+	OPTIONAL {
+		?sectionofline era:validity ?solValidity.
+		OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom. }
+		OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo. }
+	}
+
+	OPTIONAL {
+		?sectionofline era:hasPart ?sectionofline_track.
+		OPTIONAL { ?sectionofline_track era:tenClassification/skos:prefLabel ?tenClass. }
+		OPTIONAL { ?sectionofline_track era:maximumPermittedSpeed ?maxSpeed. }
+		OPTIONAL { ?sectionofline_track era:freightCorridor/skos:prefLabel ?freight. }
+		OPTIONAL { ?sectionofline_track era:wheelSetGauge/skos:prefLabel ?gauge. }
+		OPTIONAL {
+			?sectionofline_track era:contactLineSystem ?cls.
+			OPTIONAL { ?cls era:contactLineSystemType ?clsType. }
+			OPTIONAL { ?cls era:energySupplySystem ?energy. }
+		}
+		OPTIONAL { ?sectionofline_track era:etcs/era:etcsLevelType ?etcsType. }
+		OPTIONAL { ?sectionofline_track era:gsmRVersion ?gsmr. }
+	}
+}
+GROUP BY
+	?sectionofline
+	?sectionofline_incountry
+	?sectionofline_lengthofsectionofline
+	?sectionofline_track`;
+
+const QUERY_TENT = `PREFIX era:  <http://data.europa.eu/949/>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX tenc: <http://data.europa.eu/949/concepts/ten-classifications/>
+PREFIX frc:  <http://data.europa.eu/949/concepts/freight-corridor/>
+PREFIX lvl:  <http://data.europa.eu/949/concepts/ten-t-network-levels/>
+PREFIX tt:   <http://data.europa.eu/949/concepts/traffic-types/>
+PREFIX etc:  <http://data.europa.eu/949/concepts/european-transport-corridors/>
+
+SELECT
+	?sectionofline
+	?sectionofline_incountry
+	?sectionofline_track
+	(GROUP_CONCAT(DISTINCT ?imCode;      SEPARATOR="|") AS ?sectionofline_imcode)
+	(GROUP_CONCAT(DISTINCT ?lineLabel;   SEPARATOR="|") AS ?sectionofline_linenationalid_label)
+	(GROUP_CONCAT(DISTINCT ?opStartName; SEPARATOR="|") AS ?sectionofline_opstart_opname)
+	(GROUP_CONCAT(DISTINCT ?opEndName;   SEPARATOR="|") AS ?sectionofline_opend_opname)
+	(GROUP_CONCAT(DISTINCT ?validFrom;   SEPARATOR="|") AS ?sectionofline_validitystartdate)
+	(GROUP_CONCAT(DISTINCT ?validTo;     SEPARATOR="|") AS ?sectionofline_validityenddate)
+
+	# TEN-T classification (era:tenClassification) - one join, six flags
+	(COALESCE(MAX(IF(?ten = tenc:10, 1, 0)), 0) AS ?TENTComprehensiveNetwork)
+	(COALESCE(MAX(IF(?ten = tenc:20, 1, 0)), 0) AS ?TENTCoreFreightNetwork)
+	(COALESCE(MAX(IF(?ten = tenc:30, 1, 0)), 0) AS ?TENTCorePassengerNetwork)
+	(COALESCE(MAX(IF(?ten = tenc:40, 1, 0)), 0) AS ?OffTEN)
+	(COALESCE(MAX(IF(?ten = tenc:50, 1, 0)), 0) AS ?TENTExtendedCoreFreightNetwork)
+	(COALESCE(MAX(IF(?ten = tenc:60, 1, 0)), 0) AS ?TENTExtendedCorePassengerNetwork)
+
+	# Rail freight corridors (era:freightCorridor) - one join, eleven flags
+	(COALESCE(MAX(IF(?fc = frc:10,  1, 0)), 0) AS ?RhineAlpineRFC)
+	(COALESCE(MAX(IF(?fc = frc:20,  1, 0)), 0) AS ?NorthSeaMediterraneanRFC)
+	(COALESCE(MAX(IF(?fc = frc:30,  1, 0)), 0) AS ?ScandinavianMediterraneanRFC)
+	(COALESCE(MAX(IF(?fc = frc:40,  1, 0)), 0) AS ?AtlanticRFC)
+	(COALESCE(MAX(IF(?fc = frc:50,  1, 0)), 0) AS ?BalticAdriaticRFC)
+	(COALESCE(MAX(IF(?fc = frc:60,  1, 0)), 0) AS ?MediterraneanRFC)
+	(COALESCE(MAX(IF(?fc = frc:70,  1, 0)), 0) AS ?OrientEastMedRFC)
+	(COALESCE(MAX(IF(?fc = frc:80,  1, 0)), 0) AS ?NorthSeaBalticRFC)
+	(COALESCE(MAX(IF(?fc = frc:90,  1, 0)), 0) AS ?RhineDanubeRFC)
+	(COALESCE(MAX(IF(?fc = frc:100, 1, 0)), 0) AS ?AlpineWesternBalkanRFC)
+	(COALESCE(MAX(IF(?fc = frc:110, 1, 0)), 0) AS ?AmberRFC)
+
+	# TEN-T network level, via era:partOfTENT -> era:tentNetworkLevel
+	(COALESCE(MAX(IF(?lvl = lvl:01, 1, 0)), 0) AS ?TENTCoreNetworkLevel)
+	(COALESCE(MAX(IF(?lvl = lvl:02, 1, 0)), 0) AS ?TENTExtendedCoreNetworkLevel)
+	(COALESCE(MAX(IF(?lvl = lvl:03, 1, 0)), 0) AS ?TENTComprehensiveNetworkLevel)
+
+	# Type of traffic, via era:partOfTENT -> era:typeOfTraffic
+	(COALESCE(MAX(IF(?tt = tt:01, 1, 0)), 0) AS ?PassengerTraffic)
+	(COALESCE(MAX(IF(?tt = tt:02, 1, 0)), 0) AS ?FreightTraffic)
+
+	# European Transport Corridors, via era:partOfTENT -> era:europeanTransportCorridor
+	(COALESCE(MAX(IF(?etc = etc:01, 1, 0)), 0) AS ?ScandinavianMediterraneanETC)
+	(COALESCE(MAX(IF(?etc = etc:02, 1, 0)), 0) AS ?NorthSeaBalticETC)
+	(COALESCE(MAX(IF(?etc = etc:03, 1, 0)), 0) AS ?MediterraneanETC)
+	(COALESCE(MAX(IF(?etc = etc:04, 1, 0)), 0) AS ?BalticSeaAdriaticSeaETC)
+	(COALESCE(MAX(IF(?etc = etc:05, 1, 0)), 0) AS ?AtlanticETC)
+	(COALESCE(MAX(IF(?etc = etc:06, 1, 0)), 0) AS ?RhineDanubeETC)
+	(COALESCE(MAX(IF(?etc = etc:07, 1, 0)), 0) AS ?BalticSeaBlackSeaAegeanSeaETC)
+	(COALESCE(MAX(IF(?etc = etc:08, 1, 0)), 0) AS ?WesternBalkansEasternMediterraneanETC)
+	(COALESCE(MAX(IF(?etc = etc:09, 1, 0)), 0) AS ?NorthSeaRhineMediterraneanETC)
+
+WHERE {
+	?sectionofline a era:SectionOfLine ;
+		era:inCountry ?sectionofline_incountry .
+##FILTER##
+	OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode. }
+
+	OPTIONAL {
+		?sectionofline era:nationalLine ?lps.
+		OPTIONAL { ?lps era:lineId ?lineId. }
+		# LPS labels are language-tagged; without this filter each language
+		# variant becomes its own group and multiplies the result.
+		OPTIONAL { ?lps rdfs:label ?lpsLabel. FILTER(langMatches(lang(?lpsLabel), "en")) }
+		BIND(COALESCE(?lineId, ?lpsLabel) AS ?lineLabel)
+	}
+
+	OPTIONAL { ?sectionofline era:opStart/era:opName ?opStartName. }
+	OPTIONAL { ?sectionofline era:opEnd/era:opName ?opEndName. }
+
+	OPTIONAL {
+		?sectionofline era:validity ?solValidity.
+		OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom. }
+		OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo. }
+	}
+
+	OPTIONAL {
+		?sectionofline era:hasPart ?sectionofline_track.
+		OPTIONAL { ?sectionofline_track era:tenClassification ?ten. }
+		OPTIONAL { ?sectionofline_track era:freightCorridor ?fc. }
+		OPTIONAL {
+			?sectionofline_track era:partOfTENT ?tent.
+			OPTIONAL { ?tent era:tentNetworkLevel ?lvl. }
+			OPTIONAL { ?tent era:typeOfTraffic ?tt. }
+			OPTIONAL { ?tent era:europeanTransportCorridor ?etc. }
+		}
+	}
+}
+GROUP BY ?sectionofline ?sectionofline_incountry ?sectionofline_track`;
+
+const DATASETS = {
+  sol:  {label:'sections-of-line-parameters', query:QUERY_SOL,  flagCols:false},
+  tent: {label:'tent-corridor-flags',         query:QUERY_TENT, flagCols:true},
+};
+
+function buildQuery(dsKey, countryUri){
+  const filter = countryUri
+    ? '\tFILTER(?sectionofline_incountry = <' + countryUri + '>)\n'
+    : '';
+  return DATASETS[dsKey].query.replace('##FILTER##\n', filter);
+}
+
+/* ------------------------------------------------------------------ *
+ * CSV parsing. The endpoint's own CSV is what gets downloaded verbatim, but
+ * the statistics need it parsed — and values genuinely contain commas and
+ * quotes (operational-point names like "Bif 570000/570350", labels with
+ * embedded punctuation), so a split(',') would silently mis-column them. */
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else if(c === '"'){
+      inQuotes = true;
+    } else if(c === ','){
+      row.push(field); field = '';
+    } else if(c === '\n'){
+      row.push(field); field = '';
+      rows.push(row); row = [];
+    } else if(c !== '\r'){
+      field += c;
+    }
+  }
+  if(field !== '' || row.length){ row.push(field); rows.push(row); }
+  if(rows.length && rows[rows.length-1].every(v => v === '')) rows.pop();
+  return rows;
+}
+
+function humanBytes(n){
+  if(n < 1024) return n + ' B';
+  if(n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/1024/1024).toFixed(2) + ' MB';
+}
+const fmt = n => n.toLocaleString('en-GB');
+const shortUri = u => u.replace(/^.*[/#]/, '');
+
+const $ = id => document.getElementById(id);
+const countrySel = $('countrySel'), exportBtn = $('exportBtn'), statusArea = $('statusArea');
+const resultArea = $('resultArea'), scopeHint = $('scopeHint'), queryText = $('queryText');
+
+let lastCSV = '', lastFileName = '';
+
+function currentDataset(){
+  return document.querySelector('input[name="ds"]:checked').value;
+}
+
+function updateVisuals(){
+  document.querySelectorAll('.modeOption').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.ds === currentDataset());
+  });
+  const opt = countrySel.selectedOptions[0];
+  const sections = opt ? +(opt.dataset.n || 0) : 0;
+  if(!countrySel.value){
+    scopeHint.textContent = sections
+      ? `Whole EU — ${fmt(sections)} sections of line. One request: about a minute for the TEN-T flags, up to two for the fuller section/track export.`
+      : '';
+  } else {
+    scopeHint.textContent = `${opt.textContent.replace(/\s*\(.*\)$/, '')} — ${fmt(sections)} sections of line. Usually a few seconds.`;
+  }
+  queryText.textContent = buildQuery(currentDataset(), countrySel.value);
+}
+
+document.querySelectorAll('input[name="ds"]').forEach(r => r.addEventListener('change', updateVisuals));
+document.querySelectorAll('.modeOption').forEach(el => el.addEventListener('click', e=>{
+  if(e.target.tagName !== 'INPUT'){ el.querySelector('input').checked = true; updateVisuals(); }
+}));
+countrySel.addEventListener('change', updateVisuals);
+
+function setStatus(msg, kind){
+  statusArea.className = kind || '';
+  if(kind === 'loading') statusArea.innerHTML = '<span class="spinner"></span><span>' + esc(msg) + '</span>';
+  else statusArea.textContent = msg;
+}
+
+async function sparql(query, accept, timeoutMs){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+  try{
+    const res = await fetch(ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/sparql-query', 'Accept':accept},
+      body:query,
+      signal:ctrl.signal,
+    });
+    if(!res.ok){
+      const body = await res.text().catch(()=> '');
+      throw new Error(`HTTP ${res.status}${body ? ' — ' + body.slice(0,200) : ''}`);
+    }
+    return await res.text();
+  } finally { clearTimeout(t); }
+}
+
+/* The country list is read from the graph rather than hard-coded, so it stays
+   right as datasets are added — and the section counts double as a hint of how
+   long each export will take. */
+async function loadCountries(){
+  const q = `PREFIX era: <http://data.europa.eu/949/>
+SELECT ?c (COUNT(*) AS ?n) WHERE { ?s a era:SectionOfLine ; era:inCountry ?c . } GROUP BY ?c ORDER BY DESC(?n)`;
+  try{
+    const rows = parseCSV(await sparql(q, 'text/csv', 30000)).slice(1);
+    const list = rows.map(r => ({uri:r[0], n:+r[1]})).filter(x => x.uri);
+    const total = list.reduce((s,x)=>s+x.n, 0);
+    countrySel.innerHTML = '';
+    const all = document.createElement('option');
+    all.value = ''; all.dataset.n = total;
+    all.textContent = `All countries — whole EU (${fmt(total)} sections)`;
+    countrySel.appendChild(all);
+    list.forEach(x=>{
+      const o = document.createElement('option');
+      o.value = x.uri; o.dataset.n = x.n;
+      o.textContent = `${shortUri(x.uri)} (${fmt(x.n)} sections)`;
+      countrySel.appendChild(o);
+    });
+    countrySel.value = COUNTRY_BASE + 'FRA';
+    if(!countrySel.value) countrySel.selectedIndex = 1;
+    exportBtn.disabled = false;
+    setStatus(`${list.length} countries available.`, '');
+    updateVisuals();
+  } catch(err){
+    countrySel.innerHTML = '<option value="">Could not load countries</option>';
+    await setFetchErrorStatus(statusArea, 'error', err, ENDPOINT, loadCountries);
+  }
+}
+
+function renderColumnStats(header, rows){
+  const n = rows.length;
+  const html = ['<thead><tr><th>Column</th><th class="num">Filled</th><th class="num">%</th><th class="num">Distinct</th></tr></thead><tbody>'];
+  header.forEach((col, i)=>{
+    let filled = 0;
+    const seen = new Set();
+    for(const r of rows){
+      const v = r[i];
+      if(v !== undefined && v !== ''){ filled++; if(seen.size < 100001) seen.add(v); }
+    }
+    const pct = n ? (100*filled/n) : 0;
+    const cls = filled === 0 ? 'bar zero' : (filled === n ? 'bar full' : 'bar');
+    html.push('<tr><td class="col">' + esc(col) + '</td>' +
+      '<td class="num">' + fmt(filled) + '</td>' +
+      '<td class="num">' + pct.toFixed(1) + '%<span class="' + cls + '"><i style="width:' + pct.toFixed(1) + '%"></i></span></td>' +
+      '<td class="num">' + (seen.size > 100000 ? '100,000+' : fmt(seen.size)) + '</td></tr>');
+  });
+  html.push('</tbody>');
+  $('colsTable').innerHTML = html.join('');
+}
+
+/* For the TEN-T dataset the interesting statistic is not "is the cell filled"
+   — every flag cell is filled, with 0 or 1 — but how many rows each
+   classification actually applies to. */
+function renderFlagStats(header, rows){
+  const flagIdx = [];
+  header.forEach((c,i)=>{ if(/Network$|RFC$|ETC$|Traffic$|Level$|^OffTEN$/.test(c)) flagIdx.push(i); });
+  if(!flagIdx.length){ $('flagsBlock').hidden = true; return; }
+  const n = rows.length;
+  const html = ['<thead><tr><th>Classification</th><th class="num">Rows = 1</th><th class="num">%</th></tr></thead><tbody>'];
+  flagIdx.forEach(i=>{
+    let ones = 0;
+    for(const r of rows) if(r[i] === '1') ones++;
+    const pct = n ? (100*ones/n) : 0;
+    const cls = ones === 0 ? 'bar zero' : 'bar';
+    html.push('<tr><td class="col">' + esc(header[i]) + '</td>' +
+      '<td class="num">' + fmt(ones) + '</td>' +
+      '<td class="num">' + pct.toFixed(2) + '%<span class="' + cls + '"><i style="width:' + Math.min(100,pct).toFixed(1) + '%"></i></span></td></tr>');
+  });
+  html.push('</tbody>');
+  $('flagsTable').innerHTML = html.join('');
+  $('flagsBlock').hidden = false;
+}
+
+async function runExport(){
+  const dsKey = currentDataset();
+  const countryUri = countrySel.value;
+  const query = buildQuery(dsKey, countryUri);
+  const scopeName = countryUri ? shortUri(countryUri) : 'EU';
+
+  exportBtn.disabled = true;
+  resultArea.hidden = true;
+  setStatus(countryUri ? `Querying ${scopeName}…` : 'Querying the whole EU — this takes a minute or two, and the browser then parses the result…', 'loading');
+
+  const start = performance.now();
+  try{
+    const csv = await sparql(query, 'text/csv', 180000);
+    const elapsed = (performance.now() - start)/1000;
+
+    const parsed = parseCSV(csv);
+    const header = parsed.length ? parsed[0] : [];
+    const rows = parsed.slice(1);
+
+    lastCSV = csv;
+    lastFileName = `era-${DATASETS[dsKey].label}-${scopeName}.csv`;
+
+    const iSec = header.indexOf('sectionofline');
+    const iTrk = header.indexOf('sectionofline_track');
+    const iCc  = header.indexOf('sectionofline_incountry');
+    const uniq = idx => {
+      if(idx < 0) return 0;
+      const s = new Set();
+      for(const r of rows) if(r[idx]) s.add(r[idx]);
+      return s.size;
+    };
+
+    $('statRows').textContent = fmt(rows.length);
+    $('statSections').textContent = fmt(uniq(iSec));
+    $('statTracks').textContent = fmt(uniq(iTrk));
+    $('statCountries').textContent = fmt(uniq(iCc));
+    $('statSize').textContent = humanBytes(new Blob([csv]).size);
+    $('statTime').textContent = elapsed.toFixed(1) + 's';
+    $('fileNameHint').textContent = lastFileName;
+
+    if(DATASETS[dsKey].flagCols) renderFlagStats(header, rows); else $('flagsBlock').hidden = true;
+    renderColumnStats(header, rows);
+
+    $('preview').textContent = parsed.slice(0, 51).map(r => r.join(',')).join('\n');
+
+    resultArea.hidden = false;
+    if(!rows.length) setStatus('The query ran but returned no rows for this scope.', 'error');
+    else setStatus(`Done — ${fmt(rows.length)} rows, ${header.length} columns, in ${elapsed.toFixed(1)}s.`, 'success');
+  } catch(err){
+    await setFetchErrorStatus(statusArea, 'error', err, ENDPOINT, runExport);
+  } finally {
+    exportBtn.disabled = false;
+  }
+}
+
+$('downloadBtn').addEventListener('click', ()=>{
+  if(!lastCSV) return;
+  const blob = new Blob([lastCSV], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = lastFileName || 'era-export.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+$('copyQueryBtn').addEventListener('click', async ()=>{
+  try{
+    await navigator.clipboard.writeText(queryText.textContent);
+    $('copyHint').textContent = 'Copied.';
+  } catch {
+    $('copyHint').textContent = 'Copy failed — select the text below instead.';
+  }
+  setTimeout(()=>{ $('copyHint').textContent = ''; }, 2500);
+});
+
+exportBtn.addEventListener('click', runExport);
+
+updateVisuals();
+loadCountries();
+</script>
+</body>
+</html>

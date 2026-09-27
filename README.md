@@ -20,6 +20,7 @@ browser and exports results as CSV or Excel.
 | RINF Parameter Values explorer | https://gatemezing.github.io/onto-dissemination/values.html |
 | RCC Parameters (route compatibility) | https://gatemezing.github.io/onto-dissemination/rcc.html |
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
+| Eurostat Exporter (sections of line / TEN-T flags as CSV) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 
 Every tool links to the others in its footer. Deployment is automatic:
@@ -107,6 +108,15 @@ network map draws the selection, one colour per line, poppable into its own
 window the same way the RINF Parameter Values map is. Query set in
 [scripts/assets/routebook/README.md](scripts/assets/routebook/README.md).
 
+**[era-eurostat-exporter.html](scripts/assets/era-eurostat-exporter.html)** —
+exports the two optimised Eurostat extracts in [eurostat/](eurostat/) as CSV:
+sections of line with their track parameters (30 columns), and the TEN-T /
+corridor classification flags (40 columns, including the post-2024
+`era:partOfTENT` network levels, traffic types and European Transport
+Corridors). Pick one country or the whole EU, see the exact SPARQL that will be
+sent before running it, and get per-column coverage statistics with the result —
+so an empty column is visibly a publication gap rather than a silent blank.
+
 **[era-interop-answers.html](scripts/assets/era-interop-answers.html)** — the
 ERA reusability answers for the Interoperable Europe assessment (source text
 in [interop-europe/answers.md](interop-europe/answers.md)).
@@ -145,6 +155,9 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
   `python-pptx`).
 - `interop-europe/` — the assessment questions, drafted answers, and the
   extracted Data Stories query catalogue.
+- `eurostat/` — the Eurostat query set: the original queries, their optimised
+  and live-tested rewrites, and a data-quality extract. Each optimised file
+  documents what was wrong with the original and the measured runtimes.
 - `sample-data/` — example SPARQL query + RDF/XML result pairs, with the
   engineering rationale in `sample-data/README.md`.
 
