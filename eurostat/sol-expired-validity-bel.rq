@@ -1,0 +1,64 @@
+# Sections of line whose validity window has already ended - Belgium.
+#
+# Endpoint: https://graph.data.era.europa.eu/repositories/rinf-plus
+#
+# Why this exists: both Eurostat queries keep only the description of a section
+# that is valid today (see the validity FILTERs in query-SoL-param1-optimised.rq
+# and tent-query-v1-optimised.rq). That rule was added for Germany, which
+# republishes every section a year ahead, but it also drops sections whose
+# window has closed. On 2026-09-28 Belgium is the only country with any: 37
+# sections, all ending 2026-09-06. This extract lists them so the exclusion
+# can be checked by hand.
+#
+# ?currentTwin is another section, not expired, with the same start and end
+# operational points - i.e. the likely replacement. Where it is empty the
+# stretch has no current description with the same endpoints (closed, or
+# re-segmented under different operational points), and the section is simply
+# absent from the exports rather than superseded.
+#
+# Request with:
+#   curl -X POST https://graph.data.era.europa.eu/repositories/rinf-plus \
+#        -H "Accept: text/csv" --data-urlencode "query@sol-expired-validity-bel.rq"
+
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT
+	?sectionofline
+	(SAMPLE(?lineLabel)   AS ?line)
+	(SAMPLE(?opStartName) AS ?opStart)
+	(SAMPLE(?opEndName)   AS ?opEnd)
+	?validFrom
+	?validTo
+	(GROUP_CONCAT(DISTINCT STR(?twin); SEPARATOR="|") AS ?currentTwin)
+	(GROUP_CONCAT(DISTINCT STR(?twinFrom); SEPARATOR="|") AS ?currentTwinValidFrom)
+WHERE {
+	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+	?sectionofline a era:SectionOfLine ;
+		era:inCountry <http://publications.europa.eu/resource/authority/country/BEL> ;
+		era:validity ?v .
+	?v time:hasEnd/time:inXSDDate ?validTo .
+	FILTER(?validTo < ?today)
+	OPTIONAL { ?v time:hasBeginning/time:inXSDDate ?validFrom. }
+
+	OPTIONAL {
+		?sectionofline era:nationalLine ?lps.
+		OPTIONAL { ?lps era:lineId ?lineId. }
+		OPTIONAL { ?lps rdfs:label ?lpsLabel. FILTER(langMatches(lang(?lpsLabel), "en")) }
+		BIND(COALESCE(?lineId, ?lpsLabel) AS ?lineLabel)
+	}
+	OPTIONAL { ?sectionofline era:opStart/era:opName ?opStartName. }
+	OPTIONAL { ?sectionofline era:opEnd/era:opName ?opEndName. }
+
+	OPTIONAL {
+		?sectionofline era:opStart ?a ; era:opEnd ?z .
+		?twin a era:SectionOfLine ; era:opStart ?a ; era:opEnd ?z .
+		FILTER(?twin != ?sectionofline)
+		FILTER NOT EXISTS { ?twin era:validity/time:hasEnd/time:inXSDDate ?te. FILTER(?te < ?today) }
+		OPTIONAL { ?twin era:validity/time:hasBeginning/time:inXSDDate ?twinFrom. }
+	}
+}
+GROUP BY ?sectionofline ?validFrom ?validTo
+ORDER BY ?line ?opStart

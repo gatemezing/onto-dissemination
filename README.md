@@ -110,12 +110,15 @@ window the same way the RINF Parameter Values map is. Query set in
 
 **[era-eurostat-exporter.html](scripts/assets/era-eurostat-exporter.html)** —
 exports the two optimised Eurostat extracts in [eurostat/](eurostat/) as CSV:
-sections of line with their track parameters (30 columns), and the TEN-T /
+sections of line with their track parameters (30 columns, coded values given
+as their `skos:prefLabel`), and the TEN-T /
 corridor classification flags (40 columns, including the post-2024
 `era:partOfTENT` network levels, traffic types and European Transport
 Corridors). Pick one country or the whole EU, see the exact SPARQL that will be
 sent before running it, and get per-column coverage statistics with the result —
-so an empty column is visibly a publication gap rather than a silent blank.
+so an empty column is visibly a publication gap rather than a silent blank. Only the
+description valid today is exported, so sections a manager has already
+republished for next year (Germany) are not counted twice.
 
 **[era-interop-answers.html](scripts/assets/era-interop-answers.html)** — the
 ERA reusability answers for the Interoperable Europe assessment (source text
@@ -156,7 +159,7 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
 - `interop-europe/` — the assessment questions, drafted answers, and the
   extracted Data Stories query catalogue.
 - `eurostat/` — the Eurostat query set: the original queries, their optimised
-  and live-tested rewrites, and a data-quality extract. Each optimised file
+  and live-tested rewrites, and data-quality extracts. Each optimised file
   documents what was wrong with the original and the measured runtimes.
 - `sample-data/` — example SPARQL query + RDF/XML result pairs, with the
   engineering rationale in `sample-data/README.md`.

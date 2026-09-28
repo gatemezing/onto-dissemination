@@ -16,6 +16,33 @@
 #
 # Multi-valued fields are returned pipe-separated ("|"), e.g. an operational
 # point renamed between publications gives "Technical change|BP SNCF Réseau LISEA".
+#
+# Re-measured 2026-09-28 after the two changes below: 111,089 rows, 62 MB CSV,
+# ~78 s for the whole EU in one request (DEU ~17 s, FRA ~15-19 s, AUT ~7 s).
+#
+# CONCEPT LABELS. Every concept-valued column (solNature, tenClassification,
+# freightCorridor, wheelSetGauge, contactLineSystemType, energySupplySystem,
+# etcsLevelType, gsmRVersion) returns the concept's English skos:prefLabel -
+# sol-natures/20 -> "Link", contact-line-systems/10 -> "Overhead contact line
+# (OCL)" - instead of its URI. Each concept carries exactly one @en label, so
+# the join cannot multiply rows. The URI is kept as a fallback because ten
+# codes in active use are defined nowhere (not in rinf-plus, not in ERA-Onto):
+# gsmr-versions/10, /20, /30, /40 (36,283 statements), etcs-levels/10 and /40
+# (17,432), energy-supply-systems/90 and /N (856). A required
+# ?x prop/skos:prefLabel ?l path would silently blank those cells; the URI
+# instead makes the gap visible.
+# The COALESCE sits inside GROUP_CONCAT, not in a BIND inside each OPTIONAL: a
+# BIND in the OPTIONAL group makes GraphDB evaluate the group on its own, which
+# measured AUT 14.7 s / DEU 40 s against 6.7 s / 26 s for identical output.
+#
+# VALIDITY. Only the description valid today is kept (FILTER NOT EXISTS on a
+# beginning after today or an end before it; sections with no dated validity
+# are kept). DEU republishes every section a year ahead - 2026-01-01..2026-12-31
+# and again from 2027-01-01, open-ended - which doubled its rows (36,648 ->
+# 18,313). The same rule also drops sections whose window has closed: on
+# 2026-09-28 that is 37 Belgian sections ending 2026-09-06, 24 of them with no
+# current replacement (mostly line 161 Brussels-Namur) - see
+# sol-expired-validity-bel.rq/.csv.
 
 #
 # To go faster: run one country per request in parallel (uncomment the FILTER
@@ -33,6 +60,7 @@ PREFIX era: <http://data.europa.eu/949/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>
 
 SELECT
@@ -42,7 +70,7 @@ SELECT
 	?sectionofline_track
 	(GROUP_CONCAT(DISTINCT ?imCode;       SEPARATOR="|") AS ?sectionofline_imcode)
 	(GROUP_CONCAT(DISTINCT ?lineLabel;    SEPARATOR="|") AS ?sectionofline_linenationalid_label)
-	(GROUP_CONCAT(DISTINCT ?solNature;    SEPARATOR="|") AS ?sectionofline_solnature)
+	(GROUP_CONCAT(DISTINCT COALESCE(?solNatureL, STR(?solNatureC));    SEPARATOR="|") AS ?sectionofline_solnature)
 	(SAMPLE(?opStart)                                    AS ?sectionofline_opstart)
 	(GROUP_CONCAT(DISTINCT ?opStartName;  SEPARATOR="|") AS ?sectionofline_opstart_opname)
 	(GROUP_CONCAT(DISTINCT ?opStartUopid; SEPARATOR="|") AS ?sectionofline_opstart_uopid)
@@ -57,15 +85,15 @@ SELECT
 	(SAMPLE(?opEndLng) AS ?sectionofline_opend_location_lng)
 	(GROUP_CONCAT(DISTINCT ?validFrom;    SEPARATOR="|") AS ?sectionofline_validitystartdate)
 	(GROUP_CONCAT(DISTINCT ?validTo;      SEPARATOR="|") AS ?sectionofline_validityenddate)
-	(GROUP_CONCAT(DISTINCT ?tenClass;     SEPARATOR="|") AS ?sectionofline_track_tenclassification)
+	(GROUP_CONCAT(DISTINCT COALESCE(?tenClassL, STR(?tenClassC));     SEPARATOR="|") AS ?sectionofline_track_tenclassification)
 	(GROUP_CONCAT(DISTINCT ?maxSpeed;     SEPARATOR="|") AS ?sectionofline_track_maximumpermittedspeed)
-	(GROUP_CONCAT(DISTINCT ?freight;      SEPARATOR="|") AS ?sectionofline_track_freightcorridor)
-	(GROUP_CONCAT(DISTINCT ?gauge;        SEPARATOR="|") AS ?sectionofline_track_wheelsetgauge)
+	(GROUP_CONCAT(DISTINCT COALESCE(?freightL, STR(?freightC));      SEPARATOR="|") AS ?sectionofline_track_freightcorridor)
+	(GROUP_CONCAT(DISTINCT COALESCE(?gaugeL, STR(?gaugeC));        SEPARATOR="|") AS ?sectionofline_track_wheelsetgauge)
 	(GROUP_CONCAT(DISTINCT ?cls;          SEPARATOR="|") AS ?sectionofline_track_contactlinesystem)
-	(GROUP_CONCAT(DISTINCT ?clsType;      SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_contactlinesystemtype)
-	(GROUP_CONCAT(DISTINCT ?energy;       SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_energysupplysystem)
-	(GROUP_CONCAT(DISTINCT ?etcsType;     SEPARATOR="|") AS ?sectionofline_track_etcslevel_etcsleveltype)
-	(GROUP_CONCAT(DISTINCT ?gsmr;         SEPARATOR="|") AS ?sectionofline_track_gsmrversion)
+	(GROUP_CONCAT(DISTINCT COALESCE(?clsTypeL, STR(?clsTypeC));      SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_contactlinesystemtype)
+	(GROUP_CONCAT(DISTINCT COALESCE(?energyL, STR(?energyC));       SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_energysupplysystem)
+	(GROUP_CONCAT(DISTINCT COALESCE(?etcsTypeL, STR(?etcsTypeC));     SEPARATOR="|") AS ?sectionofline_track_etcslevel_etcsleveltype)
+	(GROUP_CONCAT(DISTINCT COALESCE(?gsmrL, STR(?gsmrC));         SEPARATOR="|") AS ?sectionofline_track_gsmrversion)
 
 WHERE {
 	?sectionofline a era:SectionOfLine ;
@@ -75,7 +103,19 @@ WHERE {
 	# Chunking: uncomment and run one country per request in parallel (~19-31 s for all 28).
 	#FILTER(?sectionofline_incountry = <http://publications.europa.eu/resource/authority/country/FRA>)
 
-	OPTIONAL { ?sectionofline era:solNature ?solNature. }
+	# Keep only the description valid today. DEU republishes every section for
+	# the following year ahead of time (2026-01-01..2026-12-31 and again from
+	# 2027-01-01, open-ended), which doubled its rows. Sections with no dated
+	# validity (ten countries publish none) are kept.
+	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+	FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb. FILTER(?vb > ?today) }
+	FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve. FILTER(?ve < ?today) }
+
+	# Concept-valued columns return the concept's English skos:prefLabel
+	# (e.g. sol-natures/20 -> "Link"). See CONCEPT LABELS in query-SoL-param1-optimised.rq for
+	# why the URI is kept as a fallback rather than dropped.
+	OPTIONAL { ?sectionofline era:solNature ?solNatureC.
+		OPTIONAL { ?solNatureC skos:prefLabel ?solNatureL. FILTER(langMatches(lang(?solNatureL), "en")) } }
 	OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode. }
 
 	OPTIONAL {
@@ -110,17 +150,24 @@ WHERE {
 
 	OPTIONAL {
 		?sectionofline era:hasPart ?sectionofline_track.
-		OPTIONAL { ?sectionofline_track era:tenClassification/skos:prefLabel ?tenClass. }
+		OPTIONAL { ?sectionofline_track era:tenClassification ?tenClassC.
+			OPTIONAL { ?tenClassC skos:prefLabel ?tenClassL. FILTER(langMatches(lang(?tenClassL), "en")) } }
 		OPTIONAL { ?sectionofline_track era:maximumPermittedSpeed ?maxSpeed. }
-		OPTIONAL { ?sectionofline_track era:freightCorridor/skos:prefLabel ?freight. }
-		OPTIONAL { ?sectionofline_track era:wheelSetGauge/skos:prefLabel ?gauge. }
+		OPTIONAL { ?sectionofline_track era:freightCorridor ?freightC.
+			OPTIONAL { ?freightC skos:prefLabel ?freightL. FILTER(langMatches(lang(?freightL), "en")) } }
+		OPTIONAL { ?sectionofline_track era:wheelSetGauge ?gaugeC.
+			OPTIONAL { ?gaugeC skos:prefLabel ?gaugeL. FILTER(langMatches(lang(?gaugeL), "en")) } }
 		OPTIONAL {
 			?sectionofline_track era:contactLineSystem ?cls.
-			OPTIONAL { ?cls era:contactLineSystemType ?clsType. }
-			OPTIONAL { ?cls era:energySupplySystem ?energy. }
+			OPTIONAL { ?cls era:contactLineSystemType ?clsTypeC.
+				OPTIONAL { ?clsTypeC skos:prefLabel ?clsTypeL. FILTER(langMatches(lang(?clsTypeL), "en")) } }
+			OPTIONAL { ?cls era:energySupplySystem ?energyC.
+				OPTIONAL { ?energyC skos:prefLabel ?energyL. FILTER(langMatches(lang(?energyL), "en")) } }
 		}
-		OPTIONAL { ?sectionofline_track era:etcs/era:etcsLevelType ?etcsType. }
-		OPTIONAL { ?sectionofline_track era:gsmRVersion ?gsmr. }
+		OPTIONAL { ?sectionofline_track era:etcs/era:etcsLevelType ?etcsTypeC.
+			OPTIONAL { ?etcsTypeC skos:prefLabel ?etcsTypeL. FILTER(langMatches(lang(?etcsTypeL), "en")) } }
+		OPTIONAL { ?sectionofline_track era:gsmRVersion ?gsmrC.
+			OPTIONAL { ?gsmrC skos:prefLabel ?gsmrL. FILTER(langMatches(lang(?gsmrL), "en")) } }
 	}
 }
 GROUP BY

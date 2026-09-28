@@ -5,6 +5,14 @@
 #   whole EU, one request  : 129,508 rows, 38 MB CSV, ~52 s
 #   one country per request: ~19-21 s wall clock for all 28 at 6 concurrent
 #                            requests (identical output; DEU sets the floor)
+#   re-measured 2026-09-28 with the validity filter below: 111,089 rows,
+#   ~51 s for the whole EU; DEU 19 s -> 13 s.
+#
+# VALIDITY. Only the description valid today is kept. DEU republishes every
+# section a year ahead (2026-01-01..2026-12-31 and again from 2027-01-01), which
+# doubled its rows (36,648 -> 18,313). The rule also drops 37 Belgian sections
+# whose window ended 2026-09-06 - see sol-expired-validity-bel.rq/.csv. The
+# flags themselves need no labels: each is already named after its concept.
 #
 # NEW COLUMNS (as requested): era:partOfTENT, era:typeOfTraffic and
 # era:europeanTransportCorridor. From a track, typeOfTraffic and
@@ -57,6 +65,7 @@
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
 PREFIX tenc: <http://data.europa.eu/949/concepts/ten-classifications/>
 PREFIX frc:  <http://data.europa.eu/949/concepts/freight-corridor/>
 PREFIX lvl:  <http://data.europa.eu/949/concepts/ten-t-network-levels/>
@@ -122,6 +131,14 @@ WHERE {
 	# Chunking: uncomment and run one country per request in parallel
 	# (~19-21 s for all 28 at 6 concurrent requests, vs ~52 s in one request).
 	#FILTER(?sectionofline_incountry = <http://publications.europa.eu/resource/authority/country/FRA>)
+
+	# Keep only the description valid today. DEU republishes every section for
+	# the following year ahead of time (2026-01-01..2026-12-31 and again from
+	# 2027-01-01, open-ended), which doubled its rows. Sections with no dated
+	# validity (ten countries publish none) are kept.
+	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+	FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb. FILTER(?vb > ?today) }
+	FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve. FILTER(?ve < ?today) }
 
 	OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode. }
 

@@ -1,0 +1,38 @@
+sectionofline,line,opStart,opEnd,validFrom,validTo,currentTwin,currentTwinValidFrom
+http://data.europa.eu/949/sectionOfLine/9f293e4074,0110,Antwerpen-D.S.-Combinant,Antwerpen-D.S.-BASF,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/697e0c55b1,0110,Antwerpen-Noord-Blok L9,Antwerpen-Noord-Toegang A2,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/9fe161b76a,0110,Antwerpen-Noord-Toegang 11L/1,Antwerpen-Noord-Blok L9,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/f328f3cefb,0110,Antwerpen-Noord-Toegang A1,Antwerpen-Noord-Toegang 11L/1,2026-06-14,2026-09-06,http://data.europa.eu/949/sectionOfLine/5972247521,2016-06-12
+http://data.europa.eu/949/sectionOfLine/2ac97616a5,0110,Antwerpen-Noord-Toegang A2,Y.Walenhoek,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/d6f7bf0d7c,0110,Stabroek-Rooster Q,Stabroek-Sporen 027/028,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/2d194c68ef,0110,Stabroek-Sporen 027/028,Antwerpen-D.S.-Combinant,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/3fca2fa1a5,0110,Y.Schijn,Antwerpen-Noord-Toegang A1,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/2f117be3ab,0110,Y.Stabroek,Stabroek-Rooster Q,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/b6671e3684,0110,Y.Walenhoek,Y.Stabroek,2026-06-14,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/3c87ad9fbe,1610,Bakenbos,La Hulpe,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/fcbfc456a4,2024-12-15
+http://data.europa.eu/949/sectionOfLine/7a7f4bc4f1,1610,Beuzet,Saint-Denis-Bovesse,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/1ebdb83eb1,1610,Blanmont,Chastre,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/5f6f668df5,1610,Boitsfort | Bosvoorde,Groenendaal,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/551e5efa8d,2024-12-15
+http://data.europa.eu/949/sectionOfLine/e35cb27732,1610,Bruxelles-Luxembourg | Brussel-Luxemburg,Etterbeek | Etterbeek,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/69ee44be43,1610,Bruxelles-Schuman | Brussel-Schuman,Bruxelles-Luxembourg | Brussel-Luxemburg,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/f350779b68,2024-12-15
+http://data.europa.eu/949/sectionOfLine/63ba9ffc7c,1610,Chastre,Ernage,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/842e6bec42,1610,Ernage,Gembloux,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/f3ca68ac24,1610,Etterbeek | Etterbeek,Watermael | Watermaal,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/d390e892f1,2024-12-15
+http://data.europa.eu/949/sectionOfLine/0c69c84e7c,1610,Gembloux,Lonzée,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/8fc2af3eb7,1610,Genval,Rixensart,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/b43191cb50,2024-12-15
+http://data.europa.eu/949/sectionOfLine/905f4f957a,1610,Groenendaal,Hoeilaart,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/98ed413276,2024-12-15
+http://data.europa.eu/949/sectionOfLine/efb563b325,1610,Hoeilaart,Bakenbos,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/6625178e24,2024-12-15
+http://data.europa.eu/949/sectionOfLine/1b830f8a56,1610,La Hulpe,Genval,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/fd23b46dec,2024-12-15
+http://data.europa.eu/949/sectionOfLine/a0851d30e4,1610,Lonzée,Beuzet,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/c6e519f795,1610,Mont-Saint-Guibert,Blanmont,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/073cc3d6c4,1610,Ottignies,Y.Louvain-la-Neuve,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/88570be91e,2024-12-15
+http://data.europa.eu/949/sectionOfLine/0bda43f877,1610,Profondsart,Ottignies,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/577ad6ae03,2024-12-15
+http://data.europa.eu/949/sectionOfLine/e525f33770,1610,Rhisnes,Namur,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/b9496ab37a,1610,Rhisnes-Sas,Rhisnes,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/4e6c39abce,1610,Rixensart,Profondsart,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/4a710ad7b4,2024-12-15
+http://data.europa.eu/949/sectionOfLine/ff88d9a6f7,1610,Rogier | Rogier,Bruxelles-Schuman | Brussel-Schuman,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/35112103c4,1610,Saint-Denis-Bovesse,Rhisnes-Sas,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/d874aa0abb,1610,Schaerbeek | Schaarbeek,Y.Josaphat | Y.Josaphat,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/6f233c50d7,1610,Watermael | Watermaal,Boitsfort | Bosvoorde,2025-04-07,2026-09-06,http://data.europa.eu/949/sectionOfLine/0c210bae43,2024-12-15
+http://data.europa.eu/949/sectionOfLine/ce3d89ee75,1610,Y.Josaphat | Y.Josaphat,Rogier | Rogier,2025-04-07,2026-09-06,,
+http://data.europa.eu/949/sectionOfLine/761fa11eee,1610,Y.Louvain-la-Neuve,Mont-Saint-Guibert,2025-04-07,2026-09-06,,
