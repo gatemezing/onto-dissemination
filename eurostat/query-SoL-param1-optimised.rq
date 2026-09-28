@@ -24,13 +24,23 @@
 # freightCorridor, wheelSetGauge, contactLineSystemType, energySupplySystem,
 # etcsLevelType, gsmRVersion) returns the concept's English skos:prefLabel -
 # sol-natures/20 -> "Link", contact-line-systems/10 -> "Overhead contact line
-# (OCL)" - instead of its URI. Each concept carries exactly one @en label, so
-# the join cannot multiply rows. The URI is kept as a fallback because ten
-# codes in active use are defined nowhere (not in rinf-plus, not in ERA-Onto):
-# gsmr-versions/10, /20, /30, /40 (36,283 statements), etcs-levels/10 and /40
-# (17,432), energy-supply-systems/90 and /N (856). A required
-# ?x prop/skos:prefLabel ?l path would silently blank those cells; the URI
-# instead makes the gap visible.
+# (OCL)" - instead of its URI. Labels come from ERA's controlled vocabulary,
+# graph <http://data.europa.eu/949/graph/rinf/skos> in rinf-plus - triple for
+# triple identical to <http://data.europa.eu/949/graph/skos> in ERA-Onto
+# (70,705 triples, checked 2026-09-28). Each concept carries exactly one @en
+# label, so the join cannot multiply rows.
+# The URI is kept as a fallback because ten codes in active use are no longer
+# in the vocabulary: gsmr-versions/10, /20, /30, /40 (36,283 statements),
+# etcs-levels/10 and /40 (17,432), energy-supply-systems/90 and /N (856),
+# published by ~30 infrastructure-manager graphs. They are retired codes, not
+# missing labels: the EnergySupplySystems scheme records "removed era-ess:DC50
+# ... removed others" (revision 2025-02-28), the GSMRVersions scheme now only
+# accepts FRS/SRS EIRENE combinations, and ERA's own SHACL shapes
+# (GsmRVersionSKOS, EtcsLevelTypeSKOS, EnergySupplySystemSKOS in ERA-Onto's
+# graph/shacl) flag every one of these statements as "not one of the
+# predefined values". There is no official mapping to current codes, so none
+# is invented here. A required ?x prop/skos:prefLabel ?l path would silently
+# blank those cells; the URI instead makes the non-conformance visible.
 # The COALESCE sits inside GROUP_CONCAT, not in a BIND inside each OPTIONAL: a
 # BIND in the OPTIONAL group makes GraphDB evaluate the group on its own, which
 # measured AUT 14.7 s / DEU 40 s against 6.7 s / 26 s for identical output.

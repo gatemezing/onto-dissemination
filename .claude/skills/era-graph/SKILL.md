@@ -115,6 +115,39 @@ adding a `UNION` per hop that never matches for a given property still costs
 the query planner something, so only widen a specific query once you know
 (from the catalogue, or from a live domain check) that it needs it.
 
+## Rule 2c — coded values: labels live in one graph, and some codes have none
+
+Coded parameters (`era:solNature`, `era:etcsLevelType`, `era:gsmRVersion`,
+`era:energySupplySystem`, …) point at `skos:Concept`s under
+`http://data.europa.eu/949/concepts/`. The official vocabulary sits in
+`graph/rinf/skos` in rinf-plus, identical triple for triple to `graph/skos` in
+ERA-Onto (70,705 triples; 148 schemes, 19,547 concepts). Each property names its
+scheme with `era:inSkosConceptScheme` in the ontology. Every concept used by the
+RINF data carries exactly one `@en` prefLabel, so a label join can't multiply rows.
+
+**Some codes in active use have no label anywhere, and that's retirement, not a
+gap to fill:** `gsmr-versions/10`–`40`, `etcs-levels/10` and `/40`,
+`energy-supply-systems/90` and `/N` — ~54,600 statements across ~30 IM graphs
+(measured 2026-09-28). The schemes dropped them (EnergySupplySystems revision
+2025-02-28: "removed … others"), and ERA's own SHACL shapes in ERA-Onto
+`graph/shacl` (`GsmRVersionSKOS`, `EtcsLevelTypeSKOS`,
+`EnergySupplySystemSKOS`) flag every such value as "not one of the predefined
+values". There is no official old→new mapping; don't invent one.
+
+- **Never use a required `?x prop/skos:prefLabel ?l` path** for output — it
+  silently blanks the retired codes. Fetch the concept, `OPTIONAL` the label,
+  and fall back to the URI so the non-conformance stays visible.
+- **Put the fallback in the aggregate, not in a `BIND`:**
+  `GROUP_CONCAT(DISTINCT COALESCE(?xL, STR(?xC)))`. A `BIND` inside each
+  `OPTIONAL` group makes GraphDB evaluate that group on its own — AUT 14.7 s vs
+  6.7 s, DEU 40 s vs 26 s, identical output.
+- `/eratv/` concepts share the same schemes but are vehicle-side values; the
+  GSM-R and energy-supply shapes reject them on infrastructure too.
+- `graph/0078` also carries prefLabels, for 8 `op-types` concepts. Nothing
+  conflicts with the official graph today, but pin the lookup to
+  `GRAPH <http://data.europa.eu/949/graph/rinf/skos>` if a publisher's own label
+  must never win.
+
 ## Rule 3 — validity: newest window **per place**, never per line
 
 Managers republish. Without a filter you mix current and superseded descriptions.
