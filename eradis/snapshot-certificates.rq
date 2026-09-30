@@ -1,0 +1,42 @@
+# ERADIS snapshot - one row per NoBo certificate (era:CertificationLevelDocument),
+# current version.
+# Endpoint: https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG
+#
+# A certificate may carry several dct:issued dates (1,631 do) and several
+# era:state values (e.g. "amended" and "suspended"); both are concatenated.
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX time: <http://www.w3.org/2006/time#>
+
+SELECT ?certificate ?certNumber ?type ?typeLabel ?version ?validFrom ?validUntil ?eradisPage
+       ?noboOrg ?applicantOrg ?description
+       (GROUP_CONCAT(DISTINCT STR(?st); SEPARATOR="|") AS ?states)
+       (GROUP_CONCAT(DISTINCT STR(?iss); SEPARATOR="|") AS ?issued)
+WHERE {
+	# Current version of each NoBo certificate (era:CertificationLevelDocument).
+	# Only unpublished drafts are left out: a certificate whose only state is
+	# "draft". The recorded state is otherwise a poor guide to validity (42,088
+	# of the ~44,500 current certificates say "amended", 12 say "inForce"), so
+	# validity is judged from the dct:valid window - see the explorer.
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?certificate a era:CertificationLevelDocument }
+	FILTER NOT EXISTS { ?certificate dct:isReplacedBy ?newer }
+	FILTER EXISTS { ?certificate era:state ?publishedState
+		FILTER(?publishedState != <http://data.europa.eu/949/concepts/evidence-document-states/draft>) }
+	?certificate dct:identifier ?certNumber ;
+		vpa:versionNumber ?version ;
+		era:state ?st .
+	OPTIONAL { ?certificate dct:issued ?iss }
+	OPTIONAL { ?certificate dct:type ?type . OPTIONAL { ?type skos:prefLabel ?typeLabel } }
+	OPTIONAL { ?certificate dct:valid ?window .
+		OPTIONAL { ?window time:hasBeginning/time:inXSDDate ?validFrom }
+		OPTIONAL { ?window time:hasEnd/time:inXSDDate ?validUntil } }
+	OPTIONAL { ?certificate rdfs:seeAlso ?eradisPage }
+	OPTIONAL { ?certificate dct:creator/era:roleOf ?noboOrg }        # notified body
+	OPTIONAL { ?certificate dct:audience/era:roleOf ?applicantOrg }  # applicant
+	OPTIONAL { ?certificate dct:description ?description }         # object of assessment
+}
+GROUP BY ?certificate ?certNumber ?type ?typeLabel ?version ?validFrom ?validUntil ?eradisPage ?noboOrg ?applicantOrg ?description

@@ -1,0 +1,98 @@
+# Sample output of era-eradis-explorer.html's certificate query builder - the
+# SPARQL behind one search of the "NoBo certificates" form: notified body in
+# Hungary, subsystem "Control-command and signalling", valid today.
+#
+# Measured 2026-09-30 against the dev endpoint: 78 certificates, the same 78 the
+# page finds in its snapshot.
+#
+# How the ERADIS certificate page maps onto ERADIS-KG
+# (era:CertificationLevelDocument, all under .../evidence/cld/cld-NoBoCert/):
+#   Certificate number ........ dct:identifier (earlier numbers: dct:replaces+/dct:identifier)
+#   Certificate type .......... dct:type -> cld-types, skos:prefLabel
+#   Module(s) applied ......... dct:conformsTo -> cld-modules (5,337 certificates
+#                               also point at Decision 2010/713, which is not a module)
+#   Object of assessment ...... dct:description
+#   TSI(s) / Directives ....... eli:id_local / dct:source
+#   Interoperability constituent  eli:title_short
+#   Subsystem ................. not in ERADIS-KG - derived from the TSIs, as for declarations
+#   Applicant ................. dct:audience -> era:roleOf
+#   Manufacturer .............. dct:contributor (Manufacturer role) -> era:roleOf
+#   NoBo (name, NANDO) ........ dct:creator -> era:roleOf; era:role/era:nandoCode
+#   Date of issue ............. dct:issued (several on 1,631 certificates)
+#   Valid from / until ........ dct:valid -> time:hasBeginning / time:hasEnd -> time:inXSDDate
+#   Statements, conditions .... era:resultStatement, era:validityStatement,
+#                               era:sequenceStatement; vpa:checkedCompliance/
+#                               vpa:withRestriction/rdfs:comment (see cld-detail.rq)
+#
+# ?validity is derived, not recorded: withdrawn and suspended as recorded in
+# era:state, otherwise from the validity window against today's date. The
+# recorded state alone says "amended" for 42,088 of the ~43,500 current
+# certificates and "inForce" for 12.
+
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX gr:   <http://purl.org/goodrelations/v1#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?certificate ?certNumber ?version ?typeLabel ?validFrom ?validUntil ?validity ?eradisPage
+	(MAX(?issued) AS ?lastIssued)
+	(GROUP_CONCAT(DISTINCT STR(?issued); SEPARATOR="|") AS ?issuedDates)
+	(SAMPLE(?noboName) AS ?notifiedBody) (SAMPLE(?nandoCode) AS ?nando)
+	(SAMPLE(?applicantName) AS ?applicant)
+	(SAMPLE(?applicantCountry) AS ?applicantCountryUri)
+	(GROUP_CONCAT(DISTINCT ?manufacturerName; SEPARATOR="|") AS ?manufacturers)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?module), "^.*/", ""); SEPARATOR="|") AS ?modules)
+	(GROUP_CONCAT(DISTINCT ?title; SEPARATOR="|") AS ?constituent)
+	(GROUP_CONCAT(DISTINCT STR(?tsi); SEPARATOR="|") AS ?tsiUris)
+	(SAMPLE(?objectOfAssessment) AS ?object)
+WHERE {
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?certificate a era:CertificationLevelDocument }
+	FILTER NOT EXISTS { ?certificate dct:isReplacedBy ?newer }   # current version
+	FILTER EXISTS { ?certificate era:state ?publishedState FILTER(?publishedState != <http://data.europa.eu/949/concepts/evidence-document-states/draft>) }
+	?certificate dct:identifier ?certNumber ; vpa:versionNumber ?version .
+	OPTIONAL { ?certificate dct:type/skos:prefLabel ?typeLabel }
+	OPTIONAL { ?certificate dct:valid ?window .
+		OPTIONAL { ?window time:hasBeginning/time:inXSDDate ?validFrom }
+		OPTIONAL { ?window time:hasEnd/time:inXSDDate ?validUntil } }
+	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+	BIND(IF(EXISTS { ?certificate era:state <http://data.europa.eu/949/concepts/evidence-document-states/withdrawn> }, "withdrawn",
+	     IF(EXISTS { ?certificate era:state <http://data.europa.eu/949/concepts/evidence-document-states/suspended> }, "suspended",
+	     IF(BOUND(?validUntil) && ?validUntil < ?today, "expired",
+	     IF(BOUND(?validFrom) && ?validFrom > ?today, "notyet", "valid")))) AS ?validity)
+	FILTER(?validity IN ("valid"))
+	# Type of subsystem "Control-command and signalling" (Directive 2016/797 Annex II), derived from the TSIs cited
+	FILTER EXISTS { ?certificate eli:id_local ?subTsi . VALUES ?subTsi { <http://data.europa.eu/949/legislation/requirements/dec-2002-731> <http://data.europa.eu/949/legislation/requirements/dec-2004-447> <http://data.europa.eu/949/legislation/requirements/dec-2006-679> <http://data.europa.eu/949/legislation/requirements/dec-2006-860> <http://data.europa.eu/949/legislation/requirements/dec-2007-153> <http://data.europa.eu/949/legislation/requirements/dec-2008-386> <http://data.europa.eu/949/legislation/requirements/dec-2009-561> <http://data.europa.eu/949/legislation/requirements/dec-2010-79> <http://data.europa.eu/949/legislation/requirements/dec-2012-463> <http://data.europa.eu/949/legislation/requirements/dec-2012-696> <http://data.europa.eu/949/legislation/requirements/dec-2012-88> <http://data.europa.eu/949/legislation/requirements/dec-2015-14> <http://data.europa.eu/949/legislation/requirements/reg-2016-919> <http://data.europa.eu/949/legislation/requirements/reg_impl-2020-420> <http://data.europa.eu/949/legislation/requirements/reg_impl-2023-1695> } }
+	# Notified body (dct:creator)
+	FILTER EXISTS { ?certificate dct:creator/era:roleOf ?nbF .
+		?nbF org:hasSite/org:siteAddress/locn:adminUnitL1 <http://publications.europa.eu/resource/authority/country/HUN> .
+	}
+	# What the results table shows
+	OPTIONAL { ?certificate rdfs:seeAlso ?eradisPage }
+	OPTIONAL { ?certificate dct:issued ?issued }
+	OPTIONAL { ?certificate dct:creator/era:roleOf ?noboOrg .
+		OPTIONAL { ?noboOrg foaf:name ?noboName }
+		OPTIONAL { ?noboOrg era:role/era:nandoCode ?nandoCode } }
+	OPTIONAL { ?certificate dct:audience/era:roleOf ?applicantOrg .
+		OPTIONAL { ?applicantOrg foaf:name ?applicantName }
+		OPTIONAL { ?applicantOrg org:hasSite/org:siteAddress/locn:adminUnitL1 ?applicantCountry } }
+	OPTIONAL { ?certificate dct:contributor ?mfRole .
+		?mfRole era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/Manufacturer> ;
+			era:roleOf/foaf:name ?manufacturerName }
+	OPTIONAL { ?certificate dct:conformsTo ?module .
+		FILTER(STRSTARTS(STR(?module), "http://data.europa.eu/949/concepts/cld-modules/")) }
+	OPTIONAL { ?certificate eli:title_short ?title }
+	OPTIONAL { ?certificate eli:id_local ?tsi }
+	OPTIONAL { ?certificate dct:description ?objectOfAssessment }
+}
+GROUP BY ?certificate ?certNumber ?version ?typeLabel ?validFrom ?validUntil ?validity ?eradisPage
+ORDER BY DESC(?lastIssued) ?certNumber
+LIMIT 500

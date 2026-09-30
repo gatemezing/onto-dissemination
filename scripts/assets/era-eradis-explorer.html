@@ -13,6 +13,7 @@
     /* Chart series: the validated dark steps of the reference categorical
        palette (slots 1-3), checked against this page's panel surface #141c30. */
     --series-V:#3987e5; --series-C:#d95926; --series-S:#199e70;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
     --surface:#141c30;
   }
   *{box-sizing:border-box;}
@@ -123,7 +124,9 @@
   table.results tbody tr{cursor:pointer;}
   table.results tbody tr:hover{background:rgba(255,255,255,.04);}
   table.results tbody tr.sel{background:rgba(91,155,213,.12);}
-  table.results td.id{font-family:"SF Mono",Consolas,monospace;font-size:11px;white-space:nowrap;}
+  table.results td.id{font-family:"SF Mono",Consolas,monospace;font-size:11px;min-width:190px;max-width:300px;overflow-wrap:anywhere;}
+  #chartNote{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  #chartNote:empty{display:none;}
   table.results td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .pill{display:inline-block;font-size:10.5px;border-radius:4px;padding:1px 6px;border:1px solid var(--line);white-space:nowrap;}
   .pill.st0{color:var(--green);border-color:rgba(122,195,106,.5);}
@@ -157,6 +160,17 @@
   table.small th,table.small td{padding:3px 10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:right;font-variant-numeric:tabular-nums;}
   table.small th:first-child,table.small td:first-child{text-align:left;}
 
+  /* register tabs */
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 -1px;position:relative;z-index:1;}
+  .tabs button{background:rgba(255,255,255,.04);border:1px solid var(--line);border-bottom:none;color:var(--muted);
+    padding:10px 16px;border-radius:10px 10px 0 0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+  .tabs button[aria-selected="true"]{background:var(--panel);color:var(--paper);}
+  .tabs button .cnt{font-weight:400;color:var(--muted);margin-left:6px;font-size:11.5px;}
+  form.panel{border-top-left-radius:0;}
+  button.xlink{background:none;border:none;color:var(--blue);text-decoration:underline;cursor:pointer;font:inherit;padding:0;text-align:left;}
+  .pill.v-valid{color:var(--green);border-color:rgba(122,195,106,.5);}
+  .pill.v-expired,.pill.v-withdrawn{color:var(--danger);border-color:rgba(242,109,109,.5);}
+  .pill.v-suspended,.pill.v-notyet{color:var(--orange);border-color:rgba(240,168,58,.5);}
   footer{font-size:11.5px;color:var(--muted);margin-top:22px;line-height:1.6;}
   footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;}
   a{color:var(--blue);}
@@ -176,7 +190,7 @@
 <div id="app">
   <header>
     <h1>ERA ERADIS Explorer</h1>
-    <p>Search the EC declarations of verification, conformity and suitability for use in the ERADIS knowledge graph, with the same fields as the ERADIS search form. Every search is also written out as SPARQL against <code>ERADIS-KG</code>, which you can read, copy, run live, or open in GraphDB.</p>
+    <p>Search the ERADIS knowledge graph with the fields of the ERADIS search forms: the EC declarations of verification, conformity and suitability for use, and the notified-body certificates they rest on (<code>era:CertificationLevelDocument</code>). Declarations and certificates link to each other. Every search is also written out as SPARQL against <code>ERADIS-KG</code>, which you can read, copy, run live, or open in GraphDB.</p>
   </header>
 
   <div id="sourceBar" class="panel">
@@ -185,7 +199,13 @@
     <div id="liveDiag"></div>
   </div>
 
-  <form id="searchForm" class="panel" autocomplete="off">
+  <div class="tabs" role="tablist" aria-label="Register">
+    <button type="button" role="tab" id="tab-ecd" data-reg="ecd" aria-selected="true" aria-controls="searchForm">EC declarations<span class="cnt" id="cntEcd"></span></button>
+    <button type="button" role="tab" id="tab-cld" data-reg="cld" aria-selected="false" aria-controls="certForm">NoBo certificates<span class="cnt" id="cntCld"></span></button>
+  </div>
+
+  <!-- ============ EC declarations ============ -->
+  <form id="searchForm" class="panel" autocomplete="off" role="tabpanel" aria-labelledby="tab-ecd">
     <section>
       <h2>ID data</h2>
       <div class="row"><label for="fDocId">Document ID number</label><input type="text" id="fDocId" placeholder="e.g. DK/0000DK18632276/2022/000003, or any part of it"></div>
@@ -210,14 +230,15 @@
 
     <section>
       <h2>Description/title</h2>
-      <div class="row"><label for="fSubsystem">Type of subsystem <span class="derived" title="Derived from the TSIs the declaration cites">derived</span></label><select id="fSubsystem"></select>
+      <div class="row"><label for="fSubsystem">Type of subsystem <span class="derived" title="Derived from the TSIs cited">derived</span></label><select id="fSubsystem"></select>
         <div class="hint">ERADIS-KG does not record the subsystem itself. It is derived from the TSIs the declaration cites, looked up in the era-lex repository: a TSI's title names its subsystem, and an amending act takes the subsystem of the act it amends (<code>eli:changes</code>). The result is mapped onto the subsystems of Directive (EU) 2016/797 Annex II, so the noise, wagon and locomotive TSIs all count as rolling stock. The PRM and tunnel-safety TSIs, and acts amending several subsystems at once (e.g. 2019/776), name none; search those with “To TSIs”.</div></div>
       <div class="row"><label for="fTitle">Interoperability constituent / part</label><input type="text" id="fTitle" placeholder="e.g. Pantograph, Rail steel, ERTMS/ETCS on-board"></div>
     </section>
 
     <section>
       <h2>Certificate of conformity</h2>
-      <div class="row"><label for="fCert">ID number of the certificate issued for this declaration</label><input type="text" id="fCert" placeholder="e.g. 1010/6/SH1 — any part of the NoBo certificate ID"></div>
+      <div class="row"><label for="fCert">ID number of the certificate issued for this declaration</label><input type="text" id="fCert" placeholder="e.g. 1010/6/SH1 — any part of the NoBo certificate number">
+        <div class="hint">Or search the certificates themselves in the “NoBo certificates” tab.</div></div>
     </section>
 
     <section>
@@ -225,7 +246,6 @@
       <div class="row"><label for="fDir">To EC Directives</label><input type="text" id="fDir" list="dirList" placeholder="e.g. 2016/797"></div>
       <div class="row"><label for="fTsi">To TSIs</label><input type="text" id="fTsi" list="tsiList" placeholder="e.g. 2016/919, or a word from the title such as tunnels">
         <div class="hint">Titles come from the <code>era-lex</code> repository, where each act is identified by its ELI.</div></div>
-      <datalist id="dirList"></datalist><datalist id="tsiList"></datalist>
     </section>
 
     <section>
@@ -242,31 +262,89 @@
     </section>
 
     <div class="formActions">
-      <button type="submit" class="btn primary" id="searchBtn" disabled>Search snapshot</button>
-      <button type="button" class="btn secondary" id="liveBtn">Run live on ERADIS-KG</button>
-      <button type="button" class="btn" id="resetBtn">Reset</button>
+      <button type="submit" class="btn primary searchBtn" disabled>Search snapshot</button>
+      <button type="button" class="btn secondary liveBtn">Run live on ERADIS-KG</button>
+      <button type="button" class="btn resetBtn">Reset</button>
     </div>
   </form>
+
+  <!-- ============ NoBo certificates ============ -->
+  <form id="certForm" class="panel" autocomplete="off" role="tabpanel" aria-labelledby="tab-cld" hidden>
+    <section>
+      <h2>General information</h2>
+      <div class="row"><label for="cNumber">Certificate number</label><input type="text" id="cNumber" placeholder="e.g. 1010/6/SH1/2021 — any part; earlier numbers of the certificate match too"></div>
+      <div class="row"><label for="cType">Certificate type</label><select id="cType"></select></div>
+      <div class="row"><label for="cModule">Module(s) applied</label><select id="cModule"></select></div>
+      <div class="row"><label for="cObject">Object of assessment</label><input type="text" id="cObject" placeholder="e.g. ETCS, Szajol, bogie"></div>
+      <div class="row"><label>Validity today <span class="derived" title="Derived from the validity window and the recorded state">derived</span></label>
+        <div class="inline" id="cValidity"></div>
+        <div class="hint">Taken from the certificate's validity window (<code>dct:valid</code>), with withdrawn and suspended as recorded. The recorded state alone is no guide: 42,088 of the current certificates say “amended” and only 12 say “in force”.</div></div>
+    </section>
+
+    <section>
+      <h2>TSIs and interoperability constituents</h2>
+      <div class="row"><label for="cSubsystem">Subsystem <span class="derived" title="Derived from the TSIs cited">derived</span></label><select id="cSubsystem"></select>
+        <div class="hint">Derived from the TSIs the certificate cites, exactly as for declarations (era-lex titles and <code>eli:changes</code>).</div></div>
+      <div class="row"><label for="cTitle">Interoperability constituent</label><input type="text" id="cTitle" placeholder="e.g. Contact strips"></div>
+      <div class="row"><label for="cTsi">TSI(s) (including amendments) used</label><input type="text" id="cTsi" list="tsiList" placeholder="e.g. 2023/1695, or a word from the title"></div>
+      <div class="row"><label for="cDir">Directives</label><input type="text" id="cDir" list="dirList" placeholder="e.g. 2016/797"></div>
+    </section>
+
+    <section>
+      <h2>Applicant</h2>
+      <div class="row"><label for="cAppCountry">Applicant Country</label><select id="cAppCountry"></select></div>
+      <div class="row"><label for="cAppOrg">Applicant Name</label><select id="cAppOrg"></select></div>
+      <div class="row"><label for="cAppName"><span class="sub">…or part of the name</span></label><input type="text" id="cAppName"></div>
+    </section>
+
+    <section>
+      <h2>Manufacturer</h2>
+      <div class="row"><label for="cMfCountry">Manufacturer Country</label><select id="cMfCountry"></select></div>
+      <div class="row"><label for="cMfOrg">Manufacturer Name</label><select id="cMfOrg"></select></div>
+      <div class="row"><label for="cMfName"><span class="sub">…or part of the name</span></label><input type="text" id="cMfName"></div>
+    </section>
+
+    <section>
+      <h2>NoBo</h2>
+      <div class="row"><label for="cNbCountry">NoBo Country</label><select id="cNbCountry"></select></div>
+      <div class="row"><label for="cNbOrg">NoBo Name</label><select id="cNbOrg"></select></div>
+      <div class="row"><label for="cNando">NoBo NANDO number</label><input type="text" id="cNando" placeholder="e.g. 1010"></div>
+    </section>
+
+    <section>
+      <h2>Dates</h2>
+      <div class="row"><label>Date of issue</label>
+        <div class="pair"><input type="date" id="cFrom" aria-label="Date of issue from"><input type="date" id="cTo" aria-label="Date of issue to"></div>
+        <div class="hint">1,631 certificates carry more than one date of issue; a certificate matches when any of them falls in the range.</div></div>
+      <div class="row"><label for="cValidOn">Valid on</label><input type="date" id="cValidOn" aria-label="Valid on date" style="max-width:220px">
+        <div class="hint">The validity window covers this date.</div></div>
+      <div class="row"><label for="cCited">Cited by an EC declaration</label><select id="cCited">
+        <option value="">Either</option><option value="yes">Yes — cited by at least one published declaration</option><option value="no">No</option></select></div>
+    </section>
+
+    <div class="formActions">
+      <button type="submit" class="btn primary searchBtn" disabled>Search snapshot</button>
+      <button type="button" class="btn secondary liveBtn">Run live on ERADIS-KG</button>
+      <button type="button" class="btn resetBtn">Reset</button>
+    </div>
+  </form>
+  <datalist id="dirList"></datalist><datalist id="tsiList"></datalist>
 
   <div id="statusArea" role="status" aria-live="polite"></div>
 
   <div id="resultArea" class="panel" hidden>
-    <div class="statGrid">
-      <div class="statTile"><div class="n" id="stMatches">–</div><div class="l">Declarations</div></div>
-      <div class="statTile"><div class="n" id="stApplicants">–</div><div class="l">Applicants</div></div>
-      <div class="statTile"><div class="n" id="stNobos">–</div><div class="l">Notified bodies</div></div>
-      <div class="statTile"><div class="n" id="stRestr">–</div><div class="l">With restrictions</div></div>
-    </div>
+    <div class="statGrid" id="statGrid"></div>
     <div class="srcTag" id="srcTag"></div>
 
     <div class="chartHead">
-      <h3 class="sectionTitle">Declarations issued per year</h3>
+      <h3 class="sectionTitle" id="chartTitle">Issued per year</h3>
       <div class="legend" id="legend"></div>
     </div>
-    <div id="chartWrap"><svg id="chart" role="img" aria-label="Declarations issued per year, stacked by declaration type"></svg><div id="tip" hidden></div></div>
+    <div id="chartWrap"><svg id="chart" role="img"></svg><div id="tip" hidden></div></div>
+    <div id="chartNote"></div>
     <details><summary>View the chart as a table</summary><div id="chartTable"></div></details>
 
-    <h3 class="sectionTitle">Declarations <span class="sub" style="text-transform:none;letter-spacing:0;">— newest first; click a row for the full record</span></h3>
+    <h3 class="sectionTitle"><span id="listTitle">Results</span> <span class="sub" style="text-transform:none;letter-spacing:0;">— newest first; click a row for the full record</span></h3>
     <div class="resultActions">
       <button type="button" class="btn mini" id="csvBtn">Download results as CSV</button>
     </div>
@@ -287,13 +365,13 @@
   </details>
 
   <footer>
-    Data: the <code>ERADIS-KG</code> repository on <code>graph.dev.data.test-era.europa.eu</code> — only the published declaration graph
-    <code>http://data.europa.eu/949/graph/eradis</code>, current version of each document, in force / amended / revoked / suspended
-    (rejected declarations and unpublished drafts are left out). That endpoint sends no CORS headers today, so a browser page on another
-    site cannot read its answers; this page therefore searches a snapshot built by
+    Data: the <code>ERADIS-KG</code> repository on <code>graph.dev.data.test-era.europa.eu</code>, published graph
+    <code>http://data.europa.eu/949/graph/eradis</code>, current version of each document. Declarations: in force / amended / revoked / suspended
+    (rejected ones and unpublished drafts are left out). Certificates: every current certificate except unpublished drafts. That endpoint sends no CORS
+    headers today, so a browser page on another site cannot read its answers; this page therefore searches a snapshot built by
     <a href="https://github.com/gatemezing/onto-dissemination/tree/main/eradis">the same SPARQL queries</a>
     (<code>scripts/build-eradis-snapshot.py</code>), and "Run live" tries the endpoint directly and explains the result if it is blocked.
-    The snapshot holds no signatory names or contact details.
+    Legal acts are resolved in the <code>era-lex</code> repository. The snapshot holds no signatory names or contact details.
     <br>← Back to the <a href="./">ERA Graph Explorer</a>
     · <a href="./exporter.html">RDF Exporter</a>
     · <a href="./values.html">RINF Parameter Values</a>
@@ -308,23 +386,35 @@
 const ENDPOINT  = 'https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG';
 const WORKBENCH = 'https://graph.dev.data.test-era.europa.eu/sparql';
 const SNAPSHOT_URL = 'era-eradis-snapshot.json.gz';
+const CERTS_URL = 'era-eradis-certificates.json.gz';
 const ERA = 'http://data.europa.eu/949/';
 const COUNTRY_BASE = 'http://publications.europa.eu/resource/authority/country/';
 const ERADIS_PAGE = 'https://eradis.era.europa.eu/interop_docs/ecDecl/view.aspx?id=';
+const ERADIS_CERT_PAGE = 'https://eradis.era.europa.eu/interop_docs/NoBoCert/view.aspx?id=';
+const CERT_BASE = ERA + 'evidence/cld/cld-NoBoCert/';
+const PUBLISHED_DECL_STATES = ['inForce','amended','revoked','suspended'];
 const PAGE_SIZE = 50, LIVE_LIMIT = 500;
 
 const TYPE_URI = {V:ERA+'concepts/ecd-types/ECDoV', C:ERA+'concepts/ecd-types/ECDoC', S:ERA+'concepts/ecd-types/ECDoSU'};
 const TYPE_SHORT = {V:'Verification (subsystem)', C:'Conformity (constituent)', S:'Suitability for use'};
-const STATE_KEYS = ['inForce','amended','revoked','suspended'];
-const COUNTRY_NAMES = {AUT:'Austria',BEL:'Belgium',BGR:'Bulgaria',BLR:'Belarus',CAN:'Canada',CHE:'Switzerland',CHN:'China',
-  CZE:'Czechia',DEU:'Germany',DNK:'Denmark',ESP:'Spain',EST:'Estonia',FIN:'Finland',FRA:'France',GBR:'United Kingdom',
-  GRC:'Greece',HRV:'Croatia',HUN:'Hungary',IRL:'Ireland',ISL:'Iceland',ITA:'Italy',KAZ:'Kazakhstan',KOR:'South Korea',
-  LTU:'Lithuania',LUX:'Luxembourg',LVA:'Latvia',MKD:'North Macedonia',NLD:'Netherlands',NOR:'Norway',POL:'Poland',
-  PRT:'Portugal',ROU:'Romania',RUS:'Russia',SRB:'Serbia',SVK:'Slovakia',SVN:'Slovenia',SWE:'Sweden',TUR:'Türkiye',UKR:'Ukraine'};
+const STATE_KEYS = PUBLISHED_DECL_STATES;
+/* Certificate validity, most severe first: a withdrawn or suspended
+   certificate is not valid whatever its window says. */
+const VALIDITY = [
+  ['valid', 'Valid today'], ['notyet', 'Not yet valid'], ['expired', 'Expired'],
+  ['suspended', 'Suspended'], ['withdrawn', 'Withdrawn'],
+];
+const VALIDITY_LABEL = Object.fromEntries(VALIDITY);
+const COUNTRY_NAMES = {AUS:'Australia',AUT:'Austria',BEL:'Belgium',BGR:'Bulgaria',BIH:'Bosnia and Herzegovina',BLR:'Belarus',CAN:'Canada',
+  CHE:'Switzerland',CHN:'China',CYP:'Cyprus',CZE:'Czechia',DEU:'Germany',DNK:'Denmark',ESP:'Spain',EST:'Estonia',FIN:'Finland',
+  FRA:'France',GBR:'United Kingdom',GRC:'Greece',HRV:'Croatia',HUN:'Hungary',IND:'India',IRL:'Ireland',IRN:'Iran',ISL:'Iceland',
+  ITA:'Italy',JPN:'Japan',KAZ:'Kazakhstan',KOR:'South Korea',LTU:'Lithuania',LUX:'Luxembourg',LVA:'Latvia',MKD:'North Macedonia',
+  NLD:'Netherlands',NOR:'Norway',POL:'Poland',PRT:'Portugal',ROU:'Romania',RUS:'Russia',SRB:'Serbia',SVK:'Slovakia',SVN:'Slovenia',
+  SWE:'Sweden',THA:'Thailand',TUR:'Türkiye',UKR:'Ukraine',USA:'United States'};
+const countryName = c => c ? (COUNTRY_NAMES[c] || c + ' (code as published)') : 'No country recorded';
 /* era-lex titles start with the act's formal name and date; the part after the
    date says what it is about. */
 const actSubject = t => (t || '').replace(/^.*?\b\d{1,2} \w+ \d{4}\s+/, '').replace(/^(\d{4}\/\d+\/\w*:\s*)/, '') || t || '';
-const countryName = c => c ? (COUNTRY_NAMES[c] || c + ' (code as published)') : 'No country recorded';
 
 /* ------------------------------------------------------------------ *
  * Fetch error diagnosis — same approach as the other tools here.
@@ -404,45 +494,92 @@ const workbenchUrl = q => WORKBENCH + '?repositoryId=ERADIS-KG&infer=false&sameA
 
 const $ = id => document.getElementById(id);
 const fmt = n => n.toLocaleString('en-GB');
-let S = null;              // the snapshot
-let liveOk = null;         // null = unknown, true / false after the probe
-let current = null;        // {source:'snapshot'|'live', rows:[...], total}
+/* Newest first, with dates of issue after the current year sorted last:
+   they are data errors (a certificate "issued" in 3019). */
+const plausibleDate = d => d && +d.slice(0, 4) <= new Date().getFullYear() ? d : '';
+const todayISO = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+let S = null;              // declarations snapshot + shared tables
+let C = null;              // certificate snapshot (loaded on demand)
+let certsLoading = null;
+let liveOk = null;
+let register = 'ecd';
+let current = null;        // {reg, source, rows, total}
 let page = 0, selected = null;
 
 /* ------------------------------------------------------------------ *
- * Snapshot loading. GitHub Pages serves the .gz as-is; if a proxy ever
+ * Snapshots. GitHub Pages serves the .gz as-is; if a proxy ever
  * decompresses it on the way, the magic bytes are gone and it is parsed
  * directly. */
-async function loadSnapshot(){
-  const res = await fetch(SNAPSHOT_URL, {cache:'no-cache'});
-  if(!res.ok) throw new Error('HTTP ' + res.status + ' loading ' + SNAPSHOT_URL);
+async function fetchJsonGz(url){
+  const res = await fetch(url, {cache:'no-cache'});
+  if(!res.ok) throw new Error('HTTP ' + res.status + ' loading ' + url);
   const buf = new Uint8Array(await res.arrayBuffer());
-  let text;
   if(buf[0] === 0x1f && buf[1] === 0x8b){
     const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
-    text = await new Response(stream).text();
-  } else text = new TextDecoder().decode(buf);
-  S = JSON.parse(text);
-  const subOf = S.tsis.map(t => t[3] || '');
+    return JSON.parse(await new Response(stream).text());
+  }
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+async function loadSnapshot(){
+  S = await fetchJsonGz(SNAPSHOT_URL);
+  S.subOf = S.tsis.map(t => t[3] || '');
   for(const d of S.decls){
     d.nb = d.nb || []; d.ti = d.ti || []; d.ts = d.ts || []; d.di = d.di || []; d.ce = d.ce || [];
     d.idl = d.id.toLowerCase();
     d.regSeg = (d.id.split('/')[1] || '').replace(/^0+/, '').toLowerCase();
-    d.subs = [...new Set(d.ts.map(i => subOf[i]).filter(Boolean))];
+    d.subs = [...new Set(d.ts.map(i => S.subOf[i]).filter(Boolean))];
     d.til = d.ti.join(' | ').toLowerCase();
     d.cel = d.ce.map(c => c[0]).join(' | ').toLowerCase();
   }
   S.orgNameL = S.orgs.map(o => (o[0] || '').toLowerCase());
   S.orgRegL = S.orgs.map(o => (o[2] || '').toLowerCase().replace(/[\s.-]/g, ''));
+  S.orgNandoL = S.orgs.map(o => (o[3] || '').toLowerCase());
   S.subLabel = Object.fromEntries(S.subsystems);
+  // declarations citing each certificate, by the certificate's key
+  S.citing = new Map();
+  // (a citation of an older version counts for every current certificate
+  // whose dct:replaces chain reaches it - c[3] lists any beyond the first)
+  S.decls.forEach((d, i) => d.ce.forEach(c => [c[2], ...(c[3] || [])].forEach(k => {
+    if(!k) return;
+    if(!S.citing.has(k)) S.citing.set(k, []);
+    const list = S.citing.get(k); if(list[list.length - 1] !== i) list.push(i);
+  })));
+}
+function certValidity(c, today){
+  const st = c.st.map(i => C.states[i]);
+  if(st.includes('withdrawn')) return 'withdrawn';
+  if(st.includes('suspended')) return 'suspended';
+  if(c.vu && c.vu < today) return 'expired';
+  if(c.vf && c.vf > today) return 'notyet';
+  return 'valid';
+}
+function loadCerts(){
+  if(C) return Promise.resolve(C);
+  if(!certsLoading) certsLoading = (async () => {
+    const data = await fetchJsonGz(CERTS_URL);
+    const today = todayISO();
+    data.byKey = new Map();
+    for(const c of data.certs){
+      c.mf = c.mf || []; c.mo = c.mo || []; c.ts = c.ts || []; c.di = c.di || []; c.ti = c.ti || []; c.pv = c.pv || []; c.ds = c.ds || [];
+      c.nl = (c.n + ' | ' + c.pv.join(' | ')).toLowerCase();
+      c.xl = (c.x || '').toLowerCase();
+      c.til = c.ti.join(' | ').toLowerCase();
+      c.subs = [...new Set(c.ts.map(i => S.subOf[i]).filter(Boolean))];
+      c.dates = [c.d, ...c.ds].filter(Boolean);
+    }
+    C = data;
+    for(const c of C.certs){ c.val = certValidity(c, today); C.byKey.set(c.k, c); }
+    return C;
+  })().catch(e => { certsLoading = null; throw e; });
+  return certsLoading;
 }
 
 /* ------------------------------------------------------------------ *
- * Form. The dropdowns are built from the snapshot, with counts, so they only
+ * Forms. Dropdowns are built from the snapshot, with counts, so they only
  * offer values that exist. */
-function countBy(keyFn){
+function countOver(items, keyFn){
   const m = new Map();
-  for(const d of S.decls){ const k = keyFn(d); if(k === undefined || k === null) continue;
+  for(const it of items){ const k = keyFn(it); if(k === undefined || k === null) continue;
     for(const kk of (Array.isArray(k) ? k : [k])) m.set(kk, (m.get(kk) || 0) + 1); }
   return m;
 }
@@ -453,41 +590,60 @@ function fillSelect(sel, items, anyLabel){
     const o = document.createElement('option'); o.value = value; o.textContent = label; sel.appendChild(o);
   }
 }
-function buildForm(){
+/* A country select that narrows an organisation select. `orgsOf(item)`
+   returns the organisation index (or indexes) an item names in that role. */
+function orgPicker(items, orgsOf, cSel, oSel, onChange){
+  const orgCountry = o => S.orgs[o][1] || '—';
+  const byCountry = countOver(items, it => { const o = orgsOf(it); if(o === undefined || o === null) return null;
+    return [...new Set((Array.isArray(o) ? o : [o]).map(orgCountry))]; });
+  const cname = c => countryName(c === '—' ? '' : c);
+  fillSelect(cSel, [...byCountry.entries()].sort((a, b) => cname(a[0]).localeCompare(cname(b[0])))
+    .map(([c, n]) => [c, `${cname(c)} (${fmt(n)})`]), 'Please select…');
+  const byOrg = countOver(items, it => { const o = orgsOf(it); return o === undefined ? null : o; });
+  const refresh = () => {
+    const c = cSel.value;
+    const list = [...byOrg.entries()].filter(([o]) => !c || orgCountry(o) === c)
+      .sort((a, b) => S.orgs[a[0]][0].localeCompare(S.orgs[b[0]][0]))
+      .map(([o, n]) => [String(o), `${S.orgs[o][0]} (${fmt(n)})`]);
+    fillSelect(oSel, list, c ? `Any organisation in ${cname(c)} (${list.length})` : `Any organisation (${fmt(list.length)})`);
+  };
+  cSel.addEventListener('change', () => { refresh(); onChange(); });
+  refresh();
+}
+function subsystemOptions(sel, items, noun){
+  const bySub = countOver(items, it => it.subs.length ? it.subs : ['—']);
+  fillSelect(sel, [
+    ...S.subsystems.filter(([k]) => bySub.has(k)).map(([k, l]) => [k, `${l} (${fmt(bySub.get(k))})`]),
+    ['—', `No subsystem derivable from the TSIs cited (${fmt(bySub.get('—') || 0)})`],
+  ], 'Please select…');
+}
+function buildDeclForm(){
   $('fTypes').innerHTML = Object.entries(TYPE_SHORT).map(([k, l]) =>
     `<label><input type="checkbox" name="type" value="${k}" checked> <span class="typeSw" style="background:var(--series-${k})"></span>${esc(l)}</label>`).join('');
   $('fStates').innerHTML = S.states.map((l, i) =>
     `<label><input type="checkbox" name="state" value="${i}"${i === 0 ? ' checked' : ''}> ${esc(l)}</label>`).join('');
-
-  for(const [role, cSel, oSel] of [['a', $('fAppCountry'), $('fAppOrg')], ['r', $('fArCountry'), $('fArOrg')]]){
-    const byCountry = countBy(d => d[role] === undefined ? null : (S.orgs[d[role]][1] || '—'));
-    const items = [...byCountry.entries()].sort((a, b) => countryName(a[0] === '—' ? '' : a[0]).localeCompare(countryName(b[0] === '—' ? '' : b[0])))
-      .map(([c, n]) => [c, `${countryName(c === '—' ? '' : c)} (${fmt(n)})`]);
-    fillSelect(cSel, items, 'Please select…');
-    const refreshOrgs = () => {
-      const c = cSel.value;
-      const byOrg = countBy(d => d[role] === undefined ? null : d[role]);
-      const list = [...byOrg.entries()]
-        .filter(([o]) => !c || (S.orgs[o][1] || '—') === c)
-        .sort((a, b) => S.orgs[a[0]][0].localeCompare(S.orgs[b[0]][0]))
-        .map(([o, n]) => [String(o), `${S.orgs[o][0]} (${fmt(n)})`]);
-      fillSelect(oSel, list, c ? `Any organisation in ${countryName(c === '—' ? '' : c)} (${list.length})` : `Any organisation (${fmt(list.length)})`);
-    };
-    cSel.addEventListener('change', () => { refreshOrgs(); updateQueryPanel(); });
-    refreshOrgs();
-  }
-
-  const bySub = countBy(d => d.subs.length ? d.subs : ['—']);
-  fillSelect($('fSubsystem'), [
-    ...S.subsystems.filter(([k]) => bySub.has(k)).map(([k, l]) => [k, `${l} (${fmt(bySub.get(k))})`]),
-    ['—', `No subsystem derivable from the TSIs cited (${fmt(bySub.get('—') || 0)})`],
-  ], 'Please select…');
-
+  orgPicker(S.decls, d => d.a, $('fAppCountry'), $('fAppOrg'), updateQueryPanel);
+  orgPicker(S.decls, d => d.r, $('fArCountry'), $('fArOrg'), updateQueryPanel);
+  subsystemOptions($('fSubsystem'), S.decls);
   $('tsiList').innerHTML = S.tsis.map(t => `<option value="${esc(t[0])}">${esc(t[1] ? actSubject(t[1]).slice(0, 120) : 'title not recorded')}</option>`).join('');
   $('dirList').innerHTML = S.dirs.map(t => `<option value="${esc(t[0])}">${esc(t[1] ? actSubject(t[1]).slice(0, 120) : '')}</option>`).join('');
 }
+function buildCertForm(){
+  const byType = countOver(C.certs, c => c.ty);
+  fillSelect($('cType'), C.types.map((t, i) => [String(i), `${t[1]} (${fmt(byType.get(i) || 0)})`]), 'Any type');
+  const byMod = countOver(C.certs, c => c.mo);
+  fillSelect($('cModule'), C.modules.map((m, i) => [String(i), `${m} (${fmt(byMod.get(i) || 0)})`]).sort((a, b) => a[1].localeCompare(b[1])), 'Any module');
+  const byVal = countOver(C.certs, c => c.val);
+  $('cValidity').innerHTML = VALIDITY.map(([k, l]) =>
+    `<label><input type="checkbox" name="validity" value="${k}" checked> ${esc(l)} <span class="sub">(${fmt(byVal.get(k) || 0)})</span></label>`).join('');
+  orgPicker(C.certs, c => c.a, $('cAppCountry'), $('cAppOrg'), updateQueryPanel);
+  orgPicker(C.certs, c => c.mf.length ? c.mf : null, $('cMfCountry'), $('cMfOrg'), updateQueryPanel);
+  orgPicker(C.certs, c => c.nb, $('cNbCountry'), $('cNbOrg'), updateQueryPanel);
+  subsystemOptions($('cSubsystem'), C.certs);
+}
 
-function readForm(){
+const normReg = s => s.toLowerCase().replace(/[\s.-]/g, '').replace(/^0+/, '');
+function readDeclForm(){
   const v = id => $(id).value.trim();
   return {
     docId:v('fDocId'),
@@ -501,7 +657,18 @@ function readForm(){
     from:v('fFrom'), to:v('fTo'),
   };
 }
-const normReg = s => s.toLowerCase().replace(/[\s.-]/g, '').replace(/^0+/, '');
+function readCertForm(){
+  const v = id => $(id).value.trim();
+  return {
+    number:v('cNumber'), type:v('cType'), module:v('cModule'), object:v('cObject'),
+    validity:[...document.querySelectorAll('input[name=validity]:checked')].map(i => i.value),
+    subsystem:v('cSubsystem'), title:v('cTitle'), tsi:v('cTsi'), dir:v('cDir'),
+    appCountry:v('cAppCountry'), appOrg:v('cAppOrg'), appName:v('cAppName'),
+    mfCountry:v('cMfCountry'), mfOrg:v('cMfOrg'), mfName:v('cMfName'),
+    nbCountry:v('cNbCountry'), nbOrg:v('cNbOrg'), nando:v('cNando'),
+    from:v('cFrom'), to:v('cTo'), validOn:v('cValidOn'), cited:v('cCited'),
+  };
+}
 
 /* The TSI and directive fields are free text, like ERADIS's own; they are
    resolved to the acts whose number (or, for TSIs, title) contains the text. */
@@ -512,82 +679,104 @@ function resolveRefs(list, text, withTitle){
   list.forEach((r, i) => { if(r[0].toLowerCase().includes(q) || (withTitle && r[1] && r[1].toLowerCase().includes(q))) out.push(i); });
   return out;
 }
+/* Organisation filter shared by both registers: `o` is one index or a list
+   (a certificate can name several manufacturers). Like the SPARQL
+   FILTER EXISTS, every condition must hold for the same organisation. */
+function orgFilter(o, country, org, nameQ){
+  if(!country && !org && !nameQ) return true;
+  const list = o === undefined || o === null ? [] : (Array.isArray(o) ? o : [o]);
+  return list.some(i => (!country || (S.orgs[i][1] || '—') === country) && (!org || i === +org) && (!nameQ || S.orgNameL[i].includes(nameQ)));
+}
+const subMatch = (subs, want) => !want || (want === '—' ? subs.length === 0 : subs.includes(want));
 
 /* ------------------------------------------------------------------ *
- * The snapshot search. Same semantics as the SPARQL built below — every
- * filter here has its counterpart there. */
-function searchSnapshot(f){
+ * Declarations: snapshot search. Same semantics as the SPARQL built below. */
+function searchDecls(f){
   const types = new Set(f.types), states = new Set(f.states);
   const tsiIdx = resolveRefs(S.tsis, f.tsi, true), dirIdx = resolveRefs(S.dirs, f.dir, false);
   const tsiSet = tsiIdx && new Set(tsiIdx), dirSet = dirIdx && new Set(dirIdx);
   const docQ = f.docId.toLowerCase(), titleQ = f.title.toLowerCase(), certQ = f.cert.toLowerCase();
-  const appNameQ = f.appName.toLowerCase(), arNameQ = f.arName.toLowerCase();
   const appRegQ = f.appReg ? normReg(f.appReg) : '', arRegQ = f.arReg ? normReg(f.arReg) : '';
-  const orgMatch = (o, country, org, nameQ, regQ, docSeg) => {
-    if(country && (o === undefined || (S.orgs[o][1] || '—') !== country)) return false;
-    if(org && o !== +org) return false;
-    if(nameQ && (o === undefined || !S.orgNameL[o].includes(nameQ))) return false;
-    if(regQ && !((docSeg !== null && docSeg.includes(regQ)) || (o !== undefined && S.orgRegL[o].includes(regQ)))) return false;
-    return true;
-  };
   return S.decls.filter(d =>
     types.has(d.t) && states.has(d.s) &&
     (!docQ || d.idl.includes(docQ)) &&
-    orgMatch(d.a, f.appCountry, f.appOrg, appNameQ, appRegQ, d.regSeg) &&
-    orgMatch(d.r, f.arCountry, f.arOrg, arNameQ, arRegQ, null) &&
-    (!f.subsystem || (f.subsystem === '—' ? d.subs.length === 0 : d.subs.includes(f.subsystem))) &&
+    orgFilter(d.a, f.appCountry, f.appOrg, f.appName.toLowerCase()) &&
+    (!appRegQ || d.regSeg.includes(appRegQ) || (d.a !== undefined && S.orgRegL[d.a].includes(appRegQ))) &&
+    orgFilter(d.r, f.arCountry, f.arOrg, f.arName.toLowerCase()) &&
+    (!arRegQ || (d.r !== undefined && S.orgRegL[d.r].includes(arRegQ))) &&
+    subMatch(d.subs, f.subsystem) &&
     (!titleQ || d.til.includes(titleQ)) &&
     (!certQ || d.cel.includes(certQ)) &&
     (!tsiSet || d.ts.some(i => tsiSet.has(i))) &&
     (!dirSet || d.di.some(i => dirSet.has(i))) &&
     (!f.from || d.d >= f.from) && (!f.to || d.d <= f.to)
-  ).sort((a, b) => b.d.localeCompare(a.d) || a.id.localeCompare(b.id));
+  ).sort((a, b) => plausibleDate(b.d).localeCompare(plausibleDate(a.d)) || a.id.localeCompare(b.id));
 }
-function rowFromSnapshot(d){
+function rowFromDecl(d){
   const org = i => i === undefined ? null : S.orgs[i];
   const a = org(d.a), r = org(d.r);
   return {
-    docId:d.id, type:d.t, state:d.s, version:d.v, versions:d.vn || 1, issued:d.d,
+    reg:'ecd', key:d.id, docId:d.id, type:d.t, state:d.s, version:d.v, versions:d.vn || 1, issued:d.d,
     page:d.p ? ERADIS_PAGE + d.p : '', uri:ERA + 'evidence/ecd/' + d.u,
-    applicant:a ? a[0] : '', applicantCountry:a ? a[1] : '', applicantReg:a ? a[2] : '',
-    authRep:r ? r[0] : '', authRepCountry:r ? r[1] : '',
+    applicant:a ? a[0] : '', applicantCountry:a ? a[1] : '',
+    authRep:r ? r[0] : '',
     nobos:d.nb.map(i => S.orgs[i][0] + (S.orgs[i][3] ? ' (' + S.orgs[i][3] + ')' : '')),
     titles:d.ti, subsystems:d.subs,
     tsis:d.ts.map(i => S.tsis[i][0]), dirs:d.di.map(i => S.dirs[i][0]),
     tsiRefs:d.ts.map(i => S.tsis[i]), dirRefs:d.di.map(i => S.dirs[i]),
     certs:d.ce, restr:!!d.re, description:d.x || '',
-    applicantKey:d.a, noboKeys:d.nb,
   };
 }
 
 /* ------------------------------------------------------------------ *
- * The same search as SPARQL. */
+ * Certificates: snapshot search. */
+function searchCerts(f){
+  const want = new Set(f.validity);
+  const tsiIdx = resolveRefs(S.tsis, f.tsi, true), dirIdx = resolveRefs(S.dirs, f.dir, false);
+  const tsiSet = tsiIdx && new Set(tsiIdx), dirSet = dirIdx && new Set(dirIdx);
+  const numQ = f.number.toLowerCase(), objQ = f.object.toLowerCase(), titleQ = f.title.toLowerCase(), nandoQ = f.nando.toLowerCase();
+  return C.certs.filter(c =>
+    want.has(c.val) &&
+    (!numQ || c.nl.includes(numQ)) &&
+    (!f.type || c.ty === +f.type) &&
+    (!f.module || c.mo.includes(+f.module)) &&
+    (!objQ || c.xl.includes(objQ)) &&
+    subMatch(c.subs, f.subsystem) &&
+    (!titleQ || c.til.includes(titleQ)) &&
+    (!tsiSet || c.ts.some(i => tsiSet.has(i))) &&
+    (!dirSet || c.di.some(i => dirSet.has(i))) &&
+    orgFilter(c.a, f.appCountry, f.appOrg, f.appName.toLowerCase()) &&
+    orgFilter(c.mf.length ? c.mf : undefined, f.mfCountry, f.mfOrg, f.mfName.toLowerCase()) &&
+    orgFilter(c.nb, f.nbCountry, f.nbOrg, '') &&
+    (!nandoQ || (c.nb !== undefined && S.orgNandoL[c.nb].includes(nandoQ))) &&
+    ((!f.from && !f.to) || c.dates.some(d => (!f.from || d >= f.from) && (!f.to || d <= f.to))) &&
+    (!f.validOn || ((!c.vf || c.vf <= f.validOn) && (!c.vu || c.vu >= f.validOn))) &&
+    (!f.cited || (f.cited === 'yes' ? !!c.dc : !c.dc))
+  ).sort((a, b) => plausibleDate(b.d).localeCompare(plausibleDate(a.d)) || a.n.localeCompare(b.n));
+}
+function rowFromCert(c){
+  const org = i => i === undefined ? null : S.orgs[i];
+  const nb = org(c.nb), a = org(c.a);
+  return {
+    reg:'cld', key:c.k, number:c.n, type:c.ty === undefined ? '' : C.types[c.ty][1],
+    modules:c.mo.map(i => C.modules[i]), states:c.st.map(i => C.states[i]), validity:c.val,
+    issued:c.d || '', issuedAll:c.dates, validFrom:c.vf || '', validUntil:c.vu || '', version:c.v,
+    page:ERADIS_CERT_PAGE + (c.p || c.k), uri:CERT_BASE + c.k,
+    nobo:nb ? nb[0] : '', nando:nb ? nb[3] : '', noboCountry:nb ? nb[1] : '',
+    applicant:a ? a[0] : '', applicantCountry:a ? a[1] : '',
+    manufacturers:c.mf.map(i => S.orgs[i][0]),
+    titles:c.ti, object:c.x || '', subsystems:c.subs,
+    tsis:c.ts.map(i => S.tsis[i][0]), tsiRefs:c.ts.map(i => S.tsis[i]), dirRefs:c.di.map(i => S.dirs[i]),
+    previous:c.pv, restr:!!c.re, cited:c.dc || 0,
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * SPARQL builders. */
 const lit = s => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, ' ') + '"';
 const lc = s => lit(String(s).toLowerCase());
-function buildSparql(f){
-  const L = [];
-  const TAB = '\t';
-  const orgBlock = (label, path, country, org, nameQ, regQ, withDocSeg, v) => {
-    const parts = [];
-    if(org) parts.push(`${TAB}?declaration ${path} <${S.orgBase}${S.orgs[+org][4]}> .`);
-    if(country && country !== '—') parts.push(`${TAB}?declaration ${path}/org:hasSite/org:siteAddress/locn:adminUnitL1 <${COUNTRY_BASE}${country}> .`);
-    if(country === '—') parts.push(`${TAB}?declaration ${path} ?${v}Any . FILTER NOT EXISTS { ?${v}Any org:hasSite/org:siteAddress/locn:adminUnitL1 ?${v}Country }`);
-    if(nameQ) parts.push(`${TAB}FILTER EXISTS { ?declaration ${path}/foaf:name ?${v}N . FILTER(CONTAINS(LCASE(?${v}N), ${lc(nameQ)})) }`);
-    if(regQ){
-      const q = normReg(regQ);
-      const reg = `EXISTS { ?declaration ${path} ?${v}R . ?${v}R gr:legalNumber|gr:vatID ?${v}Reg . FILTER(CONTAINS(LCASE(REPLACE(?${v}Reg, "[ .-]", "")), ${lc(q)})) }`;
-      parts.push(withDocSeg
-        ? `${TAB}# the registration number is also embedded in the Document ID (CC/number/year/sequence)\n${TAB}FILTER(CONTAINS(LCASE(STRBEFORE(STRAFTER(?documentId, "/"), "/")), ${lc(q)}) || ${reg})`
-        : `${TAB}FILTER(${reg})`);
-    }
-    if(parts.length) L.push(`${TAB}# ${label}`, ...parts);
-  };
-
-  L.push(
-`# EC declarations in ERADIS-KG matching the search form of era-eradis-explorer.html.
-# Endpoint: ${ENDPOINT}
-# Current version of each published declaration; one row per declaration.
-PREFIX era:  <http://data.europa.eu/949/>
+const TAB = '\t';
+const PREFIXES = `PREFIX era:  <http://data.europa.eu/949/>
 PREFIX dct:  <http://purl.org/dc/terms/>
 PREFIX vpa:  <https://w3id.org/vpa#>
 PREFIX eli:  <http://data.europa.eu/eli/ontology#>
@@ -598,7 +787,46 @@ PREFIX gr:   <http://purl.org/goodrelations/v1#>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>`;
+const COUNTRY_PATH = 'org:hasSite/org:siteAddress/locn:adminUnitL1';
+/* Organisation filter as SPARQL: `bind` is the triple pattern that binds
+   ?<v> to the organisation in its role. */
+function orgSparql(L, label, bind, v, country, org, nameQ){
+  if(!country && !org && !nameQ) return;
+  L.push(`${TAB}# ${label}`, `${TAB}FILTER EXISTS { ${bind}`);
+  if(org) L.push(`${TAB}${TAB}FILTER(?${v} = <${S.orgBase}${S.orgs[+org][4]}>)`);
+  if(country && country !== '—') L.push(`${TAB}${TAB}?${v} ${COUNTRY_PATH} <${COUNTRY_BASE}${country}> .`);
+  if(country === '—') L.push(`${TAB}${TAB}FILTER NOT EXISTS { ?${v} ${COUNTRY_PATH} ?${v}C }`);
+  if(nameQ) L.push(`${TAB}${TAB}?${v} foaf:name ?${v}N . FILTER(CONTAINS(LCASE(?${v}N), ${lc(nameQ)}))`);
+  L.push(`${TAB}}`);
+}
+function refSparql(L, label, subject, prop, list, text, withTitle, v){
+  const idx = resolveRefs(list, text, withTitle);
+  if(!idx) return;
+  const uris = idx.map(i => '<' + S.refBase + list[i][2] + '>');
+  L.push(`${TAB}# ${label} matching "${text}" - ERADIS-KG cites them by these URIs; in era-lex they are`,
+    ...idx.map(i => `${TAB}#   ${list[i][0]}  ${list[i][4] || '(not found in era-lex)'}`),
+    uris.length ? `${TAB}FILTER EXISTS { ${subject} ${prop} ?${v} . VALUES ?${v} { ${uris.join(' ')} } }` : `${TAB}FILTER(false)   # no act matches this text`);
+}
+function subsystemSparql(L, subject, want){
+  if(!want) return;
+  if(want === '—'){
+    const mapped = S.tsis.filter(t => t[3]).map(t => '<' + S.refBase + t[2] + '>');
+    L.push(`${TAB}# Type of subsystem: none derivable - no TSI cited names a subsystem`,
+      `${TAB}FILTER NOT EXISTS { ${subject} eli:id_local ?subTsi . VALUES ?subTsi {\n${TAB}${TAB}${mapped.join(' ')}\n${TAB}} }`);
+  } else {
+    const uris = S.tsis.filter(t => t[3] === want).map(t => '<' + S.refBase + t[2] + '>');
+    L.push(`${TAB}# Type of subsystem "${S.subLabel[want]}" (Directive 2016/797 Annex II), derived from the TSIs cited`,
+      `${TAB}FILTER EXISTS { ${subject} eli:id_local ?subTsi . VALUES ?subTsi { ${uris.join(' ')} } }`);
+  }
+}
+function buildDeclSparql(f){
+  const L = [];
+  L.push(`# EC declarations in ERADIS-KG matching the search form of era-eradis-explorer.html.
+# Endpoint: ${ENDPOINT}
+# Current version of each published declaration; one row per declaration.
+${PREFIXES}
 
 SELECT ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
 	(SAMPLE(?applicantName) AS ?applicant)
@@ -623,41 +851,22 @@ WHERE {
   L.push(`${TAB}VALUES ?type { ${f.types.map(t => '<' + TYPE_URI[t] + '>').join(' ')} }`);
   L.push(`${TAB}VALUES ?state { ${f.states.map(i => '<' + ERA + 'concepts/evidence-document-states/' + STATE_KEYS[i] + '>').join(' ')} }`);
   if(f.docId) L.push(`${TAB}FILTER(CONTAINS(LCASE(?documentId), ${lc(f.docId)}))`);
-  orgBlock('Applicant (dct:creator)', 'dct:creator/era:roleOf', f.appCountry, f.appOrg, f.appName, f.appReg, true, 'app');
-  if(f.arCountry || f.arOrg || f.arName || f.arReg){
-    L.push(`${TAB}# Authorised representative = dct:contributor in the Manufacturer role`,
-      `${TAB}?declaration dct:contributor ?arRoleF . ?arRoleF era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ; era:roleOf ?arOrgF .`);
-    if(f.arOrg) L.push(`${TAB}FILTER(?arOrgF = <${S.orgBase}${S.orgs[+f.arOrg][4]}>)`);
-    if(f.arCountry && f.arCountry !== '—') L.push(`${TAB}?arOrgF org:hasSite/org:siteAddress/locn:adminUnitL1 <${COUNTRY_BASE}${f.arCountry}> .`);
-    if(f.arCountry === '—') L.push(`${TAB}FILTER NOT EXISTS { ?arOrgF org:hasSite/org:siteAddress/locn:adminUnitL1 ?arC }`);
-    if(f.arName) L.push(`${TAB}?arOrgF foaf:name ?arNameF . FILTER(CONTAINS(LCASE(?arNameF), ${lc(f.arName)}))`);
-    if(f.arReg) L.push(`${TAB}?arOrgF gr:legalNumber|gr:vatID ?arRegF . FILTER(CONTAINS(LCASE(REPLACE(?arRegF, "[ .-]", "")), ${lc(normReg(f.arReg))}))`);
+  orgSparql(L, 'Applicant (dct:creator)', '?declaration dct:creator/era:roleOf ?appF .', 'appF', f.appCountry, f.appOrg, f.appName);
+  if(f.appReg){
+    const q = normReg(f.appReg);
+    L.push(`${TAB}# Applicant registration number - embedded in the Document ID (CC/number/year/sequence), or recorded on the organisation`,
+      `${TAB}FILTER(CONTAINS(LCASE(STRBEFORE(STRAFTER(?documentId, "/"), "/")), ${lc(q)}) || EXISTS { ?declaration dct:creator/era:roleOf/(gr:legalNumber|gr:vatID) ?appReg . FILTER(CONTAINS(LCASE(REPLACE(?appReg, "[ .-]", "")), ${lc(q)})) })`);
   }
-  if(f.subsystem){
-    const uris = S.tsis.filter(t => (f.subsystem === '—' ? !t[3] : t[3] === f.subsystem)).map(t => '<' + S.refBase + t[2] + '>');
-    if(f.subsystem === '—'){
-      const mapped = S.tsis.filter(t => t[3]).map(t => '<' + S.refBase + t[2] + '>');
-      L.push(`${TAB}# Type of subsystem: none derivable - no TSI cited names a subsystem`,
-        `${TAB}FILTER NOT EXISTS { ?declaration eli:id_local ?subTsi . VALUES ?subTsi {\n${TAB}${TAB}${mapped.join(' ')}\n${TAB}} }`);
-    } else {
-      L.push(`${TAB}# Type of subsystem "${S.subLabel[f.subsystem]}" (Directive 2016/797 Annex II), derived from the TSIs cited`,
-        `${TAB}FILTER EXISTS { ?declaration eli:id_local ?subTsi . VALUES ?subTsi { ${uris.join(' ')} } }`);
-    }
-  }
+  const arBind = `?declaration dct:contributor ?arRoleF . ?arRoleF era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ; era:roleOf ?arF .`;
+  orgSparql(L, 'Authorised representative = dct:contributor in the Manufacturer role', arBind, 'arF', f.arCountry, f.arOrg, f.arName);
+  if(f.arReg) L.push(`${TAB}FILTER EXISTS { ${arBind} ?arF gr:legalNumber|gr:vatID ?arRegF . FILTER(CONTAINS(LCASE(REPLACE(?arRegF, "[ .-]", "")), ${lc(normReg(f.arReg))})) }`);
+  subsystemSparql(L, '?declaration', f.subsystem);
   if(f.title) L.push(`${TAB}FILTER EXISTS { ?declaration eli:title_short ?titleF . FILTER(CONTAINS(LCASE(?titleF), ${lc(f.title)})) }`);
-  if(f.cert) L.push(`${TAB}# NoBo certificate issued for this declaration`,
-    `${TAB}FILTER EXISTS { ?declaration dct:relation/rdfs:member ?certF . ?certF rdfs:label ?certIdF .`,
-    `${TAB}${TAB}FILTER(STRSTARTS(STR(?certF), "${ERA}evidence/cld/cld-NoBoCert/") && CONTAINS(LCASE(?certIdF), ${lc(f.cert)})) }`);
-  const refFilter = (label, prop, list, text, withTitle, v) => {
-    const idx = resolveRefs(list, text, withTitle);
-    if(!idx) return;
-    const uris = idx.map(i => '<' + S.refBase + list[i][2] + '>');
-    L.push(`${TAB}# ${label} matching "${text}" - ERADIS-KG cites them by these URIs; in era-lex they are`,
-      ...idx.map(i => `${TAB}#   ${list[i][0]}  ${list[i][4] || '(not found in era-lex)'}`),
-      uris.length ? `${TAB}FILTER EXISTS { ?declaration ${prop} ?${v} . VALUES ?${v} { ${uris.join(' ')} } }` : `${TAB}FILTER(false)   # no act matches this text`);
-  };
-  refFilter('EC directives', 'dct:source', S.dirs, f.dir, false, 'dirF');
-  refFilter('TSIs', 'eli:id_local', S.tsis, f.tsi, true, 'tsiF');
+  if(f.cert) L.push(`${TAB}# NoBo certificate issued for this declaration (era:CertificationLevelDocument)`,
+    `${TAB}FILTER EXISTS { ?declaration dct:relation/rdfs:member ?certF . ?certF a era:CertificationLevelDocument ; dct:identifier ?certIdF .`,
+    `${TAB}${TAB}FILTER(CONTAINS(LCASE(?certIdF), ${lc(f.cert)})) }`);
+  refSparql(L, 'EC directives', '?declaration', 'dct:source', S.dirs, f.dir, false, 'dirF');
+  refSparql(L, 'TSIs', '?declaration', 'eli:id_local', S.tsis, f.tsi, true, 'tsiF');
   if(f.sigFirst || f.sigLast){
     L.push(`${TAB}# Signatory (prov:wasAttributedTo a foaf:Person)`, `${TAB}?declaration prov:wasAttributedTo ?sigF .`);
     if(f.sigFirst) L.push(`${TAB}?sigF foaf:givenName ?sigGivenF . FILTER(CONTAINS(LCASE(?sigGivenF), ${lc(f.sigFirst)}))`);
@@ -670,7 +879,7 @@ WHERE {
 	OPTIONAL { ?declaration rdfs:seeAlso ?eradisPage }
 	OPTIONAL { ?declaration dct:creator/era:roleOf ?applicantOrg .
 		OPTIONAL { ?applicantOrg foaf:name ?applicantName }
-		OPTIONAL { ?applicantOrg org:hasSite/org:siteAddress/locn:adminUnitL1 ?applicantCountry } }
+		OPTIONAL { ?applicantOrg ${COUNTRY_PATH} ?applicantCountry } }
 	OPTIONAL { ?declaration dct:contributor ?arRole .
 		?arRole era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ;
 			era:roleOf/foaf:name ?authRepName }
@@ -686,27 +895,156 @@ ORDER BY DESC(?issued) ?documentId
 LIMIT ${LIVE_LIMIT}`);
   return L.join('\n');
 }
-function rowsFromLive(json){
+const DRAFT = ERA + 'concepts/evidence-document-states/draft';
+const STATE = k => '<' + ERA + 'concepts/evidence-document-states/' + k + '>';
+function buildCertSparql(f){
+  const L = [];
+  L.push(`# NoBo certificates (era:CertificationLevelDocument) in ERADIS-KG matching the
+# certificate search form of era-eradis-explorer.html.
+# Endpoint: ${ENDPOINT}
+# Current version of each certificate; only unpublished drafts are left out.
+# ?validity is derived: withdrawn / suspended as recorded, otherwise from the
+# dct:valid window against today's date (the recorded state is mostly "amended").
+${PREFIXES}
+
+SELECT ?certificate ?certNumber ?version ?typeLabel ?validFrom ?validUntil ?validity ?eradisPage
+	(MAX(?issued) AS ?lastIssued)
+	(GROUP_CONCAT(DISTINCT STR(?issued); SEPARATOR="|") AS ?issuedDates)
+	(SAMPLE(?noboName) AS ?notifiedBody) (SAMPLE(?nandoCode) AS ?nando)
+	(SAMPLE(?applicantName) AS ?applicant)
+	(SAMPLE(?applicantCountry) AS ?applicantCountryUri)
+	(GROUP_CONCAT(DISTINCT ?manufacturerName; SEPARATOR="|") AS ?manufacturers)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?module), "^.*/", ""); SEPARATOR="|") AS ?modules)
+	(GROUP_CONCAT(DISTINCT ?title; SEPARATOR="|") AS ?constituent)
+	(GROUP_CONCAT(DISTINCT STR(?tsi); SEPARATOR="|") AS ?tsiUris)
+	(SAMPLE(?objectOfAssessment) AS ?object)
+WHERE {
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?certificate a era:CertificationLevelDocument }
+	FILTER NOT EXISTS { ?certificate dct:isReplacedBy ?newer }   # current version
+	FILTER EXISTS { ?certificate era:state ?publishedState FILTER(?publishedState != <${DRAFT}>) }
+	?certificate dct:identifier ?certNumber ; vpa:versionNumber ?version .
+	OPTIONAL { ?certificate dct:type/skos:prefLabel ?typeLabel }
+	OPTIONAL { ?certificate dct:valid ?window .
+		OPTIONAL { ?window time:hasBeginning/time:inXSDDate ?validFrom }
+		OPTIONAL { ?window time:hasEnd/time:inXSDDate ?validUntil } }
+	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+	BIND(IF(EXISTS { ?certificate era:state ${STATE('withdrawn')} }, "withdrawn",
+	     IF(EXISTS { ?certificate era:state ${STATE('suspended')} }, "suspended",
+	     IF(BOUND(?validUntil) && ?validUntil < ?today, "expired",
+	     IF(BOUND(?validFrom) && ?validFrom > ?today, "notyet", "valid")))) AS ?validity)`);
+  if(f.validity.length < VALIDITY.length) L.push(`${TAB}FILTER(?validity IN (${f.validity.map(lit).join(', ')}))`);
+  if(f.number) L.push(`${TAB}# certificate number, current or earlier`,
+    `${TAB}FILTER EXISTS { ?certificate dct:replaces*/dct:identifier ?numberF . FILTER(CONTAINS(LCASE(?numberF), ${lc(f.number)})) }`);
+  if(f.type) L.push(`${TAB}?certificate dct:type <${ERA}concepts/cld-types/${C.types[+f.type][0]}> .`);
+  if(f.module) L.push(`${TAB}?certificate dct:conformsTo <${ERA}concepts/cld-modules/${C.modules[+f.module]}> .`);
+  if(f.object) L.push(`${TAB}FILTER EXISTS { ?certificate dct:description ?objectF . FILTER(CONTAINS(LCASE(?objectF), ${lc(f.object)})) }`);
+  subsystemSparql(L, '?certificate', f.subsystem);
+  if(f.title) L.push(`${TAB}FILTER EXISTS { ?certificate eli:title_short ?titleF . FILTER(CONTAINS(LCASE(?titleF), ${lc(f.title)})) }`);
+  refSparql(L, 'TSIs', '?certificate', 'eli:id_local', S.tsis, f.tsi, true, 'tsiF');
+  refSparql(L, 'Directives', '?certificate', 'dct:source', S.dirs, f.dir, false, 'dirF');
+  orgSparql(L, 'Applicant (dct:audience)', '?certificate dct:audience/era:roleOf ?appF .', 'appF', f.appCountry, f.appOrg, f.appName);
+  orgSparql(L, 'Manufacturer (dct:contributor, Manufacturer role)', `?certificate dct:contributor ?mfRoleF . ?mfRoleF era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ; era:roleOf ?mfF .`, 'mfF', f.mfCountry, f.mfOrg, f.mfName);
+  orgSparql(L, 'Notified body (dct:creator)', '?certificate dct:creator/era:roleOf ?nbF .', 'nbF', f.nbCountry, f.nbOrg, '');
+  if(f.nando) L.push(`${TAB}FILTER EXISTS { ?certificate dct:creator/era:roleOf/era:role/era:nandoCode ?nandoF . FILTER(CONTAINS(LCASE(?nandoF), ${lc(f.nando)})) }`);
+  if(f.from || f.to){
+    const conds = [f.from && `?issuedF >= ${lit(f.from)}^^xsd:date`, f.to && `?issuedF <= ${lit(f.to)}^^xsd:date`].filter(Boolean).join(' && ');
+    L.push(`${TAB}# any of its dates of issue in range (1,631 certificates have several)`, `${TAB}FILTER EXISTS { ?certificate dct:issued ?issuedF . FILTER(${conds}) }`);
+  }
+  if(f.validOn) L.push(`${TAB}# validity window covers ${f.validOn}`,
+    `${TAB}FILTER((!BOUND(?validFrom) || ?validFrom <= ${lit(f.validOn)}^^xsd:date) && (!BOUND(?validUntil) || ?validUntil >= ${lit(f.validOn)}^^xsd:date))`);
+  if(f.cited){
+    const citing = `?certificate dct:replaces* ?anyVersion . ?citingDecl dct:relation/rdfs:member ?anyVersion ; era:state ?citingState .
+		GRAPH <http://data.europa.eu/949/graph/eradis> { ?citingDecl a era:ECDeclaration }
+		FILTER NOT EXISTS { ?citingDecl dct:isReplacedBy ?newerDecl }
+		VALUES ?citingState { ${PUBLISHED_DECL_STATES.map(STATE).join(' ')} }`;
+    L.push(`${TAB}# ${f.cited === 'yes' ? '' : 'not '}cited by a published EC declaration (any version of the certificate)`,
+      `${TAB}FILTER ${f.cited === 'yes' ? '' : 'NOT '}EXISTS { ${citing} }`);
+  }
+  L.push(
+`	# What the results table shows
+	OPTIONAL { ?certificate rdfs:seeAlso ?eradisPage }
+	OPTIONAL { ?certificate dct:issued ?issued }
+	OPTIONAL { ?certificate dct:creator/era:roleOf ?noboOrg .
+		OPTIONAL { ?noboOrg foaf:name ?noboName }
+		OPTIONAL { ?noboOrg era:role/era:nandoCode ?nandoCode } }
+	OPTIONAL { ?certificate dct:audience/era:roleOf ?applicantOrg .
+		OPTIONAL { ?applicantOrg foaf:name ?applicantName }
+		OPTIONAL { ?applicantOrg ${COUNTRY_PATH} ?applicantCountry } }
+	OPTIONAL { ?certificate dct:contributor ?mfRole .
+		?mfRole era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ;
+			era:roleOf/foaf:name ?manufacturerName }
+	OPTIONAL { ?certificate dct:conformsTo ?module .
+		FILTER(STRSTARTS(STR(?module), "${ERA}concepts/cld-modules/")) }
+	OPTIONAL { ?certificate eli:title_short ?title }
+	OPTIONAL { ?certificate eli:id_local ?tsi }
+	OPTIONAL { ?certificate dct:description ?objectOfAssessment }
+}
+GROUP BY ?certificate ?certNumber ?version ?typeLabel ?validFrom ?validUntil ?validity ?eradisPage
+ORDER BY DESC(?lastIssued) ?certNumber
+LIMIT ${LIVE_LIMIT}`);
+  return L.join('\n');
+}
+
+function rowsFromLiveDecls(json){
   const tsiByUri = new Map(S.tsis.map(t => [S.refBase + t[2], t]));
   const typeKey = Object.fromEntries(Object.entries(TYPE_URI).map(([k, u]) => [u, k]));
-  const stateIdx = u => STATE_KEYS.indexOf(u.replace(/^.*\//, ''));
   const split = b => b && b.value ? b.value.split('|') : [];
   return json.results.bindings.map(b => {
-    const tsiUris = split(b.tsiUris);
+    const refs = split(b.tsiUris).map(u => tsiByUri.get(u)).filter(Boolean);
     return {
-      docId:b.documentId.value, type:typeKey[b.type.value], state:stateIdx(b.state.value),
+      reg:'ecd', key:b.documentId.value, docId:b.documentId.value, type:typeKey[b.type.value],
+      state:STATE_KEYS.indexOf(b.state.value.replace(/^.*\//, '')),
       version:+b.version.value, versions:null, issued:b.issued.value,
       page:b.eradisPage ? b.eradisPage.value : '', uri:b.declaration.value,
       applicant:b.applicant ? b.applicant.value : '',
       applicantCountry:b.applicantCountryUri ? b.applicantCountryUri.value.replace(COUNTRY_BASE, '') : '',
-      authRep:b.authorisedRepresentative ? b.authorisedRepresentative.value : '', authRepCountry:'',
+      authRep:b.authorisedRepresentative ? b.authorisedRepresentative.value : '',
       nobos:split(b.notifiedBodies), titles:split(b.constituent),
-      subsystems:[...new Set(tsiUris.map(u => (tsiByUri.get(u) || [])[3]).filter(Boolean))],
-      tsis:split(b.tsis), dirs:[], tsiRefs:tsiUris.map(u => tsiByUri.get(u)).filter(Boolean), dirRefs:[],
+      subsystems:[...new Set(refs.map(t => t[3]).filter(Boolean))],
+      tsis:split(b.tsis), dirs:[], tsiRefs:refs, dirRefs:[],
       certs:null, restr:!!b.restricted, description:'',
     };
   });
 }
+function rowsFromLiveCerts(json){
+  const tsiByUri = new Map(S.tsis.map(t => [S.refBase + t[2], t]));
+  const split = b => b && b.value ? b.value.split('|') : [];
+  const val = b => b ? b.value : '';
+  return json.results.bindings.map(b => {
+    const refs = split(b.tsiUris).map(u => tsiByUri.get(u)).filter(Boolean);
+    const key = +b.certificate.value.replace(/^.*\//, '');
+    return {
+      reg:'cld', key, number:b.certNumber.value, type:val(b.typeLabel), modules:split(b.modules), states:[],
+      validity:b.validity.value, issued:val(b.lastIssued), issuedAll:split(b.issuedDates).sort(),
+      validFrom:val(b.validFrom), validUntil:val(b.validUntil), version:+b.version.value,
+      page:val(b.eradisPage), uri:b.certificate.value,
+      nobo:val(b.notifiedBody), nando:val(b.nando), noboCountry:'',
+      applicant:val(b.applicant), applicantCountry:val(b.applicantCountryUri).replace(COUNTRY_BASE, ''),
+      manufacturers:split(b.manufacturers), titles:split(b.constituent), object:val(b.object),
+      subsystems:[...new Set(refs.map(t => t[3]).filter(Boolean))], tsis:refs.map(t => t[0]), tsiRefs:refs, dirRefs:[],
+      previous:[], restr:false, cited:null,
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * The two registers. */
+const REGISTERS = {
+  ecd:{
+    form:'searchForm', noun:'declarations', one:'declaration',
+    read:readDeclForm, sparql:buildDeclSparql, search:searchDecls, row:rowFromDecl, live:rowsFromLiveDecls,
+    validate:f => !f.types.length ? 'Tick at least one type of declaration.' : !f.states.length ? 'Tick at least one status.'
+      : (f.from && f.to && f.from > f.to) ? 'The “from” date is after the “to” date.' : '',
+    liveOnlyUsed:f => !!(f.sigFirst || f.sigLast),
+  },
+  cld:{
+    form:'certForm', noun:'certificates', one:'certificate',
+    read:readCertForm, sparql:buildCertSparql, search:searchCerts, row:rowFromCert, live:rowsFromLiveCerts,
+    validate:f => !f.validity.length ? 'Tick at least one validity status.' : (f.from && f.to && f.from > f.to) ? 'The “from” date is after the “to” date.' : '',
+    liveOnlyUsed:() => false,
+  },
+};
+const R = () => REGISTERS[register];
 
 /* ------------------------------------------------------------------ *
  * Results */
@@ -716,42 +1054,77 @@ function setStatus(msg, kind){
   if(kind === 'loading') el.innerHTML = '<span class="spinner"></span><span>' + esc(msg) + '</span>';
   else el.textContent = msg;
 }
+function tiles(items){
+  $('statGrid').innerHTML = items.map(([n, l]) => `<div class="statTile"><div class="n">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join('');
+}
 function showResults(res){
   current = res; page = 0; selected = null;
   $('detail').hidden = true;
   const rows = res.rows;
-  const uniq = key => new Set(rows.map(key).filter(Boolean)).size;
-  $('stMatches').textContent = fmt(res.total);
-  $('stApplicants').textContent = fmt(uniq(r => r.applicant));
-  $('stNobos').textContent = fmt(new Set(rows.flatMap(r => r.nobos)).size);
-  const restr = rows.filter(r => r.restr).length;
-  $('stRestr').textContent = rows.length ? Math.round(100 * restr / rows.length) + '%' : '–';
-  $('srcTag').textContent = res.source === 'live'
+  const uniq = key => new Set(rows.flatMap(r => [].concat(key(r))).filter(Boolean)).size;
+  const pct = n => rows.length ? Math.round(100 * n / rows.length) + '%' : '–';
+  const liveNote = res.source === 'live'
     ? `Live answer from ERADIS-KG${res.total >= LIVE_LIMIT ? ` — the first ${LIVE_LIMIT} by date of issue; the statistics and chart cover those ${LIVE_LIMIT} only` : ''}, in ${res.seconds.toFixed(1)} s.`
-    : `From the snapshot of ${S.generated} — ${fmt(S.decls.length)} published declarations. The same search as SPARQL is below.`;
-  drawChart(rows);
+    : '';
+  if(res.reg === 'ecd'){
+    tiles([[fmt(res.total), 'Declarations'], [fmt(uniq(r => r.applicant)), 'Applicants'], [fmt(uniq(r => r.nobos)), 'Notified bodies'], [pct(rows.filter(r => r.restr).length), 'With restrictions']]);
+    $('srcTag').textContent = liveNote || `From the snapshot of ${S.generated} — ${fmt(S.decls.length)} published declarations. The same search as SPARQL is below.`;
+    $('chartTitle').textContent = 'Declarations issued per year';
+    $('listTitle').textContent = 'Declarations';
+    drawChart(rows, r => r.type, TYPES_SERIES, 'declarations');
+  } else {
+    tiles([[fmt(res.total), 'Certificates'], [pct(rows.filter(r => r.validity === 'valid').length), 'Valid today'], [fmt(uniq(r => r.nobo)), 'Notified bodies'], [fmt(uniq(r => r.applicant)), 'Applicants']]);
+    $('srcTag').textContent = liveNote || `From the snapshot of ${C.generated} — ${fmt(C.certs.length)} current NoBo certificates. The same search as SPARQL is below.`;
+    $('chartTitle').textContent = 'Certificates issued per year';
+    $('listTitle').textContent = 'NoBo certificates';
+    drawChart(rows, r => VALIDITY_GROUP[r.validity], VALIDITY_SERIES, 'certificates');
+  }
   renderPage();
   $('resultArea').hidden = false;
 }
-function stateLabel(i){ return S.states[i] || '?'; }
+const TYPES_SERIES = [['V', TYPE_SHORT.V, 'var(--s1)'], ['C', TYPE_SHORT.C, 'var(--s2)'], ['S', TYPE_SHORT.S, 'var(--s3)']];
+const VALIDITY_SERIES = [['ok', 'Valid today', 'var(--s1)'], ['gone', 'Expired, suspended or withdrawn', 'var(--s2)'], ['soon', 'Not yet valid', 'var(--s3)']];
+const VALIDITY_GROUP = {valid:'ok', expired:'gone', suspended:'gone', withdrawn:'gone', notyet:'soon'};
+const stateLabel = i => S.states[i] || '?';
+const dash = '<span class="sub">—</span>';
+function validityPill(r){
+  const win = r.validFrom || r.validUntil ? `<div class="sub">${esc(r.validFrom || '…')} → ${esc(r.validUntil || 'open-ended')}</div>` : '';
+  return `<span class="pill v-${r.validity}">${esc(VALIDITY_LABEL[r.validity] || r.validity)}</span>${win}`;
+}
 function renderPage(){
   const rows = current.rows;
   const start = page * PAGE_SIZE, slice = rows.slice(start, start + PAGE_SIZE);
-  const h = ['<thead><tr><th>Document ID</th><th>Type</th><th>Status</th><th>Issued</th><th>Applicant</th><th>Authorised rep.</th><th>Notified body</th><th>Constituent / part</th><th>Subsystem</th><th>TSIs</th></tr></thead><tbody>'];
-  slice.forEach((r, k) => {
-    h.push(`<tr data-i="${start + k}"${selected === start + k ? ' class="sel"' : ''}>` +
+  const h = [];
+  if(current.reg === 'ecd'){
+    h.push('<thead><tr><th>Document ID</th><th>Type</th><th>Status</th><th>Issued</th><th>Applicant</th><th>Authorised rep.</th><th>Notified body</th><th>Constituent / part</th><th>Subsystem</th><th>TSIs</th></tr></thead><tbody>');
+    slice.forEach((r, k) => h.push(`<tr data-i="${start + k}"${selected === start + k ? ' class="sel"' : ''}>` +
       `<td class="id">${esc(r.docId)}${r.version > 1 ? `<div class="sub">version ${r.version}</div>` : ''}</td>` +
       `<td><span class="typeSw" style="background:var(--series-${r.type})"></span>${esc(r.type === 'V' ? 'DoV' : r.type === 'C' ? 'DoC' : 'DoSU')}</td>` +
       `<td><span class="pill st${r.state}">${esc(stateLabel(r.state))}</span></td>` +
       `<td class="num">${esc(r.issued)}</td>` +
-      `<td>${esc(r.applicant) || '<span class="sub">—</span>'}${r.applicantCountry ? `<div class="sub">${esc(countryName(r.applicantCountry))}</div>` : ''}</td>` +
-      `<td>${esc(r.authRep) || '<span class="sub">—</span>'}</td>` +
-      `<td>${r.nobos.length ? esc(r.nobos.join('; ')) : '<span class="sub">—</span>'}</td>` +
-      `<td>${r.titles.length ? esc(r.titles.join('; ')) : '<span class="sub">—</span>'}</td>` +
-      `<td>${r.subsystems.length ? esc(r.subsystems.map(k => S.subLabel[k]).join('; ')) : '<span class="sub">—</span>'}</td>` +
-      `<td>${esc(r.tsis.join(', ')) || '<span class="sub">—</span>'}</td></tr>`);
-  });
-  if(!rows.length) h.push('<tr><td colspan="10" class="sub">No declaration matches this search.</td></tr>');
+      `<td>${esc(r.applicant) || dash}${r.applicantCountry ? `<div class="sub">${esc(countryName(r.applicantCountry))}</div>` : ''}</td>` +
+      `<td>${esc(r.authRep) || dash}</td>` +
+      `<td>${r.nobos.length ? esc(r.nobos.join('; ')) : dash}</td>` +
+      `<td>${r.titles.length ? esc(r.titles.join('; ')) : dash}</td>` +
+      `<td>${r.subsystems.length ? esc(r.subsystems.map(k => S.subLabel[k]).join('; ')) : dash}</td>` +
+      `<td>${esc(r.tsis.join(', ')) || dash}</td></tr>`));
+  } else {
+    h.push('<thead><tr><th>Certificate number</th><th>Type</th><th>Module</th><th>Validity</th><th>Issued</th><th>Notified body</th><th>Applicant</th><th>Manufacturer</th><th>Object of assessment</th><th>Subsystem</th><th>TSIs</th><th>Cited by</th></tr></thead><tbody>');
+    slice.forEach((r, k) => h.push(`<tr data-i="${start + k}"${selected === start + k ? ' class="sel"' : ''}>` +
+      `<td class="id">${esc(r.number)}${r.previous.length ? `<div class="sub">earlier: ${esc(r.previous.slice(0, 2).join(', '))}${r.previous.length > 2 ? ` and ${r.previous.length - 2} more` : ''}</div>` : ''}</td>` +
+      `<td>${esc(r.type) || dash}</td>` +
+      `<td>${esc(r.modules.join(', ')) || dash}</td>` +
+      `<td>${validityPill(r)}</td>` +
+      `<td class="num">${esc(r.issued) || dash}${r.issuedAll && r.issuedAll.length > 1 ? `<div class="sub">+${r.issuedAll.length - 1} earlier</div>` : ''}</td>` +
+      `<td>${esc(r.nobo) || dash}${r.nando ? `<div class="sub">${esc(r.nando)}</div>` : ''}</td>` +
+      `<td>${esc(r.applicant) || dash}${r.applicantCountry ? `<div class="sub">${esc(countryName(r.applicantCountry))}</div>` : ''}</td>` +
+      `<td>${r.manufacturers.length ? esc(r.manufacturers.join('; ')) : dash}</td>` +
+      `<td>${r.titles.length ? `<b>${esc(r.titles.join('; '))}</b><br>` : ''}${esc(r.object.slice(0, 120))}${r.object.length > 120 ? '…' : ''}</td>` +
+      `<td>${r.subsystems.length ? esc(r.subsystems.map(k => S.subLabel[k]).join('; ')) : dash}</td>` +
+      `<td>${esc(r.tsis.join(', ')) || dash}</td>` +
+      `<td class="num">${r.cited === null ? dash : r.cited ? fmt(r.cited) + ' decl.' : dash}</td></tr>`));
+  }
+  if(!rows.length) h.push(`<tr><td colspan="12" class="sub">No ${R().one} matches this search.</td></tr>`);
   h.push('</tbody>');
   $('resultsTable').innerHTML = h.join('');
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -759,7 +1132,7 @@ function renderPage(){
     ? `<button type="button" class="btn mini" id="prevPg"${page === 0 ? ' disabled' : ''}>← Newer</button>` +
       `<span>${fmt(start + 1)}–${fmt(Math.min(rows.length, start + PAGE_SIZE))} of ${fmt(rows.length)}</span>` +
       `<button type="button" class="btn mini" id="nextPg"${page >= pages - 1 ? ' disabled' : ''}>Older →</button>`
-    : (rows.length ? `<span>${fmt(rows.length)} declaration${rows.length === 1 ? '' : 's'}</span>` : '');
+    : (rows.length ? `<span>${fmt(rows.length)} ${rows.length === 1 ? R().one : R().noun}</span>` : '');
   if($('prevPg')) $('prevPg').onclick = () => { page--; renderPage(); $('resultsTable').scrollIntoView({block:'nearest'}); };
   if($('nextPg')) $('nextPg').onclick = () => { page++; renderPage(); $('resultsTable').scrollIntoView({block:'nearest'}); };
 }
@@ -769,32 +1142,41 @@ $('resultsTable').addEventListener('click', e => {
   selected = +tr.dataset.i;
   document.querySelectorAll('#resultsTable tr.sel').forEach(t => t.classList.remove('sel'));
   tr.classList.add('sel');
-  showDetail(current.rows[selected]);
+  const r = current.rows[selected];
+  (r.reg === 'ecd' ? showDeclDetail : showCertDetail)(r);
 });
 
 /* ------------------------------------------------------------------ *
- * Chart: declarations issued per year, stacked by type. Thin bars, 2px
- * surface gap between stacked segments, 4px rounded top, hover tooltip per
- * segment, legend above, table view below. */
-const TYPES = ['V', 'C', 'S'];
-function drawChart(rows){
+ * Chart: issued per year, stacked by series. Thin bars, 2px surface gap
+ * between stacked segments, 4px rounded top, hover tooltip per column,
+ * legend above, table view below. */
+function drawChart(rows, seriesOf, series, noun){
   const svg = $('chart'), tip = $('tip');
+  svg.setAttribute('aria-label', `${noun} issued per year, stacked by ${series.map(s => s[1]).join(', ')}`);
+  const keys = series.map(s => s[0]);
+  const blank = () => Object.fromEntries(keys.map(k => [k, 0]));
   const byYear = new Map();
+  const lastYear = new Date().getFullYear();
+  let future = 0;
   for(const r of rows){
-    const y = +r.issued.slice(0, 4);
-    if(!y) continue;
-    if(!byYear.has(y)) byYear.set(y, {V:0, C:0, S:0});
-    byYear.get(y)[r.type]++;
+    const y = +(r.issued || '').slice(0, 4);
+    const k = seriesOf(r);
+    if(!y || !keys.includes(k)) continue;
+    if(y > lastYear){ future++; continue; }
+    if(!byYear.has(y)) byYear.set(y, blank());
+    byYear.get(y)[k]++;
   }
-  const present = TYPES.filter(t => rows.some(r => r.type === t));
-  $('legend').innerHTML = present.map(t => `<span><i style="background:var(--series-${t})"></i>${esc(TYPE_SHORT[t])}</span>`).join('');
+  $('chartNote').textContent = future ? `${fmt(future)} ${noun} with a date of issue after ${lastYear} are not charted (data errors such as 3019 for 2019); they are listed last in the table.` : '';
+  const total = c => keys.reduce((s, k) => s + c[k], 0);
+  const present = series.filter(s => rows.some(r => seriesOf(r) === s[0]));
+  $('legend').innerHTML = present.map(s => `<span><i style="background:${s[2]}"></i>${esc(s[1])}</span>`).join('');
   const years = [...byYear.keys()].sort((a, b) => a - b);
   if(!years.length){ svg.innerHTML = ''; $('chartTable').innerHTML = ''; return; }
   const all = [];
   for(let y = years[0]; y <= years[years.length - 1]; y++) all.push(y);
   const W = 1000, H = 260, m = {l:44, r:10, t:10, b:26};
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const max = Math.max(...all.map(y => { const c = byYear.get(y); return c ? c.V + c.C + c.S : 0; }));
+  const max = Math.max(...all.map(y => byYear.has(y) ? total(byYear.get(y)) : 0));
   const step = niceStep(max / 4);
   const top = Math.max(step, Math.ceil(max / step) * step);
   const band = iw / all.length, bw = Math.max(4, Math.min(28, band * 0.62));
@@ -811,34 +1193,32 @@ function drawChart(rows){
     const c = byYear.get(y);
     if(!c) return;
     let acc = 0;
-    const segs = TYPES.filter(t => c[t] > 0);
-    segs.forEach((t, k) => {
-      const y0 = yPx(acc), y1 = yPx(acc + c[t]);
-      acc += c[t];
+    const segs = series.filter(s => c[s[0]] > 0);
+    segs.forEach((s, k) => {
+      const y0 = yPx(acc), y1 = yPx(acc + c[s[0]]);
+      acc += c[s[0]];
       const gap = k > 0 ? 2 : 0;                       // 2px surface gap between stacked fills
       const hgt = Math.max(1, y0 - y1 - gap);
       const x = cx - bw / 2, yTop = y1;
-      const isTop = k === segs.length - 1;
-      const rr = isTop ? Math.min(4, hgt, bw / 2) : 0; // 4px rounded data-end, top segment only
+      const rr = k === segs.length - 1 ? Math.min(4, hgt, bw / 2) : 0; // 4px rounded data-end, top segment only
       const d = rr
         ? `M${x},${yTop + hgt} V${yTop + rr} Q${x},${yTop} ${x + rr},${yTop} H${x + bw - rr} Q${x + bw},${yTop} ${x + bw},${yTop + rr} V${yTop + hgt} Z`
         : `M${x},${yTop} H${x + bw} V${yTop + hgt} H${x} Z`;
-      out.push(`<path class="seg" data-y="${y}" data-t="${t}" d="${d}" fill="var(--series-${t})"/>`);
+      out.push(`<path class="seg" data-y="${y}" d="${d}" fill="${s[2]}"/>`);
     });
-    // hit target: the whole column, wider than the bar
     out.push(`<rect class="hit" data-y="${y}" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ih}"/>`);
   });
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = out.join('');
-
   const wrap = $('chartWrap');
+  const undim = () => svg.querySelectorAll('.seg').forEach(s => s.classList.remove('dim'));
   svg.onmousemove = e => {
     const hit = e.target.closest('.hit, .seg');
-    if(!hit){ tip.hidden = true; svg.querySelectorAll('.seg').forEach(s => s.classList.remove('dim')); return; }
+    if(!hit){ tip.hidden = true; undim(); return; }
     const y = +hit.dataset.y, c = byYear.get(y);
     svg.querySelectorAll('.seg').forEach(s => s.classList.toggle('dim', +s.dataset.y !== y));
-    tip.innerHTML = `<div><b>${y}</b> · ${fmt(c.V + c.C + c.S)} declarations</div>` +
-      TYPES.filter(t => c[t]).map(t => `<div><i style="background:var(--series-${t})"></i><span class="k">${esc(TYPE_SHORT[t])}</span> ${fmt(c[t])}</div>`).join('');
+    tip.innerHTML = `<div><b>${y}</b> · ${fmt(total(c))} ${esc(noun)}</div>` +
+      series.filter(s => c[s[0]]).map(s => `<div><i style="background:${s[2]}"></i><span class="k">${esc(s[1])}</span> ${fmt(c[s[0]])}</div>`).join('');
     tip.hidden = false;
     const r = wrap.getBoundingClientRect();
     let x = e.clientX - r.left + wrap.scrollLeft + 14;
@@ -846,10 +1226,9 @@ function drawChart(rows){
     tip.style.left = x + 'px';
     tip.style.top = Math.max(0, e.clientY - r.top - 20) + 'px';
   };
-  svg.onmouseleave = () => { tip.hidden = true; svg.querySelectorAll('.seg').forEach(s => s.classList.remove('dim')); };
-
-  $('chartTable').innerHTML = '<table class="small"><thead><tr><th>Year</th>' + present.map(t => `<th>${esc(TYPE_SHORT[t])}</th>`).join('') + '<th>Total</th></tr></thead><tbody>' +
-    years.map(y => { const c = byYear.get(y); return `<tr><td>${y}</td>` + present.map(t => `<td>${fmt(c[t])}</td>`).join('') + `<td>${fmt(c.V + c.C + c.S)}</td></tr>`; }).join('') + '</tbody></table>';
+  svg.onmouseleave = () => { tip.hidden = true; undim(); };
+  $('chartTable').innerHTML = '<table class="small"><thead><tr><th>Year</th>' + present.map(s => `<th>${esc(s[1])}</th>`).join('') + '<th>Total</th></tr></thead><tbody>' +
+    years.map(y => { const c = byYear.get(y); return `<tr><td>${y}</td>` + present.map(s => `<td>${fmt(c[s[0]])}</td>`).join('') + `<td>${fmt(total(c))}</td></tr>`; }).join('') + '</tbody></table>';
 }
 function niceStep(raw){
   if(raw <= 1) return 1;
@@ -859,10 +1238,7 @@ function niceStep(raw){
 }
 
 /* ------------------------------------------------------------------ *
- * Detail */
-function detailQuery(docId){
-  return DETAIL_QUERY.replace('"DK/0000DK18632276/2022/000003"', lit(docId));
-}
+ * Details */
 const DETAIL_QUERY = `# Everything ERADIS-KG records about one EC declaration (eradis/ecd-detail.rq).
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX dct:  <http://purl.org/dc/terms/>
@@ -888,7 +1264,7 @@ WHERE {
 		FILTER(?current)
 		?v dct:relation/rdfs:member ?c .
 		FILTER(STRSTARTS(STR(?c), "http://data.europa.eu/949/evidence/cld/cld-NoBoCert/"))
-		?c rdfs:label ?value .
+		?c dct:identifier ?value .
 		OPTIONAL { ?c dct:type/skos:prefLabel ?extra }
 		OPTIONAL { ?c dct:issued ?date }
 		BIND("certificate" AS ?section)
@@ -917,10 +1293,87 @@ WHERE {
 	}
 }
 ORDER BY ?section ?value`;
+const CERT_DETAIL_QUERY = `# Everything ERADIS-KG records about one NoBo certificate (eradis/cld-detail.rq).
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX time: <http://www.w3.org/2006/time#>
 
-function showDetail(r){
+SELECT ?section ?value ?extra ?date
+WHERE {
+	VALUES ?certificate { <http://data.europa.eu/949/evidence/cld/cld-NoBoCert/49896> }
+	{
+		?certificate dct:replaces* ?v .
+		?v dct:identifier ?number ; vpa:versionNumber ?value .
+		OPTIONAL { ?v era:state ?st }
+		OPTIONAL { ?v dct:issued ?date }
+		OPTIONAL { ?v dct:valid ?w . OPTIONAL { ?w time:hasBeginning/time:inXSDDate ?from } OPTIONAL { ?w time:hasEnd/time:inXSDDate ?until } }
+		BIND(CONCAT(?number, " · ", REPLACE(STR(?st), "^.*/", ""),
+			IF(BOUND(?from), CONCAT(" · valid ", STR(?from), IF(BOUND(?until), CONCAT(" to ", STR(?until)), " onwards")), "")) AS ?extra)
+		BIND("version" AS ?section)
+	} UNION {
+		?certificate dct:description ?value .
+		BIND("assessment" AS ?section)
+	} UNION {
+		VALUES (?p ?extra) { (era:resultStatement "Result") (era:validityStatement "Validity") (era:sequenceStatement "Sequence") (rdfs:comment "Documentation") }
+		?certificate ?p ?value .
+		BIND("statement" AS ?section)
+	} UNION {
+		?certificate vpa:checkedCompliance/vpa:withRestriction/rdfs:comment ?value .
+		BIND("restriction" AS ?section)
+	} UNION {
+		# same scope as the declaration search: current version of each
+		# published declaration (rejected ones share the Document ID of the
+		# accepted resubmission, so they would show up twice)
+		?certificate dct:replaces* ?anyVersion .
+		?declaration dct:relation/rdfs:member ?anyVersion ;
+			dct:identifier ?value ;
+			era:state ?dst .
+		GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+		FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newerDeclaration }
+		VALUES ?dst {
+			<http://data.europa.eu/949/concepts/evidence-document-states/inForce>
+			<http://data.europa.eu/949/concepts/evidence-document-states/amended>
+			<http://data.europa.eu/949/concepts/evidence-document-states/revoked>
+			<http://data.europa.eu/949/concepts/evidence-document-states/suspended>
+		}
+		OPTIONAL { ?declaration dct:issued ?date }
+		BIND(REPLACE(STR(?dst), "^.*/", "") AS ?extra)
+		BIND("declaration" AS ?section)
+	}
+}
+ORDER BY ?section ?value`;
+const declDetailQuery = docId => DETAIL_QUERY.replace('"DK/0000DK18632276/2022/000003"', lit(docId));
+const certDetailQuery = key => CERT_DETAIL_QUERY.replace(CERT_BASE + '49896', CERT_BASE + key);
+
+function refList(refs){
+  return refs.length ? '<ul class="refs">' + refs.map(t =>
+    `<li>${t[4] ? `<a href="${esc(t[4])}" target="_blank" rel="noopener">${esc(t[0])}</a>` : esc(t[0])}` +
+    `${t[5] ? '' : ' <span class="pill">no longer in force</span>'}` +
+    `${t[3] ? ` <span class="pill">${esc(S.subLabel[t[3]])}</span>` : ''}` +
+    `<div class="sub">${esc(actSubject(t[1]) || 'title not recorded')}</div></li>`).join('') + '</ul>' : '—';
+}
+function kvList(kv){
+  return `<dl class="kv">${kv.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd${html ? '' : ' style="white-space:pre-line"'}>${html ? v : esc(v)}</dd>`).join('')}</dl>`;
+}
+function detailShell(title, uri, kv, page, pageLabel, q, what){
   const el = $('detail');
-  const q = detailQuery(r.docId);
+  el.innerHTML =
+    `<h3>${esc(title)}</h3><div class="meta"><a href="${esc(uri)}" target="_blank" rel="noopener">${esc(uri)}</a></div>` + kvList(kv) +
+    `<div class="resultActions" style="margin-top:14px;">` +
+      (page ? `<a class="btnLink" href="${esc(page)}" target="_blank" rel="noopener">${esc(pageLabel)} ↗</a>` : '') +
+      `<button type="button" class="btn mini secondary" id="loadFull">Load the full record live</button>` +
+      `<a class="btnLink" href="${esc(workbenchUrl(q))}" target="_blank" rel="noopener">Open the detail query in GraphDB ↗</a>` +
+    `</div><div id="fullRecord"><div class="sub" style="margin-top:10px;">${esc(what)}</div></div>`;
+  el.hidden = false;
+  el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function showDeclDetail(r){
+  const q = declDetailQuery(r.docId);
+  const certs = (r.certs || []).map(c => c[2]
+    ? `<button type="button" class="xlink" data-cert="${c[2]}">${esc(c[0])}</button>${c[1] ? ` <span class="sub">issued ${esc(c[1])}</span>` : ''}`
+    : `${esc(c[0])}${c[1] ? ` <span class="sub">issued ${esc(c[1])}</span>` : ''} <span class="sub">(not among the current published certificates)</span>`);
   const kv = [
     ['Type', TYPE_SHORT[r.type]],
     ['Status', stateLabel(r.state) + (r.versions ? ` · version ${r.version} of ${r.versions}` : ` · version ${r.version}`)],
@@ -931,100 +1384,147 @@ function showDetail(r){
     ['Type of subsystem (derived)', r.subsystems.map(k => S.subLabel[k]).join('; ') || 'not derivable from the TSIs cited'],
     ['Interoperability constituent / part', r.titles.join('; ') || '—'],
   ];
-  if(r.certs && r.certs.length) kv.push(['Certificates', r.certs.map(c => c[0] + (c[1] ? ` (issued ${c[1]})` : '')).join('\n')]);
+  if(certs.length) kv.push(['NoBo certificates', certs.join('<br>'), true]);
   if(r.description) kv.push(['Description', r.description + (r.description.length >= 280 ? '…' : '')]);
   kv.push(['Restrictions / conditions of use', r.restr ? 'recorded — see the full record' : 'none recorded']);
-  const refList = refs => refs.length ? '<ul class="refs">' + refs.map(t =>
-    `<li>${t[4] ? `<a href="${esc(t[4])}" target="_blank" rel="noopener">${esc(t[0])}</a>` : esc(t[0])}` +
-    `${t[5] ? '' : ' <span class="pill">no longer in force</span>'}` +
-    `${t[3] ? ` <span class="pill">${esc(S.subLabel[t[3]])}</span>` : ''}` +
-    `<div class="sub">${esc(actSubject(t[1]) || 'title not recorded')}</div></li>`).join('') + '</ul>' : '—';
-  el.innerHTML =
-    `<h3>${esc(r.docId)}</h3>` +
-    `<div class="meta"><a href="${esc(r.uri)}" target="_blank" rel="noopener">${esc(r.uri)}</a></div>` +
-    `<dl class="kv">${kv.map(([k, v]) => `<dt>${esc(k)}</dt><dd style="white-space:pre-line">${esc(v)}</dd>`).join('')}` +
-      `<dt>TSIs <span class="sub">(ELI in era-lex)</span></dt><dd>${refList(r.tsiRefs || [])}</dd>` +
-      ((r.dirRefs || []).length ? `<dt>EC directives</dt><dd>${refList(r.dirRefs)}</dd>` : '') + `</dl>` +
-    `<div class="resultActions" style="margin-top:14px;">` +
-      (r.page ? `<a class="btnLink" href="${esc(r.page)}" target="_blank" rel="noopener">Open on ERADIS ↗</a>` : '') +
-      `<button type="button" class="btn mini secondary" id="loadFull">Load the full record live</button>` +
-      `<a class="btnLink" href="${esc(workbenchUrl(q))}" target="_blank" rel="noopener">Open the detail query in GraphDB ↗</a>` +
-    `</div>` +
-    `<div id="fullRecord"><div class="sub" style="margin-top:10px;">The full record — every version, certificate types, restriction text, signatories and the technical-file documents — comes from ERADIS-KG live.</div></div>`;
-  el.hidden = false;
-  $('loadFull').onclick = () => loadFull(r, q);
-  if(liveOk) loadFull(r, q);
-  el.scrollIntoView({behavior:'smooth', block:'start'});
+  kv.push(['TSIs (ELI in era-lex)', refList(r.tsiRefs || []), true]);
+  if((r.dirRefs || []).length) kv.push(['EC directives', refList(r.dirRefs), true]);
+  detailShell(r.docId, r.uri, kv, r.page, 'Open on ERADIS', q,
+    'The full record — every version, certificate types, restriction text, signatories and the technical-file documents — comes from ERADIS-KG live.');
+  $('loadFull').onclick = () => loadFull(q, renderDeclFull);
+  if(liveOk) loadFull(q, renderDeclFull);
 }
-async function loadFull(r, q){
+function showCertDetail(r){
+  const q = certDetailQuery(r.key);
+  const citing = (S.citing.get(r.key) || []).map(i => S.decls[i]).sort((a, b) => b.d.localeCompare(a.d));
+  const kv = [
+    ['Certificate type', r.type || '—'],
+    ['Module(s) applied', r.modules.join(', ') || '—'],
+    ['Validity', `${VALIDITY_LABEL[r.validity]} — ${r.validFrom ? 'from ' + r.validFrom : 'no start date'}${r.validUntil ? ' until ' + r.validUntil : ', open-ended'}` +
+      (r.states.length ? ` (state recorded: ${r.states.join(', ')})` : '')],
+    ['Date of issue', (r.issued || '—') + ((r.issuedAll || []).length > 1 ? ` (also recorded: ${r.issuedAll.filter(d => d !== r.issued).join(', ')})` : '')],
+    ['Version', String(r.version) + (r.previous.length ? ` — earlier numbers: ${r.previous.join(', ')}` : '')],
+    ['Notified body', r.nobo ? r.nobo + (r.nando ? ` — ${r.nando}` : '') + (r.noboCountry ? ` — ${countryName(r.noboCountry)}` : '') : '—'],
+    ['Applicant', r.applicant ? r.applicant + (r.applicantCountry ? ` — ${countryName(r.applicantCountry)}` : '') : '—'],
+    ['Manufacturer', r.manufacturers.join('; ') || '—'],
+    ['Subsystem (derived)', r.subsystems.map(k => S.subLabel[k]).join('; ') || 'not derivable from the TSIs cited'],
+    ['Interoperability constituent', r.titles.join('; ') || '—'],
+    ['Object of assessment', r.object ? r.object + (r.object.length >= 200 ? '…' : '') : '—'],
+    ['Conditions / limits of use', r.restr ? 'recorded — see the full record' : (r.cited === null ? 'see the full record' : 'none recorded')],
+    ['TSI(s) (ELI in era-lex)', refList(r.tsiRefs || []), true],
+  ];
+  if((r.dirRefs || []).length) kv.push(['Directives', refList(r.dirRefs), true]);
+  kv.push(['Cited by EC declarations', citing.length
+    ? citing.slice(0, 60).map(d => `<button type="button" class="xlink" data-decl="${esc(d.id)}">${esc(d.id)}</button> <span class="sub">${esc(d.d)} · ${esc(stateLabel(d.s))}</span>`).join('<br>') +
+      (citing.length > 60 ? `<div class="sub">…and ${fmt(citing.length - 60)} more — the full record lists them all.</div>` : '')
+    : 'none among the published declarations', true]);
+  detailShell(r.number, r.uri, kv, r.page, 'Open on ERADIS', q,
+    'The full record — every version, the whole object of assessment, the result and validity statements, and the conditions of use — comes from ERADIS-KG live.');
+  $('loadFull').onclick = () => loadFull(q, renderCertFull);
+  if(liveOk) loadFull(q, renderCertFull);
+}
+const blk = (title, html) => `<div class="detailBlock"><h3 class="sectionTitle">${esc(title)}</h3>${html}</div>`;
+function renderDeclFull(by){
+  const parts = [];
+  if(by.version) parts.push(blk('Versions', '<ul>' + by.version.sort((a, b) => a.value - b.value).map(v => `<li>version ${esc(v.value)} — issued ${esc(v.date)} — ${esc(v.extra)}</li>`).join('') + '</ul>'));
+  if(by.certificate) parts.push(blk('Certificates', '<ul>' + by.certificate.map(c => `<li><code>${esc(c.value)}</code>${c.extra ? ' — ' + esc(c.extra) : ''}${c.date ? ' — issued ' + esc(c.date) : ''}</li>`).join('') + '</ul>'));
+  if(by.restriction) parts.push(blk('Conditions of use and restrictions', by.restriction.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
+  if(by.signatory) parts.push(blk('Signatories', '<ul>' + by.signatory.map(x => `<li>${esc(x.value)}</li>`).join('') + '</ul>'));
+  if(by.attachment) parts.push(blk('Published files', '<ul>' + by.attachment.map(x => `<li><a href="${esc(x.extra)}" target="_blank" rel="noopener">${esc(x.value)}</a></li>`).join('') + '</ul>'));
+  if(by.document) parts.push(blk(`Technical file (${by.document.length} documents)`, '<ul>' + by.document.map(x => `<li>${esc(x.value)}</li>`).join('') + '</ul>'));
+  return parts.join('');
+}
+function renderCertFull(by){
+  const parts = [];
+  if(by.version) parts.push(blk('Versions', '<ul>' + by.version.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(v => `<li>version ${esc(v.value)} — ${esc(v.extra)}${v.date ? ' — issued ' + esc(v.date) : ''}</li>`).join('') + '</ul>'));
+  if(by.assessment) parts.push(blk('Object of assessment', by.assessment.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
+  if(by.statement) parts.push(blk('Statements', by.statement.map(x => `<div class="sub" style="margin-top:6px">${esc(x.extra)}</div><pre>${esc(x.value)}</pre>`).join('')));
+  if(by.restriction) parts.push(blk('Conditions and limits of use', by.restriction.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
+  if(by.declaration) parts.push(blk(`Cited by ${by.declaration.length} EC declarations`, '<ul>' + by.declaration.map(x => `<li><button type="button" class="xlink" data-decl="${esc(x.value)}">${esc(x.value)}</button> <span class="sub">${esc(x.date)} · ${esc(x.extra)}</span></li>`).join('') + '</ul>'));
+  return parts.join('');
+}
+async function loadFull(q, render){
   const box = $('fullRecord');
-  box.innerHTML = '<div id="fullStatus" style="display:flex;gap:10px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted)"><span class="spinner"></span>Querying ERADIS-KG…</div>';
+  box.innerHTML = '<div style="display:flex;gap:10px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted)"><span class="spinner"></span>Querying ERADIS-KG…</div>';
   try{
     const json = await sparql(q, 30000);
     const by = {};
     for(const b of json.results.bindings){
-      const s = b.section.value;
-      (by[s] = by[s] || []).push({value:b.value ? b.value.value : '', extra:b.extra ? b.extra.value : '', date:b.date ? b.date.value : ''});
+      (by[b.section.value] = by[b.section.value] || []).push({value:b.value ? b.value.value : '', extra:b.extra ? b.extra.value : '', date:b.date ? b.date.value : ''});
     }
-    const blk = (title, html) => `<div class="detailBlock"><h3 class="sectionTitle">${esc(title)}</h3>${html}</div>`;
-    const parts = [];
-    if(by.version) parts.push(blk('Versions', '<ul>' + by.version.sort((a, b) => a.value - b.value).map(v => `<li>version ${esc(v.value)} — issued ${esc(v.date)} — ${esc(v.extra)}</li>`).join('') + '</ul>'));
-    if(by.certificate) parts.push(blk('Certificates', '<ul>' + by.certificate.map(c => `<li><code>${esc(c.value)}</code>${c.extra ? ' — ' + esc(c.extra) : ''}${c.date ? ' — issued ' + esc(c.date) : ''}</li>`).join('') + '</ul>'));
-    if(by.restriction) parts.push(blk('Conditions of use and restrictions', by.restriction.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
-    if(by.signatory) parts.push(blk('Signatories', '<ul>' + by.signatory.map(x => `<li>${esc(x.value)}</li>`).join('') + '</ul>'));
-    if(by.attachment) parts.push(blk('Published files', '<ul>' + by.attachment.map(x => `<li><a href="${esc(x.extra)}" target="_blank" rel="noopener">${esc(x.value)}</a></li>`).join('') + '</ul>'));
-    if(by.document) parts.push(blk(`Technical file (${by.document.length} documents)`, '<ul>' + by.document.map(x => `<li>${esc(x.value)}</li>`).join('') + '</ul>'));
-    box.innerHTML = parts.join('') || '<div class="sub" style="margin-top:10px;">ERADIS-KG returned nothing more for this declaration.</div>';
+    box.innerHTML = render(by) || '<div class="sub" style="margin-top:10px;">ERADIS-KG returned nothing more for this record.</div>';
   } catch(err){
     const diag = await describeFetchError(err, ENDPOINT);
     box.innerHTML = '<div id="fullErr" style="margin-top:12px;font-size:12.5px;color:var(--danger)"></div>';
-    renderFetchError($('fullErr'), diag, () => loadFull(r, q));
+    renderFetchError($('fullErr'), diag, () => loadFull(q, render));
   }
+}
+
+/* Cross-links: a certificate number in a declaration opens the certificate,
+   a declaration citing a certificate opens the declaration. */
+$('detail').addEventListener('click', async e => {
+  const b = e.target.closest('button.xlink');
+  if(!b) return;
+  if(b.dataset.cert) openCertificate(+b.dataset.cert);
+  else if(b.dataset.decl) openDeclaration(b.dataset.decl);
+});
+async function openCertificate(key){
+  await switchRegister('cld', false);
+  const form = $('certForm');
+  form.reset(); ['cAppCountry', 'cMfCountry', 'cNbCountry'].forEach(id => $(id).dispatchEvent(new Event('change')));
+  const c = C.byKey.get(key);
+  $('cNumber').value = c ? c.n : '';
+  runSnapshotSearch();
+  const i = current.rows.findIndex(r => r.key === key);
+  if(i >= 0){ selected = i; renderPage(); showCertDetail(current.rows[i]); }
+}
+async function openDeclaration(docId){
+  await switchRegister('ecd', false);
+  $('searchForm').reset(); ['fAppCountry', 'fArCountry'].forEach(id => $(id).dispatchEvent(new Event('change')));
+  $('fDocId').value = docId;
+  document.querySelectorAll('input[name=state]').forEach(i => i.checked = true);
+  runSnapshotSearch();
+  const i = current.rows.findIndex(r => r.docId === docId);
+  if(i >= 0){ selected = i; renderPage(); showDeclDetail(current.rows[i]); }
 }
 
 /* ------------------------------------------------------------------ *
  * Wiring */
 function updateQueryPanel(){
-  if(!S) return;
-  const q = buildSparql(readForm());
+  if(!S || (register === 'cld' && !C)) return;
+  const q = R().sparql(R().read());
   $('queryText').textContent = q;
   $('workbenchLink').href = workbenchUrl(q);
 }
-function validate(f){
-  if(!f.types.length) return 'Tick at least one type of declaration.';
-  if(!f.states.length) return 'Tick at least one status.';
-  if(f.from && f.to && f.from > f.to) return 'The “from” date is after the “to” date.';
-  return '';
-}
-$('searchForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const f = readForm();
-  const bad = validate(f);
+function runSnapshotSearch(){
+  const f = R().read();
+  const bad = R().validate(f);
   if(bad){ setStatus(bad, 'error'); return; }
   updateQueryPanel();   // the panel always shows the SPARQL of the search just run
   const t0 = performance.now();
-  const hits = searchSnapshot(f);
-  showResults({source:'snapshot', rows:hits.map(rowFromSnapshot), total:hits.length});
+  const hits = R().search(f);
+  showResults({reg:register, source:'snapshot', rows:hits.map(R().row), total:hits.length});
   const ms = performance.now() - t0;
-  if(f.sigFirst || f.sigLast)
-    setStatus(`${fmt(hits.length)} declarations — the signatory fields were not applied: signatory names are only searched live. Use “Run live on ERADIS-KG”.`, 'note');
-  else setStatus(`${fmt(hits.length)} declarations match, searched in ${ms < 1000 ? Math.round(ms) + ' ms' : (ms / 1000).toFixed(1) + ' s'}.`, hits.length ? 'success' : '');
-});
-$('liveBtn').addEventListener('click', runLive);
+  const took = ms < 1000 ? Math.round(ms) + ' ms' : (ms / 1000).toFixed(1) + ' s';
+  if(R().liveOnlyUsed(f))
+    setStatus(`${fmt(hits.length)} ${R().noun} — the signatory fields were not applied: signatory names are only searched live. Use “Run live on ERADIS-KG”.`, 'note');
+  else setStatus(`${fmt(hits.length)} ${R().noun} match, searched in ${took}.`, hits.length ? 'success' : '');
+}
 async function runLive(){
-  const f = readForm();
-  const bad = validate(f);
+  const f = R().read();
+  const bad = R().validate(f);
   if(bad){ setStatus(bad, 'error'); return; }
-  const q = buildSparql(f);
-  $('liveBtn').disabled = true;
+  const q = R().sparql(f), reg = register;
+  $('queryText').textContent = q; $('workbenchLink').href = workbenchUrl(q);
+  document.querySelectorAll('.liveBtn').forEach(b => b.disabled = true);
   setStatus('Running the SPARQL on ERADIS-KG…', 'loading');
   const t0 = performance.now();
   try{
     const json = await sparql(q, 90000);
-    const rows = rowsFromLive(json);
+    const rows = REGISTERS[reg].live(json);
     setLive(true);
-    showResults({source:'live', rows, total:rows.length, seconds:(performance.now() - t0) / 1000});
-    setStatus(`${fmt(rows.length)} declarations from ERADIS-KG${rows.length >= LIVE_LIMIT ? ` (the query stops at ${LIVE_LIMIT})` : ''}.`, 'success');
+    showResults({reg, source:'live', rows, total:rows.length, seconds:(performance.now() - t0) / 1000});
+    setStatus(`${fmt(rows.length)} ${REGISTERS[reg].noun} from ERADIS-KG${rows.length >= LIVE_LIMIT ? ` (the query stops at ${LIVE_LIMIT})` : ''}.`, 'success');
   } catch(err){
     const diag = await describeFetchError(err, ENDPOINT);
     const el = $('statusArea'); el.className = 'error';
@@ -1033,16 +1533,44 @@ async function runLive(){
     a.style.marginTop = '8px';
     a.innerHTML = `<a class="btnLink" href="${esc(workbenchUrl(q))}" target="_blank" rel="noopener">Open this query in GraphDB workbench ↗</a> <span class="sub">or use “Search snapshot” for the same search offline.</span>`;
     el.appendChild(a);
-  } finally { $('liveBtn').disabled = false; }
+  } finally { document.querySelectorAll('.liveBtn').forEach(b => b.disabled = false); }
 }
-$('resetBtn').addEventListener('click', () => {
-  $('searchForm').reset();
-  for(const [c, o] of [['fAppCountry', 'fAppOrg'], ['fArCountry', 'fArOrg']]) $(c).dispatchEvent(new Event('change'));
+async function switchRegister(reg, search = true){
+  register = reg;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.reg === reg)));
+  $('searchForm').hidden = reg !== 'ecd';
+  $('certForm').hidden = reg !== 'cld';
+  $('detail').hidden = true;
+  if(reg === 'cld' && !C){
+    $('resultArea').hidden = true;
+    setStatus('Loading the certificate snapshot…', 'loading');
+    try{
+      await loadCerts();
+      buildCertForm();
+      $('cntCld').textContent = fmt(C.certs.length);
+      document.querySelectorAll('#certForm .searchBtn').forEach(b => b.disabled = false);
+    } catch(err){
+      const el = $('statusArea'); el.className = 'error';
+      renderFetchError(el, {title:'The certificate snapshot could not be loaded', message:'Serve this page over http(s) next to era-eradis-certificates.json.gz.', detail:String(err.message || err)});
+      return;
+    }
+  }
   updateQueryPanel();
-  $('searchForm').requestSubmit();
-});
-$('searchForm').addEventListener('input', updateQueryPanel);
-$('searchForm').addEventListener('change', updateQueryPanel);
+  if(search) runSnapshotSearch();
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { if(b.dataset.reg !== register) switchRegister(b.dataset.reg); }));
+for(const id of ['searchForm', 'certForm']){
+  const form = $(id);
+  form.addEventListener('submit', e => { e.preventDefault(); runSnapshotSearch(); });
+  form.addEventListener('input', updateQueryPanel);
+  form.addEventListener('change', updateQueryPanel);
+  form.querySelector('.liveBtn').addEventListener('click', runLive);
+  form.querySelector('.resetBtn').addEventListener('click', () => {
+    form.reset();
+    form.querySelectorAll('select[id$="Country"]').forEach(s => s.dispatchEvent(new Event('change')));
+    runSnapshotSearch();
+  });
+}
 $('copyQueryBtn').addEventListener('click', async () => {
   try{ await navigator.clipboard.writeText($('queryText').textContent); $('copyHint').textContent = 'Copied.'; }
   catch{ $('copyHint').textContent = 'Copy failed — select the text below instead.'; }
@@ -1050,16 +1578,26 @@ $('copyQueryBtn').addEventListener('click', async () => {
 });
 $('csvBtn').addEventListener('click', () => {
   if(!current) return;
-  const cols = [['document_id', r => r.docId], ['uri', r => r.uri], ['type', r => TYPE_SHORT[r.type]], ['status', r => stateLabel(r.state)],
+  const cols = current.reg === 'ecd' ? [
+    ['document_id', r => r.docId], ['uri', r => r.uri], ['type', r => TYPE_SHORT[r.type]], ['status', r => stateLabel(r.state)],
     ['version', r => r.version], ['date_of_issue', r => r.issued], ['applicant', r => r.applicant], ['applicant_country', r => r.applicantCountry],
     ['authorised_representative', r => r.authRep], ['notified_bodies', r => r.nobos.join('|')], ['constituent', r => r.titles.join('|')],
     ['subsystem_derived', r => r.subsystems.map(k => S.subLabel[k]).join('|')], ['tsis', r => r.tsis.join('|')], ['directives', r => r.dirs.join('|')],
-    ['certificates', r => (r.certs || []).map(c => c[0]).join('|')], ['restrictions_recorded', r => r.restr ? 1 : 0], ['eradis_page', r => r.page]];
+    ['certificates', r => (r.certs || []).map(c => c[0]).join('|')], ['restrictions_recorded', r => r.restr ? 1 : 0], ['eradis_page', r => r.page],
+  ] : [
+    ['certificate_number', r => r.number], ['uri', r => r.uri], ['type', r => r.type], ['modules', r => r.modules.join('|')],
+    ['validity_today', r => VALIDITY_LABEL[r.validity]], ['valid_from', r => r.validFrom], ['valid_until', r => r.validUntil],
+    ['date_of_issue', r => (r.issuedAll || [r.issued]).join('|')], ['version', r => r.version], ['earlier_numbers', r => r.previous.join('|')],
+    ['notified_body', r => r.nobo], ['nando', r => r.nando], ['applicant', r => r.applicant], ['applicant_country', r => r.applicantCountry],
+    ['manufacturers', r => r.manufacturers.join('|')], ['constituent', r => r.titles.join('|')], ['object_of_assessment', r => r.object],
+    ['subsystem_derived', r => r.subsystems.map(k => S.subLabel[k]).join('|')], ['tsis', r => r.tsis.join('|')],
+    ['cited_by_declarations', r => r.cited === null ? '' : r.cited], ['eradis_page', r => r.page],
+  ];
   const cell = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const csv = [cols.map(c => c[0]).join(','), ...current.rows.map(r => cols.map(c => cell(c[1](r))).join(','))].join('\n');
   const url = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'}));
   const a = document.createElement('a');
-  a.href = url; a.download = `eradis-declarations-${current.source}.csv`;
+  a.href = url; a.download = `eradis-${current.reg === 'ecd' ? 'declarations' : 'certificates'}-${current.source}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
 });
@@ -1067,7 +1605,7 @@ $('csvBtn').addEventListener('click', () => {
 function setLive(ok, detail){
   liveOk = ok;
   $('liveDot').className = 'dot ' + (ok ? 'ok' : 'bad');
-  $('liveText').textContent = ok ? 'reachable — "Run live" and the full record query it directly' : 'not readable from this page — searches use the snapshot';
+  $('liveText').textContent = ok ? 'reachable — "Run live" and the full records query it directly' : 'not readable from this page — searches use the snapshot';
   if(detail !== undefined) $('liveDiag').innerHTML = detail;
 }
 async function probeLive(){
@@ -1085,11 +1623,12 @@ async function probeLive(){
   try{
     await loadSnapshot();
     $('snapDot').className = 'dot ok';
-    $('snapText').textContent = `${fmt(S.decls.length)} declarations, ${fmt(S.orgs.length)} organisations — built ${S.generated}`;
-    buildForm();
-    $('searchBtn').disabled = false;
-    updateQueryPanel();
-    $('searchForm').requestSubmit();
+    $('snapText').textContent = `${fmt(S.decls.length)} declarations, ${fmt(S.orgs.length)} organisations — built ${S.generated}; certificates load when their tab is opened`;
+    $('cntEcd').textContent = fmt(S.decls.length);
+    buildDeclForm();
+    document.querySelectorAll('#searchForm .searchBtn').forEach(b => b.disabled = false);
+    // a link such as eradis.html#certificates opens the certificate register
+    await switchRegister(location.hash === '#certificates' ? 'cld' : 'ecd');
   } catch(err){
     $('snapDot').className = 'dot bad';
     $('snapText').textContent = 'could not be loaded';

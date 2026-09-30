@@ -1,4 +1,4 @@
-# ERADIS snapshot, part 4 of 5 - the TSIs and directives cited, with the notation,
+# ERADIS snapshot - the TSIs and directives cited by declarations and certificates, with the notation,
 # title and owl:sameAs ELI that ERADIS-KG records. Titles and ELIs are
 # incomplete here (the most-cited amending regulations have neither), so the
 # build script resolves every act in the era-lex repository as well - see
@@ -18,9 +18,11 @@ PREFIX owl:  <http://www.w3.org/2002/07/owl#>
 SELECT ?ref ?kind (SAMPLE(?n) AS ?notation) (SAMPLE(?l) AS ?label) (SAMPLE(?e) AS ?eli)
 WHERE {
 	{ SELECT DISTINCT ?ref ?kind WHERE {
-		GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
-		{ ?declaration eli:id_local ?ref BIND("tsi" AS ?kind) }
-		UNION { ?declaration dct:source ?ref BIND("dir" AS ?kind) }
+		# cited by a declaration or by a NoBo certificate
+		{ GRAPH <http://data.europa.eu/949/graph/eradis> { ?doc a era:ECDeclaration } }
+		UNION { GRAPH <http://data.europa.eu/949/graph/eradis> { ?doc a era:CertificationLevelDocument } }
+		{ ?doc eli:id_local ?ref BIND("tsi" AS ?kind) }
+		UNION { ?doc dct:source ?ref BIND("dir" AS ?kind) }
 	} }
 	OPTIONAL { ?ref skos:notation ?n }
 	OPTIONAL { ?ref rdfs:label ?l }

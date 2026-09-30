@@ -1,0 +1,17 @@
+# ERADIS snapshot - every earlier version of a NoBo certificate mapped to its
+# current version, so a declaration that cites an old version (5,681 links do)
+# still leads to the certificate as it stands today.
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX time: <http://www.w3.org/2006/time#>
+
+SELECT ?older ?current
+WHERE {
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?current a era:CertificationLevelDocument }
+	FILTER NOT EXISTS { ?current dct:isReplacedBy ?x }
+	?current dct:replaces+ ?older .
+}

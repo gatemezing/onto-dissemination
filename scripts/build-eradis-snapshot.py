@@ -13,14 +13,18 @@ Deliberately NOT in the snapshot: signatory names (personal data - the
 explorer only searches them live), contact details, and the unpublished
 submissions in the draft graph.
 
-Usage:  python3 scripts/build-eradis-snapshot.py [--endpoint URL]
-Writes: scripts/assets/era-eradis-snapshot.json.gz
+Usage:  python3 scripts/build-eradis-snapshot.py [--endpoint URL] [--lex-endpoint URL]
+Writes: scripts/assets/era-eradis-snapshot.json.gz      declarations + shared tables
+        scripts/assets/era-eradis-certificates.json.gz  NoBo certificates
+        (era:CertificationLevelDocument), loaded by the page on demand and
+        indexing into the shared organisation / TSI / directive tables
 """
 import argparse, csv, datetime, gzip, io, json, pathlib, re, sys, urllib.parse, urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 QUERIES = ROOT / "eradis"
 OUT = ROOT / "scripts" / "assets" / "era-eradis-snapshot.json.gz"
+OUT_CERTS = ROOT / "scripts" / "assets" / "era-eradis-certificates.json.gz"
 DEFAULT_ENDPOINT = "https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG"
 DEFAULT_LEX = "https://graph.dev.data.test-era.europa.eu/repositories/era-lex"
 
@@ -178,6 +182,9 @@ def main():
     org_rows = run(args.endpoint, "snapshot-organisations.rq")
     ref_rows = run(args.endpoint, "snapshot-references.rq")
     ver_rows = run(args.endpoint, "snapshot-versions.rq")
+    cert_rows = run(args.endpoint, "snapshot-certificates.rq")
+    cert_link_rows = run(args.endpoint, "snapshot-certificate-links.rq")
+    cert_ver_rows = run(args.endpoint, "snapshot-certificate-versions.rq")
 
     orgs, org_idx = [], {}
     for r in sorted(org_rows, key=lambda r: (r["orgName"] or "").lower()):
@@ -214,7 +221,82 @@ def main():
 
     versions = {r["documentId"]: int(r["versions"]) for r in ver_rows}
 
+    # ---- NoBo certificates (era:CertificationLevelDocument) ----------------
+    snapshot_day = datetime.date.today().isoformat()
+    cert_key = lambda uri: int(uri.rsplit("/", 1)[-1])
+    # Every current certificate whose dct:replaces chain reaches an older one.
+    # A list, not a single value: the chain is not always closed - 3089
+    # replaces 3091, yet 3091 carries no dct:isReplacedBy and so is current too.
+    currents_of = {}
+    for r in cert_ver_rows:
+        currents_of.setdefault(r["older"], []).append(r["current"])
+    cert_types, cert_type_idx = [], {}
+    modules, module_idx = [], {}
+    cert_states = []
+    certs, cert_idx = [], {}
+    for r in cert_rows:
+        uri = r["certificate"]
+        if uri in cert_idx:
+            continue  # a second description or validity row
+        if r["type"] and r["type"] not in cert_type_idx:
+            cert_type_idx[r["type"]] = len(cert_types)
+            cert_types.append([r["type"].rsplit("/", 1)[-1], r["typeLabel"] or r["type"].rsplit("/", 1)[-1]])
+        states = sorted(st.rsplit("/", 1)[-1] for st in r["states"].split("|") if st)
+        for st in states:
+            if st not in cert_states:
+                cert_states.append(st)
+        # Several dates of issue are common (1,631). In 90 of those one of
+        # them is the validity END recorded as a date of issue (issued
+        # 2026-09-19 = valid until 2026-09-19), and a few are typos (3019).
+        # The date shown is therefore the latest one that is neither the
+        # validity end nor after today; the others stay searchable, as in
+        # the SPARQL, which matches any dct:issued.
+        issued = sorted(set(d for d in r["issued"].split("|") if d))
+        usable = [d for d in issued if d != r["validUntil"]] or issued
+        past = [d for d in usable if d <= snapshot_day]
+        primary = past[-1] if past else (usable[0] if usable else "")
+        issued = [d for d in issued if d != primary] + ([primary] if primary else [])
+        m = re.search(r"id=(\d+)", r["eradisPage"] or "")
+        cert_idx[uri] = len(certs)
+        certs.append({
+            "k": cert_key(uri), "n": r["certNumber"],
+            "ty": cert_type_idx.get(r["type"]), "v": int(r["version"]),
+            "st": [cert_states.index(st) for st in states],
+            "d": issued[-1] if issued else "", "ds": issued[:-1],
+            "vf": r["validFrom"], "vu": r["validUntil"],
+            # the ERADIS page id, kept only where it differs from the key
+            "p": int(m.group(1)) if m and int(m.group(1)) != cert_key(uri) else None,
+            "nb": org_idx.get(r["noboOrg"]), "a": org_idx.get(r["applicantOrg"]),
+            # object of assessment; the first 200 characters are what the
+            # search and the table use - the full text is in the live record
+            "x": re.sub(r"\s+", " ", r["description"] or "")[:200],
+            "mf": [], "mo": [], "ts": [], "di": [], "ti": [], "pv": [], "re": 0, "dc": 0,
+        })
+    for r in cert_link_rows:
+        i = cert_idx.get(r["certificate"])
+        if i is None:
+            continue
+        c, k, v = certs[i], r["kind"], r["value"]
+        if k == "manu" and v in org_idx and org_idx[v] not in c["mf"]:
+            c["mf"].append(org_idx[v])
+        elif k == "module":
+            code = v.rsplit("/", 1)[-1]
+            if code not in module_idx:
+                module_idx[code] = len(modules)
+                modules.append(code)
+            if module_idx[code] not in c["mo"]:
+                c["mo"].append(module_idx[code])
+        elif k in ("tsi", "dir") and v in ref_idx and ref_idx[v][1] not in c["ts" if k == "tsi" else "di"]:
+            c["ts" if k == "tsi" else "di"].append(ref_idx[v][1])
+        elif k == "title" and v not in c["ti"]:
+            c["ti"].append(v)
+        elif k == "prev" and v not in c["pv"]:
+            c["pv"].append(v)
+        elif k == "restr":
+            c["re"] = 1
+
     decls, decl_idx = [], {}
+    cited_by = {}   # certificate key -> declarations citing it (any version)
     for r in decl_rows:
         uri = r["declaration"]
         if uri in decl_idx:
@@ -248,16 +330,26 @@ def main():
             d["ti"].append(v)
         elif k in ("tsi", "dir") and v in ref_idx and ref_idx[v][1] not in d["ts" if k == "tsi" else "di"]:
             d["ts" if k == "tsi" else "di"].append(ref_idx[v][1])
-        elif k == "cert" and v != "deleted" and [v, r["extra"]] not in d["ce"]:
-            # "deleted" is a tombstone label, not a certificate ID
-            d["ce"].append([v, r["extra"]])
+        elif k == "cert" and v != "deleted" and v not in [c[0] for c in d["ce"]]:
+            # [certificate number, date issued, key of the current certificate
+            # to open (0 = none among the current published ones), further
+            # current certificates this one is an earlier version of]. Counted
+            # like the SPARQL "?certificate dct:replaces* ?cited".
+            targets = ([r["ref"]] if r["ref"] in cert_idx else []) + currents_of.get(r["ref"], [])
+            keys = list(dict.fromkeys(certs[cert_idx[t]]["k"] for t in targets if t in cert_idx))
+            d["ce"].append([v, r["extra"], keys[0] if keys else 0] + ([keys[1:]] if len(keys) > 1 else []))
+            for key in keys:
+                cited_by.setdefault(key, set()).add(i)
         elif k == "restr":
             d["re"] = 1
 
     # Drop empty keys to keep the file small; the page treats missing as empty.
+    # Index 0 is a real organisation / type, so only the 0/1 flags drop at 0.
+    def compact(rec, flags=("re", "dc")):
+        for k in [k for k, v in rec.items() if v is None or v == "" or v == [] or (k in flags and v == 0)]:
+            del rec[k]
     for d in decls:
-        for k in [k for k, v in d.items() if v in ([], None, "", 0) and k not in ("s",)]:
-            del d[k]
+        compact(d)
 
     snapshot = {
         "generated": datetime.date.today().isoformat(),
@@ -279,6 +371,25 @@ def main():
     OUT.write_bytes(gzip.compress(raw, 9, mtime=0))
     print(f"Wrote {OUT.relative_to(ROOT)}: {len(decls):,} declarations, {len(orgs):,} organisations, "
           f"{len(raw)/1e6:.1f} MB JSON -> {OUT.stat().st_size/1e6:.2f} MB gzip", file=sys.stderr)
+
+    for c in certs:
+        c["dc"] = len(cited_by.get(c["k"], ()))
+        compact(c)
+    cert_snapshot = {
+        "generated": snapshot["generated"],
+        "types": cert_types,
+        "modules": modules,
+        "states": cert_states,
+        "certs": certs,
+    }
+    raw = json.dumps(cert_snapshot, ensure_ascii=False, separators=(",", ":")).encode()
+    OUT_CERTS.write_bytes(gzip.compress(raw, 9, mtime=0))
+    linked = sum(1 for d in decls for c in d.get("ce", []) if c[2])
+    multi = sum(1 for d in decls for c in d.get("ce", []) if len(c) > 3)
+    total = sum(len(d.get("ce", [])) for d in decls)
+    print(f"Wrote {OUT_CERTS.relative_to(ROOT)}: {len(certs):,} certificates, "
+          f"{len(raw)/1e6:.1f} MB JSON -> {OUT_CERTS.stat().st_size/1e6:.2f} MB gzip; "
+          f"{linked:,} of {total:,} declaration-certificate links resolved ({multi} reach two current certificates)", file=sys.stderr)
 
 
 if __name__ == "__main__":

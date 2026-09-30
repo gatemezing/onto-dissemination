@@ -340,6 +340,19 @@ elsewhere cannot read it. `era-eradis-explorer.html` searches a snapshot
   - 2006/66, 2007/153, 2009/107, 2010/79 and 2012/88 exist only as
     `…(1)/oj` / `…(2)/oj`, where `(2)` is an EEA decision. ERADIS-KG's
     `owl:sameAs` points at a URI era-lex does not have.
+- **NoBo certificates are `era:CertificationLevelDocument`**
+  (`…/evidence/cld/cld-NoBoCert/N`, 47,908 of them).
+  - Roles: notified body = `dct:creator`, applicant = `dct:audience`,
+    manufacturer = `dct:contributor`.
+  - The certificate number is `dct:identifier`. Read it there, never from
+    `rdfs:label`, which only 20,456 certificates have.
+  - **Don't trust `era:state` for validity**: 42,088 current certificates say
+    "amended". Use the `dct:valid` window, with withdrawn and suspended as
+    recorded.
+  - `dct:issued` is multi-valued on 1,631 certificates, and sometimes holds the
+    validity end.
+  - Replacement chains are open: an old version can lack `dct:isReplacedBy`.
+    Count a citation for every current `?c dct:replaces* ?cited`.
 
 ## The tools in this repo
 

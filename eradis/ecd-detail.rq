@@ -10,7 +10,7 @@
 #
 # Sections:
 #   version      one row per version: state, date issued, date accepted
-#   certificate  NoBo certificate ID, certificate type (cld-types), date issued
+#   certificate  NoBo certificate number, certificate type (cld-types), date issued
 #   restriction  conditions of use / restrictions text (current version)
 #   signatory    signatory name (current version) - personal data, shown live only
 #   document     technical-file documents listed (current version)
@@ -40,7 +40,7 @@ WHERE {
 		FILTER(?current)
 		?v dct:relation/rdfs:member ?c .
 		FILTER(STRSTARTS(STR(?c), "http://data.europa.eu/949/evidence/cld/cld-NoBoCert/"))
-		?c rdfs:label ?value .
+		?c dct:identifier ?value .   # rdfs:label is only on 20,456 of 47,908 certificates
 		OPTIONAL { ?c dct:type/skos:prefLabel ?extra }
 		OPTIONAL { ?c dct:issued ?date }
 		BIND("certificate" AS ?section)

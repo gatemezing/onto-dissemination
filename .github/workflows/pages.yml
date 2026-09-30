@@ -17,6 +17,7 @@ on:
       - 'scripts/assets/era-eurostat-exporter.html'
       - 'scripts/assets/era-eradis-explorer.html'
       - 'scripts/assets/era-eradis-snapshot.json.gz'
+      - 'scripts/assets/era-eradis-certificates.json.gz'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -53,6 +54,7 @@ jobs:
           cp scripts/assets/era-eurostat-exporter.html _site/eurostat.html
           cp scripts/assets/era-eradis-explorer.html _site/eradis.html
           cp scripts/assets/era-eradis-snapshot.json.gz _site/era-eradis-snapshot.json.gz
+          cp scripts/assets/era-eradis-certificates.json.gz _site/era-eradis-certificates.json.gz
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

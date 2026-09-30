@@ -37,6 +37,7 @@ PREFIX gr:   <http://purl.org/goodrelations/v1#>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
 
 SELECT ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
@@ -62,7 +63,9 @@ WHERE {
 	VALUES ?type { <http://data.europa.eu/949/concepts/ecd-types/ECDoV> <http://data.europa.eu/949/concepts/ecd-types/ECDoC> <http://data.europa.eu/949/concepts/ecd-types/ECDoSU> }
 	VALUES ?state { <http://data.europa.eu/949/concepts/evidence-document-states/inForce> }
 	# Applicant (dct:creator)
-	?declaration dct:creator/era:roleOf/org:hasSite/org:siteAddress/locn:adminUnitL1 <http://publications.europa.eu/resource/authority/country/DNK> .
+	FILTER EXISTS { ?declaration dct:creator/era:roleOf ?appF .
+		?appF org:hasSite/org:siteAddress/locn:adminUnitL1 <http://publications.europa.eu/resource/authority/country/DNK> .
+	}
 	# Type of subsystem "Control-command and signalling" (Directive 2016/797 Annex II), derived from the TSIs cited
 	FILTER EXISTS { ?declaration eli:id_local ?subTsi . VALUES ?subTsi { <http://data.europa.eu/949/legislation/requirements/dec-2002-731> <http://data.europa.eu/949/legislation/requirements/dec-2004-447> <http://data.europa.eu/949/legislation/requirements/dec-2006-679> <http://data.europa.eu/949/legislation/requirements/dec-2006-860> <http://data.europa.eu/949/legislation/requirements/dec-2007-153> <http://data.europa.eu/949/legislation/requirements/dec-2008-386> <http://data.europa.eu/949/legislation/requirements/dec-2009-561> <http://data.europa.eu/949/legislation/requirements/dec-2010-79> <http://data.europa.eu/949/legislation/requirements/dec-2012-463> <http://data.europa.eu/949/legislation/requirements/dec-2012-696> <http://data.europa.eu/949/legislation/requirements/dec-2012-88> <http://data.europa.eu/949/legislation/requirements/dec-2015-14> <http://data.europa.eu/949/legislation/requirements/reg-2016-919> <http://data.europa.eu/949/legislation/requirements/reg_impl-2020-420> <http://data.europa.eu/949/legislation/requirements/reg_impl-2023-1695> } }
 	FILTER(?issued >= "2024-01-01"^^xsd:date)

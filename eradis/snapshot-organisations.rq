@@ -1,5 +1,6 @@
-# ERADIS snapshot, part 3 of 5 - every organisation a published declaration names
-# (applicant, authorised representative or notified body): name, country, and
+# ERADIS snapshot - every organisation a published declaration or NoBo
+# certificate names (applicant, authorised representative, manufacturer or
+# notified body): name, country, and
 # national registration / VAT number where recorded (383 of 903 applicants).
 # Organisation data sits in <http://data.europa.eu/949/eradis/organisation/graph>,
 # which is why the query below is not pinned to the declaration graph.
@@ -18,19 +19,26 @@ SELECT ?org (SAMPLE(?name) AS ?orgName) (SAMPLE(?country) AS ?orgCountry)
        (GROUP_CONCAT(DISTINCT ?reg; SEPARATOR="|") AS ?registration) (SAMPLE(?nando) AS ?nandoCode)
 WHERE {
 	{ SELECT DISTINCT ?org WHERE {
-	# The published, current version of each declaration. The draft graph holds
-	# unpublished submissions; rejected declarations are not part of the
-	# public register.
-	GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
-	FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }
-	?declaration era:state ?state .
-	VALUES ?state {
-		<http://data.europa.eu/949/concepts/evidence-document-states/inForce>
-		<http://data.europa.eu/949/concepts/evidence-document-states/amended>
-		<http://data.europa.eu/949/concepts/evidence-document-states/revoked>
-		<http://data.europa.eu/949/concepts/evidence-document-states/suspended>
-	}
-		?declaration (dct:creator|dct:contributor)/era:roleOf ?org .
+		{
+			# current version of each published declaration (rejected ones and
+			# the draft graph excluded)
+			GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+			FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }
+			?declaration era:state ?state .
+			VALUES ?state {
+				<http://data.europa.eu/949/concepts/evidence-document-states/inForce>
+				<http://data.europa.eu/949/concepts/evidence-document-states/amended>
+				<http://data.europa.eu/949/concepts/evidence-document-states/revoked>
+				<http://data.europa.eu/949/concepts/evidence-document-states/suspended>
+			}
+			?declaration (dct:creator|dct:contributor)/era:roleOf ?org .
+		} UNION {
+			# current, published version of each NoBo certificate
+			GRAPH <http://data.europa.eu/949/graph/eradis> { ?certificate a era:CertificationLevelDocument }
+			FILTER NOT EXISTS { ?certificate dct:isReplacedBy ?newerCert }
+			FILTER EXISTS { ?certificate era:state ?cs FILTER(?cs != <http://data.europa.eu/949/concepts/evidence-document-states/draft>) }
+			?certificate (dct:creator|dct:audience|dct:contributor)/era:roleOf ?org .
+		}
 	} }
 	OPTIONAL { ?org foaf:name ?name }
 	OPTIONAL { ?org org:hasSite/org:siteAddress/locn:adminUnitL1 ?country }

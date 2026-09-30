@@ -1,8 +1,13 @@
 # ERADIS-KG query set
 
 The SPARQL behind [era-eradis-explorer.html](../scripts/assets/era-eradis-explorer.html)
-(deployed as `/eradis.html`): a search over the EC declarations of verification,
-conformity and suitability for use, laid out like the ERADIS search form.
+(deployed as `/eradis.html`). It searches two ERADIS registers, each laid out
+like its ERADIS form, and links them to each other:
+
+- the **EC declarations** of verification, conformity and suitability for use
+  (`era:ECDeclaration`);
+- the **NoBo certificates** they rest on (`era:CertificationLevelDocument`).
+  `eradis.html#certificates` opens this register directly.
 
 Endpoint: `https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG`
 (development server; the production repository asks for a login).
@@ -12,15 +17,24 @@ Legal acts: `https://graph.dev.data.test-era.europa.eu/repositories/era-lex`.
 |---|---|---|
 | `ecd-search.rq` | ERADIS-KG | one search from the form, with the field → property mapping in its header |
 | `ecd-detail.rq` | ERADIS-KG | the full record of one declaration: versions, certificates, restrictions, signatories, technical file, published files |
+| `cld-search.rq` | ERADIS-KG | one search from the certificate form, with the field → property mapping in its header |
+| `cld-detail.rq` | ERADIS-KG | the full record of one certificate: versions, object of assessment, statements, conditions of use, citing declarations |
 | `snapshot-declarations.rq` | ERADIS-KG | snapshot part 1: one row per published declaration |
 | `snapshot-links.rq` | ERADIS-KG | snapshot part 2: notified bodies, constituents, TSIs, directives, certificates |
-| `snapshot-organisations.rq` | ERADIS-KG | snapshot part 3: organisation name, country, registration/VAT, NANDO code |
-| `snapshot-references.rq` | ERADIS-KG | snapshot part 4: the TSIs and directives cited |
+| `snapshot-organisations.rq` | ERADIS-KG | snapshot part 3: organisation name, country, registration/VAT, NANDO code (declarations and certificates) |
+| `snapshot-references.rq` | ERADIS-KG | snapshot part 4: the TSIs and directives cited (declarations and certificates) |
 | `snapshot-versions.rq` | ERADIS-KG | snapshot part 5: versions per document |
+| `snapshot-certificates.rq` | ERADIS-KG | certificate snapshot: one row per current certificate |
+| `snapshot-certificate-links.rq` | ERADIS-KG | certificate snapshot: manufacturers, modules, TSIs, directives, constituents, earlier numbers, restrictions |
+| `snapshot-certificate-versions.rq` | ERADIS-KG | certificate snapshot: every earlier version → its current version |
 | `snapshot-lex.rq` | era-lex | ELI, English title, in-force status and `eli:changes` of every act cited |
 
-`python3 scripts/build-eradis-snapshot.py` runs the snapshot queries and writes
-`scripts/assets/era-eradis-snapshot.json.gz` (22,256 declarations, ~2 MB).
+`python3 scripts/build-eradis-snapshot.py` runs the snapshot queries and writes two files:
+
+- `scripts/assets/era-eradis-snapshot.json.gz`: 22,256 declarations plus the
+  shared organisation, TSI and directive tables (~1.9 MB);
+- `scripts/assets/era-eradis-certificates.json.gz`: 43,471 certificates
+  (~3.7 MB), loaded only when the certificate tab is opened.
 
 ## Why a snapshot
 
@@ -32,9 +46,10 @@ every submission. "Run live on ERADIS-KG" sends it directly and reports the CORS
 block when there is one; "Open in GraphDB workbench" opens the query pre-filled
 in the workbench (`/sparql?repositoryId=ERADIS-KG&query=…`).
 
-The snapshot and the SPARQL were checked against each other on 2026-09-30 for 27
-form combinations. They return identical sets of Document IDs wherever the live
-query stays under its 500-row limit. The snapshot holds **no signatory names**
+The snapshot and the SPARQL were checked against each other on 2026-09-30:
+27 declaration searches and 14 certificate searches. They return identical sets
+of Document IDs and certificates wherever the live query stays under its 500-row
+limit. The snapshot holds **no signatory names**
 (personal data) and no contact details, so the two signatory fields only work live.
 
 ## Scope
@@ -60,7 +75,7 @@ query stays under its 500-row limit. The snapshot holds **no signatory names**
 | Applicant national registration no. | embedded in the Document ID (zero-padded); `gr:legalNumber`/`gr:vatID` is recorded for only 383 of 903 applicants |
 | Authorised representative | `dct:contributor` whose role is `organisation-roles/Manufacturer`, checked against ERADIS pages 13438 and 15513 |
 | Type of subsystem | **not in ERADIS-KG**, derived as described below |
-| Certificate of conformity ID | `dct:relation/rdfs:member` in `…/evidence/cld/cld-NoBoCert/`, `rdfs:label` |
+| Certificate of conformity ID | `dct:relation/rdfs:member` → an `era:CertificationLevelDocument`, `dct:identifier`. Not `rdfs:label`, which only 20,456 of the 47,908 certificates have. |
 | To EC Directives / To TSIs | `dct:source` / `eli:id_local` |
 | Signatories | `prov:wasAttributedTo` → `foaf:givenName` / `foaf:familyName` |
 | Date of issue | `dct:issued` (`xsd:date`) |
@@ -100,6 +115,50 @@ declaration cites (`eli:id_local`), resolving each act in **era-lex**:
 Result: 16,985 declarations with one subsystem, 1,099 with several (mostly
 whole-train declarations of verification citing both rolling-stock and CCS
 on-board TSIs), and 4,172 with none.
+
+## NoBo certificates (`era:CertificationLevelDocument`)
+
+The certificate form follows the ERADIS certificate page: general information,
+TSIs and constituents, applicant, manufacturer, NoBo, dates. The field mapping
+is in the header of `cld-search.rq`.
+
+- **Scope.** The current version of each certificate in `graph/eradis`
+  (43,471). Only unpublished drafts are dropped, i.e. certificates whose only
+  state is "draft".
+- **Validity is derived.** The recorded `era:state` says "amended" for 42,088
+  current certificates and "inForce" for 12, so it can't answer "is this
+  certificate valid?". The explorer uses:
+  - withdrawn and suspended as recorded;
+  - otherwise the `dct:valid` window (`time:hasBeginning` / `time:hasEnd`)
+    against today's date.
+
+  On 2026-09-30 this gives 24,998 valid today, 17,098 expired, 712 suspended,
+  659 withdrawn and 4 not yet valid. The SPARQL computes the same value with
+  `NOW()`.
+- **Dates of issue.** 1,631 certificates carry several `dct:issued` values:
+  - usually one of them equals the start of the validity window;
+  - in 90 cases one equals its **end**, i.e. the validity end recorded as a
+    date of issue;
+  - a few are typos (3019 for 2019).
+
+  The date shown is the latest one that is neither the validity end nor in the
+  future. The date filter matches any recorded date, as the SPARQL's
+  `FILTER EXISTS` does, and dates after the current year are kept out of the
+  chart.
+- **Versions and citations.** 5,681 of 82,082 declaration → certificate links
+  point at an older version of the certificate. The replacement chains are not
+  always closed: 3089 replaces 3091, yet 3091 has no `dct:isReplacedBy` and so
+  also counts as current. A citation therefore counts for every current
+  certificate whose `dct:replaces*` chain reaches the cited version, exactly as
+  in the SPARQL. 1,530 citations reach two current certificates.
+
+  16,076 certificates are cited by at least one published declaration. The two
+  registers link both ways: a declaration's certificates, and a certificate's
+  citing declarations.
+- **Modules.** `dct:conformsTo` also points at Decision 2010/713 (the modules
+  decision itself) on 5,337 certificates; it is not offered as a module.
+- **Subsystem**, derived from the certificate's TSIs as for declarations: one
+  subsystem for 27,359 certificates, several for 3,404, none for 12,708.
 
 ## Data observations
 

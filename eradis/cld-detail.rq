@@ -1,0 +1,66 @@
+# Everything ERADIS-KG records about one NoBo certificate
+# (era:CertificationLevelDocument), as (section, value, extra, date) rows - the
+# live "full record" of a certificate in era-eradis-explorer.html.
+#
+# Endpoint: https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG
+# Replace the certificate in VALUES (here 2071/6/SG/2025/CCT/HUEN/78/V01, an EC
+# certificate of verification for ETCS on a Hungarian line).
+#
+# Sections:
+#   version      every version of the certificate (dct:replaces chain): number,
+#                recorded state, date of issue, validity window
+#   assessment   the object of assessment in full (dct:description)
+#   statement    result / validity / sequence statements and the documentation note
+#   restriction  conditions and limits of use
+#   declaration  EC declarations citing any version of this certificate
+
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX time: <http://www.w3.org/2006/time#>
+
+SELECT ?section ?value ?extra ?date
+WHERE {
+	VALUES ?certificate { <http://data.europa.eu/949/evidence/cld/cld-NoBoCert/49896> }
+	{
+		?certificate dct:replaces* ?v .
+		?v dct:identifier ?number ; vpa:versionNumber ?value .
+		OPTIONAL { ?v era:state ?st }
+		OPTIONAL { ?v dct:issued ?date }
+		OPTIONAL { ?v dct:valid ?w . OPTIONAL { ?w time:hasBeginning/time:inXSDDate ?from } OPTIONAL { ?w time:hasEnd/time:inXSDDate ?until } }
+		BIND(CONCAT(?number, " · ", REPLACE(STR(?st), "^.*/", ""),
+			IF(BOUND(?from), CONCAT(" · valid ", STR(?from), IF(BOUND(?until), CONCAT(" to ", STR(?until)), " onwards")), "")) AS ?extra)
+		BIND("version" AS ?section)
+	} UNION {
+		?certificate dct:description ?value .
+		BIND("assessment" AS ?section)
+	} UNION {
+		VALUES (?p ?extra) { (era:resultStatement "Result") (era:validityStatement "Validity") (era:sequenceStatement "Sequence") (rdfs:comment "Documentation") }
+		?certificate ?p ?value .
+		BIND("statement" AS ?section)
+	} UNION {
+		?certificate vpa:checkedCompliance/vpa:withRestriction/rdfs:comment ?value .
+		BIND("restriction" AS ?section)
+	} UNION {
+		# same scope as the declaration search: current version of each
+		# published declaration (rejected ones share the Document ID of the
+		# accepted resubmission, so they would show up twice)
+		?certificate dct:replaces* ?anyVersion .
+		?declaration dct:relation/rdfs:member ?anyVersion ;
+			dct:identifier ?value ;
+			era:state ?dst .
+		GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+		FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newerDeclaration }
+		VALUES ?dst {
+			<http://data.europa.eu/949/concepts/evidence-document-states/inForce>
+			<http://data.europa.eu/949/concepts/evidence-document-states/amended>
+			<http://data.europa.eu/949/concepts/evidence-document-states/revoked>
+			<http://data.europa.eu/949/concepts/evidence-document-states/suspended>
+		}
+		OPTIONAL { ?declaration dct:issued ?date }
+		BIND(REPLACE(STR(?dst), "^.*/", "") AS ?extra)
+		BIND("declaration" AS ?section)
+	}
+}
+ORDER BY ?section ?value
