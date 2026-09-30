@@ -1,0 +1,71 @@
+# Everything ERADIS-KG records about one EC declaration, as (section, value,
+# extra, date) rows - the live "details" panel of era-eradis-explorer.html.
+#
+# Endpoint: https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG
+# Replace the Document ID in VALUES (here a Danish ETCS on-board declaration of
+# verification with five versions). Every version of the document is a separate
+# resource sharing dct:identifier; they are chained by dct:replaces /
+# dct:isReplacedBy, so the version history comes from the identifier, not from
+# walking the chain.
+#
+# Sections:
+#   version      one row per version: state, date issued, date accepted
+#   certificate  NoBo certificate ID, certificate type (cld-types), date issued
+#   restriction  conditions of use / restrictions text (current version)
+#   signatory    signatory name (current version) - personal data, shown live only
+#   document     technical-file documents listed (current version)
+#   attachment   the declaration's own files published on ERADIS (current version)
+
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?section ?value ?extra ?date
+WHERE {
+	VALUES ?documentId { "DK/0000DK18632276/2022/000003" }
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?v a era:ECDeclaration }
+	?v dct:identifier ?documentId .
+	OPTIONAL { ?v dct:isReplacedBy ?newer }
+	BIND(!BOUND(?newer) AS ?current)
+	{
+		?v vpa:versionNumber ?value ; era:state ?st ; dct:issued ?date .
+		OPTIONAL { ?v dct:dateAccepted ?accepted }
+		BIND(CONCAT(REPLACE(STR(?st), "^.*/", ""), IF(BOUND(?accepted), CONCAT(" · accepted ", STR(?accepted)), "")) AS ?extra)
+		BIND("version" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v dct:relation/rdfs:member ?c .
+		FILTER(STRSTARTS(STR(?c), "http://data.europa.eu/949/evidence/cld/cld-NoBoCert/"))
+		?c rdfs:label ?value .
+		OPTIONAL { ?c dct:type/skos:prefLabel ?extra }
+		OPTIONAL { ?c dct:issued ?date }
+		BIND("certificate" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v vpa:withRestriction/rdfs:comment ?value .
+		BIND("restriction" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v prov:wasAttributedTo ?p .
+		OPTIONAL { ?p foaf:givenName ?given } OPTIONAL { ?p foaf:familyName ?family } OPTIONAL { ?p foaf:name ?full }
+		BIND(COALESCE(?full, CONCAT(COALESCE(?given, ""), " ", COALESCE(?family, ""))) AS ?value)
+		BIND("signatory" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v dct:relation/rdfs:member ?doc .
+		FILTER(CONTAINS(STR(?doc), "/evidence/doc/"))
+		?doc rdfs:comment ?value .
+		BIND("document" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v dct:relation/rdfs:member ?a .
+		FILTER(CONTAINS(STR(?a), "/evidence/ecd/attachment/"))
+		?a rdfs:label ?value ; era:documentUrl ?extra .
+		BIND("attachment" AS ?section)
+	}
+}
+ORDER BY ?section ?value

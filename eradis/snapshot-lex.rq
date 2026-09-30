@@ -1,0 +1,32 @@
+# ERADIS snapshot, lookup in era-lex - the legal acts ERADIS-KG declarations cite,
+# resolved to their ELI in the era-lex repository.
+#
+# Endpoint: https://graph.dev.data.test-era.europa.eu/repositories/era-lex
+# ##VALUES## is filled by scripts/build-eradis-snapshot.py with candidate ELI
+# URIs, then again with the acts those amend, until the amendment chain closes.
+#
+# What era-lex adds over ERADIS-KG:
+#   - an English title for every act (ERADIS-KG has none for 2019/776, 2020/387,
+#     2023/1695 and the other amending implementing regulations);
+#   - eli:changes, the acts an amending act changes - which is how an amending
+#     regulation inherits the subsystem of the TSI(s) it amends;
+#   - in-force status.
+# Five decisions (2006/66, 2007/153, 2009/107, 2010/79, 2012/88) exist in
+# era-lex only as .../dec/YYYY/N(1)/oj and .../(2)/oj - EUR-Lex's way of
+# separating two acts sharing a number; the (2) is an EEA Joint Committee
+# decision (eli:based_on treaty/EEA), so the script keeps the other one.
+# ERADIS-KG's owl:sameAs points at the unsuffixed URI, which does not exist.
+
+PREFIX eli: <http://data.europa.eu/eli/ontology#>
+
+SELECT ?eli ?title ?inForce ?basedOn ?changes
+WHERE {
+	VALUES ?eli { ##VALUES## }
+	?eli a eli:LegalResource .
+	OPTIONAL { ?eli eli:is_realized_by ?expr .
+		?expr eli:language <http://publications.europa.eu/resource/authority/language/ENG> ;
+			eli:title ?title }
+	OPTIONAL { ?eli eli:in_force ?inForce }
+	OPTIONAL { ?eli eli:based_on ?basedOn }
+	OPTIONAL { ?eli eli:changes ?changes }
+}

@@ -15,6 +15,8 @@ on:
       - 'scripts/assets/era-holobox-frame.html'
       - 'scripts/assets/era-ask.html'
       - 'scripts/assets/era-eurostat-exporter.html'
+      - 'scripts/assets/era-eradis-explorer.html'
+      - 'scripts/assets/era-eradis-snapshot.json.gz'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -49,6 +51,8 @@ jobs:
           cp scripts/assets/era-holobox-frame.html _site/holobox.html
           cp scripts/assets/era-ask.html _site/ask.html
           cp scripts/assets/era-eurostat-exporter.html _site/eurostat.html
+          cp scripts/assets/era-eradis-explorer.html _site/eradis.html
+          cp scripts/assets/era-eradis-snapshot.json.gz _site/era-eradis-snapshot.json.gz
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

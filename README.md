@@ -21,6 +21,7 @@ browser and exports results as CSV or Excel.
 | RCC Parameters (route compatibility) | https://gatemezing.github.io/onto-dissemination/rcc.html |
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
 | Eurostat Exporter (sections of line / TEN-T flags as CSV) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
+| ERADIS Explorer (EC declarations, ERADIS search form) | https://gatemezing.github.io/onto-dissemination/eradis.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 
 Every tool links to the others in its footer. Deployment is automatic:
@@ -120,6 +121,20 @@ so an empty column is visibly a publication gap rather than a silent blank. Only
 description valid today is exported, so sections a manager has already
 republished for next year (Germany) are not counted twice.
 
+**[era-eradis-explorer.html](scripts/assets/era-eradis-explorer.html)** —
+searches the EC declarations of verification, conformity and suitability for use
+in `ERADIS-KG`, with the fields of the ERADIS search form: Document ID,
+applicant and authorised representative (country, organisation, registration
+number), type of subsystem, constituent, certificate ID, directives, TSIs,
+signatories and date of issue. Every search is shown as SPARQL, runnable live or
+in the GraphDB workbench. Results come with a per-year chart by type, CSV
+download, and a detail view with each cited TSI linked to its ELI in `era-lex`.
+The dev endpoint sends no CORS headers, so the page searches a snapshot built by
+the same queries ([eradis/](eradis/), `scripts/build-eradis-snapshot.py`). The
+snapshot holds no signatory names, so the signatory fields only work live.
+"Type of subsystem" is not in the graph; it is derived from the TSIs cited,
+resolved through era-lex — see [eradis/README.md](eradis/README.md).
+
 **[era-interop-answers.html](scripts/assets/era-interop-answers.html)** — the
 ERA reusability answers for the Interoperable Europe assessment (source text
 in [interop-europe/answers.md](interop-europe/answers.md)).
@@ -158,6 +173,9 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
   `python-pptx`).
 - `interop-europe/` — the assessment questions, drafted answers, and the
   extracted Data Stories query catalogue.
+- `eradis/` — the ERADIS-KG query set behind the ERADIS Explorer: the search
+  and detail queries, the snapshot queries (ERADIS-KG and era-lex), and how the
+  ERADIS form maps onto the graph.
 - `eurostat/` — the Eurostat query set: the original queries, their optimised
   and live-tested rewrites, and data-quality extracts. Each optimised file
   documents what was wrong with the original and the measured runtimes.

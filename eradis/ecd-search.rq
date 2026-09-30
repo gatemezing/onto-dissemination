@@ -1,0 +1,86 @@
+# Sample output of era-eradis-explorer.html's query builder - the SPARQL behind
+# one search of the form: applicant country Denmark, type of subsystem
+# "Control-command and signalling", date of issue from 2024-01-01, status in
+# force, all declaration types. Every field of the form adds one clause; the
+# page shows the query for the current search under "See the SPARQL query".
+#
+# Measured 2026-09-30 against the dev endpoint: 246 declarations, the same 246
+# the page finds in its snapshot. Unfiltered (in force only) the query runs in
+# ~6 s; a country or subsystem filter brings it to ~2 s.
+#
+# How the form maps onto ERADIS-KG:
+#   Document ID number ........ dct:identifier
+#   Applicant ................. dct:creator -> era:roleOf -> organisation
+#                               (name foaf:name; country via org:hasSite/
+#                               org:siteAddress/locn:adminUnitL1; registration
+#                               no. embedded in the Document ID, or gr:legalNumber
+#                               / gr:vatID where recorded)
+#   Authorised representative . dct:contributor in the Manufacturer role
+#                               (checked against the public ERADIS pages)
+#   Type of subsystem ......... not in ERADIS-KG - derived from the TSIs cited
+#                               (eli:id_local), resolved in era-lex; see README.md
+#   Constituent / part ........ eli:title_short
+#   Certificate ID ............ dct:relation/rdfs:member of type cld-NoBoCert, rdfs:label
+#   To EC Directives .......... dct:source
+#   To TSIs ................... eli:id_local
+#   Signatories ............... prov:wasAttributedTo -> foaf:givenName / foaf:familyName
+#   Date of issue ............. dct:issued (xsd:date)
+
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX gr:   <http://purl.org/goodrelations/v1#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
+	(SAMPLE(?applicantName) AS ?applicant)
+	(SAMPLE(?applicantCountry) AS ?applicantCountryUri)
+	(SAMPLE(?authRepName) AS ?authorisedRepresentative)
+	(GROUP_CONCAT(DISTINCT ?noboName; SEPARATOR="|") AS ?notifiedBodies)
+	(GROUP_CONCAT(DISTINCT ?title; SEPARATOR="|") AS ?constituent)
+	(GROUP_CONCAT(DISTINCT ?tsiNotation; SEPARATOR="|") AS ?tsis)
+	(GROUP_CONCAT(DISTINCT STR(?tsi); SEPARATOR="|") AS ?tsiUris)
+	(SAMPLE(?hasRestriction) AS ?restricted)
+WHERE {
+	# Published declarations only (the draft graph holds unpublished
+	# submissions). Organisation data lives in its own graph, so only the
+	# declaration itself is pinned.
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+	?declaration dct:identifier ?documentId ;
+		dct:type ?type ;
+		era:state ?state ;
+		vpa:versionNumber ?version ;
+		dct:issued ?issued .
+	FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }   # current version
+	VALUES ?type { <http://data.europa.eu/949/concepts/ecd-types/ECDoV> <http://data.europa.eu/949/concepts/ecd-types/ECDoC> <http://data.europa.eu/949/concepts/ecd-types/ECDoSU> }
+	VALUES ?state { <http://data.europa.eu/949/concepts/evidence-document-states/inForce> }
+	# Applicant (dct:creator)
+	?declaration dct:creator/era:roleOf/org:hasSite/org:siteAddress/locn:adminUnitL1 <http://publications.europa.eu/resource/authority/country/DNK> .
+	# Type of subsystem "Control-command and signalling" (Directive 2016/797 Annex II), derived from the TSIs cited
+	FILTER EXISTS { ?declaration eli:id_local ?subTsi . VALUES ?subTsi { <http://data.europa.eu/949/legislation/requirements/dec-2002-731> <http://data.europa.eu/949/legislation/requirements/dec-2004-447> <http://data.europa.eu/949/legislation/requirements/dec-2006-679> <http://data.europa.eu/949/legislation/requirements/dec-2006-860> <http://data.europa.eu/949/legislation/requirements/dec-2007-153> <http://data.europa.eu/949/legislation/requirements/dec-2008-386> <http://data.europa.eu/949/legislation/requirements/dec-2009-561> <http://data.europa.eu/949/legislation/requirements/dec-2010-79> <http://data.europa.eu/949/legislation/requirements/dec-2012-463> <http://data.europa.eu/949/legislation/requirements/dec-2012-696> <http://data.europa.eu/949/legislation/requirements/dec-2012-88> <http://data.europa.eu/949/legislation/requirements/dec-2015-14> <http://data.europa.eu/949/legislation/requirements/reg-2016-919> <http://data.europa.eu/949/legislation/requirements/reg_impl-2020-420> <http://data.europa.eu/949/legislation/requirements/reg_impl-2023-1695> } }
+	FILTER(?issued >= "2024-01-01"^^xsd:date)
+	# What the results table shows
+	OPTIONAL { ?declaration rdfs:seeAlso ?eradisPage }
+	OPTIONAL { ?declaration dct:creator/era:roleOf ?applicantOrg .
+		OPTIONAL { ?applicantOrg foaf:name ?applicantName }
+		OPTIONAL { ?applicantOrg org:hasSite/org:siteAddress/locn:adminUnitL1 ?applicantCountry } }
+	OPTIONAL { ?declaration dct:contributor ?arRole .
+		?arRole era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/Manufacturer> ;
+			era:roleOf/foaf:name ?authRepName }
+	OPTIONAL { ?declaration dct:contributor ?nbRole .
+		?nbRole era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/NOBO> ;
+			era:roleOf/foaf:name ?noboName }
+	OPTIONAL { ?declaration eli:title_short ?title }
+	OPTIONAL { ?declaration eli:id_local ?tsi . OPTIONAL { ?tsi skos:notation ?tsiNotation } }
+	OPTIONAL { ?declaration vpa:withRestriction ?r . BIND(true AS ?hasRestriction) }
+}
+GROUP BY ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
+ORDER BY DESC(?issued) ?documentId
+LIMIT 500

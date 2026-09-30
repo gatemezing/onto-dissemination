@@ -1,0 +1,42 @@
+# ERADIS snapshot, part 1 of 5 - one row per published declaration (current version).
+# Endpoint: https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG
+# Read by scripts/build-eradis-snapshot.py. A declaration with several
+# dct:description values returns one row per value; the script keeps the first.
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX gr:   <http://purl.org/goodrelations/v1#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage ?applicantOrg ?authorisedRepOrg ?description
+WHERE {
+	# The published, current version of each declaration. The draft graph holds
+	# unpublished submissions; rejected declarations are not part of the
+	# public register.
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+	FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }
+	?declaration era:state ?state .
+	VALUES ?state {
+		<http://data.europa.eu/949/concepts/evidence-document-states/inForce>
+		<http://data.europa.eu/949/concepts/evidence-document-states/amended>
+		<http://data.europa.eu/949/concepts/evidence-document-states/revoked>
+		<http://data.europa.eu/949/concepts/evidence-document-states/suspended>
+	}
+	?declaration dct:identifier ?documentId ;
+		dct:type ?type ;
+		vpa:versionNumber ?version ;
+		dct:issued ?issued .
+	OPTIONAL { ?declaration rdfs:seeAlso ?eradisPage }
+	# Applicant = dct:creator; authorised representative = dct:contributor in the
+	# Manufacturer role (checked against the public ERADIS pages, e.g. id=15513).
+	OPTIONAL { ?declaration dct:creator/era:roleOf ?applicantOrg }
+	OPTIONAL { ?declaration dct:contributor ?ar .
+		?ar era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/Manufacturer> ;
+			era:roleOf ?authorisedRepOrg }
+	OPTIONAL { ?declaration dct:description ?description }
+}

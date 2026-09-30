@@ -1,0 +1,45 @@
+# ERADIS snapshot, part 2 of 5 - the multi-valued facts of each published declaration,
+# as (declaration, kind, value[, extra]) rows:
+#   nobo     notified body organisation      (dct:contributor, NOBO role)
+#   title    interoperability constituent / part (eli:title_short)
+#   tsi      TSI cited                        (eli:id_local)
+#   dir      EC directive / regulation cited  (dct:source)
+#   cert     NoBo certificate ID, with its issue date as ?extra
+#   restr    1 when conditions of use / restrictions are recorded
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX gr:   <http://purl.org/goodrelations/v1#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?declaration ?kind ?value ?extra
+WHERE {
+	# The published, current version of each declaration. The draft graph holds
+	# unpublished submissions; rejected declarations are not part of the
+	# public register.
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+	FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }
+	?declaration era:state ?state .
+	VALUES ?state {
+		<http://data.europa.eu/949/concepts/evidence-document-states/inForce>
+		<http://data.europa.eu/949/concepts/evidence-document-states/amended>
+		<http://data.europa.eu/949/concepts/evidence-document-states/revoked>
+		<http://data.europa.eu/949/concepts/evidence-document-states/suspended>
+	}
+	{ ?declaration dct:contributor ?nb .
+	  ?nb era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/NOBO> ; era:roleOf ?value .
+	  BIND("nobo" AS ?kind) }
+	UNION { ?declaration eli:title_short ?value . BIND("title" AS ?kind) }
+	UNION { ?declaration eli:id_local ?value . BIND("tsi" AS ?kind) }
+	UNION { ?declaration dct:source ?value . BIND("dir" AS ?kind) }
+	UNION { ?declaration dct:relation/rdfs:member ?cert .
+	        FILTER(STRSTARTS(STR(?cert), "http://data.europa.eu/949/evidence/cld/cld-NoBoCert/"))
+	        ?cert rdfs:label ?value . OPTIONAL { ?cert dct:issued ?extra }
+	        BIND("cert" AS ?kind) }
+	UNION { FILTER EXISTS { ?declaration vpa:withRestriction ?r } BIND("1" AS ?value) BIND("restr" AS ?kind) }
+}

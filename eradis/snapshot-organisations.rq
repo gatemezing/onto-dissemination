@@ -1,0 +1,40 @@
+# ERADIS snapshot, part 3 of 5 - every organisation a published declaration names
+# (applicant, authorised representative or notified body): name, country, and
+# national registration / VAT number where recorded (383 of 903 applicants).
+# Organisation data sits in <http://data.europa.eu/949/eradis/organisation/graph>,
+# which is why the query below is not pinned to the declaration graph.
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX gr:   <http://purl.org/goodrelations/v1#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?org (SAMPLE(?name) AS ?orgName) (SAMPLE(?country) AS ?orgCountry)
+       (GROUP_CONCAT(DISTINCT ?reg; SEPARATOR="|") AS ?registration) (SAMPLE(?nando) AS ?nandoCode)
+WHERE {
+	{ SELECT DISTINCT ?org WHERE {
+	# The published, current version of each declaration. The draft graph holds
+	# unpublished submissions; rejected declarations are not part of the
+	# public register.
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+	FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }
+	?declaration era:state ?state .
+	VALUES ?state {
+		<http://data.europa.eu/949/concepts/evidence-document-states/inForce>
+		<http://data.europa.eu/949/concepts/evidence-document-states/amended>
+		<http://data.europa.eu/949/concepts/evidence-document-states/revoked>
+		<http://data.europa.eu/949/concepts/evidence-document-states/suspended>
+	}
+		?declaration (dct:creator|dct:contributor)/era:roleOf ?org .
+	} }
+	OPTIONAL { ?org foaf:name ?name }
+	OPTIONAL { ?org org:hasSite/org:siteAddress/locn:adminUnitL1 ?country }
+	OPTIONAL { ?org gr:legalNumber|gr:vatID ?reg }
+	OPTIONAL { ?org era:role/era:nandoCode ?nando }
+}
+GROUP BY ?org

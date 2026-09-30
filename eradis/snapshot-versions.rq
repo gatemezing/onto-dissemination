@@ -1,0 +1,20 @@
+# ERADIS snapshot, part 5 of 5 - how many versions each published document has
+# (every amendment is a new resource linked by dct:replaces / dct:isReplacedBy).
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX gr:   <http://purl.org/goodrelations/v1#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?documentId (COUNT(DISTINCT ?v) AS ?versions) (MIN(?created) AS ?firstCreated)
+WHERE {
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?v a era:ECDeclaration }
+	?v dct:identifier ?documentId .
+	OPTIONAL { ?v dct:created ?created }
+}
+GROUP BY ?documentId

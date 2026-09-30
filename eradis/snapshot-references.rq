@@ -1,0 +1,29 @@
+# ERADIS snapshot, part 4 of 5 - the TSIs and directives cited, with the notation,
+# title and owl:sameAs ELI that ERADIS-KG records. Titles and ELIs are
+# incomplete here (the most-cited amending regulations have neither), so the
+# build script resolves every act in the era-lex repository as well - see
+# snapshot-lex.rq.
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX gr:   <http://purl.org/goodrelations/v1#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+
+SELECT ?ref ?kind (SAMPLE(?n) AS ?notation) (SAMPLE(?l) AS ?label) (SAMPLE(?e) AS ?eli)
+WHERE {
+	{ SELECT DISTINCT ?ref ?kind WHERE {
+		GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+		{ ?declaration eli:id_local ?ref BIND("tsi" AS ?kind) }
+		UNION { ?declaration dct:source ?ref BIND("dir" AS ?kind) }
+	} }
+	OPTIONAL { ?ref skos:notation ?n }
+	OPTIONAL { ?ref rdfs:label ?l }
+	OPTIONAL { ?ref owl:sameAs ?e }
+}
+GROUP BY ?ref ?kind

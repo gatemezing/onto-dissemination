@@ -1,0 +1,1102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERA ERADIS Explorer</title>
+<style>
+  :root{
+    --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
+    --blue:#5b9bd5; --green:#7ac36a; --teal:#5fd0ae; --orange:#f0a83a;
+    --paper:#eef2ff; --panel:rgba(16,22,38,.92); --line:rgba(255,255,255,.14);
+    --muted:#aebbdd; --danger:#f26d6d;
+    /* Chart series: the validated dark steps of the reference categorical
+       palette (slots 1-3), checked against this page's panel surface #141c30. */
+    --series-V:#3987e5; --series-C:#d95926; --series-S:#199e70;
+    --surface:#141c30;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;
+    background:radial-gradient(1400px 900px at 50% 0%, var(--bg2), var(--bg1) 70%);
+    font-family:"Segoe UI",Arial,sans-serif;color:var(--paper);}
+  #app{max-width:1180px;margin:0 auto;padding:28px 20px 60px;}
+
+  header h1{font-size:22px;margin:0 0 6px;font-weight:700;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  header p{margin:0 0 18px;color:var(--muted);font-size:13.5px;line-height:1.5;max-width:90ch;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);margin-bottom:18px;}
+
+  /* data source bar */
+  #sourceBar{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font-size:12.5px;padding:14px 20px;}
+  #sourceBar .src{display:flex;align-items:center;gap:8px;}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none;}
+  .dot.ok{background:var(--green);} .dot.bad{background:var(--danger);} .dot.wait{background:var(--orange);}
+  #sourceBar .srcLabel{color:var(--muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;}
+  #liveDiag{flex-basis:100%;font-size:12px;color:var(--muted);line-height:1.5;}
+  #liveDiag:empty{display:none;}
+
+  /* the search form, laid out like the ERADIS form */
+  form section{border-bottom:1px solid var(--line);padding:4px 0 14px;margin-bottom:12px;}
+  form section:last-of-type{border-bottom:none;margin-bottom:0;}
+  form h2{font-size:13px;margin:6px 0 10px;font-weight:700;letter-spacing:.2px;}
+  .row{display:grid;grid-template-columns:230px minmax(0,1fr);gap:6px 14px;align-items:center;margin-bottom:8px;}
+  .row > label{font-size:12.5px;color:var(--muted);line-height:1.3;}
+  .row .hint{grid-column:2;font-size:11.5px;color:var(--muted);margin-top:-4px;line-height:1.4;}
+  .pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;}
+  .inline{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:12.5px;}
+  .inline label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+  input[type=text],input[type=date],select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);
+    color:var(--paper);padding:8px 10px;border-radius:7px;font-size:13px;font-family:inherit;min-width:0;}
+  input[type=date]{color-scheme:dark;}
+  input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+  option{background:#111a2e;color:var(--paper);}
+  .liveOnly{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--orange);
+    border:1px solid rgba(240,168,58,.5);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px;white-space:nowrap;}
+  .derived{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--teal);
+    border:1px solid rgba(95,208,174,.5);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px;white-space:nowrap;}
+
+  .formActions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+  button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
+    padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+  button.btn:hover:not(:disabled){background:linear-gradient(180deg,#33456b,#22304d);}
+  button.btn:disabled{opacity:.5;cursor:not-allowed;}
+  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);}
+  button.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#4a89e0,#3568b3);}
+  button.btn.secondary{background:linear-gradient(180deg,#2f6b52,#1f4a38);}
+  button.btn.secondary:hover:not(:disabled){background:linear-gradient(180deg,#37805f,#255a43);}
+  button.btn.mini{padding:5px 11px;font-size:11.5px;font-weight:600;}
+  button:focus-visible,a:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+  a.btnLink{display:inline-block;padding:5px 11px;font-size:11.5px;font-weight:600;border:1px solid var(--line);
+    border-radius:8px;color:var(--paper);text-decoration:none;background:rgba(255,255,255,.04);}
+  a.btnLink:hover{background:rgba(255,255,255,.09);}
+
+  #statusArea{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin:14px 0;min-height:20px;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);
+    animation:spin .8s linear infinite;flex:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #statusArea.error{color:var(--danger);display:block;}
+  #statusArea.success{color:var(--green);}
+  #statusArea.note{color:var(--orange);display:block;}
+  .fetchErr .h{font-weight:700;margin-bottom:2px;}
+  .fetchErr .b{line-height:1.5;}
+  .fetchErr .retryBtn{background:none;border:none;color:var(--blue);text-decoration:underline;
+    cursor:pointer;font:inherit;padding:0;margin-left:4px;}
+  .fetchErr details{margin-top:5px;}
+  .fetchErr summary{cursor:pointer;font-size:11px;color:var(--muted);}
+  .fetchErr .tech{display:block;margin-top:4px;font-size:11px;font-family:"SF Mono",Consolas,monospace;
+    color:var(--muted);white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);
+    padding:6px 8px;border-radius:6px;}
+
+  .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+  .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+  .statTile .n{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .statTile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .srcTag{font-size:11px;color:var(--muted);margin:-6px 0 12px;}
+
+  h3.sectionTitle{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+    margin:20px 0 8px;font-weight:600;}
+
+  /* chart */
+  .chartHead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--paper);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+  #chartWrap{position:relative;overflow-x:auto;}
+  #chart{display:block;width:100%;min-width:560px;height:auto;}
+  #chart text{font-size:11px;fill:var(--muted);font-family:inherit;}
+  #chart .grid{stroke:rgba(255,255,255,.08);stroke-width:1;}
+  #chart .hit{fill:transparent;cursor:default;}
+  #chart .seg.dim{opacity:.35;}
+  #tip{position:absolute;pointer-events:none;background:#050810;border:1px solid var(--line);border-radius:7px;
+    padding:7px 9px;font-size:12px;line-height:1.45;color:var(--paper);white-space:nowrap;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,.45);}
+  #tip .k{color:var(--muted);}
+  #tip i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:6px;}
+
+  /* results table */
+  .tableWrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:640px;}
+  table.results{width:100%;border-collapse:collapse;font-size:12px;}
+  table.results th,table.results td{text-align:left;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top;}
+  table.results th{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600;
+    position:sticky;top:0;background:#101829;z-index:1;}
+  table.results tbody tr{cursor:pointer;}
+  table.results tbody tr:hover{background:rgba(255,255,255,.04);}
+  table.results tbody tr.sel{background:rgba(91,155,213,.12);}
+  table.results td.id{font-family:"SF Mono",Consolas,monospace;font-size:11px;white-space:nowrap;}
+  table.results td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .pill{display:inline-block;font-size:10.5px;border-radius:4px;padding:1px 6px;border:1px solid var(--line);white-space:nowrap;}
+  .pill.st0{color:var(--green);border-color:rgba(122,195,106,.5);}
+  .pill.st1{color:var(--muted);}
+  .pill.st2{color:var(--danger);border-color:rgba(242,109,109,.5);}
+  .pill.st3{color:var(--orange);border-color:rgba(240,168,58,.5);}
+  .typeSw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0;}
+  .sub{color:var(--muted);font-size:11px;}
+  .pager{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;font-size:12px;color:var(--muted);}
+  .resultActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+
+  /* detail */
+  #detail h3{margin:0 0 4px;font-size:15px;}
+  #detail .meta{font-size:12px;color:var(--muted);margin-bottom:12px;}
+  dl.kv{display:grid;grid-template-columns:220px minmax(0,1fr);gap:6px 14px;font-size:12.5px;margin:0;}
+  dl.kv dt{color:var(--muted);}
+  dl.kv dd{margin:0;line-height:1.45;word-break:break-word;}
+  .detailBlock{margin-top:14px;}
+  ul.refs{margin:0;padding-left:16px;}
+  ul.refs li{margin-bottom:4px;}
+  .detailBlock ul{margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.5;}
+  .detailBlock pre{white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.5;background:rgba(0,0,0,.2);
+    border:1px solid var(--line);border-radius:8px;padding:10px;margin:6px 0 0;max-height:280px;overflow:auto;}
+
+  details{margin-top:12px;}
+  summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
+  pre.code{background:#050810;border:1px solid var(--line);border-radius:8px;padding:12px;
+    font-size:11px;font-family:"SF Mono",Consolas,monospace;white-space:pre;word-break:normal;
+    max-height:460px;overflow:auto;margin-top:10px;color:#b9c6ea;}
+  table.small{border-collapse:collapse;font-size:11.5px;margin-top:8px;}
+  table.small th,table.small td{padding:3px 10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:right;font-variant-numeric:tabular-nums;}
+  table.small th:first-child,table.small td:first-child{text-align:left;}
+
+  footer{font-size:11.5px;color:var(--muted);margin-top:22px;line-height:1.6;}
+  footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;}
+  a{color:var(--blue);}
+
+  @media (max-width:760px){
+    #app{padding:20px 14px 40px;}
+    .row{grid-template-columns:1fr;}
+    .row .hint{grid-column:1;}
+    .pair{grid-template-columns:1fr;}
+    dl.kv{grid-template-columns:1fr;}
+    dl.kv dt{margin-top:6px;}
+    .statGrid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>ERA ERADIS Explorer</h1>
+    <p>Search the EC declarations of verification, conformity and suitability for use in the ERADIS knowledge graph, with the same fields as the ERADIS search form. Every search is also written out as SPARQL against <code>ERADIS-KG</code>, which you can read, copy, run live, or open in GraphDB.</p>
+  </header>
+
+  <div id="sourceBar" class="panel">
+    <div class="src"><span class="dot" id="snapDot"></span><span><span class="srcLabel">Snapshot</span> <span id="snapText">loading…</span></span></div>
+    <div class="src"><span class="dot wait" id="liveDot"></span><span><span class="srcLabel">Live ERADIS-KG</span> <span id="liveText">checking…</span></span></div>
+    <div id="liveDiag"></div>
+  </div>
+
+  <form id="searchForm" class="panel" autocomplete="off">
+    <section>
+      <h2>ID data</h2>
+      <div class="row"><label for="fDocId">Document ID number</label><input type="text" id="fDocId" placeholder="e.g. DK/0000DK18632276/2022/000003, or any part of it"></div>
+      <div class="row"><label>Type of declaration</label>
+        <div class="inline" id="fTypes"></div></div>
+      <div class="row"><label>Status</label>
+        <div class="inline" id="fStates"></div></div>
+    </section>
+
+    <section>
+      <h2>Document owner/holder</h2>
+      <div class="row"><label for="fAppCountry">Applicant Country</label><select id="fAppCountry"></select></div>
+      <div class="row"><label for="fAppOrg">Applicant Organisation Name</label><select id="fAppOrg"></select></div>
+      <div class="row"><label for="fAppName"><span class="sub">…or part of the name</span></label><input type="text" id="fAppName" placeholder="e.g. Siemens"></div>
+      <div class="row"><label for="fAppReg">Applicant National Registration No</label><input type="text" id="fAppReg" placeholder="e.g. DK18632276">
+        <div class="hint">Matched against the registration number embedded in the Document ID, and the organisation's recorded legal/VAT number.</div></div>
+      <div class="row" style="margin-top:14px;"><label for="fArCountry">Authorised representative Country</label><select id="fArCountry"></select></div>
+      <div class="row"><label for="fArOrg">Authorised representative Organisation Name</label><select id="fArOrg"></select></div>
+      <div class="row"><label for="fArName"><span class="sub">…or part of the name</span></label><input type="text" id="fArName" placeholder="e.g. ProRail"></div>
+      <div class="row"><label for="fArReg">Authorised representative National Registration No</label><input type="text" id="fArReg" placeholder="legal or VAT number"></div>
+    </section>
+
+    <section>
+      <h2>Description/title</h2>
+      <div class="row"><label for="fSubsystem">Type of subsystem <span class="derived" title="Derived from the TSIs the declaration cites">derived</span></label><select id="fSubsystem"></select>
+        <div class="hint">ERADIS-KG does not record the subsystem itself. It is derived from the TSIs the declaration cites, looked up in the era-lex repository: a TSI's title names its subsystem, and an amending act takes the subsystem of the act it amends (<code>eli:changes</code>). The result is mapped onto the subsystems of Directive (EU) 2016/797 Annex II, so the noise, wagon and locomotive TSIs all count as rolling stock. The PRM and tunnel-safety TSIs, and acts amending several subsystems at once (e.g. 2019/776), name none; search those with “To TSIs”.</div></div>
+      <div class="row"><label for="fTitle">Interoperability constituent / part</label><input type="text" id="fTitle" placeholder="e.g. Pantograph, Rail steel, ERTMS/ETCS on-board"></div>
+    </section>
+
+    <section>
+      <h2>Certificate of conformity</h2>
+      <div class="row"><label for="fCert">ID number of the certificate issued for this declaration</label><input type="text" id="fCert" placeholder="e.g. 1010/6/SH1 — any part of the NoBo certificate ID"></div>
+    </section>
+
+    <section>
+      <h2>References</h2>
+      <div class="row"><label for="fDir">To EC Directives</label><input type="text" id="fDir" list="dirList" placeholder="e.g. 2016/797"></div>
+      <div class="row"><label for="fTsi">To TSIs</label><input type="text" id="fTsi" list="tsiList" placeholder="e.g. 2016/919, or a word from the title such as tunnels">
+        <div class="hint">Titles come from the <code>era-lex</code> repository, where each act is identified by its ELI.</div></div>
+      <datalist id="dirList"></datalist><datalist id="tsiList"></datalist>
+    </section>
+
+    <section>
+      <h2>Signatories <span class="liveOnly">live only</span></h2>
+      <div class="row"><label for="fSigFirst">First name of signatory</label><input type="text" id="fSigFirst"></div>
+      <div class="row"><label for="fSigLast">Surname of signatory</label><input type="text" id="fSigLast">
+        <div class="hint">Signatory names are personal data and are not copied into the snapshot, so these two fields only work with "Run live on ERADIS-KG".</div></div>
+    </section>
+
+    <section>
+      <h2>Validity</h2>
+      <div class="row"><label>Date of issue</label>
+        <div class="pair"><input type="date" id="fFrom" aria-label="Date of issue from"><input type="date" id="fTo" aria-label="Date of issue to"></div></div>
+    </section>
+
+    <div class="formActions">
+      <button type="submit" class="btn primary" id="searchBtn" disabled>Search snapshot</button>
+      <button type="button" class="btn secondary" id="liveBtn">Run live on ERADIS-KG</button>
+      <button type="button" class="btn" id="resetBtn">Reset</button>
+    </div>
+  </form>
+
+  <div id="statusArea" role="status" aria-live="polite"></div>
+
+  <div id="resultArea" class="panel" hidden>
+    <div class="statGrid">
+      <div class="statTile"><div class="n" id="stMatches">–</div><div class="l">Declarations</div></div>
+      <div class="statTile"><div class="n" id="stApplicants">–</div><div class="l">Applicants</div></div>
+      <div class="statTile"><div class="n" id="stNobos">–</div><div class="l">Notified bodies</div></div>
+      <div class="statTile"><div class="n" id="stRestr">–</div><div class="l">With restrictions</div></div>
+    </div>
+    <div class="srcTag" id="srcTag"></div>
+
+    <div class="chartHead">
+      <h3 class="sectionTitle">Declarations issued per year</h3>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div id="chartWrap"><svg id="chart" role="img" aria-label="Declarations issued per year, stacked by declaration type"></svg><div id="tip" hidden></div></div>
+    <details><summary>View the chart as a table</summary><div id="chartTable"></div></details>
+
+    <h3 class="sectionTitle">Declarations <span class="sub" style="text-transform:none;letter-spacing:0;">— newest first; click a row for the full record</span></h3>
+    <div class="resultActions">
+      <button type="button" class="btn mini" id="csvBtn">Download results as CSV</button>
+    </div>
+    <div class="tableWrap"><table class="results" id="resultsTable"></table></div>
+    <div class="pager" id="pager"></div>
+  </div>
+
+  <div id="detail" class="panel" hidden></div>
+
+  <details id="queryDetails" class="panel" style="margin-top:0;">
+    <summary>See the SPARQL query for this search</summary>
+    <div class="resultActions" style="margin-top:12px;">
+      <button id="copyQueryBtn" class="btn mini" type="button">Copy query</button>
+      <a id="workbenchLink" class="btnLink" href="#" target="_blank" rel="noopener">Open in GraphDB workbench ↗</a>
+      <span id="copyHint" style="font-size:11.5px;color:var(--teal);"></span>
+    </div>
+    <pre class="code" id="queryText"></pre>
+  </details>
+
+  <footer>
+    Data: the <code>ERADIS-KG</code> repository on <code>graph.dev.data.test-era.europa.eu</code> — only the published declaration graph
+    <code>http://data.europa.eu/949/graph/eradis</code>, current version of each document, in force / amended / revoked / suspended
+    (rejected declarations and unpublished drafts are left out). That endpoint sends no CORS headers today, so a browser page on another
+    site cannot read its answers; this page therefore searches a snapshot built by
+    <a href="https://github.com/gatemezing/onto-dissemination/tree/main/eradis">the same SPARQL queries</a>
+    (<code>scripts/build-eradis-snapshot.py</code>), and "Run live" tries the endpoint directly and explains the result if it is blocked.
+    The snapshot holds no signatory names or contact details.
+    <br>← Back to the <a href="./">ERA Graph Explorer</a>
+    · <a href="./exporter.html">RDF Exporter</a>
+    · <a href="./values.html">RINF Parameter Values</a>
+    · <a href="./rcc.html">RCC Parameters</a>
+    · <a href="./routebook.html">Route Book</a>
+    · <a href="./eurostat.html">Eurostat Exporter</a>
+    · <a href="./ask.html">Ask the Graph</a>.
+  </footer>
+</div>
+
+<script>
+const ENDPOINT  = 'https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG';
+const WORKBENCH = 'https://graph.dev.data.test-era.europa.eu/sparql';
+const SNAPSHOT_URL = 'era-eradis-snapshot.json.gz';
+const ERA = 'http://data.europa.eu/949/';
+const COUNTRY_BASE = 'http://publications.europa.eu/resource/authority/country/';
+const ERADIS_PAGE = 'https://eradis.era.europa.eu/interop_docs/ecDecl/view.aspx?id=';
+const PAGE_SIZE = 50, LIVE_LIMIT = 500;
+
+const TYPE_URI = {V:ERA+'concepts/ecd-types/ECDoV', C:ERA+'concepts/ecd-types/ECDoC', S:ERA+'concepts/ecd-types/ECDoSU'};
+const TYPE_SHORT = {V:'Verification (subsystem)', C:'Conformity (constituent)', S:'Suitability for use'};
+const STATE_KEYS = ['inForce','amended','revoked','suspended'];
+const COUNTRY_NAMES = {AUT:'Austria',BEL:'Belgium',BGR:'Bulgaria',BLR:'Belarus',CAN:'Canada',CHE:'Switzerland',CHN:'China',
+  CZE:'Czechia',DEU:'Germany',DNK:'Denmark',ESP:'Spain',EST:'Estonia',FIN:'Finland',FRA:'France',GBR:'United Kingdom',
+  GRC:'Greece',HRV:'Croatia',HUN:'Hungary',IRL:'Ireland',ISL:'Iceland',ITA:'Italy',KAZ:'Kazakhstan',KOR:'South Korea',
+  LTU:'Lithuania',LUX:'Luxembourg',LVA:'Latvia',MKD:'North Macedonia',NLD:'Netherlands',NOR:'Norway',POL:'Poland',
+  PRT:'Portugal',ROU:'Romania',RUS:'Russia',SRB:'Serbia',SVK:'Slovakia',SVN:'Slovenia',SWE:'Sweden',TUR:'Türkiye',UKR:'Ukraine'};
+/* era-lex titles start with the act's formal name and date; the part after the
+   date says what it is about. */
+const actSubject = t => (t || '').replace(/^.*?\b\d{1,2} \w+ \d{4}\s+/, '').replace(/^(\d{4}\/\d+\/\w*:\s*)/, '') || t || '';
+const countryName = c => c ? (COUNTRY_NAMES[c] || c + ' (code as published)') : 'No country recorded';
+
+/* ------------------------------------------------------------------ *
+ * Fetch error diagnosis — same approach as the other tools here.
+ *
+ * Browsers deliberately hide *why* a cross-origin request failed: a CORS
+ * block, a DNS failure, "connection refused" and being offline all throw the
+ * same generic TypeError. Telling them apart takes a follow-up probe, not
+ * reading err.message — a plain no-cors fetch to the same origin resolves
+ * (even though its body can't be read) whenever the server is reachable at
+ * all, and rejects only on a genuine connectivity failure. */
+async function describeFetchError(err, endpoint){
+  if(err && err.name === 'AbortError')
+    return {title:'Timed out', message:'The request took too long and was cancelled. Narrow the search (a country, a subsystem or a date range) and try again.', detail:String(err.message || err)};
+  const m = /^HTTP (\d+)/.exec((err && err.message) || '');
+  if(m){
+    const code = +m[1];
+    const KNOWN = {
+      400:['The endpoint rejected this query', 'This is almost always a bug in this tool’s query, not something you did — worth reporting.'],
+      401:['The endpoint asks for a login', 'This repository is not open for anonymous queries from here.'],
+      403:['The endpoint refused this request', 'Access to this query or resource may be restricted right now.'],
+      404:['The endpoint address has changed', 'This tool may be pointing at a URL that no longer exists.'],
+      500:['The endpoint hit an internal error', 'This is on the server side — try again in a moment.'],
+      502:['The endpoint is temporarily unreachable', 'A gateway in front of it returned an error — try again shortly.'],
+      503:['The endpoint is overloaded, or the query exceeded its time limit', 'Narrow the search, or run it again in a moment.'],
+      504:['The endpoint took too long to respond', 'It may be under heavy load — narrow the search, or run it again.'],
+    };
+    const known = KNOWN[code] || ['The endpoint returned an error', 'HTTP ' + code + ' — see technical detail below.'];
+    return {title:known[0], message:known[1], detail:err.message};
+  }
+  let reachable = false;
+  try{ await fetch(new URL(endpoint).origin + '/', {mode:'no-cors', cache:'no-store'}); reachable = true; }
+  catch{ reachable = false; }
+  if(reachable)
+    return {
+      title:'Blocked by your browser, not by you',
+      message:'The ERADIS-KG server responded, but didn’t grant this page permission to read its answers (it sends no CORS header). That’s a configuration on the endpoint’s side. Use “Open in GraphDB workbench” to run exactly the same query there.',
+      detail:String((err && err.message) || err),
+    };
+  return {
+    title:'Could not reach the server',
+    message:(typeof navigator !== 'undefined' && navigator.onLine === false)
+      ? 'Your device appears to be offline — check your connection and try again.'
+      : 'The endpoint didn’t respond at all. The development server may only be reachable from ERA’s network, or something on your network (firewall, VPN, ad-blocker) is blocking the request.',
+    detail:String((err && err.message) || err),
+  };
+}
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function renderFetchError(el, diag, retry){
+  el.innerHTML =
+    '<div class="fetchErr"><div class="h">' + esc(diag.title) + '</div>' +
+    '<div class="b">' + esc(diag.message) + (retry ? ' <button type="button" class="retryBtn">Try again</button>' : '') + '</div>' +
+    '<details><summary>Technical detail</summary><code class="tech">' + esc(diag.detail) + '</code></details></div>';
+  if(retry){ const b = el.querySelector('.retryBtn'); if(b) b.addEventListener('click', retry); }
+}
+
+/* A form-encoded POST with a plain Accept header is a CORS "simple request":
+   no preflight, so the only thing that can block it is the missing
+   Access-Control-Allow-Origin on the response. */
+async function sparql(query, timeoutMs){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+  try{
+    const res = await fetch(ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded', 'Accept':'application/sparql-results+json'},
+      body:'query=' + encodeURIComponent(query),
+      signal:ctrl.signal,
+    });
+    if(!res.ok){
+      const body = await res.text().catch(()=> '');
+      throw new Error(`HTTP ${res.status}${body ? ' — ' + body.slice(0,200) : ''}`);
+    }
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+const workbenchUrl = q => WORKBENCH + '?repositoryId=ERADIS-KG&infer=false&sameAs=false&query=' + encodeURIComponent(q);
+
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('en-GB');
+let S = null;              // the snapshot
+let liveOk = null;         // null = unknown, true / false after the probe
+let current = null;        // {source:'snapshot'|'live', rows:[...], total}
+let page = 0, selected = null;
+
+/* ------------------------------------------------------------------ *
+ * Snapshot loading. GitHub Pages serves the .gz as-is; if a proxy ever
+ * decompresses it on the way, the magic bytes are gone and it is parsed
+ * directly. */
+async function loadSnapshot(){
+  const res = await fetch(SNAPSHOT_URL, {cache:'no-cache'});
+  if(!res.ok) throw new Error('HTTP ' + res.status + ' loading ' + SNAPSHOT_URL);
+  const buf = new Uint8Array(await res.arrayBuffer());
+  let text;
+  if(buf[0] === 0x1f && buf[1] === 0x8b){
+    const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+    text = await new Response(stream).text();
+  } else text = new TextDecoder().decode(buf);
+  S = JSON.parse(text);
+  const subOf = S.tsis.map(t => t[3] || '');
+  for(const d of S.decls){
+    d.nb = d.nb || []; d.ti = d.ti || []; d.ts = d.ts || []; d.di = d.di || []; d.ce = d.ce || [];
+    d.idl = d.id.toLowerCase();
+    d.regSeg = (d.id.split('/')[1] || '').replace(/^0+/, '').toLowerCase();
+    d.subs = [...new Set(d.ts.map(i => subOf[i]).filter(Boolean))];
+    d.til = d.ti.join(' | ').toLowerCase();
+    d.cel = d.ce.map(c => c[0]).join(' | ').toLowerCase();
+  }
+  S.orgNameL = S.orgs.map(o => (o[0] || '').toLowerCase());
+  S.orgRegL = S.orgs.map(o => (o[2] || '').toLowerCase().replace(/[\s.-]/g, ''));
+  S.subLabel = Object.fromEntries(S.subsystems);
+}
+
+/* ------------------------------------------------------------------ *
+ * Form. The dropdowns are built from the snapshot, with counts, so they only
+ * offer values that exist. */
+function countBy(keyFn){
+  const m = new Map();
+  for(const d of S.decls){ const k = keyFn(d); if(k === undefined || k === null) continue;
+    for(const kk of (Array.isArray(k) ? k : [k])) m.set(kk, (m.get(kk) || 0) + 1); }
+  return m;
+}
+function fillSelect(sel, items, anyLabel){
+  sel.innerHTML = '';
+  const any = document.createElement('option'); any.value = ''; any.textContent = anyLabel; sel.appendChild(any);
+  for(const [value, label] of items){
+    const o = document.createElement('option'); o.value = value; o.textContent = label; sel.appendChild(o);
+  }
+}
+function buildForm(){
+  $('fTypes').innerHTML = Object.entries(TYPE_SHORT).map(([k, l]) =>
+    `<label><input type="checkbox" name="type" value="${k}" checked> <span class="typeSw" style="background:var(--series-${k})"></span>${esc(l)}</label>`).join('');
+  $('fStates').innerHTML = S.states.map((l, i) =>
+    `<label><input type="checkbox" name="state" value="${i}"${i === 0 ? ' checked' : ''}> ${esc(l)}</label>`).join('');
+
+  for(const [role, cSel, oSel] of [['a', $('fAppCountry'), $('fAppOrg')], ['r', $('fArCountry'), $('fArOrg')]]){
+    const byCountry = countBy(d => d[role] === undefined ? null : (S.orgs[d[role]][1] || '—'));
+    const items = [...byCountry.entries()].sort((a, b) => countryName(a[0] === '—' ? '' : a[0]).localeCompare(countryName(b[0] === '—' ? '' : b[0])))
+      .map(([c, n]) => [c, `${countryName(c === '—' ? '' : c)} (${fmt(n)})`]);
+    fillSelect(cSel, items, 'Please select…');
+    const refreshOrgs = () => {
+      const c = cSel.value;
+      const byOrg = countBy(d => d[role] === undefined ? null : d[role]);
+      const list = [...byOrg.entries()]
+        .filter(([o]) => !c || (S.orgs[o][1] || '—') === c)
+        .sort((a, b) => S.orgs[a[0]][0].localeCompare(S.orgs[b[0]][0]))
+        .map(([o, n]) => [String(o), `${S.orgs[o][0]} (${fmt(n)})`]);
+      fillSelect(oSel, list, c ? `Any organisation in ${countryName(c === '—' ? '' : c)} (${list.length})` : `Any organisation (${fmt(list.length)})`);
+    };
+    cSel.addEventListener('change', () => { refreshOrgs(); updateQueryPanel(); });
+    refreshOrgs();
+  }
+
+  const bySub = countBy(d => d.subs.length ? d.subs : ['—']);
+  fillSelect($('fSubsystem'), [
+    ...S.subsystems.filter(([k]) => bySub.has(k)).map(([k, l]) => [k, `${l} (${fmt(bySub.get(k))})`]),
+    ['—', `No subsystem derivable from the TSIs cited (${fmt(bySub.get('—') || 0)})`],
+  ], 'Please select…');
+
+  $('tsiList').innerHTML = S.tsis.map(t => `<option value="${esc(t[0])}">${esc(t[1] ? actSubject(t[1]).slice(0, 120) : 'title not recorded')}</option>`).join('');
+  $('dirList').innerHTML = S.dirs.map(t => `<option value="${esc(t[0])}">${esc(t[1] ? actSubject(t[1]).slice(0, 120) : '')}</option>`).join('');
+}
+
+function readForm(){
+  const v = id => $(id).value.trim();
+  return {
+    docId:v('fDocId'),
+    types:[...document.querySelectorAll('input[name=type]:checked')].map(i => i.value),
+    states:[...document.querySelectorAll('input[name=state]:checked')].map(i => +i.value),
+    appCountry:v('fAppCountry'), appOrg:v('fAppOrg'), appName:v('fAppName'), appReg:v('fAppReg'),
+    arCountry:v('fArCountry'), arOrg:v('fArOrg'), arName:v('fArName'), arReg:v('fArReg'),
+    subsystem:v('fSubsystem'), title:v('fTitle'), cert:v('fCert'),
+    dir:v('fDir'), tsi:v('fTsi'),
+    sigFirst:v('fSigFirst'), sigLast:v('fSigLast'),
+    from:v('fFrom'), to:v('fTo'),
+  };
+}
+const normReg = s => s.toLowerCase().replace(/[\s.-]/g, '').replace(/^0+/, '');
+
+/* The TSI and directive fields are free text, like ERADIS's own; they are
+   resolved to the acts whose number (or, for TSIs, title) contains the text. */
+function resolveRefs(list, text, withTitle){
+  if(!text) return null;
+  const q = text.toLowerCase();
+  const out = [];
+  list.forEach((r, i) => { if(r[0].toLowerCase().includes(q) || (withTitle && r[1] && r[1].toLowerCase().includes(q))) out.push(i); });
+  return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * The snapshot search. Same semantics as the SPARQL built below — every
+ * filter here has its counterpart there. */
+function searchSnapshot(f){
+  const types = new Set(f.types), states = new Set(f.states);
+  const tsiIdx = resolveRefs(S.tsis, f.tsi, true), dirIdx = resolveRefs(S.dirs, f.dir, false);
+  const tsiSet = tsiIdx && new Set(tsiIdx), dirSet = dirIdx && new Set(dirIdx);
+  const docQ = f.docId.toLowerCase(), titleQ = f.title.toLowerCase(), certQ = f.cert.toLowerCase();
+  const appNameQ = f.appName.toLowerCase(), arNameQ = f.arName.toLowerCase();
+  const appRegQ = f.appReg ? normReg(f.appReg) : '', arRegQ = f.arReg ? normReg(f.arReg) : '';
+  const orgMatch = (o, country, org, nameQ, regQ, docSeg) => {
+    if(country && (o === undefined || (S.orgs[o][1] || '—') !== country)) return false;
+    if(org && o !== +org) return false;
+    if(nameQ && (o === undefined || !S.orgNameL[o].includes(nameQ))) return false;
+    if(regQ && !((docSeg !== null && docSeg.includes(regQ)) || (o !== undefined && S.orgRegL[o].includes(regQ)))) return false;
+    return true;
+  };
+  return S.decls.filter(d =>
+    types.has(d.t) && states.has(d.s) &&
+    (!docQ || d.idl.includes(docQ)) &&
+    orgMatch(d.a, f.appCountry, f.appOrg, appNameQ, appRegQ, d.regSeg) &&
+    orgMatch(d.r, f.arCountry, f.arOrg, arNameQ, arRegQ, null) &&
+    (!f.subsystem || (f.subsystem === '—' ? d.subs.length === 0 : d.subs.includes(f.subsystem))) &&
+    (!titleQ || d.til.includes(titleQ)) &&
+    (!certQ || d.cel.includes(certQ)) &&
+    (!tsiSet || d.ts.some(i => tsiSet.has(i))) &&
+    (!dirSet || d.di.some(i => dirSet.has(i))) &&
+    (!f.from || d.d >= f.from) && (!f.to || d.d <= f.to)
+  ).sort((a, b) => b.d.localeCompare(a.d) || a.id.localeCompare(b.id));
+}
+function rowFromSnapshot(d){
+  const org = i => i === undefined ? null : S.orgs[i];
+  const a = org(d.a), r = org(d.r);
+  return {
+    docId:d.id, type:d.t, state:d.s, version:d.v, versions:d.vn || 1, issued:d.d,
+    page:d.p ? ERADIS_PAGE + d.p : '', uri:ERA + 'evidence/ecd/' + d.u,
+    applicant:a ? a[0] : '', applicantCountry:a ? a[1] : '', applicantReg:a ? a[2] : '',
+    authRep:r ? r[0] : '', authRepCountry:r ? r[1] : '',
+    nobos:d.nb.map(i => S.orgs[i][0] + (S.orgs[i][3] ? ' (' + S.orgs[i][3] + ')' : '')),
+    titles:d.ti, subsystems:d.subs,
+    tsis:d.ts.map(i => S.tsis[i][0]), dirs:d.di.map(i => S.dirs[i][0]),
+    tsiRefs:d.ts.map(i => S.tsis[i]), dirRefs:d.di.map(i => S.dirs[i]),
+    certs:d.ce, restr:!!d.re, description:d.x || '',
+    applicantKey:d.a, noboKeys:d.nb,
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * The same search as SPARQL. */
+const lit = s => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, ' ') + '"';
+const lc = s => lit(String(s).toLowerCase());
+function buildSparql(f){
+  const L = [];
+  const TAB = '\t';
+  const orgBlock = (label, path, country, org, nameQ, regQ, withDocSeg, v) => {
+    const parts = [];
+    if(org) parts.push(`${TAB}?declaration ${path} <${S.orgBase}${S.orgs[+org][4]}> .`);
+    if(country && country !== '—') parts.push(`${TAB}?declaration ${path}/org:hasSite/org:siteAddress/locn:adminUnitL1 <${COUNTRY_BASE}${country}> .`);
+    if(country === '—') parts.push(`${TAB}?declaration ${path} ?${v}Any . FILTER NOT EXISTS { ?${v}Any org:hasSite/org:siteAddress/locn:adminUnitL1 ?${v}Country }`);
+    if(nameQ) parts.push(`${TAB}FILTER EXISTS { ?declaration ${path}/foaf:name ?${v}N . FILTER(CONTAINS(LCASE(?${v}N), ${lc(nameQ)})) }`);
+    if(regQ){
+      const q = normReg(regQ);
+      const reg = `EXISTS { ?declaration ${path} ?${v}R . ?${v}R gr:legalNumber|gr:vatID ?${v}Reg . FILTER(CONTAINS(LCASE(REPLACE(?${v}Reg, "[ .-]", "")), ${lc(q)})) }`;
+      parts.push(withDocSeg
+        ? `${TAB}# the registration number is also embedded in the Document ID (CC/number/year/sequence)\n${TAB}FILTER(CONTAINS(LCASE(STRBEFORE(STRAFTER(?documentId, "/"), "/")), ${lc(q)}) || ${reg})`
+        : `${TAB}FILTER(${reg})`);
+    }
+    if(parts.length) L.push(`${TAB}# ${label}`, ...parts);
+  };
+
+  L.push(
+`# EC declarations in ERADIS-KG matching the search form of era-eradis-explorer.html.
+# Endpoint: ${ENDPOINT}
+# Current version of each published declaration; one row per declaration.
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX gr:   <http://purl.org/goodrelations/v1#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
+	(SAMPLE(?applicantName) AS ?applicant)
+	(SAMPLE(?applicantCountry) AS ?applicantCountryUri)
+	(SAMPLE(?authRepName) AS ?authorisedRepresentative)
+	(GROUP_CONCAT(DISTINCT ?noboName; SEPARATOR="|") AS ?notifiedBodies)
+	(GROUP_CONCAT(DISTINCT ?title; SEPARATOR="|") AS ?constituent)
+	(GROUP_CONCAT(DISTINCT ?tsiNotation; SEPARATOR="|") AS ?tsis)
+	(GROUP_CONCAT(DISTINCT STR(?tsi); SEPARATOR="|") AS ?tsiUris)
+	(SAMPLE(?hasRestriction) AS ?restricted)
+WHERE {
+	# Published declarations only (the draft graph holds unpublished
+	# submissions). Organisation data lives in its own graph, so only the
+	# declaration itself is pinned.
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+	?declaration dct:identifier ?documentId ;
+		dct:type ?type ;
+		era:state ?state ;
+		vpa:versionNumber ?version ;
+		dct:issued ?issued .
+	FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }   # current version`);
+  L.push(`${TAB}VALUES ?type { ${f.types.map(t => '<' + TYPE_URI[t] + '>').join(' ')} }`);
+  L.push(`${TAB}VALUES ?state { ${f.states.map(i => '<' + ERA + 'concepts/evidence-document-states/' + STATE_KEYS[i] + '>').join(' ')} }`);
+  if(f.docId) L.push(`${TAB}FILTER(CONTAINS(LCASE(?documentId), ${lc(f.docId)}))`);
+  orgBlock('Applicant (dct:creator)', 'dct:creator/era:roleOf', f.appCountry, f.appOrg, f.appName, f.appReg, true, 'app');
+  if(f.arCountry || f.arOrg || f.arName || f.arReg){
+    L.push(`${TAB}# Authorised representative = dct:contributor in the Manufacturer role`,
+      `${TAB}?declaration dct:contributor ?arRoleF . ?arRoleF era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ; era:roleOf ?arOrgF .`);
+    if(f.arOrg) L.push(`${TAB}FILTER(?arOrgF = <${S.orgBase}${S.orgs[+f.arOrg][4]}>)`);
+    if(f.arCountry && f.arCountry !== '—') L.push(`${TAB}?arOrgF org:hasSite/org:siteAddress/locn:adminUnitL1 <${COUNTRY_BASE}${f.arCountry}> .`);
+    if(f.arCountry === '—') L.push(`${TAB}FILTER NOT EXISTS { ?arOrgF org:hasSite/org:siteAddress/locn:adminUnitL1 ?arC }`);
+    if(f.arName) L.push(`${TAB}?arOrgF foaf:name ?arNameF . FILTER(CONTAINS(LCASE(?arNameF), ${lc(f.arName)}))`);
+    if(f.arReg) L.push(`${TAB}?arOrgF gr:legalNumber|gr:vatID ?arRegF . FILTER(CONTAINS(LCASE(REPLACE(?arRegF, "[ .-]", "")), ${lc(normReg(f.arReg))}))`);
+  }
+  if(f.subsystem){
+    const uris = S.tsis.filter(t => (f.subsystem === '—' ? !t[3] : t[3] === f.subsystem)).map(t => '<' + S.refBase + t[2] + '>');
+    if(f.subsystem === '—'){
+      const mapped = S.tsis.filter(t => t[3]).map(t => '<' + S.refBase + t[2] + '>');
+      L.push(`${TAB}# Type of subsystem: none derivable - no TSI cited names a subsystem`,
+        `${TAB}FILTER NOT EXISTS { ?declaration eli:id_local ?subTsi . VALUES ?subTsi {\n${TAB}${TAB}${mapped.join(' ')}\n${TAB}} }`);
+    } else {
+      L.push(`${TAB}# Type of subsystem "${S.subLabel[f.subsystem]}" (Directive 2016/797 Annex II), derived from the TSIs cited`,
+        `${TAB}FILTER EXISTS { ?declaration eli:id_local ?subTsi . VALUES ?subTsi { ${uris.join(' ')} } }`);
+    }
+  }
+  if(f.title) L.push(`${TAB}FILTER EXISTS { ?declaration eli:title_short ?titleF . FILTER(CONTAINS(LCASE(?titleF), ${lc(f.title)})) }`);
+  if(f.cert) L.push(`${TAB}# NoBo certificate issued for this declaration`,
+    `${TAB}FILTER EXISTS { ?declaration dct:relation/rdfs:member ?certF . ?certF rdfs:label ?certIdF .`,
+    `${TAB}${TAB}FILTER(STRSTARTS(STR(?certF), "${ERA}evidence/cld/cld-NoBoCert/") && CONTAINS(LCASE(?certIdF), ${lc(f.cert)})) }`);
+  const refFilter = (label, prop, list, text, withTitle, v) => {
+    const idx = resolveRefs(list, text, withTitle);
+    if(!idx) return;
+    const uris = idx.map(i => '<' + S.refBase + list[i][2] + '>');
+    L.push(`${TAB}# ${label} matching "${text}" - ERADIS-KG cites them by these URIs; in era-lex they are`,
+      ...idx.map(i => `${TAB}#   ${list[i][0]}  ${list[i][4] || '(not found in era-lex)'}`),
+      uris.length ? `${TAB}FILTER EXISTS { ?declaration ${prop} ?${v} . VALUES ?${v} { ${uris.join(' ')} } }` : `${TAB}FILTER(false)   # no act matches this text`);
+  };
+  refFilter('EC directives', 'dct:source', S.dirs, f.dir, false, 'dirF');
+  refFilter('TSIs', 'eli:id_local', S.tsis, f.tsi, true, 'tsiF');
+  if(f.sigFirst || f.sigLast){
+    L.push(`${TAB}# Signatory (prov:wasAttributedTo a foaf:Person)`, `${TAB}?declaration prov:wasAttributedTo ?sigF .`);
+    if(f.sigFirst) L.push(`${TAB}?sigF foaf:givenName ?sigGivenF . FILTER(CONTAINS(LCASE(?sigGivenF), ${lc(f.sigFirst)}))`);
+    if(f.sigLast) L.push(`${TAB}?sigF foaf:familyName ?sigFamilyF . FILTER(CONTAINS(LCASE(?sigFamilyF), ${lc(f.sigLast)}))`);
+  }
+  if(f.from) L.push(`${TAB}FILTER(?issued >= ${lit(f.from)}^^xsd:date)`);
+  if(f.to) L.push(`${TAB}FILTER(?issued <= ${lit(f.to)}^^xsd:date)`);
+  L.push(
+`	# What the results table shows
+	OPTIONAL { ?declaration rdfs:seeAlso ?eradisPage }
+	OPTIONAL { ?declaration dct:creator/era:roleOf ?applicantOrg .
+		OPTIONAL { ?applicantOrg foaf:name ?applicantName }
+		OPTIONAL { ?applicantOrg org:hasSite/org:siteAddress/locn:adminUnitL1 ?applicantCountry } }
+	OPTIONAL { ?declaration dct:contributor ?arRole .
+		?arRole era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ;
+			era:roleOf/foaf:name ?authRepName }
+	OPTIONAL { ?declaration dct:contributor ?nbRole .
+		?nbRole era:hasOrganisationRole <${ERA}concepts/organisation-roles/NOBO> ;
+			era:roleOf/foaf:name ?noboName }
+	OPTIONAL { ?declaration eli:title_short ?title }
+	OPTIONAL { ?declaration eli:id_local ?tsi . OPTIONAL { ?tsi skos:notation ?tsiNotation } }
+	OPTIONAL { ?declaration vpa:withRestriction ?r . BIND(true AS ?hasRestriction) }
+}
+GROUP BY ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
+ORDER BY DESC(?issued) ?documentId
+LIMIT ${LIVE_LIMIT}`);
+  return L.join('\n');
+}
+function rowsFromLive(json){
+  const tsiByUri = new Map(S.tsis.map(t => [S.refBase + t[2], t]));
+  const typeKey = Object.fromEntries(Object.entries(TYPE_URI).map(([k, u]) => [u, k]));
+  const stateIdx = u => STATE_KEYS.indexOf(u.replace(/^.*\//, ''));
+  const split = b => b && b.value ? b.value.split('|') : [];
+  return json.results.bindings.map(b => {
+    const tsiUris = split(b.tsiUris);
+    return {
+      docId:b.documentId.value, type:typeKey[b.type.value], state:stateIdx(b.state.value),
+      version:+b.version.value, versions:null, issued:b.issued.value,
+      page:b.eradisPage ? b.eradisPage.value : '', uri:b.declaration.value,
+      applicant:b.applicant ? b.applicant.value : '',
+      applicantCountry:b.applicantCountryUri ? b.applicantCountryUri.value.replace(COUNTRY_BASE, '') : '',
+      authRep:b.authorisedRepresentative ? b.authorisedRepresentative.value : '', authRepCountry:'',
+      nobos:split(b.notifiedBodies), titles:split(b.constituent),
+      subsystems:[...new Set(tsiUris.map(u => (tsiByUri.get(u) || [])[3]).filter(Boolean))],
+      tsis:split(b.tsis), dirs:[], tsiRefs:tsiUris.map(u => tsiByUri.get(u)).filter(Boolean), dirRefs:[],
+      certs:null, restr:!!b.restricted, description:'',
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Results */
+function setStatus(msg, kind){
+  const el = $('statusArea');
+  el.className = kind || '';
+  if(kind === 'loading') el.innerHTML = '<span class="spinner"></span><span>' + esc(msg) + '</span>';
+  else el.textContent = msg;
+}
+function showResults(res){
+  current = res; page = 0; selected = null;
+  $('detail').hidden = true;
+  const rows = res.rows;
+  const uniq = key => new Set(rows.map(key).filter(Boolean)).size;
+  $('stMatches').textContent = fmt(res.total);
+  $('stApplicants').textContent = fmt(uniq(r => r.applicant));
+  $('stNobos').textContent = fmt(new Set(rows.flatMap(r => r.nobos)).size);
+  const restr = rows.filter(r => r.restr).length;
+  $('stRestr').textContent = rows.length ? Math.round(100 * restr / rows.length) + '%' : '–';
+  $('srcTag').textContent = res.source === 'live'
+    ? `Live answer from ERADIS-KG${res.total >= LIVE_LIMIT ? ` — the first ${LIVE_LIMIT} by date of issue; the statistics and chart cover those ${LIVE_LIMIT} only` : ''}, in ${res.seconds.toFixed(1)} s.`
+    : `From the snapshot of ${S.generated} — ${fmt(S.decls.length)} published declarations. The same search as SPARQL is below.`;
+  drawChart(rows);
+  renderPage();
+  $('resultArea').hidden = false;
+}
+function stateLabel(i){ return S.states[i] || '?'; }
+function renderPage(){
+  const rows = current.rows;
+  const start = page * PAGE_SIZE, slice = rows.slice(start, start + PAGE_SIZE);
+  const h = ['<thead><tr><th>Document ID</th><th>Type</th><th>Status</th><th>Issued</th><th>Applicant</th><th>Authorised rep.</th><th>Notified body</th><th>Constituent / part</th><th>Subsystem</th><th>TSIs</th></tr></thead><tbody>'];
+  slice.forEach((r, k) => {
+    h.push(`<tr data-i="${start + k}"${selected === start + k ? ' class="sel"' : ''}>` +
+      `<td class="id">${esc(r.docId)}${r.version > 1 ? `<div class="sub">version ${r.version}</div>` : ''}</td>` +
+      `<td><span class="typeSw" style="background:var(--series-${r.type})"></span>${esc(r.type === 'V' ? 'DoV' : r.type === 'C' ? 'DoC' : 'DoSU')}</td>` +
+      `<td><span class="pill st${r.state}">${esc(stateLabel(r.state))}</span></td>` +
+      `<td class="num">${esc(r.issued)}</td>` +
+      `<td>${esc(r.applicant) || '<span class="sub">—</span>'}${r.applicantCountry ? `<div class="sub">${esc(countryName(r.applicantCountry))}</div>` : ''}</td>` +
+      `<td>${esc(r.authRep) || '<span class="sub">—</span>'}</td>` +
+      `<td>${r.nobos.length ? esc(r.nobos.join('; ')) : '<span class="sub">—</span>'}</td>` +
+      `<td>${r.titles.length ? esc(r.titles.join('; ')) : '<span class="sub">—</span>'}</td>` +
+      `<td>${r.subsystems.length ? esc(r.subsystems.map(k => S.subLabel[k]).join('; ')) : '<span class="sub">—</span>'}</td>` +
+      `<td>${esc(r.tsis.join(', ')) || '<span class="sub">—</span>'}</td></tr>`);
+  });
+  if(!rows.length) h.push('<tr><td colspan="10" class="sub">No declaration matches this search.</td></tr>');
+  h.push('</tbody>');
+  $('resultsTable').innerHTML = h.join('');
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  $('pager').innerHTML = rows.length > PAGE_SIZE
+    ? `<button type="button" class="btn mini" id="prevPg"${page === 0 ? ' disabled' : ''}>← Newer</button>` +
+      `<span>${fmt(start + 1)}–${fmt(Math.min(rows.length, start + PAGE_SIZE))} of ${fmt(rows.length)}</span>` +
+      `<button type="button" class="btn mini" id="nextPg"${page >= pages - 1 ? ' disabled' : ''}>Older →</button>`
+    : (rows.length ? `<span>${fmt(rows.length)} declaration${rows.length === 1 ? '' : 's'}</span>` : '');
+  if($('prevPg')) $('prevPg').onclick = () => { page--; renderPage(); $('resultsTable').scrollIntoView({block:'nearest'}); };
+  if($('nextPg')) $('nextPg').onclick = () => { page++; renderPage(); $('resultsTable').scrollIntoView({block:'nearest'}); };
+}
+$('resultsTable').addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-i]');
+  if(!tr) return;
+  selected = +tr.dataset.i;
+  document.querySelectorAll('#resultsTable tr.sel').forEach(t => t.classList.remove('sel'));
+  tr.classList.add('sel');
+  showDetail(current.rows[selected]);
+});
+
+/* ------------------------------------------------------------------ *
+ * Chart: declarations issued per year, stacked by type. Thin bars, 2px
+ * surface gap between stacked segments, 4px rounded top, hover tooltip per
+ * segment, legend above, table view below. */
+const TYPES = ['V', 'C', 'S'];
+function drawChart(rows){
+  const svg = $('chart'), tip = $('tip');
+  const byYear = new Map();
+  for(const r of rows){
+    const y = +r.issued.slice(0, 4);
+    if(!y) continue;
+    if(!byYear.has(y)) byYear.set(y, {V:0, C:0, S:0});
+    byYear.get(y)[r.type]++;
+  }
+  const present = TYPES.filter(t => rows.some(r => r.type === t));
+  $('legend').innerHTML = present.map(t => `<span><i style="background:var(--series-${t})"></i>${esc(TYPE_SHORT[t])}</span>`).join('');
+  const years = [...byYear.keys()].sort((a, b) => a - b);
+  if(!years.length){ svg.innerHTML = ''; $('chartTable').innerHTML = ''; return; }
+  const all = [];
+  for(let y = years[0]; y <= years[years.length - 1]; y++) all.push(y);
+  const W = 1000, H = 260, m = {l:44, r:10, t:10, b:26};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = Math.max(...all.map(y => { const c = byYear.get(y); return c ? c.V + c.C + c.S : 0; }));
+  const step = niceStep(max / 4);
+  const top = Math.max(step, Math.ceil(max / step) * step);
+  const band = iw / all.length, bw = Math.max(4, Math.min(28, band * 0.62));
+  const yPx = v => m.t + ih - (v / top) * ih;
+  const out = [];
+  for(let v = 0; v <= top; v += step){
+    out.push(`<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${yPx(v)}" y2="${yPx(v)}"/>`,
+      `<text x="${m.l - 8}" y="${yPx(v) + 4}" text-anchor="end">${fmt(v)}</text>`);
+  }
+  const labelEvery = Math.ceil(all.length / 14);
+  all.forEach((y, i) => {
+    const cx = m.l + band * i + band / 2;
+    if(i % labelEvery === 0 || i === all.length - 1) out.push(`<text x="${cx}" y="${H - 8}" text-anchor="middle">${y}</text>`);
+    const c = byYear.get(y);
+    if(!c) return;
+    let acc = 0;
+    const segs = TYPES.filter(t => c[t] > 0);
+    segs.forEach((t, k) => {
+      const y0 = yPx(acc), y1 = yPx(acc + c[t]);
+      acc += c[t];
+      const gap = k > 0 ? 2 : 0;                       // 2px surface gap between stacked fills
+      const hgt = Math.max(1, y0 - y1 - gap);
+      const x = cx - bw / 2, yTop = y1;
+      const isTop = k === segs.length - 1;
+      const rr = isTop ? Math.min(4, hgt, bw / 2) : 0; // 4px rounded data-end, top segment only
+      const d = rr
+        ? `M${x},${yTop + hgt} V${yTop + rr} Q${x},${yTop} ${x + rr},${yTop} H${x + bw - rr} Q${x + bw},${yTop} ${x + bw},${yTop + rr} V${yTop + hgt} Z`
+        : `M${x},${yTop} H${x + bw} V${yTop + hgt} H${x} Z`;
+      out.push(`<path class="seg" data-y="${y}" data-t="${t}" d="${d}" fill="var(--series-${t})"/>`);
+    });
+    // hit target: the whole column, wider than the bar
+    out.push(`<rect class="hit" data-y="${y}" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ih}"/>`);
+  });
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = out.join('');
+
+  const wrap = $('chartWrap');
+  svg.onmousemove = e => {
+    const hit = e.target.closest('.hit, .seg');
+    if(!hit){ tip.hidden = true; svg.querySelectorAll('.seg').forEach(s => s.classList.remove('dim')); return; }
+    const y = +hit.dataset.y, c = byYear.get(y);
+    svg.querySelectorAll('.seg').forEach(s => s.classList.toggle('dim', +s.dataset.y !== y));
+    tip.innerHTML = `<div><b>${y}</b> · ${fmt(c.V + c.C + c.S)} declarations</div>` +
+      TYPES.filter(t => c[t]).map(t => `<div><i style="background:var(--series-${t})"></i><span class="k">${esc(TYPE_SHORT[t])}</span> ${fmt(c[t])}</div>`).join('');
+    tip.hidden = false;
+    const r = wrap.getBoundingClientRect();
+    let x = e.clientX - r.left + wrap.scrollLeft + 14;
+    if(x + tip.offsetWidth > wrap.scrollLeft + r.width) x = e.clientX - r.left + wrap.scrollLeft - tip.offsetWidth - 14;
+    tip.style.left = x + 'px';
+    tip.style.top = Math.max(0, e.clientY - r.top - 20) + 'px';
+  };
+  svg.onmouseleave = () => { tip.hidden = true; svg.querySelectorAll('.seg').forEach(s => s.classList.remove('dim')); };
+
+  $('chartTable').innerHTML = '<table class="small"><thead><tr><th>Year</th>' + present.map(t => `<th>${esc(TYPE_SHORT[t])}</th>`).join('') + '<th>Total</th></tr></thead><tbody>' +
+    years.map(y => { const c = byYear.get(y); return `<tr><td>${y}</td>` + present.map(t => `<td>${fmt(c[t])}</td>`).join('') + `<td>${fmt(c.V + c.C + c.S)}</td></tr>`; }).join('') + '</tbody></table>';
+}
+function niceStep(raw){
+  if(raw <= 1) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+}
+
+/* ------------------------------------------------------------------ *
+ * Detail */
+function detailQuery(docId){
+  return DETAIL_QUERY.replace('"DK/0000DK18632276/2022/000003"', lit(docId));
+}
+const DETAIL_QUERY = `# Everything ERADIS-KG records about one EC declaration (eradis/ecd-detail.rq).
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX vpa:  <https://w3id.org/vpa#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT ?section ?value ?extra ?date
+WHERE {
+	VALUES ?documentId { "DK/0000DK18632276/2022/000003" }
+	GRAPH <http://data.europa.eu/949/graph/eradis> { ?v a era:ECDeclaration }
+	?v dct:identifier ?documentId .
+	OPTIONAL { ?v dct:isReplacedBy ?newer }
+	BIND(!BOUND(?newer) AS ?current)
+	{
+		?v vpa:versionNumber ?value ; era:state ?st ; dct:issued ?date .
+		OPTIONAL { ?v dct:dateAccepted ?accepted }
+		BIND(CONCAT(REPLACE(STR(?st), "^.*/", ""), IF(BOUND(?accepted), CONCAT(" · accepted ", STR(?accepted)), "")) AS ?extra)
+		BIND("version" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v dct:relation/rdfs:member ?c .
+		FILTER(STRSTARTS(STR(?c), "http://data.europa.eu/949/evidence/cld/cld-NoBoCert/"))
+		?c rdfs:label ?value .
+		OPTIONAL { ?c dct:type/skos:prefLabel ?extra }
+		OPTIONAL { ?c dct:issued ?date }
+		BIND("certificate" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v vpa:withRestriction/rdfs:comment ?value .
+		BIND("restriction" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v prov:wasAttributedTo ?p .
+		OPTIONAL { ?p foaf:givenName ?given } OPTIONAL { ?p foaf:familyName ?family } OPTIONAL { ?p foaf:name ?full }
+		BIND(COALESCE(?full, CONCAT(COALESCE(?given, ""), " ", COALESCE(?family, ""))) AS ?value)
+		BIND("signatory" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v dct:relation/rdfs:member ?doc .
+		FILTER(CONTAINS(STR(?doc), "/evidence/doc/"))
+		?doc rdfs:comment ?value .
+		BIND("document" AS ?section)
+	} UNION {
+		FILTER(?current)
+		?v dct:relation/rdfs:member ?a .
+		FILTER(CONTAINS(STR(?a), "/evidence/ecd/attachment/"))
+		?a rdfs:label ?value ; era:documentUrl ?extra .
+		BIND("attachment" AS ?section)
+	}
+}
+ORDER BY ?section ?value`;
+
+function showDetail(r){
+  const el = $('detail');
+  const q = detailQuery(r.docId);
+  const kv = [
+    ['Type', TYPE_SHORT[r.type]],
+    ['Status', stateLabel(r.state) + (r.versions ? ` · version ${r.version} of ${r.versions}` : ` · version ${r.version}`)],
+    ['Date of issue', r.issued],
+    ['Applicant', r.applicant ? r.applicant + (r.applicantCountry ? ` — ${countryName(r.applicantCountry)}` : '') : '—'],
+    ['Authorised representative', r.authRep || '—'],
+    ['Notified body', r.nobos.join('; ') || '—'],
+    ['Type of subsystem (derived)', r.subsystems.map(k => S.subLabel[k]).join('; ') || 'not derivable from the TSIs cited'],
+    ['Interoperability constituent / part', r.titles.join('; ') || '—'],
+  ];
+  if(r.certs && r.certs.length) kv.push(['Certificates', r.certs.map(c => c[0] + (c[1] ? ` (issued ${c[1]})` : '')).join('\n')]);
+  if(r.description) kv.push(['Description', r.description + (r.description.length >= 280 ? '…' : '')]);
+  kv.push(['Restrictions / conditions of use', r.restr ? 'recorded — see the full record' : 'none recorded']);
+  const refList = refs => refs.length ? '<ul class="refs">' + refs.map(t =>
+    `<li>${t[4] ? `<a href="${esc(t[4])}" target="_blank" rel="noopener">${esc(t[0])}</a>` : esc(t[0])}` +
+    `${t[5] ? '' : ' <span class="pill">no longer in force</span>'}` +
+    `${t[3] ? ` <span class="pill">${esc(S.subLabel[t[3]])}</span>` : ''}` +
+    `<div class="sub">${esc(actSubject(t[1]) || 'title not recorded')}</div></li>`).join('') + '</ul>' : '—';
+  el.innerHTML =
+    `<h3>${esc(r.docId)}</h3>` +
+    `<div class="meta"><a href="${esc(r.uri)}" target="_blank" rel="noopener">${esc(r.uri)}</a></div>` +
+    `<dl class="kv">${kv.map(([k, v]) => `<dt>${esc(k)}</dt><dd style="white-space:pre-line">${esc(v)}</dd>`).join('')}` +
+      `<dt>TSIs <span class="sub">(ELI in era-lex)</span></dt><dd>${refList(r.tsiRefs || [])}</dd>` +
+      ((r.dirRefs || []).length ? `<dt>EC directives</dt><dd>${refList(r.dirRefs)}</dd>` : '') + `</dl>` +
+    `<div class="resultActions" style="margin-top:14px;">` +
+      (r.page ? `<a class="btnLink" href="${esc(r.page)}" target="_blank" rel="noopener">Open on ERADIS ↗</a>` : '') +
+      `<button type="button" class="btn mini secondary" id="loadFull">Load the full record live</button>` +
+      `<a class="btnLink" href="${esc(workbenchUrl(q))}" target="_blank" rel="noopener">Open the detail query in GraphDB ↗</a>` +
+    `</div>` +
+    `<div id="fullRecord"><div class="sub" style="margin-top:10px;">The full record — every version, certificate types, restriction text, signatories and the technical-file documents — comes from ERADIS-KG live.</div></div>`;
+  el.hidden = false;
+  $('loadFull').onclick = () => loadFull(r, q);
+  if(liveOk) loadFull(r, q);
+  el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+async function loadFull(r, q){
+  const box = $('fullRecord');
+  box.innerHTML = '<div id="fullStatus" style="display:flex;gap:10px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted)"><span class="spinner"></span>Querying ERADIS-KG…</div>';
+  try{
+    const json = await sparql(q, 30000);
+    const by = {};
+    for(const b of json.results.bindings){
+      const s = b.section.value;
+      (by[s] = by[s] || []).push({value:b.value ? b.value.value : '', extra:b.extra ? b.extra.value : '', date:b.date ? b.date.value : ''});
+    }
+    const blk = (title, html) => `<div class="detailBlock"><h3 class="sectionTitle">${esc(title)}</h3>${html}</div>`;
+    const parts = [];
+    if(by.version) parts.push(blk('Versions', '<ul>' + by.version.sort((a, b) => a.value - b.value).map(v => `<li>version ${esc(v.value)} — issued ${esc(v.date)} — ${esc(v.extra)}</li>`).join('') + '</ul>'));
+    if(by.certificate) parts.push(blk('Certificates', '<ul>' + by.certificate.map(c => `<li><code>${esc(c.value)}</code>${c.extra ? ' — ' + esc(c.extra) : ''}${c.date ? ' — issued ' + esc(c.date) : ''}</li>`).join('') + '</ul>'));
+    if(by.restriction) parts.push(blk('Conditions of use and restrictions', by.restriction.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
+    if(by.signatory) parts.push(blk('Signatories', '<ul>' + by.signatory.map(x => `<li>${esc(x.value)}</li>`).join('') + '</ul>'));
+    if(by.attachment) parts.push(blk('Published files', '<ul>' + by.attachment.map(x => `<li><a href="${esc(x.extra)}" target="_blank" rel="noopener">${esc(x.value)}</a></li>`).join('') + '</ul>'));
+    if(by.document) parts.push(blk(`Technical file (${by.document.length} documents)`, '<ul>' + by.document.map(x => `<li>${esc(x.value)}</li>`).join('') + '</ul>'));
+    box.innerHTML = parts.join('') || '<div class="sub" style="margin-top:10px;">ERADIS-KG returned nothing more for this declaration.</div>';
+  } catch(err){
+    const diag = await describeFetchError(err, ENDPOINT);
+    box.innerHTML = '<div id="fullErr" style="margin-top:12px;font-size:12.5px;color:var(--danger)"></div>';
+    renderFetchError($('fullErr'), diag, () => loadFull(r, q));
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Wiring */
+function updateQueryPanel(){
+  if(!S) return;
+  const q = buildSparql(readForm());
+  $('queryText').textContent = q;
+  $('workbenchLink').href = workbenchUrl(q);
+}
+function validate(f){
+  if(!f.types.length) return 'Tick at least one type of declaration.';
+  if(!f.states.length) return 'Tick at least one status.';
+  if(f.from && f.to && f.from > f.to) return 'The “from” date is after the “to” date.';
+  return '';
+}
+$('searchForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = readForm();
+  const bad = validate(f);
+  if(bad){ setStatus(bad, 'error'); return; }
+  updateQueryPanel();   // the panel always shows the SPARQL of the search just run
+  const t0 = performance.now();
+  const hits = searchSnapshot(f);
+  showResults({source:'snapshot', rows:hits.map(rowFromSnapshot), total:hits.length});
+  const ms = performance.now() - t0;
+  if(f.sigFirst || f.sigLast)
+    setStatus(`${fmt(hits.length)} declarations — the signatory fields were not applied: signatory names are only searched live. Use “Run live on ERADIS-KG”.`, 'note');
+  else setStatus(`${fmt(hits.length)} declarations match, searched in ${ms < 1000 ? Math.round(ms) + ' ms' : (ms / 1000).toFixed(1) + ' s'}.`, hits.length ? 'success' : '');
+});
+$('liveBtn').addEventListener('click', runLive);
+async function runLive(){
+  const f = readForm();
+  const bad = validate(f);
+  if(bad){ setStatus(bad, 'error'); return; }
+  const q = buildSparql(f);
+  $('liveBtn').disabled = true;
+  setStatus('Running the SPARQL on ERADIS-KG…', 'loading');
+  const t0 = performance.now();
+  try{
+    const json = await sparql(q, 90000);
+    const rows = rowsFromLive(json);
+    setLive(true);
+    showResults({source:'live', rows, total:rows.length, seconds:(performance.now() - t0) / 1000});
+    setStatus(`${fmt(rows.length)} declarations from ERADIS-KG${rows.length >= LIVE_LIMIT ? ` (the query stops at ${LIVE_LIMIT})` : ''}.`, 'success');
+  } catch(err){
+    const diag = await describeFetchError(err, ENDPOINT);
+    const el = $('statusArea'); el.className = 'error';
+    renderFetchError(el, diag, runLive);
+    const a = document.createElement('div');
+    a.style.marginTop = '8px';
+    a.innerHTML = `<a class="btnLink" href="${esc(workbenchUrl(q))}" target="_blank" rel="noopener">Open this query in GraphDB workbench ↗</a> <span class="sub">or use “Search snapshot” for the same search offline.</span>`;
+    el.appendChild(a);
+  } finally { $('liveBtn').disabled = false; }
+}
+$('resetBtn').addEventListener('click', () => {
+  $('searchForm').reset();
+  for(const [c, o] of [['fAppCountry', 'fAppOrg'], ['fArCountry', 'fArOrg']]) $(c).dispatchEvent(new Event('change'));
+  updateQueryPanel();
+  $('searchForm').requestSubmit();
+});
+$('searchForm').addEventListener('input', updateQueryPanel);
+$('searchForm').addEventListener('change', updateQueryPanel);
+$('copyQueryBtn').addEventListener('click', async () => {
+  try{ await navigator.clipboard.writeText($('queryText').textContent); $('copyHint').textContent = 'Copied.'; }
+  catch{ $('copyHint').textContent = 'Copy failed — select the text below instead.'; }
+  setTimeout(() => { $('copyHint').textContent = ''; }, 2500);
+});
+$('csvBtn').addEventListener('click', () => {
+  if(!current) return;
+  const cols = [['document_id', r => r.docId], ['uri', r => r.uri], ['type', r => TYPE_SHORT[r.type]], ['status', r => stateLabel(r.state)],
+    ['version', r => r.version], ['date_of_issue', r => r.issued], ['applicant', r => r.applicant], ['applicant_country', r => r.applicantCountry],
+    ['authorised_representative', r => r.authRep], ['notified_bodies', r => r.nobos.join('|')], ['constituent', r => r.titles.join('|')],
+    ['subsystem_derived', r => r.subsystems.map(k => S.subLabel[k]).join('|')], ['tsis', r => r.tsis.join('|')], ['directives', r => r.dirs.join('|')],
+    ['certificates', r => (r.certs || []).map(c => c[0]).join('|')], ['restrictions_recorded', r => r.restr ? 1 : 0], ['eradis_page', r => r.page]];
+  const cell = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const csv = [cols.map(c => c[0]).join(','), ...current.rows.map(r => cols.map(c => cell(c[1](r))).join(','))].join('\n');
+  const url = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = `eradis-declarations-${current.source}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+function setLive(ok, detail){
+  liveOk = ok;
+  $('liveDot').className = 'dot ' + (ok ? 'ok' : 'bad');
+  $('liveText').textContent = ok ? 'reachable — "Run live" and the full record query it directly' : 'not readable from this page — searches use the snapshot';
+  if(detail !== undefined) $('liveDiag').innerHTML = detail;
+}
+async function probeLive(){
+  try{
+    await sparql('ASK { ?s ?p ?o }', 8000);
+    setLive(true, '');
+  } catch(err){
+    const diag = await describeFetchError(err, ENDPOINT);
+    setLive(false, `<b>${esc(diag.title)}.</b> ${esc(diag.message)}`);
+  }
+}
+
+(async function init(){
+  probeLive();
+  try{
+    await loadSnapshot();
+    $('snapDot').className = 'dot ok';
+    $('snapText').textContent = `${fmt(S.decls.length)} declarations, ${fmt(S.orgs.length)} organisations — built ${S.generated}`;
+    buildForm();
+    $('searchBtn').disabled = false;
+    updateQueryPanel();
+    $('searchForm').requestSubmit();
+  } catch(err){
+    $('snapDot').className = 'dot bad';
+    $('snapText').textContent = 'could not be loaded';
+    const el = $('statusArea'); el.className = 'error';
+    renderFetchError(el, {title:'The snapshot could not be loaded', message:'Serve this page over http(s) next to era-eradis-snapshot.json.gz (opening it as a file:// URL blocks the fetch).', detail:String(err.message || err)});
+  }
+})();
+</script>
+</body>
+</html>

@@ -311,6 +311,36 @@ does not publish it", and worth reporting separately.
   differs per country. Query the property the ontology defines; when it is
   absent, say so in the UI.
 
+## ERADIS-KG and era-lex — EC declarations and the acts they cite
+
+On the dev server (`graph.dev.data.test-era.europa.eu`); production `ERADIS-KG`
+answers 401. **The dev server sends no CORS headers at all**, so a browser page
+elsewhere cannot read it. `era-eradis-explorer.html` searches a snapshot
+(`scripts/build-eradis-snapshot.py`) and emits the same search as SPARQL.
+
+- **Pin only the declaration to its graph.** Declarations are in
+  `graph/eradis` (the draft graph holds 979 unpublished submissions), but
+  organisation names and addresses are in `eradis/organisation/graph`. Wrapping
+  the whole query in `GRAPH <…/graph/eradis>` returns blank applicants and
+  zero rows for a country filter, with no error.
+- **Current version:** `FILTER NOT EXISTS { ?d dct:isReplacedBy ?n }`. Each
+  amendment is a new resource sharing `dct:identifier`.
+- **Roles:** applicant = `dct:creator`, authorised representative =
+  `dct:contributor` in the Manufacturer role, notified body = `dct:contributor`
+  in the NOBO role, always via `era:roleOf`. The applicant's registration number
+  is inside the Document ID (`CC/registration/year/seq`).
+- **No subsystem property.** Derive it from the TSIs cited (`eli:id_local`)
+  resolved in **era-lex**, never from the ERADIS-KG labels alone: the
+  most-cited amending regulations (2019/776, 2020/387, 2023/1695, …) have no
+  title there.
+  - In era-lex, the title is on `eli:is_realized_by` → ENG expression →
+    `eli:title`, and it contains non-breaking spaces.
+  - An amending act inherits the subsystem through `eli:changes`, only when its
+    targets agree.
+  - 2006/66, 2007/153, 2009/107, 2010/79 and 2012/88 exist only as
+    `…(1)/oj` / `…(2)/oj`, where `(2)` is an EEA decision. ERADIS-KG's
+    `owl:sameAs` points at a URI era-lex does not have.
+
 ## The tools in this repo
 
 Single-file HTML, no build step, deployed by `.github/workflows/pages.yml` to
@@ -325,6 +355,7 @@ from the browser and share a dependency-free XLSX writer.
 | `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country, plus a network map |
 | `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters, multi-country/multi-line with "Select all", plus a network map |
 | `era-route-book.html` | `/routebook.html` | TSI OPE Appendix D2 elements + coverage, multi-country/multi-line with "Select all", plus a network map |
+| `era-eradis-explorer.html` | `/eradis.html` | ERADIS-KG EC declarations with the ERADIS search form, over a snapshot, every search also as SPARQL |
 
 Verified query sets with measurements live in `scripts/assets/rcc/` and
 `scripts/assets/routebook/`. `scripts/build-rinf-parameter-catalog.py` refreshes
