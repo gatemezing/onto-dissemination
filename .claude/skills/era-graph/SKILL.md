@@ -353,6 +353,29 @@ elsewhere cannot read it. `era-eradis-explorer.html` searches a snapshot
     validity end.
   - Replacement chains are open: an old version can lack `dct:isReplacedBy`.
     Count a citation for every current `?c dct:replaces* ?cited`.
+- **Query shape for "every match" (measured 2026-10-01):**
+  - **Never chain multi-valued OPTIONALs with GROUP_CONCAT.** Dates ×
+    manufacturers × modules × TSIs multiply before the GROUP BY: 88 s for the
+    first 500 certificates, 112 s for all 43,471. Give each field its own
+    `UNION` branch with its own variable, so the branches never join, then
+    `GROUP BY` the document. Measured: 34 s as one query, and ~10 s split.
+  - **Split it in two.** Phase 1 is the match alone, `SELECT DISTINCT ?doc` (all
+    certificates in 1.6 s). Phase 2 is the fields, pinned with `VALUES`, 1,000
+    per query (0.65 s each), 6 in flight.
+  - **Ask for TSV** (`Accept: text/tab-separated-values`). It is a third the
+    size of SPARQL JSON, and tabs and newlines inside literals are escaped, so
+    splitting lines is safe.
+  - **Organisations first.** A country or name filter as `FILTER EXISTS` on
+    each document takes 19.2 s for two applicant countries. Resolving the
+    organisations in a subquery and joining the documents to them takes 4.1 s.
+    Put that join **before** any per-document `BIND`/`EXISTS`: placed after the
+    certificate validity BIND it went past 90 s, and placed first it takes 1 s.
+  - **`GROUP BY` on display columns splits documents.** One with two
+    `rdfs:seeAlso` pages comes back twice (20,997 rows for 20,993). Group by
+    the URI alone.
+  - **Organisations have several `foaf:name` and NANDO codes**, so a live
+    "first name" differs from the snapshot's `SAMPLE`. Return the organisation
+    key and resolve it in the snapshot's organisation table.
 
 ## The tools in this repo
 

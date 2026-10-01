@@ -48,8 +48,15 @@ in the workbench (`/sparql?repositoryId=ERADIS-KG&query=…`).
 
 The snapshot and the SPARQL were checked against each other on 2026-09-30:
 27 declaration searches and 14 certificate searches. They return identical sets
-of Document IDs and certificates wherever the live query stays under its 500-row
-limit. The snapshot holds **no signatory names**
+of Document IDs and certificates. Since 2026-10-01 "Run live" returns every
+match, not the first 500: it sends the match alone (bare URIs; all 43,471
+certificates in ~1.5 s), then the displayed fields for 1,000 documents at a
+time, 6 in flight, as TSV. Each field is its own UNION branch, so multi-valued
+fields never multiply before the GROUP BY - the cross product that made the old
+single query take 88 s for 500 certificates and 112 s for all of them. Live and
+snapshot rows were compared field by field on 7 searches (64,000+ rows) and
+agree; organisation names are resolved through the snapshot's organisation
+table, because some organisations carry several `foaf:name` or NANDO codes. The snapshot holds **no signatory names**
 (personal data) and no contact details, so the two signatory fields only work live.
 
 ## Scope

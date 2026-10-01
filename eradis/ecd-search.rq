@@ -4,9 +4,15 @@
 # force, all declaration types. Every field of the form adds one clause; the
 # page shows the query for the current search under "See the SPARQL query".
 #
-# Measured 2026-09-30 against the dev endpoint: 246 declarations, the same 246
-# the page finds in its snapshot. Unfiltered (in force only) the query runs in
-# ~6 s; a country or subsystem filter brings it to ~2 s.
+# Measured 2026-10-01 against the dev endpoint: 246 declarations in 0.3 s, the
+# same 246 the page finds in its snapshot. Every match, no LIMIT: all 20,990
+# in-force declarations take ~7 s live (the match, then the fields 1,000 at a
+# time, 6 in flight).
+#
+# Shape: the inner SELECT says which declarations match; the UNION branches
+# outside it fetch what the results show, one field per branch, so no field
+# multiplies another before the GROUP BY. Organisation filters resolve the
+# organisations first and join the declarations to them.
 #
 # How the form maps onto ERADIS-KG:
 #   Document ID number ........ dct:identifier
@@ -40,50 +46,63 @@ PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
 
-SELECT ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
-	(SAMPLE(?applicantName) AS ?applicant)
-	(SAMPLE(?applicantCountry) AS ?applicantCountryUri)
-	(SAMPLE(?authRepName) AS ?authorisedRepresentative)
-	(GROUP_CONCAT(DISTINCT ?noboName; SEPARATOR="|") AS ?notifiedBodies)
-	(GROUP_CONCAT(DISTINCT ?title; SEPARATOR="|") AS ?constituent)
-	(GROUP_CONCAT(DISTINCT ?tsiNotation; SEPARATOR="|") AS ?tsis)
-	(GROUP_CONCAT(DISTINCT STR(?tsi); SEPARATOR="|") AS ?tsiUris)
-	(SAMPLE(?hasRestriction) AS ?restricted)
+SELECT ?declaration (MAX(?issued) AS ?lastIssued)
+	(GROUP_CONCAT(DISTINCT STR(?id); SEPARATOR="|") AS ?id_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?type), "^.*/", ""); SEPARATOR="|") AS ?type_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?state), "^.*/", ""); SEPARATOR="|") AS ?state_)
+	(GROUP_CONCAT(DISTINCT STR(?ver); SEPARATOR="|") AS ?ver_)
+	(GROUP_CONCAT(DISTINCT STR(?issued); SEPARATOR="|") AS ?issued_)
+	(GROUP_CONCAT(DISTINCT STR(?page); SEPARATOR="|") AS ?page_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?appO), "^.*/", ""); SEPARATOR="|") AS ?appO_)
+	(GROUP_CONCAT(DISTINCT STR(?app); SEPARATOR="|") AS ?app_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?appC), "^.*/", ""); SEPARATOR="|") AS ?appC_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?arO), "^.*/", ""); SEPARATOR="|") AS ?arO_)
+	(GROUP_CONCAT(DISTINCT STR(?ar); SEPARATOR="|") AS ?ar_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?nbO), "^.*/", ""); SEPARATOR="|") AS ?nbO_)
+	(GROUP_CONCAT(DISTINCT STR(?nb); SEPARATOR="|") AS ?nb_)
+	(GROUP_CONCAT(DISTINCT STR(?title); SEPARATOR="|") AS ?title_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?tsi), "^.*/", ""); SEPARATOR="|") AS ?tsi_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?dir), "^.*/", ""); SEPARATOR="|") AS ?dir_)
+	(GROUP_CONCAT(DISTINCT STR(?restr); SEPARATOR="|") AS ?restr_)
 WHERE {
-	# Published declarations only (the draft graph holds unpublished
+	# which documents match the form
+	{ SELECT DISTINCT ?declaration WHERE {
+		# Published declarations only (the draft graph holds unpublished
 	# submissions). Organisation data lives in its own graph, so only the
 	# declaration itself is pinned.
 	GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
 	?declaration dct:identifier ?documentId ;
 		dct:type ?type ;
 		era:state ?state ;
-		vpa:versionNumber ?version ;
-		dct:issued ?issued .
+		dct:issued ?issuedF .
 	FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }   # current version
-	VALUES ?type { <http://data.europa.eu/949/concepts/ecd-types/ECDoV> <http://data.europa.eu/949/concepts/ecd-types/ECDoC> <http://data.europa.eu/949/concepts/ecd-types/ECDoSU> }
-	VALUES ?state { <http://data.europa.eu/949/concepts/evidence-document-states/inForce> }
-	# Applicant (dct:creator)
-	FILTER EXISTS { ?declaration dct:creator/era:roleOf ?appF .
-		?appF org:hasSite/org:siteAddress/locn:adminUnitL1 <http://publications.europa.eu/resource/authority/country/DNK> .
-	}
-	# Type of subsystem "Control-command and signalling" (Directive 2016/797 Annex II), derived from the TSIs cited
-	FILTER EXISTS { ?declaration eli:id_local ?subTsi . VALUES ?subTsi { <http://data.europa.eu/949/legislation/requirements/dec-2002-731> <http://data.europa.eu/949/legislation/requirements/dec-2004-447> <http://data.europa.eu/949/legislation/requirements/dec-2006-679> <http://data.europa.eu/949/legislation/requirements/dec-2006-860> <http://data.europa.eu/949/legislation/requirements/dec-2007-153> <http://data.europa.eu/949/legislation/requirements/dec-2008-386> <http://data.europa.eu/949/legislation/requirements/dec-2009-561> <http://data.europa.eu/949/legislation/requirements/dec-2010-79> <http://data.europa.eu/949/legislation/requirements/dec-2012-463> <http://data.europa.eu/949/legislation/requirements/dec-2012-696> <http://data.europa.eu/949/legislation/requirements/dec-2012-88> <http://data.europa.eu/949/legislation/requirements/dec-2015-14> <http://data.europa.eu/949/legislation/requirements/reg-2016-919> <http://data.europa.eu/949/legislation/requirements/reg_impl-2020-420> <http://data.europa.eu/949/legislation/requirements/reg_impl-2023-1695> } }
-	FILTER(?issued >= "2024-01-01"^^xsd:date)
-	# What the results table shows
-	OPTIONAL { ?declaration rdfs:seeAlso ?eradisPage }
-	OPTIONAL { ?declaration dct:creator/era:roleOf ?applicantOrg .
-		OPTIONAL { ?applicantOrg foaf:name ?applicantName }
-		OPTIONAL { ?applicantOrg org:hasSite/org:siteAddress/locn:adminUnitL1 ?applicantCountry } }
-	OPTIONAL { ?declaration dct:contributor ?arRole .
-		?arRole era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/Manufacturer> ;
-			era:roleOf/foaf:name ?authRepName }
-	OPTIONAL { ?declaration dct:contributor ?nbRole .
-		?nbRole era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/NOBO> ;
-			era:roleOf/foaf:name ?noboName }
-	OPTIONAL { ?declaration eli:title_short ?title }
-	OPTIONAL { ?declaration eli:id_local ?tsi . OPTIONAL { ?tsi skos:notation ?tsiNotation } }
-	OPTIONAL { ?declaration vpa:withRestriction ?r . BIND(true AS ?hasRestriction) }
+		VALUES ?type { <http://data.europa.eu/949/concepts/ecd-types/ECDoV> <http://data.europa.eu/949/concepts/ecd-types/ECDoC> <http://data.europa.eu/949/concepts/ecd-types/ECDoSU> }
+		VALUES ?state { <http://data.europa.eu/949/concepts/evidence-document-states/inForce> }
+		# Applicant (dct:creator)
+		{ SELECT DISTINCT ?appF WHERE { ?appF org:hasSite/org:siteAddress/locn:adminUnitL1 <http://publications.europa.eu/resource/authority/country/DNK> . } }   # the organisations first
+		?declaration dct:creator/era:roleOf ?appF .
+		# Type of subsystem "Control-command and signalling" (Directive 2016/797 Annex II), derived from the TSIs cited
+		FILTER EXISTS { ?declaration eli:id_local ?subTsi . VALUES ?subTsi { <http://data.europa.eu/949/legislation/requirements/dec-2002-731> <http://data.europa.eu/949/legislation/requirements/dec-2004-447> <http://data.europa.eu/949/legislation/requirements/dec-2006-679> <http://data.europa.eu/949/legislation/requirements/dec-2006-860> <http://data.europa.eu/949/legislation/requirements/dec-2007-153> <http://data.europa.eu/949/legislation/requirements/dec-2008-386> <http://data.europa.eu/949/legislation/requirements/dec-2009-561> <http://data.europa.eu/949/legislation/requirements/dec-2010-79> <http://data.europa.eu/949/legislation/requirements/dec-2012-463> <http://data.europa.eu/949/legislation/requirements/dec-2012-696> <http://data.europa.eu/949/legislation/requirements/dec-2012-88> <http://data.europa.eu/949/legislation/requirements/dec-2015-14> <http://data.europa.eu/949/legislation/requirements/reg-2016-919> <http://data.europa.eu/949/legislation/requirements/reg_impl-2020-420> <http://data.europa.eu/949/legislation/requirements/reg_impl-2023-1695> } }
+		FILTER(?issuedF >= "2024-01-01"^^xsd:date)
+	} }
+	# what the results show - one field per branch, so they never multiply
+	{ ?declaration dct:identifier ?id }
+	UNION { ?declaration dct:type ?type }
+	UNION { ?declaration era:state ?state }
+	UNION { ?declaration vpa:versionNumber ?ver }
+	UNION { ?declaration dct:issued ?issued }
+	UNION { ?declaration rdfs:seeAlso ?page }
+	UNION { ?declaration dct:creator/era:roleOf ?appO }
+	UNION { ?declaration dct:creator/era:roleOf/foaf:name ?app }
+	UNION { ?declaration dct:creator/era:roleOf/org:hasSite/org:siteAddress/locn:adminUnitL1 ?appC }
+	UNION { ?declaration dct:contributor ?arRole . ?arRole era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/Manufacturer> ; era:roleOf ?arO }
+	UNION { ?declaration dct:contributor ?arRoleN . ?arRoleN era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/Manufacturer> ; era:roleOf/foaf:name ?ar }
+	UNION { ?declaration dct:contributor ?nbRole . ?nbRole era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/NOBO> ; era:roleOf ?nbO }
+	UNION { ?declaration dct:contributor ?nbRoleN . ?nbRoleN era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/NOBO> ; era:roleOf/foaf:name ?nb }
+	UNION { ?declaration eli:title_short ?title }
+	UNION { ?declaration eli:id_local ?tsi }
+	UNION { ?declaration dct:source ?dir }
+	UNION { ?declaration vpa:withRestriction ?restrF BIND(1 AS ?restr) }
 }
-GROUP BY ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
-ORDER BY DESC(?issued) ?documentId
-LIMIT 500
+GROUP BY ?declaration
+ORDER BY DESC(?lastIssued) ?declaration

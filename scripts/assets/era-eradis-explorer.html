@@ -418,7 +418,8 @@ const ERADIS_PAGE = 'https://eradis.era.europa.eu/interop_docs/ecDecl/view.aspx?
 const ERADIS_CERT_PAGE = 'https://eradis.era.europa.eu/interop_docs/NoBoCert/view.aspx?id=';
 const CERT_BASE = ERA + 'evidence/cld/cld-NoBoCert/';
 const PUBLISHED_DECL_STATES = ['inForce','amended','revoked','suspended'];
-const PAGE_SIZE = 50, LIVE_LIMIT = 500;
+const PAGE_SIZE = 50;
+const LIVE_CHUNK = 1000, LIVE_PARALLEL = 6;   // documents per fields query, queries in flight
 
 const TYPE_URI = {V:ERA+'concepts/ecd-types/ECDoV', C:ERA+'concepts/ecd-types/ECDoC', S:ERA+'concepts/ecd-types/ECDoSU'};
 const TYPE_SHORT = {V:'Verification (subsystem)', C:'Conformity (constituent)', S:'Suitability for use'};
@@ -498,13 +499,13 @@ function renderFetchError(el, diag, retry){
 /* A form-encoded POST with a plain Accept header is a CORS "simple request":
    no preflight, so the only thing that can block it is the missing
    Access-Control-Allow-Origin on the response. */
-async function sparql(query, timeoutMs){
+async function sparql(query, timeoutMs, tsv){
   const ctrl = new AbortController();
   const t = setTimeout(()=>ctrl.abort(), timeoutMs);
   try{
     const res = await fetch(ENDPOINT, {
       method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded', 'Accept':'application/sparql-results+json'},
+      headers:{'Content-Type':'application/x-www-form-urlencoded', 'Accept':tsv ? 'text/tab-separated-values' : 'application/sparql-results+json'},
       body:'query=' + encodeURIComponent(query),
       signal:ctrl.signal,
     });
@@ -512,7 +513,7 @@ async function sparql(query, timeoutMs){
       const body = await res.text().catch(()=> '');
       throw new Error(`HTTP ${res.status}${body ? ' — ' + body.slice(0,200) : ''}`);
     }
-    return await res.json();
+    return tsv ? parseTsv(await res.text()) : await res.json();
   } finally { clearTimeout(t); }
 }
 const workbenchUrl = q => WORKBENCH + '?repositoryId=ERADIS-KG&infer=false&sameAs=false&query=' + encodeURIComponent(q);
@@ -570,12 +571,11 @@ async function loadSnapshot(){
     const list = S.citing.get(k); if(list[list.length - 1] !== i) list.push(i);
   })));
 }
-function certValidity(c, today){
-  const st = c.st.map(i => C.states[i]);
-  if(st.includes('withdrawn')) return 'withdrawn';
-  if(st.includes('suspended')) return 'suspended';
-  if(c.vu && c.vu < today) return 'expired';
-  if(c.vf && c.vf > today) return 'notyet';
+function validityOf(states, from, until, today){
+  if(states.includes('withdrawn')) return 'withdrawn';
+  if(states.includes('suspended')) return 'suspended';
+  if(until && until < today) return 'expired';
+  if(from && from > today) return 'notyet';
   return 'valid';
 }
 function loadCerts(){
@@ -593,7 +593,7 @@ function loadCerts(){
       c.dates = [c.d, ...c.ds].filter(Boolean);
     }
     C = data;
-    for(const c of C.certs){ c.val = certValidity(c, today); C.byKey.set(c.k, c); }
+    for(const c of C.certs){ c.val = validityOf(c.st.map(i => C.states[i]), c.vf, c.vu, today); C.byKey.set(c.k, c); }
     return C;
   })().catch(e => { certsLoading = null; throw e; });
   return certsLoading;
@@ -967,26 +967,40 @@ const COUNTRY_PATH = 'org:hasSite/org:siteAddress/locn:adminUnitL1';
    ?<v> to the organisation in its role. */
 /* `countries` and `orgs` are the picked values, empty for all. Picked
    organisations are always in the picked countries, so they make the
-   country condition redundant and it is left out. */
+   country condition redundant and it is left out.
+   The organisations are resolved first and the documents joined to them:
+   a few hundred organisations against tens of thousands of documents, so
+   testing each document with FILTER EXISTS is the slow way round (two
+   applicant countries, all states: 19.2 s as FILTER EXISTS, 4.1 s this way).
+   Only "no country recorded" keeps FILTER EXISTS - it cannot list the
+   organisations it wants. */
 const valuesBlock = (terms, indent) => terms.length <= 4 ? terms.join(' ')
   : '\n' + Array.from({length:Math.ceil(terms.length / 4)}, (_, k) => indent + TAB + terms.slice(k * 4, k * 4 + 4).join(' ')).join('\n') + '\n' + indent;
 function orgSparql(L, label, bind, v, countries, orgs, nameQ){
   if(!countries.length && !orgs.length && !nameQ) return;
-  const T2 = TAB + TAB;
-  L.push(`${TAB}# ${label}`, `${TAB}FILTER EXISTS { ${bind}`);
+  const T2 = TAB + TAB, none = countries.includes('—');
+  const known = countries.filter(c => c !== '—').map(c => `<${COUNTRY_BASE}${c}>`);
+  const name = nameQ && `?${v} foaf:name ?${v}N . FILTER(CONTAINS(LCASE(?${v}N), ${lc(nameQ)}))`;
+  L.push(`${TAB}# ${label}`);
   if(orgs.length){
-    L.push(`${T2}VALUES ?${v} { ${valuesBlock(orgs.map(o => `<${S.orgBase}${S.orgs[o][4]}>`), T2)} }`);
-  } else if(countries.length){
-    const known = countries.filter(c => c !== '—').map(c => `<${COUNTRY_BASE}${c}>`), none = countries.includes('—');
-    if(!none && known.length === 1) L.push(`${T2}?${v} ${COUNTRY_PATH} ${known[0]} .`);
-    else if(!none) L.push(`${T2}?${v} ${COUNTRY_PATH} ?${v}C . VALUES ?${v}C { ${valuesBlock(known, T2)} }`);
-    else if(!known.length) L.push(`${T2}FILTER NOT EXISTS { ?${v} ${COUNTRY_PATH} ?${v}C }`);
+    L.push(`${TAB}VALUES ?${v} { ${valuesBlock(orgs.map(o => `<${S.orgBase}${S.orgs[o][4]}>`), TAB)} }`);
+    if(name) L.push(`${TAB}FILTER EXISTS { ${name} }`);
+    L.push(TAB + bind);
+  } else if(!none){
+    const conds = [];
+    if(known.length === 1) conds.push(`?${v} ${COUNTRY_PATH} ${known[0]} .`);
+    else if(known.length) conds.push(`?${v} ${COUNTRY_PATH} ?${v}C . VALUES ?${v}C { ${valuesBlock(known, T2)} }`);
+    if(name) conds.push(name);
+    L.push(`${TAB}{ SELECT DISTINCT ?${v} WHERE { ${conds.join(' ')} } }   # the organisations first`, TAB + bind);
+  } else {
+    L.push(`${TAB}FILTER EXISTS { ${bind}`);
+    if(!known.length) L.push(`${T2}FILTER NOT EXISTS { ?${v} ${COUNTRY_PATH} ?${v}C }`);
     else L.push(`${T2}# in one of these countries, or with no country recorded`,
       `${T2}OPTIONAL { ?${v} ${COUNTRY_PATH} ?${v}C }`,
       `${T2}FILTER(!BOUND(?${v}C) || ?${v}C IN (${known.join(', ')}))`);
+    if(name) L.push(T2 + name);
+    L.push(`${TAB}}`);
   }
-  if(nameQ) L.push(`${T2}?${v} foaf:name ?${v}N . FILTER(CONTAINS(LCASE(?${v}N), ${lc(nameQ)}))`);
-  L.push(`${TAB}}`);
 }
 function refSparql(L, label, subject, prop, list, text, withTitle, v){
   const idx = resolveRefs(list, text, withTitle);
@@ -1008,33 +1022,110 @@ function subsystemSparql(L, subject, want){
       `${TAB}FILTER EXISTS { ${subject} eli:id_local ?subTsi . VALUES ?subTsi { ${uris.join(' ')} } }`);
   }
 }
-function buildDeclSparql(f){
-  const L = [];
-  L.push(`# EC declarations in ERADIS-KG matching the search form of era-eradis-explorer.html.
-# Endpoint: ${ENDPOINT}
-# Current version of each published declaration; one row per declaration.
+/* Every search is built in two parts, the way "Run live" sends it:
+   - the match: which current documents pass the form, as bare URIs;
+   - the fields: what the results show for each of them, one UNION branch
+     per field. Each branch binds its own variable, so a document's dates,
+     manufacturers, modules, TSIs… never multiply into each other before the
+     GROUP BY - the cross product that made one query over every certificate
+     take 112 s.
+   The panel shows the two joined in one query. "Run live" runs the match
+   alone, then the fields for 1,000 documents at a time, 6 in flight. */
+const ROLE = r => `<${ERA}concepts/organisation-roles/${r}>`;
+const LOCAL = 'local';   // keep only the URI's last segment: ECDoV, inForce, DEU, dec-2002-731…
+const DECL_FIELDS = [
+  ['id', 'dct:identifier ?id'],
+  ['type', 'dct:type ?type', LOCAL],
+  ['state', 'era:state ?state', LOCAL],
+  ['ver', 'vpa:versionNumber ?ver'],
+  ['issued', 'dct:issued ?issued'],
+  ['page', 'rdfs:seeAlso ?page'],
+  // organisations by key (resolved in the snapshot's table) and, for any the
+  // snapshot does not know yet, by their recorded name and country
+  ['appO', 'dct:creator/era:roleOf ?appO', LOCAL],
+  ['app', 'dct:creator/era:roleOf/foaf:name ?app'],
+  ['appC', `dct:creator/era:roleOf/${COUNTRY_PATH} ?appC`, LOCAL],
+  ['arO', `dct:contributor ?arRole . ?arRole era:hasOrganisationRole ${ROLE('Manufacturer')} ; era:roleOf ?arO`, LOCAL],
+  ['ar', `dct:contributor ?arRoleN . ?arRoleN era:hasOrganisationRole ${ROLE('Manufacturer')} ; era:roleOf/foaf:name ?ar`],
+  ['nbO', `dct:contributor ?nbRole . ?nbRole era:hasOrganisationRole ${ROLE('NOBO')} ; era:roleOf ?nbO`, LOCAL],
+  ['nb', `dct:contributor ?nbRoleN . ?nbRoleN era:hasOrganisationRole ${ROLE('NOBO')} ; era:roleOf/foaf:name ?nb`],
+  ['title', 'eli:title_short ?title'],
+  ['tsi', 'eli:id_local ?tsi', LOCAL],
+  ['dir', 'dct:source ?dir', LOCAL],
+  ['restr', 'vpa:withRestriction ?restrF BIND(1 AS ?restr)'],
+];
+const CERT_FIELDS = [
+  ['number', 'dct:identifier ?number'],
+  ['ver', 'vpa:versionNumber ?ver'],
+  ['type', 'dct:type/skos:prefLabel ?type'],
+  ['state', 'era:state ?state', LOCAL],
+  ['validFrom', 'dct:valid/time:hasBeginning/time:inXSDDate ?validFrom'],
+  ['validUntil', 'dct:valid/time:hasEnd/time:inXSDDate ?validUntil'],
+  ['issued', 'dct:issued ?issued'],
+  ['page', 'rdfs:seeAlso ?page'],
+  ['nbO', 'dct:creator/era:roleOf ?nbO', LOCAL],
+  ['nb', 'dct:creator/era:roleOf/foaf:name ?nb'],
+  ['nbC', `dct:creator/era:roleOf/${COUNTRY_PATH} ?nbC`, LOCAL],
+  ['nando', 'dct:creator/era:roleOf/era:role/era:nandoCode ?nando'],
+  ['appO', 'dct:audience/era:roleOf ?appO', LOCAL],
+  ['app', 'dct:audience/era:roleOf/foaf:name ?app'],
+  ['appC', `dct:audience/era:roleOf/${COUNTRY_PATH} ?appC`, LOCAL],
+  ['mfO', `dct:contributor ?mfRole . ?mfRole era:hasOrganisationRole ${ROLE('Manufacturer')} ; era:roleOf ?mfO`, LOCAL],
+  ['mf', `dct:contributor ?mfRoleN . ?mfRoleN era:hasOrganisationRole ${ROLE('Manufacturer')} ; era:roleOf/foaf:name ?mf`],
+  ['module', `dct:conformsTo ?module FILTER(STRSTARTS(STR(?module), "${ERA}concepts/cld-modules/"))`, LOCAL],
+  ['title', 'eli:title_short ?title'],
+  ['tsi', 'eli:id_local ?tsi', LOCAL],
+  ['dir', 'dct:source ?dir', LOCAL],
+  // the table shows 120 characters and the detail 200 (after collapsing
+  // whitespace, as the snapshot does); the full text is in the detail query
+  ['object', 'dct:description ?objectF BIND(SUBSTR(?objectF, 1, 300) AS ?object)'],
+];
+const SEP = '|';
+const fieldAggregates = fields => fields.map(([k, , kind]) =>
+  `${TAB}(GROUP_CONCAT(DISTINCT ${kind === LOCAL ? `REPLACE(STR(?${k}), "^.*/", "")` : `STR(?${k})`}; SEPARATOR="${SEP}") AS ?${k}_)`).join('\n');
+const fieldBranches = (s, fields) => `${TAB}{ ${s} ${fields[0][1]} }\n` +
+  fields.slice(1).map(([, p]) => `${TAB}UNION { ${s} ${p} }`).join('\n');
+const indent = lines => lines.map(l => TAB + l);
+/* The panel's query: match and fields joined, newest first. */
+function joinedSparql(header, s, match, fields){
+  return `${header}
 ${PREFIXES}
 
-SELECT ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
-	(SAMPLE(?applicantName) AS ?applicant)
-	(SAMPLE(?applicantCountry) AS ?applicantCountryUri)
-	(SAMPLE(?authRepName) AS ?authorisedRepresentative)
-	(GROUP_CONCAT(DISTINCT ?noboName; SEPARATOR="|") AS ?notifiedBodies)
-	(GROUP_CONCAT(DISTINCT ?title; SEPARATOR="|") AS ?constituent)
-	(GROUP_CONCAT(DISTINCT ?tsiNotation; SEPARATOR="|") AS ?tsis)
-	(GROUP_CONCAT(DISTINCT STR(?tsi); SEPARATOR="|") AS ?tsiUris)
-	(SAMPLE(?hasRestriction) AS ?restricted)
+SELECT ${s} (MAX(?issued) AS ?lastIssued)
+${fieldAggregates(fields)}
 WHERE {
-	# Published declarations only (the draft graph holds unpublished
-	# submissions). Organisation data lives in its own graph, so only the
-	# declaration itself is pinned.
-	GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
-	?declaration dct:identifier ?documentId ;
-		dct:type ?type ;
-		era:state ?state ;
-		vpa:versionNumber ?version ;
-		dct:issued ?issued .
-	FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }   # current version`);
+	# which documents match the form
+	{ SELECT DISTINCT ${s} WHERE {
+${indent(match).join('\n')}
+	} }
+	# what the results show - one field per branch, so they never multiply
+${fieldBranches(s, fields)}
+}
+GROUP BY ${s}
+ORDER BY DESC(?lastIssued) ${s}`;
+}
+const matchSparql = (s, match) => `${PREFIXES}\nSELECT DISTINCT ${s} WHERE {\n${match.join('\n')}\n}`;
+const fieldsSparql = (s, fields, uris) => `${PREFIXES}
+SELECT ${s}
+${fieldAggregates(fields)}
+WHERE {
+	VALUES ${s} { ${uris.map(u => '<' + u + '>').join(' ')} }
+${fieldBranches(s, fields)}
+}
+GROUP BY ${s}`;
+
+/* Which declarations match the form. */
+function declMatch(f){
+  const L = [
+`${TAB}# Published declarations only (the draft graph holds unpublished
+${TAB}# submissions). Organisation data lives in its own graph, so only the
+${TAB}# declaration itself is pinned.
+${TAB}GRAPH <http://data.europa.eu/949/graph/eradis> { ?declaration a era:ECDeclaration }
+${TAB}?declaration dct:identifier ?documentId ;
+${TAB}${TAB}dct:type ?type ;
+${TAB}${TAB}era:state ?state ;
+${TAB}${TAB}dct:issued ?issuedF .
+${TAB}FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }   # current version`];
   L.push(`${TAB}VALUES ?type { ${f.types.map(t => '<' + TYPE_URI[t] + '>').join(' ')} }`);
   L.push(`${TAB}VALUES ?state { ${f.states.map(i => '<' + ERA + 'concepts/evidence-document-states/' + STATE_KEYS[i] + '>').join(' ')} }`);
   if(f.docId) L.push(`${TAB}FILTER(CONTAINS(LCASE(?documentId), ${lc(f.docId)}))`);
@@ -1044,7 +1135,7 @@ WHERE {
     L.push(`${TAB}# Applicant registration number - embedded in the Document ID (CC/number/year/sequence), or recorded on the organisation`,
       `${TAB}FILTER(CONTAINS(LCASE(STRBEFORE(STRAFTER(?documentId, "/"), "/")), ${lc(q)}) || EXISTS { ?declaration dct:creator/era:roleOf/(gr:legalNumber|gr:vatID) ?appReg . FILTER(CONTAINS(LCASE(REPLACE(?appReg, "[ .-]", "")), ${lc(q)})) })`);
   }
-  const arBind = `?declaration dct:contributor ?arRoleF . ?arRoleF era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ; era:roleOf ?arF .`;
+  const arBind = `?declaration dct:contributor ?arRoleF . ?arRoleF era:hasOrganisationRole ${ROLE('Manufacturer')} ; era:roleOf ?arF .`;
   orgSparql(L, 'Authorised representative = dct:contributor in the Manufacturer role', arBind, 'arF', f.arCountry, f.arOrg, f.arName);
   if(f.arReg) L.push(`${TAB}FILTER EXISTS { ${arBind} ?arF gr:legalNumber|gr:vatID ?arRegF . FILTER(CONTAINS(LCASE(REPLACE(?arRegF, "[ .-]", "")), ${lc(normReg(f.arReg))})) }`);
   subsystemSparql(L, '?declaration', f.subsystem);
@@ -1059,67 +1150,47 @@ WHERE {
     if(f.sigFirst) L.push(`${TAB}?sigF foaf:givenName ?sigGivenF . FILTER(CONTAINS(LCASE(?sigGivenF), ${lc(f.sigFirst)}))`);
     if(f.sigLast) L.push(`${TAB}?sigF foaf:familyName ?sigFamilyF . FILTER(CONTAINS(LCASE(?sigFamilyF), ${lc(f.sigLast)}))`);
   }
-  if(f.from) L.push(`${TAB}FILTER(?issued >= ${lit(f.from)}^^xsd:date)`);
-  if(f.to) L.push(`${TAB}FILTER(?issued <= ${lit(f.to)}^^xsd:date)`);
-  L.push(
-`	# What the results table shows
-	OPTIONAL { ?declaration rdfs:seeAlso ?eradisPage }
-	OPTIONAL { ?declaration dct:creator/era:roleOf ?applicantOrg .
-		OPTIONAL { ?applicantOrg foaf:name ?applicantName }
-		OPTIONAL { ?applicantOrg ${COUNTRY_PATH} ?applicantCountry } }
-	OPTIONAL { ?declaration dct:contributor ?arRole .
-		?arRole era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ;
-			era:roleOf/foaf:name ?authRepName }
-	OPTIONAL { ?declaration dct:contributor ?nbRole .
-		?nbRole era:hasOrganisationRole <${ERA}concepts/organisation-roles/NOBO> ;
-			era:roleOf/foaf:name ?noboName }
-	OPTIONAL { ?declaration eli:title_short ?title }
-	OPTIONAL { ?declaration eli:id_local ?tsi . OPTIONAL { ?tsi skos:notation ?tsiNotation } }
-	OPTIONAL { ?declaration vpa:withRestriction ?r . BIND(true AS ?hasRestriction) }
+  if(f.from) L.push(`${TAB}FILTER(?issuedF >= ${lit(f.from)}^^xsd:date)`);
+  if(f.to) L.push(`${TAB}FILTER(?issuedF <= ${lit(f.to)}^^xsd:date)`);
+  return L;
 }
-GROUP BY ?declaration ?documentId ?type ?state ?version ?issued ?eradisPage
-ORDER BY DESC(?issued) ?documentId
-LIMIT ${LIVE_LIMIT}`);
-  return L.join('\n');
+function buildDeclSparql(f){
+  return joinedSparql(`# EC declarations in ERADIS-KG matching the search form of era-eradis-explorer.html.
+# Endpoint: ${ENDPOINT}
+# Current version of each published declaration; one row per declaration, every match.
+# "Run live" sends the inner SELECT first, then the fields for 1,000 declarations
+# at a time (VALUES ?declaration { … }).`, '?declaration', declMatch(f), DECL_FIELDS);
 }
+
 const DRAFT = ERA + 'concepts/evidence-document-states/draft';
 const STATE = k => '<' + ERA + 'concepts/evidence-document-states/' + k + '>';
-function buildCertSparql(f){
-  const L = [];
-  L.push(`# NoBo certificates (era:CertificationLevelDocument) in ERADIS-KG matching the
-# certificate search form of era-eradis-explorer.html.
-# Endpoint: ${ENDPOINT}
-# Current version of each certificate; only unpublished drafts are left out.
-# ?validity is derived: withdrawn / suspended as recorded, otherwise from the
-# dct:valid window against today's date (the recorded state is mostly "amended").
-${PREFIXES}
-
-SELECT ?certificate ?certNumber ?version ?typeLabel ?validFrom ?validUntil ?validity ?eradisPage
-	(MAX(?issued) AS ?lastIssued)
-	(GROUP_CONCAT(DISTINCT STR(?issued); SEPARATOR="|") AS ?issuedDates)
-	(SAMPLE(?noboName) AS ?notifiedBody) (SAMPLE(?nandoCode) AS ?nando)
-	(SAMPLE(?applicantName) AS ?applicant)
-	(SAMPLE(?applicantCountry) AS ?applicantCountryUri)
-	(GROUP_CONCAT(DISTINCT ?manufacturerName; SEPARATOR="|") AS ?manufacturers)
-	(GROUP_CONCAT(DISTINCT REPLACE(STR(?module), "^.*/", ""); SEPARATOR="|") AS ?modules)
-	(GROUP_CONCAT(DISTINCT ?title; SEPARATOR="|") AS ?constituent)
-	(GROUP_CONCAT(DISTINCT STR(?tsi); SEPARATOR="|") AS ?tsiUris)
-	(SAMPLE(?objectOfAssessment) AS ?object)
-WHERE {
-	GRAPH <http://data.europa.eu/949/graph/eradis> { ?certificate a era:CertificationLevelDocument }
-	FILTER NOT EXISTS { ?certificate dct:isReplacedBy ?newer }   # current version
-	FILTER EXISTS { ?certificate era:state ?publishedState FILTER(?publishedState != <${DRAFT}>) }
-	?certificate dct:identifier ?certNumber ; vpa:versionNumber ?version .
-	OPTIONAL { ?certificate dct:type/skos:prefLabel ?typeLabel }
-	OPTIONAL { ?certificate dct:valid ?window .
-		OPTIONAL { ?window time:hasBeginning/time:inXSDDate ?validFrom }
-		OPTIONAL { ?window time:hasEnd/time:inXSDDate ?validUntil } }
-	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
-	BIND(IF(EXISTS { ?certificate era:state ${STATE('withdrawn')} }, "withdrawn",
-	     IF(EXISTS { ?certificate era:state ${STATE('suspended')} }, "suspended",
-	     IF(BOUND(?validUntil) && ?validUntil < ?today, "expired",
-	     IF(BOUND(?validFrom) && ?validFrom > ?today, "notyet", "valid")))) AS ?validity)`);
-  if(f.validity.length < VALIDITY.length) L.push(`${TAB}FILTER(?validity IN (${f.validity.map(lit).join(', ')}))`);
+/* Which certificates match the form. The validity window and the derived
+   ?validity are only computed when the form filters on them. */
+function certMatch(f){
+  const L = [
+`${TAB}GRAPH <http://data.europa.eu/949/graph/eradis> { ?certificate a era:CertificationLevelDocument }
+${TAB}FILTER NOT EXISTS { ?certificate dct:isReplacedBy ?newer }   # current version
+${TAB}FILTER EXISTS { ?certificate era:state ?publishedState FILTER(?publishedState != <${DRAFT}>) }`];
+  // organisations straight after the base pattern: joined before the
+  // validity BIND and the "cited" test, they cut the certificates those
+  // have to look at (valid + Italian NoBo + cited: 90 s+ when last)
+  orgSparql(L, 'Applicant (dct:audience)', '?certificate dct:audience/era:roleOf ?appF .', 'appF', f.appCountry, f.appOrg, f.appName);
+  orgSparql(L, 'Manufacturer (dct:contributor, Manufacturer role)', `?certificate dct:contributor ?mfRoleF . ?mfRoleF era:hasOrganisationRole ${ROLE('Manufacturer')} ; era:roleOf ?mfF .`, 'mfF', f.mfCountry, f.mfOrg, f.mfName);
+  orgSparql(L, 'Notified body (dct:creator)', '?certificate dct:creator/era:roleOf ?nbF .', 'nbF', f.nbCountry, f.nbOrg, '');
+  const byValidity = f.validity.length < VALIDITY.length;
+  if(byValidity || f.validOn) L.push(
+`${TAB}OPTIONAL { ?certificate dct:valid ?window .
+${TAB}${TAB}OPTIONAL { ?window time:hasBeginning/time:inXSDDate ?validFromF }
+${TAB}${TAB}OPTIONAL { ?window time:hasEnd/time:inXSDDate ?validUntilF } }`);
+  if(byValidity) L.push(
+`${TAB}# validity, derived: withdrawn / suspended as recorded, otherwise from the
+${TAB}# dct:valid window against today's date (the recorded state is mostly "amended")
+${TAB}BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+${TAB}BIND(IF(EXISTS { ?certificate era:state ${STATE('withdrawn')} }, "withdrawn",
+${TAB}     IF(EXISTS { ?certificate era:state ${STATE('suspended')} }, "suspended",
+${TAB}     IF(BOUND(?validUntilF) && ?validUntilF < ?today, "expired",
+${TAB}     IF(BOUND(?validFromF) && ?validFromF > ?today, "notyet", "valid")))) AS ?validity)
+${TAB}FILTER(?validity IN (${f.validity.map(lit).join(', ')}))`);
   if(f.number) L.push(`${TAB}# certificate number, current or earlier`,
     `${TAB}FILTER EXISTS { ?certificate dct:replaces*/dct:identifier ?numberF . FILTER(CONTAINS(LCASE(?numberF), ${lc(f.number)})) }`);
   if(f.type) L.push(`${TAB}?certificate dct:type <${ERA}concepts/cld-types/${C.types[+f.type][0]}> .`);
@@ -1129,86 +1200,121 @@ WHERE {
   if(f.title) L.push(`${TAB}FILTER EXISTS { ?certificate eli:title_short ?titleF . FILTER(CONTAINS(LCASE(?titleF), ${lc(f.title)})) }`);
   refSparql(L, 'TSIs', '?certificate', 'eli:id_local', S.tsis, f.tsi, true, 'tsiF');
   refSparql(L, 'Directives', '?certificate', 'dct:source', S.dirs, f.dir, false, 'dirF');
-  orgSparql(L, 'Applicant (dct:audience)', '?certificate dct:audience/era:roleOf ?appF .', 'appF', f.appCountry, f.appOrg, f.appName);
-  orgSparql(L, 'Manufacturer (dct:contributor, Manufacturer role)', `?certificate dct:contributor ?mfRoleF . ?mfRoleF era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ; era:roleOf ?mfF .`, 'mfF', f.mfCountry, f.mfOrg, f.mfName);
-  orgSparql(L, 'Notified body (dct:creator)', '?certificate dct:creator/era:roleOf ?nbF .', 'nbF', f.nbCountry, f.nbOrg, '');
   if(f.nando) L.push(`${TAB}FILTER EXISTS { ?certificate dct:creator/era:roleOf/era:role/era:nandoCode ?nandoF . FILTER(CONTAINS(LCASE(?nandoF), ${lc(f.nando)})) }`);
   if(f.from || f.to){
     const conds = [f.from && `?issuedF >= ${lit(f.from)}^^xsd:date`, f.to && `?issuedF <= ${lit(f.to)}^^xsd:date`].filter(Boolean).join(' && ');
     L.push(`${TAB}# any of its dates of issue in range (1,631 certificates have several)`, `${TAB}FILTER EXISTS { ?certificate dct:issued ?issuedF . FILTER(${conds}) }`);
   }
   if(f.validOn) L.push(`${TAB}# validity window covers ${f.validOn}`,
-    `${TAB}FILTER((!BOUND(?validFrom) || ?validFrom <= ${lit(f.validOn)}^^xsd:date) && (!BOUND(?validUntil) || ?validUntil >= ${lit(f.validOn)}^^xsd:date))`);
+    `${TAB}FILTER((!BOUND(?validFromF) || ?validFromF <= ${lit(f.validOn)}^^xsd:date) && (!BOUND(?validUntilF) || ?validUntilF >= ${lit(f.validOn)}^^xsd:date))`);
   if(f.cited){
     const citing = `?certificate dct:replaces* ?anyVersion . ?citingDecl dct:relation/rdfs:member ?anyVersion ; era:state ?citingState .
-		GRAPH <http://data.europa.eu/949/graph/eradis> { ?citingDecl a era:ECDeclaration }
-		FILTER NOT EXISTS { ?citingDecl dct:isReplacedBy ?newerDecl }
-		VALUES ?citingState { ${PUBLISHED_DECL_STATES.map(STATE).join(' ')} }`;
+${TAB}${TAB}GRAPH <http://data.europa.eu/949/graph/eradis> { ?citingDecl a era:ECDeclaration }
+${TAB}${TAB}FILTER NOT EXISTS { ?citingDecl dct:isReplacedBy ?newerDecl }
+${TAB}${TAB}VALUES ?citingState { ${PUBLISHED_DECL_STATES.map(STATE).join(' ')} }`;
     L.push(`${TAB}# ${f.cited === 'yes' ? '' : 'not '}cited by a published EC declaration (any version of the certificate)`,
       `${TAB}FILTER ${f.cited === 'yes' ? '' : 'NOT '}EXISTS { ${citing} }`);
   }
-  L.push(
-`	# What the results table shows
-	OPTIONAL { ?certificate rdfs:seeAlso ?eradisPage }
-	OPTIONAL { ?certificate dct:issued ?issued }
-	OPTIONAL { ?certificate dct:creator/era:roleOf ?noboOrg .
-		OPTIONAL { ?noboOrg foaf:name ?noboName }
-		OPTIONAL { ?noboOrg era:role/era:nandoCode ?nandoCode } }
-	OPTIONAL { ?certificate dct:audience/era:roleOf ?applicantOrg .
-		OPTIONAL { ?applicantOrg foaf:name ?applicantName }
-		OPTIONAL { ?applicantOrg ${COUNTRY_PATH} ?applicantCountry } }
-	OPTIONAL { ?certificate dct:contributor ?mfRole .
-		?mfRole era:hasOrganisationRole <${ERA}concepts/organisation-roles/Manufacturer> ;
-			era:roleOf/foaf:name ?manufacturerName }
-	OPTIONAL { ?certificate dct:conformsTo ?module .
-		FILTER(STRSTARTS(STR(?module), "${ERA}concepts/cld-modules/")) }
-	OPTIONAL { ?certificate eli:title_short ?title }
-	OPTIONAL { ?certificate eli:id_local ?tsi }
-	OPTIONAL { ?certificate dct:description ?objectOfAssessment }
+  return L;
 }
-GROUP BY ?certificate ?certNumber ?version ?typeLabel ?validFrom ?validUntil ?validity ?eradisPage
-ORDER BY DESC(?lastIssued) ?certNumber
-LIMIT ${LIVE_LIMIT}`);
-  return L.join('\n');
+function buildCertSparql(f){
+  return joinedSparql(`# NoBo certificates (era:CertificationLevelDocument) in ERADIS-KG matching the
+# certificate search form of era-eradis-explorer.html.
+# Endpoint: ${ENDPOINT}
+# Current version of each certificate; only unpublished drafts are left out. Every match.
+# "Run live" sends the inner SELECT first, then the fields for 1,000 certificates
+# at a time (VALUES ?certificate { … }). Validity today is derived from ?state_,
+# ?validFrom_ and ?validUntil_: withdrawn / suspended as recorded, otherwise the
+# validity window against today's date (the recorded state is mostly "amended").`, '?certificate', certMatch(f), CERT_FIELDS);
 }
 
-function rowsFromLiveDecls(json){
-  const tsiByUri = new Map(S.tsis.map(t => [S.refBase + t[2], t]));
-  const typeKey = Object.fromEntries(Object.entries(TYPE_URI).map(([k, u]) => [u, k]));
-  const split = b => b && b.value ? b.value.split('|') : [];
-  return json.results.bindings.map(b => {
-    const refs = split(b.tsiUris).map(u => tsiByUri.get(u)).filter(Boolean);
+/* Live answers come back as TSV, a third the size of SPARQL JSON: one
+   line per row, tab-separated RDF terms, with tabs and line breaks inside
+   literals escaped - so splitting on them is safe. */
+function parseTsv(text){
+  const lines = text.split('\n');
+  const head = lines[0].replace(/\r$/, '').split('\t').map(h => h.replace(/^\?/, ''));
+  const term = t => {
+    if(t[0] === '<') return t.slice(1, -1);
+    if(t[0] !== '"') return t;
+    return t.slice(1, t.lastIndexOf('"')).replace(/\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|.)/g, (m, c) =>
+      c.length > 1 ? String.fromCodePoint(parseInt(c.slice(1), 16)) : ({t:'\t', n:'\n', r:'\r', b:'\b', f:'\f'}[c] || c));
+  };
+  const rows = [];
+  for(let i = 1; i < lines.length; i++){
+    const line = lines[i].replace(/\r$/, '');
+    if(!line) continue;
+    const cells = line.split('\t'), r = {};
+    head.forEach((h, k) => { r[h] = cells[k] ? term(cells[k]) : ''; });
+    rows.push(r);
+  }
+  return rows;
+}
+const parts = v => v ? v.split(SEP) : [];
+const refsOf = (list, keys) => { const by = new Map(list.map(t => [t[2], t])); return keys.map(k => by.get(k)).filter(Boolean); };
+const TYPE_KEY = Object.fromEntries(Object.entries(TYPE_URI).map(([k, u]) => [u.replace(/^.*\//, ''), k]));
+const newest = v => parts(v).sort().pop() || '';
+/* Organisations as the snapshot and the pickers name them. An organisation
+   can carry several foaf:name or NANDO codes, and a live answer would show
+   whichever came first; resolving the key keeps both views identical. Null
+   when any organisation is newer than the snapshot - the recorded names are
+   used then. */
+let orgIndex = null;
+function knownOrgs(keys){
+  orgIndex = orgIndex || new Map(S.orgs.map((o, i) => [o[4], i]));
+  const idx = parts(keys).map(k => orgIndex.get(k));
+  return idx.length && idx.every(i => i !== undefined) ? idx : null;
+}
+const orgName = i => S.orgs[i][0];
+const orgList = (keys, names, label) => { const k = knownOrgs(keys); return k ? k.map(label) : parts(names); };
+const noboLabel = i => S.orgs[i][0] + (S.orgs[i][3] ? ' (' + S.orgs[i][3] + ')' : '');
+/* The date of issue shown, as in the snapshot: several are common, and one
+   of them is sometimes the validity end or a typo (3019) - so the latest
+   that is neither the validity end nor after today. */
+function primaryIssued(dates, validUntil, today){
+  const all = [...new Set(dates)].sort(), usable = all.filter(d => d !== validUntil);
+  const pool = usable.length ? usable : all, past = pool.filter(d => d <= today);
+  return past.length ? past[past.length - 1] : (pool[0] || '');
+}
+function rowsFromLiveDecls(recs){
+  return recs.map(b => {
+    const tsiKeys = parts(b.tsi_), refs = refsOf(S.tsis, tsiKeys), dirRefs = refsOf(S.dirs, parts(b.dir_));
+    const docId = parts(b.id_)[0] || '';
     return {
-      reg:'ecd', key:b.documentId.value, docId:b.documentId.value, type:typeKey[b.type.value],
-      state:STATE_KEYS.indexOf(b.state.value.replace(/^.*\//, '')),
-      version:+b.version.value, versions:null, issued:b.issued.value,
-      page:b.eradisPage ? b.eradisPage.value : '', uri:b.declaration.value,
-      applicant:b.applicant ? b.applicant.value : '',
-      applicantCountry:b.applicantCountryUri ? b.applicantCountryUri.value.replace(COUNTRY_BASE, '') : '',
-      authRep:b.authorisedRepresentative ? b.authorisedRepresentative.value : '',
-      nobos:split(b.notifiedBodies), titles:split(b.constituent),
+      reg:'ecd', key:docId, docId, type:TYPE_KEY[parts(b.type_)[0]],
+      state:parts(b.state_).map(s => STATE_KEYS.indexOf(s)).find(i => i >= 0) ?? -1,
+      version:Math.max(0, ...parts(b.ver_).map(Number)), versions:null, issued:newest(b.issued_),
+      page:parts(b.page_)[0] || '', uri:b.declaration,
+      ...(app => app ? {applicant:orgName(app[0]), applicantCountry:S.orgs[app[0]][1]}
+        : {applicant:parts(b.app_)[0] || '', applicantCountry:parts(b.appC_)[0] || ''})(knownOrgs(b.appO_)),
+      authRep:orgList(b.arO_, b.ar_, orgName).join('; '),
+      nobos:orgList(b.nbO_, b.nb_, noboLabel),
+      titles:parts(b.title_),
       subsystems:[...new Set(refs.map(t => t[3]).filter(Boolean))],
-      tsis:split(b.tsis), dirs:[], tsiRefs:refs, dirRefs:[],
-      certs:null, restr:!!b.restricted, description:'',
+      // TSIs the snapshot does not know keep their key rather than vanish
+      tsis:tsiKeys.map(k => (refs.find(t => t[2] === k) || [k])[0]), dirs:dirRefs.map(t => t[0]),
+      tsiRefs:refs, dirRefs, certs:null, restr:!!b.restr_, description:'',
     };
   });
 }
-function rowsFromLiveCerts(json){
-  const tsiByUri = new Map(S.tsis.map(t => [S.refBase + t[2], t]));
-  const split = b => b && b.value ? b.value.split('|') : [];
-  const val = b => b ? b.value : '';
-  return json.results.bindings.map(b => {
-    const refs = split(b.tsiUris).map(u => tsiByUri.get(u)).filter(Boolean);
-    const key = +b.certificate.value.replace(/^.*\//, '');
+function rowsFromLiveCerts(recs){
+  const today = todayISO();
+  return recs.map(b => {
+    const tsiKeys = parts(b.tsi_), refs = refsOf(S.tsis, tsiKeys);
+    const states = parts(b.state_), validFrom = parts(b.validFrom_).sort()[0] || '', validUntil = newest(b.validUntil_);
     return {
-      reg:'cld', key, number:b.certNumber.value, type:val(b.typeLabel), modules:split(b.modules), states:[],
-      validity:b.validity.value, issued:val(b.lastIssued), issuedAll:split(b.issuedDates).sort(),
-      validFrom:val(b.validFrom), validUntil:val(b.validUntil), version:+b.version.value,
-      page:val(b.eradisPage), uri:b.certificate.value,
-      nobo:val(b.notifiedBody), nando:val(b.nando), noboCountry:'',
-      applicant:val(b.applicant), applicantCountry:val(b.applicantCountryUri).replace(COUNTRY_BASE, ''),
-      manufacturers:split(b.manufacturers), titles:split(b.constituent), object:val(b.object),
-      subsystems:[...new Set(refs.map(t => t[3]).filter(Boolean))], tsis:refs.map(t => t[0]), tsiRefs:refs, dirRefs:[],
+      reg:'cld', key:+b.certificate.replace(/^.*\//, ''), number:parts(b.number_)[0] || '', type:parts(b.type_)[0] || '',
+      modules:parts(b.module_), states, validity:validityOf(states, validFrom, validUntil, today),
+      issued:primaryIssued(parts(b.issued_), validUntil, today), issuedAll:[...new Set(parts(b.issued_))].sort(), validFrom, validUntil,
+      version:Math.max(0, ...parts(b.ver_).map(Number)), page:parts(b.page_)[0] || '', uri:b.certificate,
+      ...(nb => nb ? {nobo:orgName(nb[0]), nando:S.orgs[nb[0]][3], noboCountry:S.orgs[nb[0]][1]}
+        : {nobo:parts(b.nb_)[0] || '', nando:parts(b.nando_)[0] || '', noboCountry:parts(b.nbC_)[0] || ''})(knownOrgs(b.nbO_)),
+      ...(app => app ? {applicant:orgName(app[0]), applicantCountry:S.orgs[app[0]][1]}
+        : {applicant:parts(b.app_)[0] || '', applicantCountry:parts(b.appC_)[0] || ''})(knownOrgs(b.appO_)),
+      manufacturers:orgList(b.mfO_, b.mf_, orgName),
+      titles:parts(b.title_), object:[...(b.object_ || '').replace(/\s+/g, ' ')].slice(0, 200).join(''),   // code points, as the snapshot cuts
+      subsystems:[...new Set(refs.map(t => t[3]).filter(Boolean))],
+      tsis:tsiKeys.map(k => (refs.find(t => t[2] === k) || [k])[0]), tsiRefs:refs, dirRefs:refsOf(S.dirs, parts(b.dir_)),
       previous:[], restr:false, cited:null,
     };
   });
@@ -1220,6 +1326,7 @@ const REGISTERS = {
   ecd:{
     form:'searchForm', noun:'declarations', one:'declaration',
     read:readDeclForm, sparql:buildDeclSparql, search:searchDecls, row:rowFromDecl, live:rowsFromLiveDecls,
+    subject:'declaration', match:declMatch, fields:DECL_FIELDS,
     validate:f => !f.types.length ? 'Tick at least one type of declaration.' : !f.states.length ? 'Tick at least one status.'
       : (f.from && f.to && f.from > f.to) ? 'The “from” date is after the “to” date.' : '',
     liveOnlyUsed:f => !!(f.sigFirst || f.sigLast),
@@ -1227,6 +1334,7 @@ const REGISTERS = {
   cld:{
     form:'certForm', noun:'certificates', one:'certificate',
     read:readCertForm, sparql:buildCertSparql, search:searchCerts, row:rowFromCert, live:rowsFromLiveCerts,
+    subject:'certificate', match:certMatch, fields:CERT_FIELDS,
     validate:f => !f.validity.length ? 'Tick at least one validity status.' : (f.from && f.to && f.from > f.to) ? 'The “from” date is after the “to” date.' : '',
     liveOnlyUsed:() => false,
   },
@@ -1251,7 +1359,7 @@ function showResults(res){
   const uniq = key => new Set(rows.flatMap(r => [].concat(key(r))).filter(Boolean)).size;
   const pct = n => rows.length ? Math.round(100 * n / rows.length) + '%' : '–';
   const liveNote = res.source === 'live'
-    ? `Live answer from ERADIS-KG${res.total >= LIVE_LIMIT ? ` — the first ${LIVE_LIMIT} by date of issue; the statistics and chart cover those ${LIVE_LIMIT} only` : ''}, in ${res.seconds.toFixed(1)} s.`
+    ? `Live answer from ERADIS-KG — every match, in ${res.seconds.toFixed(1)} s (${fmt(res.queries)} ${res.queries === 1 ? 'query' : 'queries'}: the match, then the fields ${fmt(LIVE_CHUNK)} at a time).`
     : '';
   if(res.reg === 'ecd'){
     tiles([[fmt(res.total), 'Declarations'], [fmt(uniq(r => r.applicant)), 'Applicants'], [fmt(uniq(r => r.nobos)), 'Notified bodies'], [pct(rows.filter(r => r.restr).length), 'With restrictions']]);
@@ -1697,22 +1805,50 @@ function runSnapshotSearch(){
     setStatus(`${fmt(hits.length)} ${R().noun} — the signatory fields were not applied: signatory names are only searched live. Use “Run live on ERADIS-KG”.`, 'note');
   else setStatus(`${fmt(hits.length)} ${R().noun} match, searched in ${took}.`, hits.length ? 'success' : '');
 }
+/* Run `tasks` (functions returning promises) with at most `n` in flight. */
+async function inPool(tasks, n){
+  let next = 0;
+  const worker = async () => { while(next < tasks.length) await tasks[next++](); };
+  await Promise.all(Array.from({length:Math.min(n, tasks.length)}, worker));
+}
+/* A chunk that fails is tried once more before the run gives up: one
+   overloaded moment of the endpoint should not cost the whole answer. */
+const retryOnce = async fn => { try{ return await fn(); } catch(e){ if(e.name === 'AbortError') throw e; return fn(); } };
+let liveRun = 0;
 async function runLive(){
   const f = R().read();
   const bad = R().validate(f);
   if(bad){ setStatus(bad, 'error'); return; }
-  const q = R().sparql(f), reg = register;
+  const reg = register, spec = REGISTERS[reg], q = spec.sparql(f), run = ++liveRun;
+  const s = '?' + spec.subject;
   $('queryText').textContent = q; $('workbenchLink').href = workbenchUrl(q);
   document.querySelectorAll('.liveBtn').forEach(b => b.disabled = true);
-  setStatus('Running the SPARQL on ERADIS-KG…', 'loading');
+  setStatus(`Finding the matching ${spec.noun} on ERADIS-KG…`, 'loading');
   const t0 = performance.now();
   try{
-    const json = await sparql(q, 90000);
-    const rows = REGISTERS[reg].live(json);
+    // 1. which documents match - bare URIs, fast even for every certificate
+    const uris = (await sparql(matchSparql(s, spec.match(f)), 90000, true)).map(r => r[spec.subject]);
+    // 2. their fields, pinned with VALUES, in parallel chunks
+    const chunks = [];
+    for(let i = 0; i < uris.length; i += LIVE_CHUNK) chunks.push(uris.slice(i, i + LIVE_CHUNK));
+    const answers = new Array(chunks.length);
+    let fetched = 0;
+    const progress = () => setStatus(`${fmt(uris.length)} ${spec.noun} match — fetching their details: ${fmt(fetched)} of ${fmt(uris.length)}…`, 'loading');
+    if(uris.length) progress();
+    await inPool(chunks.map((c, i) => async () => {
+      answers[i] = await retryOnce(() => sparql(fieldsSparql(s, spec.fields, c), 60000, true));
+      fetched += c.length;
+      if(run === liveRun && reg === register) progress();
+    }), LIVE_PARALLEL);
+    if(run !== liveRun || reg !== register) return;   // superseded, or the tab changed meanwhile
+    const rows = spec.live(answers.flat())
+      .sort((a, b) => plausibleDate(b.issued).localeCompare(plausibleDate(a.issued)) || String(a.docId || a.number).localeCompare(String(b.docId || b.number)));
     setLive(true);
-    showResults({reg, source:'live', rows, total:rows.length, seconds:(performance.now() - t0) / 1000});
-    setStatus(`${fmt(rows.length)} ${REGISTERS[reg].noun} from ERADIS-KG${rows.length >= LIVE_LIMIT ? ` (the query stops at ${LIVE_LIMIT})` : ''}.`, 'success');
+    const seconds = (performance.now() - t0) / 1000;
+    showResults({reg, source:'live', rows, total:rows.length, seconds, queries:1 + chunks.length});
+    setStatus(`${fmt(rows.length)} ${spec.noun} from ERADIS-KG — every match, in ${seconds.toFixed(1)} s.`, rows.length ? 'success' : '');
   } catch(err){
+    if(run !== liveRun) return;
     const diag = await describeFetchError(err, ENDPOINT);
     const el = $('statusArea'); el.className = 'error';
     renderFetchError(el, diag, runLive);
@@ -1720,7 +1856,7 @@ async function runLive(){
     a.style.marginTop = '8px';
     a.innerHTML = `<a class="btnLink" href="${esc(workbenchUrl(q))}" target="_blank" rel="noopener">Open this query in GraphDB workbench ↗</a> <span class="sub">or use “Search snapshot” for the same search offline.</span>`;
     el.appendChild(a);
-  } finally { document.querySelectorAll('.liveBtn').forEach(b => b.disabled = false); }
+  } finally { if(run === liveRun) document.querySelectorAll('.liveBtn').forEach(b => b.disabled = false); }
 }
 async function switchRegister(reg, search = true){
   register = reg;
