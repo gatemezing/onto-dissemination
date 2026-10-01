@@ -132,6 +132,9 @@ ERADIS search form:
   manufacturer, notified body and NANDO number, dates, and whether a
   declaration cites it.
 
+Every country and organisation field (applicant, authorised representative,
+manufacturer, notified body) takes several values or all: a searchable
+checkbox list, with the organisations narrowed to the countries picked.
 The two registers link to each other in both directions. Every search is shown
 as SPARQL, runnable live or in the GraphDB workbench. Results come with a
 per-year chart, CSV download, and a detail view with each cited TSI linked to

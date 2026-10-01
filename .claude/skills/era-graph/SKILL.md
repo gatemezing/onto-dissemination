@@ -368,7 +368,7 @@ from the browser and share a dependency-free XLSX writer.
 | `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country, plus a network map |
 | `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters, multi-country/multi-line with "Select all", plus a network map |
 | `era-route-book.html` | `/routebook.html` | TSI OPE Appendix D2 elements + coverage, multi-country/multi-line with "Select all", plus a network map |
-| `era-eradis-explorer.html` | `/eradis.html` | ERADIS-KG EC declarations with the ERADIS search form, over a snapshot, every search also as SPARQL |
+| `era-eradis-explorer.html` | `/eradis.html` | ERADIS-KG EC declarations and NoBo certificates with the ERADIS search forms, multi-country/multi-organisation pickers (nothing picked = all), over a snapshot, every search also as SPARQL |
 
 Verified query sets with measurements live in `scripts/assets/rcc/` and
 `scripts/assets/routebook/`. `scripts/build-rinf-parameter-catalog.py` refreshes

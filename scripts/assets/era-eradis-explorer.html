@@ -171,6 +171,31 @@
   .pill.v-valid{color:var(--green);border-color:rgba(122,195,106,.5);}
   .pill.v-expired,.pill.v-withdrawn{color:var(--danger);border-color:rgba(242,109,109,.5);}
   .pill.v-suspended,.pill.v-notyet{color:var(--orange);border-color:rgba(240,168,58,.5);}
+  /* multi-pick: a <select>-like button opening a searchable checkbox list */
+  .msel{position:relative;min-width:0;}
+  .mselBtn{width:100%;display:flex;align-items:center;gap:8px;text-align:left;background:rgba(255,255,255,.06);
+    border:1px solid var(--line);color:var(--paper);padding:8px 10px;border-radius:7px;font:inherit;font-size:13px;cursor:pointer;min-width:0;}
+  .mselBtn:hover{background:rgba(255,255,255,.09);}
+  .mselBtn:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+  .mselBtn[aria-expanded="true"]{border-color:var(--blue);}
+  .mselText{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mselText .sub{font-size:12px;}
+  .mselBadge{flex:none;font-size:11px;font-weight:700;color:#0b1220;background:var(--teal);border-radius:9px;padding:0 7px;line-height:18px;}
+  .mselCaret{flex:none;color:var(--muted);font-size:11px;}
+  .mselPop{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;background:#0f1729;border:1px solid var(--line);
+    border-radius:9px;box-shadow:0 14px 34px rgba(0,0,0,.55);padding:8px;}
+  .mselTools{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:8px 2px 6px;font-size:11.5px;color:var(--muted);}
+  .mselTools .grow{flex:1;}
+  .mselList{max-height:300px;overflow:auto;border-top:1px solid var(--line);padding-top:4px;}
+  .mselList label{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:12.5px;cursor:pointer;line-height:1.3;}
+  .mselList label:hover{background:rgba(255,255,255,.06);}
+  .mselList label:focus-within{background:rgba(91,155,213,.14);}
+  .mselList input{flex:none;margin:0;accent-color:var(--teal);}
+  .mselList .nm{flex:1;min-width:0;overflow-wrap:anywhere;}
+  .mselList .n{flex:none;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;}
+  .mselList .allRow{border-bottom:1px solid var(--line);border-radius:6px 6px 0 0;margin-bottom:4px;font-weight:600;}
+  .mselList .more{padding:6px;font-size:11.5px;color:var(--muted);}
+  .mselFoot{display:flex;justify-content:flex-end;margin-top:6px;}
   footer{font-size:11.5px;color:var(--muted);margin-top:22px;line-height:1.6;}
   footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;}
   a{color:var(--blue);}
@@ -217,13 +242,13 @@
 
     <section>
       <h2>Document owner/holder</h2>
-      <div class="row"><label for="fAppCountry">Applicant Country</label><select id="fAppCountry"></select></div>
-      <div class="row"><label for="fAppOrg">Applicant Organisation Name</label><select id="fAppOrg"></select></div>
+      <div class="row"><label for="fAppCountry">Applicant Country</label><div id="fAppCountry"></div></div>
+      <div class="row"><label for="fAppOrg">Applicant Organisation Name</label><div id="fAppOrg"></div></div>
       <div class="row"><label for="fAppName"><span class="sub">…or part of the name</span></label><input type="text" id="fAppName" placeholder="e.g. Siemens"></div>
       <div class="row"><label for="fAppReg">Applicant National Registration No</label><input type="text" id="fAppReg" placeholder="e.g. DK18632276">
         <div class="hint">Matched against the registration number embedded in the Document ID, and the organisation's recorded legal/VAT number.</div></div>
-      <div class="row" style="margin-top:14px;"><label for="fArCountry">Authorised representative Country</label><select id="fArCountry"></select></div>
-      <div class="row"><label for="fArOrg">Authorised representative Organisation Name</label><select id="fArOrg"></select></div>
+      <div class="row" style="margin-top:14px;"><label for="fArCountry">Authorised representative Country</label><div id="fArCountry"></div></div>
+      <div class="row"><label for="fArOrg">Authorised representative Organisation Name</label><div id="fArOrg"></div></div>
       <div class="row"><label for="fArName"><span class="sub">…or part of the name</span></label><input type="text" id="fArName" placeholder="e.g. ProRail"></div>
       <div class="row"><label for="fArReg">Authorised representative National Registration No</label><input type="text" id="fArReg" placeholder="legal or VAT number"></div>
     </section>
@@ -292,22 +317,22 @@
 
     <section>
       <h2>Applicant</h2>
-      <div class="row"><label for="cAppCountry">Applicant Country</label><select id="cAppCountry"></select></div>
-      <div class="row"><label for="cAppOrg">Applicant Name</label><select id="cAppOrg"></select></div>
+      <div class="row"><label for="cAppCountry">Applicant Country</label><div id="cAppCountry"></div></div>
+      <div class="row"><label for="cAppOrg">Applicant Name</label><div id="cAppOrg"></div></div>
       <div class="row"><label for="cAppName"><span class="sub">…or part of the name</span></label><input type="text" id="cAppName"></div>
     </section>
 
     <section>
       <h2>Manufacturer</h2>
-      <div class="row"><label for="cMfCountry">Manufacturer Country</label><select id="cMfCountry"></select></div>
-      <div class="row"><label for="cMfOrg">Manufacturer Name</label><select id="cMfOrg"></select></div>
+      <div class="row"><label for="cMfCountry">Manufacturer Country</label><div id="cMfCountry"></div></div>
+      <div class="row"><label for="cMfOrg">Manufacturer Name</label><div id="cMfOrg"></div></div>
       <div class="row"><label for="cMfName"><span class="sub">…or part of the name</span></label><input type="text" id="cMfName"></div>
     </section>
 
     <section>
       <h2>NoBo</h2>
-      <div class="row"><label for="cNbCountry">NoBo Country</label><select id="cNbCountry"></select></div>
-      <div class="row"><label for="cNbOrg">NoBo Name</label><select id="cNbOrg"></select></div>
+      <div class="row"><label for="cNbCountry">NoBo Country</label><div id="cNbCountry"></div></div>
+      <div class="row"><label for="cNbOrg">NoBo Name</label><div id="cNbOrg"></div></div>
       <div class="row"><label for="cNando">NoBo NANDO number</label><input type="text" id="cNando" placeholder="e.g. 1010"></div>
     </section>
 
@@ -590,26 +615,167 @@ function fillSelect(sel, items, anyLabel){
     const o = document.createElement('option'); o.value = value; o.textContent = label; sel.appendChild(o);
   }
 }
-/* A country select that narrows an organisation select. `orgsOf(item)`
-   returns the organisation index (or indexes) an item names in that role. */
-function orgPicker(items, orgsOf, cSel, oSel, onChange){
+/* ------------------------------------------------------------------ *
+ * Multi-pick: stands in for a <select> where several values may be picked.
+ * A button shows the choice; it opens a searchable checkbox list headed by
+ * an "All …" row. "All" and specific picks exclude each other: ticking a
+ * value unticks All, unticking the last value ticks it again. Nothing
+ * picked therefore always means all, and the search applies no filter. */
+const MSEL_SHOWN = 300;   // rows rendered at once; the search narrows the rest
+const fold = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function multiPick(host, words, onChange){
+  const label = document.querySelector(`label[for="${host.id}"]`);
+  const btnId = host.id + 'Btn', popId = host.id + 'Pop';
+  if(label){ label.htmlFor = btnId; label.id = label.id || host.id + 'Label'; }
+  host.className = 'msel';
+  host.innerHTML =
+    `<button type="button" class="mselBtn" id="${btnId}" aria-haspopup="true" aria-expanded="false" aria-controls="${popId}"` +
+      `${label ? ` aria-labelledby="${label.id} ${btnId}"` : ''}>` +
+      `<span class="mselText"></span><span class="mselBadge" hidden></span><span class="mselCaret" aria-hidden="true">▾</span></button>` +
+    `<div class="mselPop" id="${popId}" role="group" aria-label="${esc(words.many)}" hidden>` +
+      `<input type="text" class="mselSearch" placeholder="Type to filter ${esc(words.many)}…" aria-label="Filter ${esc(words.many)}" spellcheck="false">` +
+      `<div class="mselTools"><span class="grow" aria-live="polite"></span>` +
+        `<button type="button" class="btn mini" data-act="matching" hidden></button></div>` +
+      `<div class="mselList"></div>` +
+      `<div class="mselFoot"><button type="button" class="btn mini" data-act="done">Done</button></div></div>`;
+  const btn = host.querySelector('.mselBtn'), pop = host.querySelector('.mselPop');
+  const search = host.querySelector('.mselSearch'), list = host.querySelector('.mselList');
+  const tools = host.querySelector('.mselTools .grow'), matchBtn = host.querySelector('[data-act=matching]');
+  let options = [], byValue = new Map(), picked = new Set(), allText = words.all, matches = [];
+
+  const summary = () => {
+    const text = host.querySelector('.mselText'), badge = host.querySelector('.mselBadge');
+    if(!picked.size){
+      text.innerHTML = `${esc(allText)} <span class="sub">(${fmt(options.length)})</span>`;
+      badge.hidden = true;
+    } else {
+      const names = options.filter(o => picked.has(o.value)).map(o => o.label);
+      text.textContent = names.length <= 2 ? names.join(', ') : `${names[0]}, ${names[1]} and ${fmt(names.length - 2)} more`;
+      badge.textContent = fmt(picked.size); badge.hidden = picked.size < 2;
+    }
+    btn.title = picked.size ? options.filter(o => picked.has(o.value)).map(o => o.label).join('\n') : '';
+  };
+  const row = (o, i) =>
+    `<label><input type="checkbox" data-i="${i}"${picked.has(o.value) ? ' checked' : ''}>` +
+    `<span class="nm">${esc(o.label)}${o.sub ? ` <span class="sub">${esc(o.sub)}</span>` : ''}</span><span class="n">${fmt(o.count)}</span></label>`;
+  const renderList = () => {
+    const q = fold(search.value.trim());
+    matches = q ? options.filter(o => o.key.includes(q))
+      // picked values first, so a long list doesn't hide them
+      : [...options.filter(o => picked.has(o.value)), ...options.filter(o => !picked.has(o.value))];
+    const shown = matches.slice(0, MSEL_SHOWN);
+    list.innerHTML =
+      (q ? '' : `<label class="allRow"><input type="checkbox" data-all${picked.size ? '' : ' checked'}>` +
+        `<span class="nm">${esc(allText)}</span></label>`) +
+      shown.map(row).join('') +
+      (matches.length > shown.length ? `<div class="more">${fmt(matches.length - shown.length)} more — type to narrow the list.</div>` : '') +
+      (q && !matches.length ? `<div class="more">No ${esc(words.one)} matches “${esc(search.value.trim())}”.</div>` : '');
+    const unpicked = matches.filter(o => !picked.has(o.value)).length;
+    matchBtn.hidden = !q || !unpicked;
+    matchBtn.textContent = `Pick all ${fmt(unpicked)} matching`;
+    tools.textContent = picked.size ? `${fmt(picked.size)} of ${fmt(options.length)} picked` : `All ${fmt(options.length)} ${words.many}`;
+  };
+  const changed = () => { summary(); renderList(); onChange(); };
+  const open = () => {
+    if(openPick && openPick !== api) openPick.close();
+    openPick = api;
+    pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+    search.value = ''; renderList(); list.scrollTop = 0;
+    search.focus();
+  };
+  const close = (refocus) => {
+    if(pop.hidden) return;
+    pop.hidden = true; btn.setAttribute('aria-expanded', 'false');
+    if(openPick === api) openPick = null;
+    if(refocus) btn.focus();
+  };
+  btn.addEventListener('click', () => pop.hidden ? open() : close(true));
+  search.addEventListener('input', renderList);
+  search.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault();   // never submit the form from here
+      const first = list.querySelector('input[data-i]'); if(first) first.focus(); }
+    if(e.key === 'ArrowDown'){ e.preventDefault(); const first = list.querySelector('input'); if(first) first.focus(); }
+  });
+  list.addEventListener('keydown', e => {
+    if(e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const boxes = [...list.querySelectorAll('input')], i = boxes.indexOf(document.activeElement);
+    e.preventDefault();
+    if(e.key === 'ArrowUp' && i <= 0) search.focus();
+    else if(boxes[i + (e.key === 'ArrowDown' ? 1 : -1)]) boxes[i + (e.key === 'ArrowDown' ? 1 : -1)].focus();
+  });
+  // keep the list's own changes out of the form's change/input listeners
+  pop.addEventListener('input', e => e.stopPropagation());
+  list.addEventListener('change', e => {
+    e.stopPropagation();
+    const box = e.target;
+    if(box.hasAttribute('data-all')){ picked.clear(); changed(); list.querySelector('[data-all]').focus(); return; }
+    const o = matches[+box.dataset.i];
+    if(box.checked) picked.add(o.value); else picked.delete(o.value);
+    // update in place: re-rendering would move the row under the pointer
+    const all = list.querySelector('[data-all]'); if(all) all.checked = !picked.size;
+    summary(); onChange();
+    tools.textContent = picked.size ? `${fmt(picked.size)} of ${fmt(options.length)} picked` : `All ${fmt(options.length)} ${words.many}`;
+    const unpicked = matches.filter(m => !picked.has(m.value)).length;
+    matchBtn.textContent = `Pick all ${fmt(unpicked)} matching`; matchBtn.hidden = !search.value.trim() || !unpicked;
+  });
+  matchBtn.addEventListener('click', () => { matches.forEach(o => picked.add(o.value)); changed(); search.focus(); });
+  host.querySelector('[data-act=done]').addEventListener('click', () => close(true));
+  pop.addEventListener('keydown', e => { if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(true); } });
+  host.addEventListener('focusout', e => { if(!host.contains(e.relatedTarget) && e.relatedTarget) close(false); });
+
+  const api = {
+    /* opts: [{value, label, count}]. Picks no longer on offer are dropped. */
+    setOptions(opts, allLabel){
+      options = opts.map(o => ({...o, key:fold(o.label + ' ' + (o.sub || ''))}));
+      byValue = new Map(options.map(o => [o.value, o]));
+      allText = allLabel || words.all;
+      picked = new Set([...picked].filter(v => byValue.has(v)));
+      summary(); if(!pop.hidden) renderList();
+    },
+    values: () => [...picked],
+    set(values){ picked = new Set(values.filter(v => byValue.has(v))); summary(); if(!pop.hidden) renderList(); },
+    reset(){ picked.clear(); close(false); summary(); },
+    close, host,
+  };
+  return api;
+}
+let openPick = null;
+// a click anywhere outside the open list closes it
+document.addEventListener('mousedown', e => {
+  if(openPick && !openPick.host.contains(e.target)) openPick.close(false);
+});
+
+/* Country and organisation pickers for one role. `orgsOf(item)` returns the
+   organisation index (or indexes) an item names in that role. The
+   organisations on offer are those of the countries picked. */
+const PICK = {};
+function orgPicker(items, orgsOf, cHost, oHost, onChange){
   const orgCountry = o => S.orgs[o][1] || '—';
+  const cname = c => countryName(c === '—' ? '' : c);
   const byCountry = countOver(items, it => { const o = orgsOf(it); if(o === undefined || o === null) return null;
     return [...new Set((Array.isArray(o) ? o : [o]).map(orgCountry))]; });
-  const cname = c => countryName(c === '—' ? '' : c);
-  fillSelect(cSel, [...byCountry.entries()].sort((a, b) => cname(a[0]).localeCompare(cname(b[0])))
-    .map(([c, n]) => [c, `${cname(c)} (${fmt(n)})`]), 'Please select…');
   const byOrg = countOver(items, it => { const o = orgsOf(it); return o === undefined ? null : o; });
+  const orgs = [...byOrg.entries()].sort((a, b) => S.orgs[a[0]][0].localeCompare(S.orgs[b[0]][0]));
+  // the register holds the same name more than once (e.g. one per site):
+  // the country, NANDO number and, for clashing names, the code tell them apart
+  const nameCount = countOver(orgs, ([o]) => S.orgs[o][0].toLowerCase());
+  const orgSub = o => { const [name, c, , nando, code] = S.orgs[o];
+    return [c ? cname(c) : '', nando ? 'NANDO ' + nando : '', nameCount.get(name.toLowerCase()) > 1 && code !== name ? code : ''].filter(Boolean).join(' · '); };
+  const oPick = multiPick(oHost, {all:'All organisations', one:'organisation', many:'organisations'}, onChange);
   const refresh = () => {
-    const c = cSel.value;
-    const list = [...byOrg.entries()].filter(([o]) => !c || orgCountry(o) === c)
-      .sort((a, b) => S.orgs[a[0]][0].localeCompare(S.orgs[b[0]][0]))
-      .map(([o, n]) => [String(o), `${S.orgs[o][0]} (${fmt(n)})`]);
-    fillSelect(oSel, list, c ? `Any organisation in ${cname(c)} (${list.length})` : `Any organisation (${fmt(list.length)})`);
+    const cs = new Set(cPick.values());
+    const names = [...cs].map(cname).sort((a, b) => a.localeCompare(b));
+    oPick.setOptions(orgs.filter(([o]) => !cs.size || cs.has(orgCountry(o))).map(([o, n]) => ({value:o, label:S.orgs[o][0], sub:orgSub(o), count:n})),
+      !cs.size ? 'All organisations' : `All organisations in ${names.length <= 2 ? names.join(' or ') : fmt(names.length) + ' countries'}`);
   };
-  cSel.addEventListener('change', () => { refresh(); onChange(); });
+  const cPick = multiPick(cHost, {all:'All countries', one:'country', many:'countries'}, () => { refresh(); onChange(); });
+  cPick.setOptions([...byCountry.entries()].sort((a, b) => cname(a[0]).localeCompare(cname(b[0])))
+    .map(([c, n]) => ({value:c, label:cname(c), count:n})));
   refresh();
+  PICK[cHost.id] = cPick; PICK[oHost.id] = oPick;
+  cPick.reset = (base => () => { base(); refresh(); })(cPick.reset);
 }
+const resetPickers = form => form.querySelectorAll('.msel').forEach(h => PICK[h.id].reset());
 function subsystemOptions(sel, items, noun){
   const bySub = countOver(items, it => it.subs.length ? it.subs : ['—']);
   fillSelect(sel, [
@@ -642,6 +808,8 @@ function buildCertForm(){
   subsystemOptions($('cSubsystem'), C.certs);
 }
 
+/* Picked countries / organisations; an empty list means all. */
+const pick = id => PICK[id].values();
 const normReg = s => s.toLowerCase().replace(/[\s.-]/g, '').replace(/^0+/, '');
 function readDeclForm(){
   const v = id => $(id).value.trim();
@@ -649,8 +817,8 @@ function readDeclForm(){
     docId:v('fDocId'),
     types:[...document.querySelectorAll('input[name=type]:checked')].map(i => i.value),
     states:[...document.querySelectorAll('input[name=state]:checked')].map(i => +i.value),
-    appCountry:v('fAppCountry'), appOrg:v('fAppOrg'), appName:v('fAppName'), appReg:v('fAppReg'),
-    arCountry:v('fArCountry'), arOrg:v('fArOrg'), arName:v('fArName'), arReg:v('fArReg'),
+    appCountry:pick('fAppCountry'), appOrg:pick('fAppOrg'), appName:v('fAppName'), appReg:v('fAppReg'),
+    arCountry:pick('fArCountry'), arOrg:pick('fArOrg'), arName:v('fArName'), arReg:v('fArReg'),
     subsystem:v('fSubsystem'), title:v('fTitle'), cert:v('fCert'),
     dir:v('fDir'), tsi:v('fTsi'),
     sigFirst:v('fSigFirst'), sigLast:v('fSigLast'),
@@ -663,9 +831,9 @@ function readCertForm(){
     number:v('cNumber'), type:v('cType'), module:v('cModule'), object:v('cObject'),
     validity:[...document.querySelectorAll('input[name=validity]:checked')].map(i => i.value),
     subsystem:v('cSubsystem'), title:v('cTitle'), tsi:v('cTsi'), dir:v('cDir'),
-    appCountry:v('cAppCountry'), appOrg:v('cAppOrg'), appName:v('cAppName'),
-    mfCountry:v('cMfCountry'), mfOrg:v('cMfOrg'), mfName:v('cMfName'),
-    nbCountry:v('cNbCountry'), nbOrg:v('cNbOrg'), nando:v('cNando'),
+    appCountry:pick('cAppCountry'), appOrg:pick('cAppOrg'), appName:v('cAppName'),
+    mfCountry:pick('cMfCountry'), mfOrg:pick('cMfOrg'), mfName:v('cMfName'),
+    nbCountry:pick('cNbCountry'), nbOrg:pick('cNbOrg'), nando:v('cNando'),
     from:v('cFrom'), to:v('cTo'), validOn:v('cValidOn'), cited:v('cCited'),
   };
 }
@@ -680,12 +848,14 @@ function resolveRefs(list, text, withTitle){
   return out;
 }
 /* Organisation filter shared by both registers: `o` is one index or a list
-   (a certificate can name several manufacturers). Like the SPARQL
-   FILTER EXISTS, every condition must hold for the same organisation. */
-function orgFilter(o, country, org, nameQ){
-  if(!country && !org && !nameQ) return true;
-  const list = o === undefined || o === null ? [] : (Array.isArray(o) ? o : [o]);
-  return list.some(i => (!country || (S.orgs[i][1] || '—') === country) && (!org || i === +org) && (!nameQ || S.orgNameL[i].includes(nameQ)));
+   (a certificate can name several manufacturers); `countries` and `orgs`
+   are the picked values, empty for all. Like the SPARQL FILTER EXISTS,
+   every condition must hold for the same organisation. */
+function orgFilter(countries, orgs, nameQ){
+  if(!countries.length && !orgs.length && !nameQ) return () => true;
+  const cs = countries.length && new Set(countries), os = orgs.length && new Set(orgs);
+  const ok = i => (!cs || cs.has(S.orgs[i][1] || '—')) && (!os || os.has(i)) && (!nameQ || S.orgNameL[i].includes(nameQ));
+  return o => o === undefined || o === null ? false : Array.isArray(o) ? o.some(ok) : ok(o);
 }
 const subMatch = (subs, want) => !want || (want === '—' ? subs.length === 0 : subs.includes(want));
 
@@ -697,12 +867,14 @@ function searchDecls(f){
   const tsiSet = tsiIdx && new Set(tsiIdx), dirSet = dirIdx && new Set(dirIdx);
   const docQ = f.docId.toLowerCase(), titleQ = f.title.toLowerCase(), certQ = f.cert.toLowerCase();
   const appRegQ = f.appReg ? normReg(f.appReg) : '', arRegQ = f.arReg ? normReg(f.arReg) : '';
+  const appOk = orgFilter(f.appCountry, f.appOrg, f.appName.toLowerCase());
+  const arOk = orgFilter(f.arCountry, f.arOrg, f.arName.toLowerCase());
   return S.decls.filter(d =>
     types.has(d.t) && states.has(d.s) &&
     (!docQ || d.idl.includes(docQ)) &&
-    orgFilter(d.a, f.appCountry, f.appOrg, f.appName.toLowerCase()) &&
+    appOk(d.a) &&
     (!appRegQ || d.regSeg.includes(appRegQ) || (d.a !== undefined && S.orgRegL[d.a].includes(appRegQ))) &&
-    orgFilter(d.r, f.arCountry, f.arOrg, f.arName.toLowerCase()) &&
+    arOk(d.r) &&
     (!arRegQ || (d.r !== undefined && S.orgRegL[d.r].includes(arRegQ))) &&
     subMatch(d.subs, f.subsystem) &&
     (!titleQ || d.til.includes(titleQ)) &&
@@ -735,6 +907,9 @@ function searchCerts(f){
   const tsiIdx = resolveRefs(S.tsis, f.tsi, true), dirIdx = resolveRefs(S.dirs, f.dir, false);
   const tsiSet = tsiIdx && new Set(tsiIdx), dirSet = dirIdx && new Set(dirIdx);
   const numQ = f.number.toLowerCase(), objQ = f.object.toLowerCase(), titleQ = f.title.toLowerCase(), nandoQ = f.nando.toLowerCase();
+  const appOk = orgFilter(f.appCountry, f.appOrg, f.appName.toLowerCase());
+  const mfOk = orgFilter(f.mfCountry, f.mfOrg, f.mfName.toLowerCase());
+  const nbOk = orgFilter(f.nbCountry, f.nbOrg, '');
   return C.certs.filter(c =>
     want.has(c.val) &&
     (!numQ || c.nl.includes(numQ)) &&
@@ -745,9 +920,7 @@ function searchCerts(f){
     (!titleQ || c.til.includes(titleQ)) &&
     (!tsiSet || c.ts.some(i => tsiSet.has(i))) &&
     (!dirSet || c.di.some(i => dirSet.has(i))) &&
-    orgFilter(c.a, f.appCountry, f.appOrg, f.appName.toLowerCase()) &&
-    orgFilter(c.mf.length ? c.mf : undefined, f.mfCountry, f.mfOrg, f.mfName.toLowerCase()) &&
-    orgFilter(c.nb, f.nbCountry, f.nbOrg, '') &&
+    appOk(c.a) && mfOk(c.mf.length ? c.mf : undefined) && nbOk(c.nb) &&
     (!nandoQ || (c.nb !== undefined && S.orgNandoL[c.nb].includes(nandoQ))) &&
     ((!f.from && !f.to) || c.dates.some(d => (!f.from || d >= f.from) && (!f.to || d <= f.to))) &&
     (!f.validOn || ((!c.vf || c.vf <= f.validOn) && (!c.vu || c.vu >= f.validOn))) &&
@@ -792,13 +965,27 @@ PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>`;
 const COUNTRY_PATH = 'org:hasSite/org:siteAddress/locn:adminUnitL1';
 /* Organisation filter as SPARQL: `bind` is the triple pattern that binds
    ?<v> to the organisation in its role. */
-function orgSparql(L, label, bind, v, country, org, nameQ){
-  if(!country && !org && !nameQ) return;
+/* `countries` and `orgs` are the picked values, empty for all. Picked
+   organisations are always in the picked countries, so they make the
+   country condition redundant and it is left out. */
+const valuesBlock = (terms, indent) => terms.length <= 4 ? terms.join(' ')
+  : '\n' + Array.from({length:Math.ceil(terms.length / 4)}, (_, k) => indent + TAB + terms.slice(k * 4, k * 4 + 4).join(' ')).join('\n') + '\n' + indent;
+function orgSparql(L, label, bind, v, countries, orgs, nameQ){
+  if(!countries.length && !orgs.length && !nameQ) return;
+  const T2 = TAB + TAB;
   L.push(`${TAB}# ${label}`, `${TAB}FILTER EXISTS { ${bind}`);
-  if(org) L.push(`${TAB}${TAB}FILTER(?${v} = <${S.orgBase}${S.orgs[+org][4]}>)`);
-  if(country && country !== '—') L.push(`${TAB}${TAB}?${v} ${COUNTRY_PATH} <${COUNTRY_BASE}${country}> .`);
-  if(country === '—') L.push(`${TAB}${TAB}FILTER NOT EXISTS { ?${v} ${COUNTRY_PATH} ?${v}C }`);
-  if(nameQ) L.push(`${TAB}${TAB}?${v} foaf:name ?${v}N . FILTER(CONTAINS(LCASE(?${v}N), ${lc(nameQ)}))`);
+  if(orgs.length){
+    L.push(`${T2}VALUES ?${v} { ${valuesBlock(orgs.map(o => `<${S.orgBase}${S.orgs[o][4]}>`), T2)} }`);
+  } else if(countries.length){
+    const known = countries.filter(c => c !== '—').map(c => `<${COUNTRY_BASE}${c}>`), none = countries.includes('—');
+    if(!none && known.length === 1) L.push(`${T2}?${v} ${COUNTRY_PATH} ${known[0]} .`);
+    else if(!none) L.push(`${T2}?${v} ${COUNTRY_PATH} ?${v}C . VALUES ?${v}C { ${valuesBlock(known, T2)} }`);
+    else if(!known.length) L.push(`${T2}FILTER NOT EXISTS { ?${v} ${COUNTRY_PATH} ?${v}C }`);
+    else L.push(`${T2}# in one of these countries, or with no country recorded`,
+      `${T2}OPTIONAL { ?${v} ${COUNTRY_PATH} ?${v}C }`,
+      `${T2}FILTER(!BOUND(?${v}C) || ?${v}C IN (${known.join(', ')}))`);
+  }
+  if(nameQ) L.push(`${T2}?${v} foaf:name ?${v}N . FILTER(CONTAINS(LCASE(?${v}N), ${lc(nameQ)}))`);
   L.push(`${TAB}}`);
 }
 function refSparql(L, label, subject, prop, list, text, withTitle, v){
@@ -1471,7 +1658,7 @@ $('detail').addEventListener('click', async e => {
 async function openCertificate(key){
   await switchRegister('cld', false);
   const form = $('certForm');
-  form.reset(); ['cAppCountry', 'cMfCountry', 'cNbCountry'].forEach(id => $(id).dispatchEvent(new Event('change')));
+  form.reset(); resetPickers(form);
   const c = C.byKey.get(key);
   $('cNumber').value = c ? c.n : '';
   runSnapshotSearch();
@@ -1480,7 +1667,7 @@ async function openCertificate(key){
 }
 async function openDeclaration(docId){
   await switchRegister('ecd', false);
-  $('searchForm').reset(); ['fAppCountry', 'fArCountry'].forEach(id => $(id).dispatchEvent(new Event('change')));
+  $('searchForm').reset(); resetPickers($('searchForm'));
   $('fDocId').value = docId;
   document.querySelectorAll('input[name=state]').forEach(i => i.checked = true);
   runSnapshotSearch();
@@ -1566,8 +1753,7 @@ for(const id of ['searchForm', 'certForm']){
   form.addEventListener('change', updateQueryPanel);
   form.querySelector('.liveBtn').addEventListener('click', runLive);
   form.querySelector('.resetBtn').addEventListener('click', () => {
-    form.reset();
-    form.querySelectorAll('select[id$="Country"]').forEach(s => s.dispatchEvent(new Event('change')));
+    form.reset(); resetPickers(form);
     runSnapshotSearch();
   });
 }
