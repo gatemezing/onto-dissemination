@@ -112,14 +112,18 @@ window the same way the RINF Parameter Values map is. Query set in
 **[era-eurostat-exporter.html](scripts/assets/era-eurostat-exporter.html)** —
 exports the two optimised Eurostat extracts in [eurostat/](eurostat/) as CSV:
 sections of line with their track parameters (30 columns, coded values given
-as their `skos:prefLabel`), and the TEN-T /
+as their `skos:prefLabel`; operational-point positions as a WKT point plus
+latitude/longitude, read through `era:netReference/geo:hasGeometry`; optionally
+a 31st column with each section's own geometry), and the TEN-T /
 corridor classification flags (40 columns, including the post-2024
 `era:partOfTENT` network levels, traffic types and European Transport
 Corridors). Pick one country or the whole EU, see the exact SPARQL that will be
 sent before running it, and get per-column coverage statistics with the result —
 so an empty column is visibly a publication gap rather than a silent blank. Only the
 description valid today is exported, so sections a manager has already
-republished for next year (Germany) are not counted twice.
+republished for next year (Germany) are not counted twice. A value the graph
+does not carry reads `no data`, never an empty cell. The whole EU is fetched one
+country at a time, six in parallel (~50 s).
 
 **[era-eradis-explorer.html](scripts/assets/era-eradis-explorer.html)** —
 searches two ERADIS registers in `ERADIS-KG`, each with the fields of its
@@ -181,6 +185,9 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
   (a stylised demo scene used for a short explainer video).
 - `scripts/build-rinf-parameter-catalog.py` — regenerates the parameter and
   country/dataset snapshot embedded in the Value Explorer; see below.
+- `scripts/build-eurostat-queries.py` — generates the optimised Eurostat
+  queries in `eurostat/` and the copies embedded in the Eurostat Exporter, so
+  the two never drift apart.
 - `scripts/build-era-answers-pptx.py` — regenerates
   `interop-europe/ERA-ontology-reusability.pptx` from the answers (needs
   `python-pptx`).

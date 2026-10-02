@@ -44,6 +44,10 @@
   select#countrySel:focus-visible{outline:2px solid var(--blue);}
   option{background:#111a2e;color:var(--paper);}
   #scopeHint{font-size:12px;color:var(--teal);margin-top:8px;min-height:16px;line-height:1.4;}
+  .optRow{display:flex;align-items:flex-start;gap:9px;margin:2px 0 12px 22px;font-size:12.5px;cursor:pointer;line-height:1.4;}
+  .optRow input{margin-top:2px;flex:none;}
+  .optRow[hidden]{display:none;}
+  .optRow .modeDesc{font-size:12px;color:var(--muted);}
 
   button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
     padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;}
@@ -124,10 +128,14 @@
       <label class="modeOption" data-ds="sol">
         <input type="radio" name="ds" value="sol" checked>
         <span>
-          <span class="modeTitle">Sections of line + track parameters<span class="badge">30 columns</span></span>
-          <span class="modeDesc">Length, infrastructure manager, national line, start/end operational points, validity, TEN classification, permitted speed, gauge, contact-line system, ETCS level, GSM-R. Coded values come as their label (e.g. <em>Link</em>, <em>Overhead contact line (OCL)</em>); a code with no label anywhere in the graph stays as its URI. One row per section of line and track. Mirrors <code>query-SoL-param1-optimised.rq</code>.</span>
+          <span class="modeTitle">Sections of line + track parameters<span class="badge" id="solCols">30 columns</span></span>
+          <span class="modeDesc">Length, infrastructure manager, national line, start/end operational points with their position (WKT point, latitude, longitude), validity, TEN classification, permitted speed, gauge, contact-line system, ETCS level, GSM-R. Coded values come as their label (e.g. <em>Link</em>, <em>Overhead contact line (OCL)</em>); a code with no label anywhere in the graph stays as its URI. One row per section of line and track. Mirrors <code>query-SoL-param1-optimised.rq</code>.</span>
         </span>
       </label>
+      <label class="optRow" id="geomRow">
+      <input type="checkbox" id="solGeom">
+      <span>Add each section's own geometry <span class="modeDesc">— one more column, <code>sectionofline_geometry</code> (WKT linestring), from the section's net reference like the points. About doubles the file: the whole EU grows from 71 MB to 137 MB. Mirrors <code>query-SoL-param1-geometry.rq</code>.</span></span>
+    </label>
       <label class="modeOption" data-ds="tent">
         <input type="radio" name="ds" value="tent">
         <span>
@@ -191,7 +199,9 @@
     Multi-valued fields are returned pipe-separated (<code>|</code>), because one operational point can carry several
     <code>era:opName</code> values once the per-infrastructure-manager graphs are read as a union.
     Only the description of a section valid today is exported: Germany already publishes next year's copy of every section, which would otherwise count twice.
-    Per-country export is the fast path, usually seconds; the whole EU in one request stays under the endpoint's 120&nbsp;s limit but takes a minute or two, and downloads tens of megabytes.
+    Operational-point positions come from each point's net reference (<code>era:netReference/geo:hasGeometry</code>), which every point has; latitude and longitude are read from its WKT point.
+    A value the graph does not carry reads <code>no data</code>, never an empty cell; the coverage table counts those as missing.
+    One country is one request, usually under half a minute; the whole EU is one request per country, six at a time, joined into one file of tens of megabytes.
     <br>← Back to the <a href="./">ERA Graph Explorer</a> (bubble-graph "follow your nose" demo)
     · <a href="./exporter.html">RDF Exporter</a> (any resource URI as RDF/XML)
     · <a href="./values.html">RINF Parameter Values</a> (distinct values per parameter, by country)
@@ -203,6 +213,7 @@
 
 <script>
 const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
+const $ = id => document.getElementById(id);
 const COUNTRY_BASE = 'http://publications.europa.eu/resource/authority/country/';
 
 /* ------------------------------------------------------------------ *
@@ -264,129 +275,323 @@ async function setFetchErrorStatus(el, className, err, endpoint, retry){
 }
 
 /* ------------------------------------------------------------------ *
- * The two queries. These mirror eurostat/query-SoL-param1-optimised.rq and
- * eurostat/tent-query-v1-optimised.rq — keep them in step with those files,
- * which carry the measurements and the reasoning behind every correction.
- * ##FILTER## is replaced by a country FILTER, or by nothing for the whole EU. */
+ * The queries. Generated, with the eurostat/*.rq files they mirror, by
+ * scripts/build-eurostat-queries.py — edit that, not these; the .rq headers
+ * carry the measurements and the reasoning behind every correction.
+ * ##FILTER## (in both subqueries) is replaced by the country FILTER. Every
+ * empty value comes back as "no data". */
 
-const QUERY_SOL = `PREFIX era: <http://data.europa.eu/949/>
+const QUERY_SOL = String.raw`PREFIX era:  <http://data.europa.eu/949/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+PREFIX geo:  <http://www.opengis.net/ont/geosparql#>
 
+# Outer SELECT: every empty or missing value reads "no data"
 SELECT
 	?sectionofline
 	?sectionofline_incountry
-	?sectionofline_lengthofsectionofline
-	?sectionofline_track
-	(GROUP_CONCAT(DISTINCT ?imCode;       SEPARATOR="|") AS ?sectionofline_imcode)
-	(GROUP_CONCAT(DISTINCT ?lineLabel;    SEPARATOR="|") AS ?sectionofline_linenationalid_label)
-	(GROUP_CONCAT(DISTINCT COALESCE(?solNatureL, STR(?solNatureC));    SEPARATOR="|") AS ?sectionofline_solnature)
-	(SAMPLE(?opStart)                                    AS ?sectionofline_opstart)
-	(GROUP_CONCAT(DISTINCT ?opStartName;  SEPARATOR="|") AS ?sectionofline_opstart_opname)
-	(GROUP_CONCAT(DISTINCT ?opStartUopid; SEPARATOR="|") AS ?sectionofline_opstart_uopid)
-	(SAMPLE(?opStartLoc) AS ?sectionofline_opstart_location)
-	(SAMPLE(?opStartLat) AS ?sectionofline_opstart_location_lat)
-	(SAMPLE(?opStartLng) AS ?sectionofline_opstart_location_lng)
-	(SAMPLE(?opEnd)                                      AS ?sectionofline_opend)
-	(GROUP_CONCAT(DISTINCT ?opEndName;    SEPARATOR="|") AS ?sectionofline_opend_opname)
-	(GROUP_CONCAT(DISTINCT ?opEndUopid;   SEPARATOR="|") AS ?sectionofline_opend_uopid)
-	(SAMPLE(?opEndLoc) AS ?sectionofline_opend_location)
-	(SAMPLE(?opEndLat) AS ?sectionofline_opend_location_lat)
-	(SAMPLE(?opEndLng) AS ?sectionofline_opend_location_lng)
-	(GROUP_CONCAT(DISTINCT ?validFrom;    SEPARATOR="|") AS ?sectionofline_validitystartdate)
-	(GROUP_CONCAT(DISTINCT ?validTo;      SEPARATOR="|") AS ?sectionofline_validityenddate)
-	(GROUP_CONCAT(DISTINCT COALESCE(?tenClassL, STR(?tenClassC));     SEPARATOR="|") AS ?sectionofline_track_tenclassification)
-	(GROUP_CONCAT(DISTINCT ?maxSpeed;     SEPARATOR="|") AS ?sectionofline_track_maximumpermittedspeed)
-	(GROUP_CONCAT(DISTINCT COALESCE(?freightL, STR(?freightC));      SEPARATOR="|") AS ?sectionofline_track_freightcorridor)
-	(GROUP_CONCAT(DISTINCT COALESCE(?gaugeL, STR(?gaugeC));        SEPARATOR="|") AS ?sectionofline_track_wheelsetgauge)
-	(GROUP_CONCAT(DISTINCT ?cls;          SEPARATOR="|") AS ?sectionofline_track_contactlinesystem)
-	(GROUP_CONCAT(DISTINCT COALESCE(?clsTypeL, STR(?clsTypeC));      SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_contactlinesystemtype)
-	(GROUP_CONCAT(DISTINCT COALESCE(?energyL, STR(?energyC));       SEPARATOR="|") AS ?sectionofline_track_contactlinesystem_energysupplysystem)
-	(GROUP_CONCAT(DISTINCT COALESCE(?etcsTypeL, STR(?etcsTypeC));     SEPARATOR="|") AS ?sectionofline_track_etcslevel_etcsleveltype)
-	(GROUP_CONCAT(DISTINCT COALESCE(?gsmrL, STR(?gsmrC));         SEPARATOR="|") AS ?sectionofline_track_gsmrversion)
-
+	(IF(COALESCE(?len_, "") != "", ?len_, "no data") AS ?sectionofline_lengthofsectionofline)
+	(IF(COALESCE(STR(?trk), "") != "", STR(?trk), "no data") AS ?sectionofline_track)
+	(IF(COALESCE(?imCode_, "") != "", ?imCode_, "no data") AS ?sectionofline_imcode)
+	(IF(COALESCE(?line_, "") != "", ?line_, "no data") AS ?sectionofline_linenationalid_label)
+	(IF(COALESCE(?solNature_, "") != "", ?solNature_, "no data") AS ?sectionofline_solnature)
+	(IF(COALESCE(STR(?opStart_), "") != "", STR(?opStart_), "no data") AS ?sectionofline_opstart)
+	(IF(COALESCE(?opStartName_, "") != "", ?opStartName_, "no data") AS ?sectionofline_opstart_opname)
+	(IF(COALESCE(?opStartUopid_, "") != "", ?opStartUopid_, "no data") AS ?sectionofline_opstart_uopid)
+	(IF(COALESCE(?opStartLoc_, "") != "", ?opStartLoc_, "no data") AS ?sectionofline_opstart_location)
+	(IF(REGEX(COALESCE(?opStartLoc_, ""), "^\\s*POINT", "i"), REPLACE(?opStartLoc_, "^\\s*POINT\\s*\\(\\s*([^\\s)]+)\\s+([^\\s)]+).*$", "$2", "i"), "no data") AS ?sectionofline_opstart_location_lat)
+	(IF(REGEX(COALESCE(?opStartLoc_, ""), "^\\s*POINT", "i"), REPLACE(?opStartLoc_, "^\\s*POINT\\s*\\(\\s*([^\\s)]+)\\s+([^\\s)]+).*$", "$1", "i"), "no data") AS ?sectionofline_opstart_location_lng)
+	(IF(COALESCE(STR(?opEnd_), "") != "", STR(?opEnd_), "no data") AS ?sectionofline_opend)
+	(IF(COALESCE(?opEndName_, "") != "", ?opEndName_, "no data") AS ?sectionofline_opend_opname)
+	(IF(COALESCE(?opEndUopid_, "") != "", ?opEndUopid_, "no data") AS ?sectionofline_opend_uopid)
+	(IF(COALESCE(?opEndLoc_, "") != "", ?opEndLoc_, "no data") AS ?sectionofline_opend_location)
+	(IF(REGEX(COALESCE(?opEndLoc_, ""), "^\\s*POINT", "i"), REPLACE(?opEndLoc_, "^\\s*POINT\\s*\\(\\s*([^\\s)]+)\\s+([^\\s)]+).*$", "$2", "i"), "no data") AS ?sectionofline_opend_location_lat)
+	(IF(REGEX(COALESCE(?opEndLoc_, ""), "^\\s*POINT", "i"), REPLACE(?opEndLoc_, "^\\s*POINT\\s*\\(\\s*([^\\s)]+)\\s+([^\\s)]+).*$", "$1", "i"), "no data") AS ?sectionofline_opend_location_lng)
+	(IF(COALESCE(?validFrom_, "") != "", ?validFrom_, "no data") AS ?sectionofline_validitystartdate)
+	(IF(COALESCE(?validTo_, "") != "", ?validTo_, "no data") AS ?sectionofline_validityenddate)
+	(IF(COALESCE(?ten_, "") != "", ?ten_, "no data") AS ?sectionofline_track_tenclassification)
+	(IF(COALESCE(?speed_, "") != "", ?speed_, "no data") AS ?sectionofline_track_maximumpermittedspeed)
+	(IF(COALESCE(?freight_, "") != "", ?freight_, "no data") AS ?sectionofline_track_freightcorridor)
+	(IF(COALESCE(?gauge_, "") != "", ?gauge_, "no data") AS ?sectionofline_track_wheelsetgauge)
+	(IF(COALESCE(?cls_, "") != "", ?cls_, "no data") AS ?sectionofline_track_contactlinesystem)
+	(IF(COALESCE(?clsType_, "") != "", ?clsType_, "no data") AS ?sectionofline_track_contactlinesystem_contactlinesystemtype)
+	(IF(COALESCE(?energy_, "") != "", ?energy_, "no data") AS ?sectionofline_track_contactlinesystem_energysupplysystem)
+	(IF(COALESCE(?etcs_, "") != "", ?etcs_, "no data") AS ?sectionofline_track_etcslevel_etcsleveltype)
+	(IF(COALESCE(?gsmr_, "") != "", ?gsmr_, "no data") AS ?sectionofline_track_gsmrversion)
 WHERE {
-	?sectionofline a era:SectionOfLine ;
-		era:inCountry ?sectionofline_incountry ;
-		era:lengthOfSectionOfLine ?sectionofline_lengthofsectionofline .
+	{ SELECT ?sectionofline ?sectionofline_incountry ?trk
+		(SAMPLE(?len) AS ?len_)
+		(GROUP_CONCAT(DISTINCT ?imCode; SEPARATOR="|") AS ?imCode_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?lineId, ?lpsLabel); SEPARATOR="|") AS ?line_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?solNatureL, STR(?solNatureC)); SEPARATOR="|") AS ?solNature_)
+		(GROUP_CONCAT(DISTINCT ?validFrom; SEPARATOR="|") AS ?validFrom_)
+		(GROUP_CONCAT(DISTINCT ?validTo; SEPARATOR="|") AS ?validTo_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?tenClassL, STR(?tenClassC)); SEPARATOR="|") AS ?ten_)
+		(GROUP_CONCAT(DISTINCT ?maxSpeed; SEPARATOR="|") AS ?speed_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?freightL, STR(?freightC)); SEPARATOR="|") AS ?freight_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?gaugeL, STR(?gaugeC)); SEPARATOR="|") AS ?gauge_)
+		(GROUP_CONCAT(DISTINCT STR(?cls); SEPARATOR="|") AS ?cls_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?clsTypeL, STR(?clsTypeC)); SEPARATOR="|") AS ?clsType_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?energyL, STR(?energyC)); SEPARATOR="|") AS ?energy_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?etcsTypeL, STR(?etcsTypeC)); SEPARATOR="|") AS ?etcs_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?gsmrL, STR(?gsmrC)); SEPARATOR="|") AS ?gsmr_)
+	WHERE {
+		# The sections valid today, resolved first. DEU republishes every section a
+		# year ahead (2026-01-01..2026-12-31 and again from 2027-01-01), which would
+		# count every German section twice; sections with no dated validity (ten
+		# countries publish none) are kept. Resolving them on their own lets GraphDB
+		# run the validity test once per section, not once per joined row.
+		{ SELECT ?sectionofline ?sectionofline_incountry WHERE {
+			?sectionofline a era:SectionOfLine ;
+				era:inCountry ?sectionofline_incountry .
 ##FILTER##
-	# Keep only the description valid today. DEU republishes every section for
-	# the following year ahead of time (2026-01-01..2026-12-31 and again from
-	# 2027-01-01, open-ended), which doubled its rows. Sections with no dated
-	# validity (ten countries publish none) are kept.
-	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
-	FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb. FILTER(?vb > ?today) }
-	FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve. FILTER(?ve < ?today) }
-
-	# Concept-valued columns return the concept's English skos:prefLabel
-	# (e.g. sol-natures/20 -> "Link"). See CONCEPT LABELS in query-SoL-param1-optimised.rq for
-	# why the URI is kept as a fallback rather than dropped.
-	OPTIONAL { ?sectionofline era:solNature ?solNatureC.
-		OPTIONAL { ?solNatureC skos:prefLabel ?solNatureL. FILTER(langMatches(lang(?solNatureL), "en")) } }
-	OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode. }
-
-	OPTIONAL {
-		?sectionofline era:nationalLine ?lps.
-		OPTIONAL { ?lps era:lineId ?lineId. }
-		# LPS labels are language-tagged; without this filter every language
-		# variant becomes its own group and multiplies the result.
-		OPTIONAL { ?lps rdfs:label ?lpsLabel. FILTER(langMatches(lang(?lpsLabel), "en")) }
-		BIND(COALESCE(?lineId, ?lpsLabel) AS ?lineLabel)
-	}
-
-	OPTIONAL {
-		?sectionofline era:opStart ?opStart.
-		OPTIONAL { ?opStart era:opName ?opStartName. }
-		OPTIONAL { ?opStart era:uopid ?opStartUopid. }
-		OPTIONAL { ?opStart geo:location ?opStartLoc.
-			?opStartLoc geo:lat ?opStartLat ; geo:long ?opStartLng. }
-	}
-	OPTIONAL {
-		?sectionofline era:opEnd ?opEnd.
-		OPTIONAL { ?opEnd era:opName ?opEndName. }
-		OPTIONAL { ?opEnd era:uopid ?opEndUopid. }
-		OPTIONAL { ?opEnd geo:location ?opEndLoc.
-			?opEndLoc geo:lat ?opEndLat ; geo:long ?opEndLng. }
-	}
-
-	OPTIONAL {
-		?sectionofline era:validity ?solValidity.
-		OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom. }
-		OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo. }
-	}
-
-	OPTIONAL {
-		?sectionofline era:hasPart ?sectionofline_track.
-		OPTIONAL { ?sectionofline_track era:tenClassification ?tenClassC.
-			OPTIONAL { ?tenClassC skos:prefLabel ?tenClassL. FILTER(langMatches(lang(?tenClassL), "en")) } }
-		OPTIONAL { ?sectionofline_track era:maximumPermittedSpeed ?maxSpeed. }
-		OPTIONAL { ?sectionofline_track era:freightCorridor ?freightC.
-			OPTIONAL { ?freightC skos:prefLabel ?freightL. FILTER(langMatches(lang(?freightL), "en")) } }
-		OPTIONAL { ?sectionofline_track era:wheelSetGauge ?gaugeC.
-			OPTIONAL { ?gaugeC skos:prefLabel ?gaugeL. FILTER(langMatches(lang(?gaugeL), "en")) } }
+			BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb FILTER(?vb > ?today) }
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve FILTER(?ve < ?today) }
+		} }
+		OPTIONAL { ?sectionofline era:lengthOfSectionOfLine ?len }
+		# Concept-valued columns: the concept's English skos:prefLabel, or its URI
+		# for the retired codes no vocabulary labels any more (see the header)
+		OPTIONAL { ?sectionofline era:solNature ?solNatureC .
+			OPTIONAL { ?solNatureC skos:prefLabel ?solNatureL FILTER(langMatches(lang(?solNatureL), "en")) } }
+		OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode }
 		OPTIONAL {
-			?sectionofline_track era:contactLineSystem ?cls.
-			OPTIONAL { ?cls era:contactLineSystemType ?clsTypeC.
-				OPTIONAL { ?clsTypeC skos:prefLabel ?clsTypeL. FILTER(langMatches(lang(?clsTypeL), "en")) } }
-			OPTIONAL { ?cls era:energySupplySystem ?energyC.
-				OPTIONAL { ?energyC skos:prefLabel ?energyL. FILTER(langMatches(lang(?energyL), "en")) } }
+			?sectionofline era:nationalLine ?lps .
+			OPTIONAL { ?lps era:lineId ?lineId }
+			# LPS labels are language-tagged: without this filter every language
+			# variant becomes its own value
+			OPTIONAL { ?lps rdfs:label ?lpsLabel FILTER(langMatches(lang(?lpsLabel), "en")) }
 		}
-		OPTIONAL { ?sectionofline_track era:etcs/era:etcsLevelType ?etcsTypeC.
-			OPTIONAL { ?etcsTypeC skos:prefLabel ?etcsTypeL. FILTER(langMatches(lang(?etcsTypeL), "en")) } }
-		OPTIONAL { ?sectionofline_track era:gsmRVersion ?gsmrC.
-			OPTIONAL { ?gsmrC skos:prefLabel ?gsmrL. FILTER(langMatches(lang(?gsmrL), "en")) } }
+		OPTIONAL {
+			?sectionofline era:validity ?solValidity .
+			OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom }
+			OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo }
+		}
+		OPTIONAL {
+			?sectionofline era:hasPart ?trk .
+			OPTIONAL { ?trk era:tenClassification ?tenClassC .
+				OPTIONAL { ?tenClassC skos:prefLabel ?tenClassL FILTER(langMatches(lang(?tenClassL), "en")) } }
+			OPTIONAL { ?trk era:maximumPermittedSpeed ?maxSpeed }
+			OPTIONAL { ?trk era:freightCorridor ?freightC .
+				OPTIONAL { ?freightC skos:prefLabel ?freightL FILTER(langMatches(lang(?freightL), "en")) } }
+			OPTIONAL { ?trk era:wheelSetGauge ?gaugeC .
+				OPTIONAL { ?gaugeC skos:prefLabel ?gaugeL FILTER(langMatches(lang(?gaugeL), "en")) } }
+			OPTIONAL {
+				?trk era:contactLineSystem ?cls .
+				OPTIONAL { ?cls era:contactLineSystemType ?clsTypeC .
+					OPTIONAL { ?clsTypeC skos:prefLabel ?clsTypeL FILTER(langMatches(lang(?clsTypeL), "en")) } }
+				OPTIONAL { ?cls era:energySupplySystem ?energyC .
+					OPTIONAL { ?energyC skos:prefLabel ?energyL FILTER(langMatches(lang(?energyL), "en")) } }
+			}
+			OPTIONAL { ?trk era:etcs/era:etcsLevelType ?etcsTypeC .
+				OPTIONAL { ?etcsTypeC skos:prefLabel ?etcsTypeL FILTER(langMatches(lang(?etcsTypeL), "en")) } }
+			OPTIONAL { ?trk era:gsmRVersion ?gsmrC .
+				OPTIONAL { ?gsmrC skos:prefLabel ?gsmrL FILTER(langMatches(lang(?gsmrL), "en")) } }
+		}
 	}
-}
-GROUP BY
+	GROUP BY ?sectionofline ?sectionofline_incountry ?trk }
+	# the two operational points (and the section geometry), per section
+	{ SELECT ?sectionofline
+		(SAMPLE(?opStart) AS ?opStart_)
+		(GROUP_CONCAT(DISTINCT ?opStartName; SEPARATOR="|") AS ?opStartName_)
+		(GROUP_CONCAT(DISTINCT ?opStartUopid; SEPARATOR="|") AS ?opStartUopid_)
+		(COALESCE(MIN(IF(STRSTARTS(UCASE(STR(?opStartW)), "POINT"), STR(?opStartW), ?notAPoint)), MIN(STR(?opStartW)), MIN(STR(?opStartDW))) AS ?opStartLoc_)
+		(SAMPLE(?opEnd) AS ?opEnd_)
+		(GROUP_CONCAT(DISTINCT ?opEndName; SEPARATOR="|") AS ?opEndName_)
+		(GROUP_CONCAT(DISTINCT ?opEndUopid; SEPARATOR="|") AS ?opEndUopid_)
+		(COALESCE(MIN(IF(STRSTARTS(UCASE(STR(?opEndW)), "POINT"), STR(?opEndW), ?notAPoint)), MIN(STR(?opEndW)), MIN(STR(?opEndDW))) AS ?opEndLoc_)
+	WHERE {
+		# The sections valid today, resolved first. DEU republishes every section a
+		# year ahead (2026-01-01..2026-12-31 and again from 2027-01-01), which would
+		# count every German section twice; sections with no dated validity (ten
+		# countries publish none) are kept. Resolving them on their own lets GraphDB
+		# run the validity test once per section, not once per joined row.
+		{ SELECT ?sectionofline ?sectionofline_incountry WHERE {
+			?sectionofline a era:SectionOfLine ;
+				era:inCountry ?sectionofline_incountry .
+##FILTER##
+			BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb FILTER(?vb > ?today) }
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve FILTER(?ve < ?today) }
+		} }
+		OPTIONAL {
+			?sectionofline era:opStart ?opStart .
+			OPTIONAL { ?opStart era:opName ?opStartName }
+			OPTIONAL { ?opStart era:uopid ?opStartUopid }
+			OPTIONAL { ?opStart era:netReference/geo:hasGeometry/geo:asWKT ?opStartW }
+			OPTIONAL { ?opStart geo:hasGeometry/geo:asWKT ?opStartDW FILTER(!BOUND(?opStartW)) }
+		}
+		OPTIONAL {
+			?sectionofline era:opEnd ?opEnd .
+			OPTIONAL { ?opEnd era:opName ?opEndName }
+			OPTIONAL { ?opEnd era:uopid ?opEndUopid }
+			OPTIONAL { ?opEnd era:netReference/geo:hasGeometry/geo:asWKT ?opEndW }
+			OPTIONAL { ?opEnd geo:hasGeometry/geo:asWKT ?opEndDW FILTER(!BOUND(?opEndW)) }
+		}
+	}
+	GROUP BY ?sectionofline }
+}`;
+
+const QUERY_SOL_GEOM = String.raw`PREFIX era:  <http://data.europa.eu/949/>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+PREFIX geo:  <http://www.opengis.net/ont/geosparql#>
+
+# Outer SELECT: every empty or missing value reads "no data"
+SELECT
 	?sectionofline
 	?sectionofline_incountry
-	?sectionofline_lengthofsectionofline
-	?sectionofline_track`;
+	(IF(COALESCE(?len_, "") != "", ?len_, "no data") AS ?sectionofline_lengthofsectionofline)
+	(IF(COALESCE(STR(?trk), "") != "", STR(?trk), "no data") AS ?sectionofline_track)
+	(IF(COALESCE(?imCode_, "") != "", ?imCode_, "no data") AS ?sectionofline_imcode)
+	(IF(COALESCE(?line_, "") != "", ?line_, "no data") AS ?sectionofline_linenationalid_label)
+	(IF(COALESCE(?solNature_, "") != "", ?solNature_, "no data") AS ?sectionofline_solnature)
+	(IF(COALESCE(STR(?opStart_), "") != "", STR(?opStart_), "no data") AS ?sectionofline_opstart)
+	(IF(COALESCE(?opStartName_, "") != "", ?opStartName_, "no data") AS ?sectionofline_opstart_opname)
+	(IF(COALESCE(?opStartUopid_, "") != "", ?opStartUopid_, "no data") AS ?sectionofline_opstart_uopid)
+	(IF(COALESCE(?opStartLoc_, "") != "", ?opStartLoc_, "no data") AS ?sectionofline_opstart_location)
+	(IF(REGEX(COALESCE(?opStartLoc_, ""), "^\\s*POINT", "i"), REPLACE(?opStartLoc_, "^\\s*POINT\\s*\\(\\s*([^\\s)]+)\\s+([^\\s)]+).*$", "$2", "i"), "no data") AS ?sectionofline_opstart_location_lat)
+	(IF(REGEX(COALESCE(?opStartLoc_, ""), "^\\s*POINT", "i"), REPLACE(?opStartLoc_, "^\\s*POINT\\s*\\(\\s*([^\\s)]+)\\s+([^\\s)]+).*$", "$1", "i"), "no data") AS ?sectionofline_opstart_location_lng)
+	(IF(COALESCE(STR(?opEnd_), "") != "", STR(?opEnd_), "no data") AS ?sectionofline_opend)
+	(IF(COALESCE(?opEndName_, "") != "", ?opEndName_, "no data") AS ?sectionofline_opend_opname)
+	(IF(COALESCE(?opEndUopid_, "") != "", ?opEndUopid_, "no data") AS ?sectionofline_opend_uopid)
+	(IF(COALESCE(?opEndLoc_, "") != "", ?opEndLoc_, "no data") AS ?sectionofline_opend_location)
+	(IF(REGEX(COALESCE(?opEndLoc_, ""), "^\\s*POINT", "i"), REPLACE(?opEndLoc_, "^\\s*POINT\\s*\\(\\s*([^\\s)]+)\\s+([^\\s)]+).*$", "$2", "i"), "no data") AS ?sectionofline_opend_location_lat)
+	(IF(REGEX(COALESCE(?opEndLoc_, ""), "^\\s*POINT", "i"), REPLACE(?opEndLoc_, "^\\s*POINT\\s*\\(\\s*([^\\s)]+)\\s+([^\\s)]+).*$", "$1", "i"), "no data") AS ?sectionofline_opend_location_lng)
+	(IF(COALESCE(?validFrom_, "") != "", ?validFrom_, "no data") AS ?sectionofline_validitystartdate)
+	(IF(COALESCE(?validTo_, "") != "", ?validTo_, "no data") AS ?sectionofline_validityenddate)
+	(IF(COALESCE(?solGeom_, "") != "", ?solGeom_, "no data") AS ?sectionofline_geometry)
+	(IF(COALESCE(?ten_, "") != "", ?ten_, "no data") AS ?sectionofline_track_tenclassification)
+	(IF(COALESCE(?speed_, "") != "", ?speed_, "no data") AS ?sectionofline_track_maximumpermittedspeed)
+	(IF(COALESCE(?freight_, "") != "", ?freight_, "no data") AS ?sectionofline_track_freightcorridor)
+	(IF(COALESCE(?gauge_, "") != "", ?gauge_, "no data") AS ?sectionofline_track_wheelsetgauge)
+	(IF(COALESCE(?cls_, "") != "", ?cls_, "no data") AS ?sectionofline_track_contactlinesystem)
+	(IF(COALESCE(?clsType_, "") != "", ?clsType_, "no data") AS ?sectionofline_track_contactlinesystem_contactlinesystemtype)
+	(IF(COALESCE(?energy_, "") != "", ?energy_, "no data") AS ?sectionofline_track_contactlinesystem_energysupplysystem)
+	(IF(COALESCE(?etcs_, "") != "", ?etcs_, "no data") AS ?sectionofline_track_etcslevel_etcsleveltype)
+	(IF(COALESCE(?gsmr_, "") != "", ?gsmr_, "no data") AS ?sectionofline_track_gsmrversion)
+WHERE {
+	{ SELECT ?sectionofline ?sectionofline_incountry ?trk
+		(SAMPLE(?len) AS ?len_)
+		(GROUP_CONCAT(DISTINCT ?imCode; SEPARATOR="|") AS ?imCode_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?lineId, ?lpsLabel); SEPARATOR="|") AS ?line_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?solNatureL, STR(?solNatureC)); SEPARATOR="|") AS ?solNature_)
+		(GROUP_CONCAT(DISTINCT ?validFrom; SEPARATOR="|") AS ?validFrom_)
+		(GROUP_CONCAT(DISTINCT ?validTo; SEPARATOR="|") AS ?validTo_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?tenClassL, STR(?tenClassC)); SEPARATOR="|") AS ?ten_)
+		(GROUP_CONCAT(DISTINCT ?maxSpeed; SEPARATOR="|") AS ?speed_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?freightL, STR(?freightC)); SEPARATOR="|") AS ?freight_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?gaugeL, STR(?gaugeC)); SEPARATOR="|") AS ?gauge_)
+		(GROUP_CONCAT(DISTINCT STR(?cls); SEPARATOR="|") AS ?cls_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?clsTypeL, STR(?clsTypeC)); SEPARATOR="|") AS ?clsType_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?energyL, STR(?energyC)); SEPARATOR="|") AS ?energy_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?etcsTypeL, STR(?etcsTypeC)); SEPARATOR="|") AS ?etcs_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?gsmrL, STR(?gsmrC)); SEPARATOR="|") AS ?gsmr_)
+	WHERE {
+		# The sections valid today, resolved first. DEU republishes every section a
+		# year ahead (2026-01-01..2026-12-31 and again from 2027-01-01), which would
+		# count every German section twice; sections with no dated validity (ten
+		# countries publish none) are kept. Resolving them on their own lets GraphDB
+		# run the validity test once per section, not once per joined row.
+		{ SELECT ?sectionofline ?sectionofline_incountry WHERE {
+			?sectionofline a era:SectionOfLine ;
+				era:inCountry ?sectionofline_incountry .
+##FILTER##
+			BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb FILTER(?vb > ?today) }
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve FILTER(?ve < ?today) }
+		} }
+		OPTIONAL { ?sectionofline era:lengthOfSectionOfLine ?len }
+		# Concept-valued columns: the concept's English skos:prefLabel, or its URI
+		# for the retired codes no vocabulary labels any more (see the header)
+		OPTIONAL { ?sectionofline era:solNature ?solNatureC .
+			OPTIONAL { ?solNatureC skos:prefLabel ?solNatureL FILTER(langMatches(lang(?solNatureL), "en")) } }
+		OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode }
+		OPTIONAL {
+			?sectionofline era:nationalLine ?lps .
+			OPTIONAL { ?lps era:lineId ?lineId }
+			# LPS labels are language-tagged: without this filter every language
+			# variant becomes its own value
+			OPTIONAL { ?lps rdfs:label ?lpsLabel FILTER(langMatches(lang(?lpsLabel), "en")) }
+		}
+		OPTIONAL {
+			?sectionofline era:validity ?solValidity .
+			OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom }
+			OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo }
+		}
+		OPTIONAL {
+			?sectionofline era:hasPart ?trk .
+			OPTIONAL { ?trk era:tenClassification ?tenClassC .
+				OPTIONAL { ?tenClassC skos:prefLabel ?tenClassL FILTER(langMatches(lang(?tenClassL), "en")) } }
+			OPTIONAL { ?trk era:maximumPermittedSpeed ?maxSpeed }
+			OPTIONAL { ?trk era:freightCorridor ?freightC .
+				OPTIONAL { ?freightC skos:prefLabel ?freightL FILTER(langMatches(lang(?freightL), "en")) } }
+			OPTIONAL { ?trk era:wheelSetGauge ?gaugeC .
+				OPTIONAL { ?gaugeC skos:prefLabel ?gaugeL FILTER(langMatches(lang(?gaugeL), "en")) } }
+			OPTIONAL {
+				?trk era:contactLineSystem ?cls .
+				OPTIONAL { ?cls era:contactLineSystemType ?clsTypeC .
+					OPTIONAL { ?clsTypeC skos:prefLabel ?clsTypeL FILTER(langMatches(lang(?clsTypeL), "en")) } }
+				OPTIONAL { ?cls era:energySupplySystem ?energyC .
+					OPTIONAL { ?energyC skos:prefLabel ?energyL FILTER(langMatches(lang(?energyL), "en")) } }
+			}
+			OPTIONAL { ?trk era:etcs/era:etcsLevelType ?etcsTypeC .
+				OPTIONAL { ?etcsTypeC skos:prefLabel ?etcsTypeL FILTER(langMatches(lang(?etcsTypeL), "en")) } }
+			OPTIONAL { ?trk era:gsmRVersion ?gsmrC .
+				OPTIONAL { ?gsmrC skos:prefLabel ?gsmrL FILTER(langMatches(lang(?gsmrL), "en")) } }
+		}
+	}
+	GROUP BY ?sectionofline ?sectionofline_incountry ?trk }
+	# the two operational points (and the section geometry), per section
+	{ SELECT ?sectionofline
+		(SAMPLE(?opStart) AS ?opStart_)
+		(GROUP_CONCAT(DISTINCT ?opStartName; SEPARATOR="|") AS ?opStartName_)
+		(GROUP_CONCAT(DISTINCT ?opStartUopid; SEPARATOR="|") AS ?opStartUopid_)
+		(COALESCE(MIN(IF(STRSTARTS(UCASE(STR(?opStartW)), "POINT"), STR(?opStartW), ?notAPoint)), MIN(STR(?opStartW)), MIN(STR(?opStartDW))) AS ?opStartLoc_)
+		(SAMPLE(?opEnd) AS ?opEnd_)
+		(GROUP_CONCAT(DISTINCT ?opEndName; SEPARATOR="|") AS ?opEndName_)
+		(GROUP_CONCAT(DISTINCT ?opEndUopid; SEPARATOR="|") AS ?opEndUopid_)
+		(COALESCE(MIN(IF(STRSTARTS(UCASE(STR(?opEndW)), "POINT"), STR(?opEndW), ?notAPoint)), MIN(STR(?opEndW)), MIN(STR(?opEndDW))) AS ?opEndLoc_)
+		(COALESCE(MIN(STR(?solW)), MIN(STR(?solDW))) AS ?solGeom_)
+	WHERE {
+		# The sections valid today, resolved first. DEU republishes every section a
+		# year ahead (2026-01-01..2026-12-31 and again from 2027-01-01), which would
+		# count every German section twice; sections with no dated validity (ten
+		# countries publish none) are kept. Resolving them on their own lets GraphDB
+		# run the validity test once per section, not once per joined row.
+		{ SELECT ?sectionofline ?sectionofline_incountry WHERE {
+			?sectionofline a era:SectionOfLine ;
+				era:inCountry ?sectionofline_incountry .
+##FILTER##
+			BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb FILTER(?vb > ?today) }
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve FILTER(?ve < ?today) }
+		} }
+		OPTIONAL {
+			?sectionofline era:opStart ?opStart .
+			OPTIONAL { ?opStart era:opName ?opStartName }
+			OPTIONAL { ?opStart era:uopid ?opStartUopid }
+			OPTIONAL { ?opStart era:netReference/geo:hasGeometry/geo:asWKT ?opStartW }
+			OPTIONAL { ?opStart geo:hasGeometry/geo:asWKT ?opStartDW FILTER(!BOUND(?opStartW)) }
+		}
+		OPTIONAL {
+			?sectionofline era:opEnd ?opEnd .
+			OPTIONAL { ?opEnd era:opName ?opEndName }
+			OPTIONAL { ?opEnd era:uopid ?opEndUopid }
+			OPTIONAL { ?opEnd era:netReference/geo:hasGeometry/geo:asWKT ?opEndW }
+			OPTIONAL { ?opEnd geo:hasGeometry/geo:asWKT ?opEndDW FILTER(!BOUND(?opEndW)) }
+		}
+		OPTIONAL { ?sectionofline era:netReference/geo:hasGeometry/geo:asWKT ?solW }
+		OPTIONAL { ?sectionofline geo:hasGeometry/geo:asWKT ?solDW FILTER(!BOUND(?solW)) }
+	}
+	GROUP BY ?sectionofline }
+}`;
 
-const QUERY_TENT = `PREFIX era:  <http://data.europa.eu/949/>
+const QUERY_TENT = String.raw`PREFIX era:  <http://data.europa.eu/949/>
 PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
@@ -396,115 +601,156 @@ PREFIX lvl:  <http://data.europa.eu/949/concepts/ten-t-network-levels/>
 PREFIX tt:   <http://data.europa.eu/949/concepts/traffic-types/>
 PREFIX etc:  <http://data.europa.eu/949/concepts/european-transport-corridors/>
 
+# Outer SELECT: every empty or missing text value reads "no data"; the flags
+# are always 0 or 1
 SELECT
 	?sectionofline
 	?sectionofline_incountry
-	?sectionofline_track
-	(GROUP_CONCAT(DISTINCT ?imCode;      SEPARATOR="|") AS ?sectionofline_imcode)
-	(GROUP_CONCAT(DISTINCT ?lineLabel;   SEPARATOR="|") AS ?sectionofline_linenationalid_label)
-	(GROUP_CONCAT(DISTINCT ?opStartName; SEPARATOR="|") AS ?sectionofline_opstart_opname)
-	(GROUP_CONCAT(DISTINCT ?opEndName;   SEPARATOR="|") AS ?sectionofline_opend_opname)
-	(GROUP_CONCAT(DISTINCT ?validFrom;   SEPARATOR="|") AS ?sectionofline_validitystartdate)
-	(GROUP_CONCAT(DISTINCT ?validTo;     SEPARATOR="|") AS ?sectionofline_validityenddate)
-
-	# TEN-T classification (era:tenClassification) - one join, six flags
-	(COALESCE(MAX(IF(?ten = tenc:10, 1, 0)), 0) AS ?TENTComprehensiveNetwork)
-	(COALESCE(MAX(IF(?ten = tenc:20, 1, 0)), 0) AS ?TENTCoreFreightNetwork)
-	(COALESCE(MAX(IF(?ten = tenc:30, 1, 0)), 0) AS ?TENTCorePassengerNetwork)
-	(COALESCE(MAX(IF(?ten = tenc:40, 1, 0)), 0) AS ?OffTEN)
-	(COALESCE(MAX(IF(?ten = tenc:50, 1, 0)), 0) AS ?TENTExtendedCoreFreightNetwork)
-	(COALESCE(MAX(IF(?ten = tenc:60, 1, 0)), 0) AS ?TENTExtendedCorePassengerNetwork)
-
-	# Rail freight corridors (era:freightCorridor) - one join, eleven flags
-	(COALESCE(MAX(IF(?fc = frc:10,  1, 0)), 0) AS ?RhineAlpineRFC)
-	(COALESCE(MAX(IF(?fc = frc:20,  1, 0)), 0) AS ?NorthSeaMediterraneanRFC)
-	(COALESCE(MAX(IF(?fc = frc:30,  1, 0)), 0) AS ?ScandinavianMediterraneanRFC)
-	(COALESCE(MAX(IF(?fc = frc:40,  1, 0)), 0) AS ?AtlanticRFC)
-	(COALESCE(MAX(IF(?fc = frc:50,  1, 0)), 0) AS ?BalticAdriaticRFC)
-	(COALESCE(MAX(IF(?fc = frc:60,  1, 0)), 0) AS ?MediterraneanRFC)
-	(COALESCE(MAX(IF(?fc = frc:70,  1, 0)), 0) AS ?OrientEastMedRFC)
-	(COALESCE(MAX(IF(?fc = frc:80,  1, 0)), 0) AS ?NorthSeaBalticRFC)
-	(COALESCE(MAX(IF(?fc = frc:90,  1, 0)), 0) AS ?RhineDanubeRFC)
-	(COALESCE(MAX(IF(?fc = frc:100, 1, 0)), 0) AS ?AlpineWesternBalkanRFC)
-	(COALESCE(MAX(IF(?fc = frc:110, 1, 0)), 0) AS ?AmberRFC)
-
-	# TEN-T network level, via era:partOfTENT -> era:tentNetworkLevel
-	(COALESCE(MAX(IF(?lvl = lvl:01, 1, 0)), 0) AS ?TENTCoreNetworkLevel)
-	(COALESCE(MAX(IF(?lvl = lvl:02, 1, 0)), 0) AS ?TENTExtendedCoreNetworkLevel)
-	(COALESCE(MAX(IF(?lvl = lvl:03, 1, 0)), 0) AS ?TENTComprehensiveNetworkLevel)
-
-	# Type of traffic, via era:partOfTENT -> era:typeOfTraffic
-	(COALESCE(MAX(IF(?tt = tt:01, 1, 0)), 0) AS ?PassengerTraffic)
-	(COALESCE(MAX(IF(?tt = tt:02, 1, 0)), 0) AS ?FreightTraffic)
-
-	# European Transport Corridors, via era:partOfTENT -> era:europeanTransportCorridor
-	(COALESCE(MAX(IF(?etc = etc:01, 1, 0)), 0) AS ?ScandinavianMediterraneanETC)
-	(COALESCE(MAX(IF(?etc = etc:02, 1, 0)), 0) AS ?NorthSeaBalticETC)
-	(COALESCE(MAX(IF(?etc = etc:03, 1, 0)), 0) AS ?MediterraneanETC)
-	(COALESCE(MAX(IF(?etc = etc:04, 1, 0)), 0) AS ?BalticSeaAdriaticSeaETC)
-	(COALESCE(MAX(IF(?etc = etc:05, 1, 0)), 0) AS ?AtlanticETC)
-	(COALESCE(MAX(IF(?etc = etc:06, 1, 0)), 0) AS ?RhineDanubeETC)
-	(COALESCE(MAX(IF(?etc = etc:07, 1, 0)), 0) AS ?BalticSeaBlackSeaAegeanSeaETC)
-	(COALESCE(MAX(IF(?etc = etc:08, 1, 0)), 0) AS ?WesternBalkansEasternMediterraneanETC)
-	(COALESCE(MAX(IF(?etc = etc:09, 1, 0)), 0) AS ?NorthSeaRhineMediterraneanETC)
-
+	(IF(COALESCE(STR(?trk), "") != "", STR(?trk), "no data") AS ?sectionofline_track)
+	(IF(COALESCE(?imCode_, "") != "", ?imCode_, "no data") AS ?sectionofline_imcode)
+	(IF(COALESCE(?line_, "") != "", ?line_, "no data") AS ?sectionofline_linenationalid_label)
+	(IF(COALESCE(?opStartName_, "") != "", ?opStartName_, "no data") AS ?sectionofline_opstart_opname)
+	(IF(COALESCE(?opEndName_, "") != "", ?opEndName_, "no data") AS ?sectionofline_opend_opname)
+	(IF(COALESCE(?validFrom_, "") != "", ?validFrom_, "no data") AS ?sectionofline_validitystartdate)
+	(IF(COALESCE(?validTo_, "") != "", ?validTo_, "no data") AS ?sectionofline_validityenddate)
+	?TENTComprehensiveNetwork
+	?TENTCoreFreightNetwork
+	?TENTCorePassengerNetwork
+	?OffTEN
+	?TENTExtendedCoreFreightNetwork
+	?TENTExtendedCorePassengerNetwork
+	?RhineAlpineRFC
+	?NorthSeaMediterraneanRFC
+	?ScandinavianMediterraneanRFC
+	?AtlanticRFC
+	?BalticAdriaticRFC
+	?MediterraneanRFC
+	?OrientEastMedRFC
+	?NorthSeaBalticRFC
+	?RhineDanubeRFC
+	?AlpineWesternBalkanRFC
+	?AmberRFC
+	?TENTCoreNetworkLevel
+	?TENTExtendedCoreNetworkLevel
+	?TENTComprehensiveNetworkLevel
+	?PassengerTraffic
+	?FreightTraffic
+	?ScandinavianMediterraneanETC
+	?NorthSeaBalticETC
+	?MediterraneanETC
+	?BalticSeaAdriaticSeaETC
+	?AtlanticETC
+	?RhineDanubeETC
+	?BalticSeaBlackSeaAegeanSeaETC
+	?WesternBalkansEasternMediterraneanETC
+	?NorthSeaRhineMediterraneanETC
 WHERE {
-	?sectionofline a era:SectionOfLine ;
-		era:inCountry ?sectionofline_incountry .
+	{ SELECT ?sectionofline ?sectionofline_incountry ?trk
+		(GROUP_CONCAT(DISTINCT ?imCode; SEPARATOR="|") AS ?imCode_)
+		(GROUP_CONCAT(DISTINCT COALESCE(?lineId, ?lpsLabel); SEPARATOR="|") AS ?line_)
+		(GROUP_CONCAT(DISTINCT ?opStartName; SEPARATOR="|") AS ?opStartName_)
+		(GROUP_CONCAT(DISTINCT ?opEndName; SEPARATOR="|") AS ?opEndName_)
+		(GROUP_CONCAT(DISTINCT ?validFrom; SEPARATOR="|") AS ?validFrom_)
+		(GROUP_CONCAT(DISTINCT ?validTo; SEPARATOR="|") AS ?validTo_)
+		# TEN-T classification (era:tenClassification) - one join, six flags
+		(COALESCE(MAX(IF(?ten = tenc:10, 1, 0)), 0) AS ?TENTComprehensiveNetwork)
+		(COALESCE(MAX(IF(?ten = tenc:20, 1, 0)), 0) AS ?TENTCoreFreightNetwork)
+		(COALESCE(MAX(IF(?ten = tenc:30, 1, 0)), 0) AS ?TENTCorePassengerNetwork)
+		(COALESCE(MAX(IF(?ten = tenc:40, 1, 0)), 0) AS ?OffTEN)
+		(COALESCE(MAX(IF(?ten = tenc:50, 1, 0)), 0) AS ?TENTExtendedCoreFreightNetwork)
+		(COALESCE(MAX(IF(?ten = tenc:60, 1, 0)), 0) AS ?TENTExtendedCorePassengerNetwork)
+		# Rail freight corridors (era:freightCorridor) - one join, eleven flags
+		(COALESCE(MAX(IF(?fc = frc:10, 1, 0)), 0) AS ?RhineAlpineRFC)
+		(COALESCE(MAX(IF(?fc = frc:20, 1, 0)), 0) AS ?NorthSeaMediterraneanRFC)
+		(COALESCE(MAX(IF(?fc = frc:30, 1, 0)), 0) AS ?ScandinavianMediterraneanRFC)
+		(COALESCE(MAX(IF(?fc = frc:40, 1, 0)), 0) AS ?AtlanticRFC)
+		(COALESCE(MAX(IF(?fc = frc:50, 1, 0)), 0) AS ?BalticAdriaticRFC)
+		(COALESCE(MAX(IF(?fc = frc:60, 1, 0)), 0) AS ?MediterraneanRFC)
+		(COALESCE(MAX(IF(?fc = frc:70, 1, 0)), 0) AS ?OrientEastMedRFC)
+		(COALESCE(MAX(IF(?fc = frc:80, 1, 0)), 0) AS ?NorthSeaBalticRFC)
+		(COALESCE(MAX(IF(?fc = frc:90, 1, 0)), 0) AS ?RhineDanubeRFC)
+		(COALESCE(MAX(IF(?fc = frc:100, 1, 0)), 0) AS ?AlpineWesternBalkanRFC)
+		(COALESCE(MAX(IF(?fc = frc:110, 1, 0)), 0) AS ?AmberRFC)
+		# TEN-T network level, via era:partOfTENT -> era:tentNetworkLevel
+		(COALESCE(MAX(IF(?lvl = lvl:01, 1, 0)), 0) AS ?TENTCoreNetworkLevel)
+		(COALESCE(MAX(IF(?lvl = lvl:02, 1, 0)), 0) AS ?TENTExtendedCoreNetworkLevel)
+		(COALESCE(MAX(IF(?lvl = lvl:03, 1, 0)), 0) AS ?TENTComprehensiveNetworkLevel)
+		# Type of traffic, via era:partOfTENT -> era:typeOfTraffic
+		(COALESCE(MAX(IF(?tt = tt:01, 1, 0)), 0) AS ?PassengerTraffic)
+		(COALESCE(MAX(IF(?tt = tt:02, 1, 0)), 0) AS ?FreightTraffic)
+		# European Transport Corridors, via era:partOfTENT -> era:europeanTransportCorridor
+		(COALESCE(MAX(IF(?etc = etc:01, 1, 0)), 0) AS ?ScandinavianMediterraneanETC)
+		(COALESCE(MAX(IF(?etc = etc:02, 1, 0)), 0) AS ?NorthSeaBalticETC)
+		(COALESCE(MAX(IF(?etc = etc:03, 1, 0)), 0) AS ?MediterraneanETC)
+		(COALESCE(MAX(IF(?etc = etc:04, 1, 0)), 0) AS ?BalticSeaAdriaticSeaETC)
+		(COALESCE(MAX(IF(?etc = etc:05, 1, 0)), 0) AS ?AtlanticETC)
+		(COALESCE(MAX(IF(?etc = etc:06, 1, 0)), 0) AS ?RhineDanubeETC)
+		(COALESCE(MAX(IF(?etc = etc:07, 1, 0)), 0) AS ?BalticSeaBlackSeaAegeanSeaETC)
+		(COALESCE(MAX(IF(?etc = etc:08, 1, 0)), 0) AS ?WesternBalkansEasternMediterraneanETC)
+		(COALESCE(MAX(IF(?etc = etc:09, 1, 0)), 0) AS ?NorthSeaRhineMediterraneanETC)
+	WHERE {
+		# The sections valid today, resolved first. DEU republishes every section a
+		# year ahead (2026-01-01..2026-12-31 and again from 2027-01-01), which would
+		# count every German section twice; sections with no dated validity (ten
+		# countries publish none) are kept. Resolving them on their own lets GraphDB
+		# run the validity test once per section, not once per joined row.
+		{ SELECT ?sectionofline ?sectionofline_incountry WHERE {
+			?sectionofline a era:SectionOfLine ;
+				era:inCountry ?sectionofline_incountry .
 ##FILTER##
-	# Keep only the description valid today. DEU republishes every section for
-	# the following year ahead of time (2026-01-01..2026-12-31 and again from
-	# 2027-01-01, open-ended), which doubled its rows. Sections with no dated
-	# validity (ten countries publish none) are kept.
-	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
-	FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb. FILTER(?vb > ?today) }
-	FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve. FILTER(?ve < ?today) }
-
-	OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode. }
-
-	OPTIONAL {
-		?sectionofline era:nationalLine ?lps.
-		OPTIONAL { ?lps era:lineId ?lineId. }
-		# LPS labels are language-tagged; without this filter each language
-		# variant becomes its own group and multiplies the result.
-		OPTIONAL { ?lps rdfs:label ?lpsLabel. FILTER(langMatches(lang(?lpsLabel), "en")) }
-		BIND(COALESCE(?lineId, ?lpsLabel) AS ?lineLabel)
-	}
-
-	OPTIONAL { ?sectionofline era:opStart/era:opName ?opStartName. }
-	OPTIONAL { ?sectionofline era:opEnd/era:opName ?opEndName. }
-
-	OPTIONAL {
-		?sectionofline era:validity ?solValidity.
-		OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom. }
-		OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo. }
-	}
-
-	OPTIONAL {
-		?sectionofline era:hasPart ?sectionofline_track.
-		OPTIONAL { ?sectionofline_track era:tenClassification ?ten. }
-		OPTIONAL { ?sectionofline_track era:freightCorridor ?fc. }
+			BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasBeginning/time:inXSDDate ?vb FILTER(?vb > ?today) }
+			FILTER NOT EXISTS { ?sectionofline era:validity/time:hasEnd/time:inXSDDate ?ve FILTER(?ve < ?today) }
+		} }
+		OPTIONAL { ?sectionofline era:infrastructureManager/era:roleOf/era:organisationCode ?imCode }
 		OPTIONAL {
-			?sectionofline_track era:partOfTENT ?tent.
-			OPTIONAL { ?tent era:tentNetworkLevel ?lvl. }
-			OPTIONAL { ?tent era:typeOfTraffic ?tt. }
-			OPTIONAL { ?tent era:europeanTransportCorridor ?etc. }
+			?sectionofline era:nationalLine ?lps .
+			OPTIONAL { ?lps era:lineId ?lineId }
+			# LPS labels are language-tagged: without this filter every language
+			# variant becomes its own value
+			OPTIONAL { ?lps rdfs:label ?lpsLabel FILTER(langMatches(lang(?lpsLabel), "en")) }
+		}
+		OPTIONAL { ?sectionofline era:opStart/era:opName ?opStartName }
+		OPTIONAL { ?sectionofline era:opEnd/era:opName ?opEndName }
+		OPTIONAL {
+			?sectionofline era:validity ?solValidity .
+			OPTIONAL { ?solValidity time:hasBeginning/time:inXSDDate ?validFrom }
+			OPTIONAL { ?solValidity time:hasEnd/time:inXSDDate ?validTo }
+		}
+		OPTIONAL {
+			?sectionofline era:hasPart ?trk .
+			OPTIONAL { ?trk era:tenClassification ?ten }
+			OPTIONAL { ?trk era:freightCorridor ?fc }
+			OPTIONAL {
+				?trk era:partOfTENT ?tent .
+				OPTIONAL { ?tent era:tentNetworkLevel ?lvl }
+				OPTIONAL { ?tent era:typeOfTraffic ?tt }
+				OPTIONAL { ?tent era:europeanTransportCorridor ?etc }
+			}
 		}
 	}
-}
-GROUP BY ?sectionofline ?sectionofline_incountry ?sectionofline_track`;
+	GROUP BY ?sectionofline ?sectionofline_incountry ?trk }
+}`;
 
 const DATASETS = {
-  sol:  {label:'sections-of-line-parameters', query:QUERY_SOL,  flagCols:false},
+  sol:  {label:'sections-of-line-parameters', query:QUERY_SOL,  flagCols:false, geomQuery:QUERY_SOL_GEOM},
   tent: {label:'tent-corridor-flags',         query:QUERY_TENT, flagCols:true},
 };
 
+const NO_DATA = 'no data';
+const withGeometry = dsKey => dsKey === 'sol' && $('solGeom').checked;
 function buildQuery(dsKey, countryUri){
   const filter = countryUri
-    ? '\tFILTER(?sectionofline_incountry = <' + countryUri + '>)\n'
+    ? '\t\t\tFILTER(?sectionofline_incountry = <' + countryUri + '>)\n'
     : '';
-  return DATASETS[dsKey].query.replace('##FILTER##\n', filter);
+  const ds = DATASETS[dsKey];
+  return (withGeometry(dsKey) ? ds.geomQuery : ds.query).replaceAll('##FILTER##\n', filter);
 }
+/* The whole EU is one request per country, 6 at a time, joined: as a single
+   request it takes 92 s (114 s with section geometry) against the endpoint's
+   120 s limit. */
+const EU_PARALLEL = 6;
+const countryUris = () => [...countrySel.options].map(o => o.value).filter(Boolean);
 
 /* ------------------------------------------------------------------ *
  * CSV parsing. The endpoint's own CSV is what gets downloaded verbatim, but
@@ -545,7 +791,6 @@ function humanBytes(n){
 const fmt = n => n.toLocaleString('en-GB');
 const shortUri = u => u.replace(/^.*[/#]/, '');
 
-const $ = id => document.getElementById(id);
 const countrySel = $('countrySel'), exportBtn = $('exportBtn'), statusArea = $('statusArea');
 const resultArea = $('resultArea'), scopeHint = $('scopeHint'), queryText = $('queryText');
 
@@ -559,16 +804,21 @@ function updateVisuals(){
   document.querySelectorAll('.modeOption').forEach(el=>{
     el.classList.toggle('selected', el.dataset.ds === currentDataset());
   });
+  $('geomRow').hidden = currentDataset() !== 'sol';
+  $('solCols').textContent = $('solGeom').checked ? '31 columns' : '30 columns';
   const opt = countrySel.selectedOptions[0];
   const sections = opt ? +(opt.dataset.n || 0) : 0;
   if(!countrySel.value){
     scopeHint.textContent = sections
-      ? `Whole EU — ${fmt(sections)} sections of line. One request: about a minute for the TEN-T flags, up to two for the fuller section/track export.`
+      ? `Whole EU — ${fmt(sections)} sections of line, fetched one country at a time (${EU_PARALLEL} in parallel) and joined into one file. About a minute.`
       : '';
   } else {
-    scopeHint.textContent = `${opt.textContent.replace(/\s*\(.*\)$/, '')} — ${fmt(sections)} sections of line. Usually a few seconds.`;
+    scopeHint.textContent = `${opt.textContent.replace(/\s*\(.*\)$/, '')} — ${fmt(sections)} sections of line. Usually under half a minute.`;
   }
-  queryText.textContent = buildQuery(currentDataset(), countrySel.value);
+  queryText.textContent = (countrySel.value ? '' :
+    '# Whole EU: sent once per country, ' + EU_PARALLEL + ' at a time, with this FILTER in both subqueries:\n' +
+    '#   FILTER(?sectionofline_incountry = <' + COUNTRY_BASE + 'FRA>)\n\n') +
+    buildQuery(currentDataset(), countrySel.value || (COUNTRY_BASE + 'FRA'));
 }
 
 document.querySelectorAll('input[name="ds"]').forEach(r => r.addEventListener('change', updateVisuals));
@@ -576,6 +826,7 @@ document.querySelectorAll('.modeOption').forEach(el => el.addEventListener('clic
   if(e.target.tagName !== 'INPUT'){ el.querySelector('input').checked = true; updateVisuals(); }
 }));
 countrySel.addEventListener('change', updateVisuals);
+$('solGeom').addEventListener('change', updateVisuals);
 
 function setStatus(msg, kind){
   statusArea.className = kind || '';
@@ -641,7 +892,7 @@ function renderColumnStats(header, rows){
     const seen = new Set();
     for(const r of rows){
       const v = r[i];
-      if(v !== undefined && v !== ''){ filled++; if(seen.size < 100001) seen.add(v); }
+      if(v !== undefined && v !== '' && v !== NO_DATA){ filled++; if(seen.size < 100001) seen.add(v); }
     }
     const pct = n ? (100*filled/n) : 0;
     const cls = filled === 0 ? 'bar zero' : (filled === n ? 'bar full' : 'bar');
@@ -677,19 +928,43 @@ function renderFlagStats(header, rows){
   $('flagsBlock').hidden = false;
 }
 
+/* One country's CSV, tried once more if it fails: one overloaded moment of
+   the endpoint should not cost a whole-EU export. */
+async function countryCsv(dsKey, uri){
+  try{ return await sparql(buildQuery(dsKey, uri), 'text/csv', 180000); }
+  catch(err){ if(err.name === 'AbortError') throw err; return sparql(buildQuery(dsKey, uri), 'text/csv', 180000); }
+}
+async function euCsv(dsKey){
+  const uris = countryUris(), parts = new Array(uris.length);
+  let next = 0, done = 0;
+  const worker = async () => {
+    while(next < uris.length){
+      const i = next++;
+      parts[i] = await countryCsv(dsKey, uris[i]);
+      done++;
+      setStatus(`Querying the whole EU one country at a time — ${done} of ${uris.length} countries done…`, 'loading');
+    }
+  };
+  setStatus(`Querying the whole EU one country at a time — 0 of ${uris.length} countries done…`, 'loading');
+  await Promise.all(Array.from({length:Math.min(EU_PARALLEL, uris.length)}, worker));
+  // one header, then every country's rows, in the order of the scope list
+  const body = p => { const i = p.indexOf('\n'); const rest = i < 0 ? '' : p.slice(i + 1); return rest && !rest.endsWith('\n') ? rest + '\r\n' : rest; };
+  const header = parts.find(p => p) || '';
+  return header.slice(0, header.indexOf('\n') + 1) + parts.map(body).join('');
+}
+
 async function runExport(){
   const dsKey = currentDataset();
   const countryUri = countrySel.value;
-  const query = buildQuery(dsKey, countryUri);
   const scopeName = countryUri ? shortUri(countryUri) : 'EU';
 
   exportBtn.disabled = true;
   resultArea.hidden = true;
-  setStatus(countryUri ? `Querying ${scopeName}…` : 'Querying the whole EU — this takes a minute or two, and the browser then parses the result…', 'loading');
+  if(countryUri) setStatus(`Querying ${scopeName}…`, 'loading');
 
   const start = performance.now();
   try{
-    const csv = await sparql(query, 'text/csv', 180000);
+    const csv = countryUri ? await sparql(buildQuery(dsKey, countryUri), 'text/csv', 180000) : await euCsv(dsKey);
     const elapsed = (performance.now() - start)/1000;
 
     const parsed = parseCSV(csv);
@@ -697,7 +972,7 @@ async function runExport(){
     const rows = parsed.slice(1);
 
     lastCSV = csv;
-    lastFileName = `era-${DATASETS[dsKey].label}-${scopeName}.csv`;
+    lastFileName = `era-${DATASETS[dsKey].label}${withGeometry(dsKey) ? '-geometry' : ''}-${scopeName}.csv`;
 
     const iSec = header.indexOf('sectionofline');
     const iTrk = header.indexOf('sectionofline_track');
@@ -705,7 +980,7 @@ async function runExport(){
     const uniq = idx => {
       if(idx < 0) return 0;
       const s = new Set();
-      for(const r of rows) if(r[idx]) s.add(r[idx]);
+      for(const r of rows) if(r[idx] && r[idx] !== NO_DATA) s.add(r[idx]);
       return s.size;
     };
 
@@ -724,7 +999,8 @@ async function runExport(){
 
     resultArea.hidden = false;
     if(!rows.length) setStatus('The query ran but returned no rows for this scope.', 'error');
-    else setStatus(`Done — ${fmt(rows.length)} rows, ${header.length} columns, in ${elapsed.toFixed(1)}s.`, 'success');
+    else setStatus(`Done — ${fmt(rows.length)} rows, ${header.length} columns, in ${elapsed.toFixed(1)}s` +
+      (countryUri ? '.' : ` (${countryUris().length} countries, ${EU_PARALLEL} at a time).`), 'success');
   } catch(err){
     await setFetchErrorStatus(statusArea, 'error', err, ENDPOINT, runExport);
   } finally {
