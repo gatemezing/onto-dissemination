@@ -123,7 +123,10 @@ so an empty column is visibly a publication gap rather than a silent blank. Only
 description valid today is exported, so sections a manager has already
 republished for next year (Germany) are not counted twice. A value the graph
 does not carry reads `no data`, never an empty cell. The whole EU is fetched one
-country at a time, six in parallel (~50 s).
+country at a time, six in parallel (~50 s). Dates are ISO 8601 (`YYYY-MM-DD`) throughout;
+since a spreadsheet opening the CSV reformats them, except the pre-1900
+placeholders, the result also downloads as `.xlsx`, where every date stays
+`YYYY-MM-DD` text.
 
 **[era-eradis-explorer.html](scripts/assets/era-eradis-explorer.html)** —
 searches two ERADIS registers in `ERADIS-KG`, each with the fields of its
