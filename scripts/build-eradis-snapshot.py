@@ -25,6 +25,19 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 QUERIES = ROOT / "eradis"
 OUT = ROOT / "scripts" / "assets" / "era-eradis-snapshot.json.gz"
 OUT_CERTS = ROOT / "scripts" / "assets" / "era-eradis-certificates.json.gz"
+
+README = ROOT / "README.md"
+
+
+def stamp_readme(key, text):
+    """Write `text` between the <!-- extract:KEY --> markers of the README's
+    "Data snapshots" table, so the date shown there is the date of the file
+    that was just written."""
+    readme = README.read_text(encoding="utf-8")
+    pattern = re.compile(r"(<!-- extract:" + key + r" -->).*?(<!-- /extract:" + key + r" -->)")
+    if not pattern.search(readme):
+        sys.exit("README.md has no <!-- extract:" + key + " --> marker")
+    README.write_text(pattern.sub(lambda m: m.group(1) + text + m.group(2), readme, count=1), encoding="utf-8")
 DEFAULT_ENDPOINT = "https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG"
 DEFAULT_LEX = "https://graph.dev.data.test-era.europa.eu/repositories/era-lex"
 
@@ -384,6 +397,8 @@ def main():
     }
     raw = json.dumps(cert_snapshot, ensure_ascii=False, separators=(",", ":")).encode()
     OUT_CERTS.write_bytes(gzip.compress(raw, 9, mtime=0))
+    stamp_readme("eradis-declarations", f"{snapshot['generated']} — {len(decls):,} declarations")
+    stamp_readme("eradis-certificates", f"{snapshot['generated']} — {len(certs):,} certificates")
     linked = sum(1 for d in decls for c in d.get("ce", []) if c[2])
     multi = sum(1 for d in decls for c in d.get("ce", []) if len(c) > 3)
     total = sum(len(d.get("ce", [])) for d in decls)

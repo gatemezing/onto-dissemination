@@ -85,13 +85,13 @@ jobs:
           set -euo pipefail
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add scripts/assets/era-rinf-value-explorer.html
+          git add scripts/assets/era-rinf-value-explorer.html README.md
           git commit -m 'Refresh the RINF parameter catalogue from the live ERA endpoint'
           git push
 
       - name: Discard the date-only change
         if: steps.change.outputs.changed != 'true'
-        run: git checkout -- scripts/assets/era-rinf-value-explorer.html
+        run: git checkout -- scripts/assets/era-rinf-value-explorer.html README.md
 
       # A push made with GITHUB_TOKEN deliberately does not trigger other
       # workflows, so pages.yml would never see this commit. Ask for it.

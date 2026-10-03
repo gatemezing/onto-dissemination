@@ -6,8 +6,10 @@ infrastructure data (RINF), published by the European Union Agency for
 Railways at `graph.data.era.europa.eu`.
 
 Every tool is a single self-contained HTML file — no build step, no server,
-no dependencies — that queries the live SPARQL endpoint directly from the
-browser and exports results as CSV or Excel.
+no dependencies — that queries the live SPARQL endpoints directly from the
+browser and exports results as CSV or Excel. The one exception is the ERADIS
+Explorer, which searches a snapshot because its endpoint does not allow
+cross-origin requests yet (see [Data snapshots](#data-snapshots)).
 
 ## Live demos
 
@@ -20,7 +22,7 @@ browser and exports results as CSV or Excel.
 | RINF Parameter Values explorer | https://gatemezing.github.io/onto-dissemination/values.html |
 | RCC Parameters (route compatibility) | https://gatemezing.github.io/onto-dissemination/rcc.html |
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
-| Eurostat Exporter (sections of line / TEN-T flags as CSV) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
+| Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 
@@ -28,6 +30,21 @@ Every tool links to the others in its footer. Deployment is automatic:
 [.github/workflows/pages.yml](.github/workflows/pages.yml) rebuilds and
 publishes GitHub Pages on every push to `main` that touches one of the tool
 files.
+
+## Data snapshots
+
+Three tools ship data extracted ahead of time. The dates below are written by
+the scripts that build each extract, so they stay current with the files.
+
+| Extract | Used by | Latest extraction | Built by |
+|---|---|---|---|
+| RINF parameter catalogue — every ERA property with a RINF index, with per-country coverage | RINF Parameter Values explorer | <!-- extract:rinf-catalog -->2026-10-01 — 294 properties (213 populated), 27 countries, 54 datasets<!-- /extract:rinf-catalog --> | `scripts/build-rinf-parameter-catalog.py`, checked nightly (see [below](#keeping-the-rinf-parameter-snapshot-fresh)) |
+| ERADIS EC declarations, organisations, TSIs and directives | ERADIS Explorer | <!-- extract:eradis-declarations -->2026-09-30 — 22,256 declarations<!-- /extract:eradis-declarations --> | `scripts/build-eradis-snapshot.py` |
+| ERADIS NoBo certificates | ERADIS Explorer | <!-- extract:eradis-certificates -->2026-09-30 — 43,471 certificates<!-- /extract:eradis-certificates --> | `scripts/build-eradis-snapshot.py` |
+
+Everything else — the Eurostat extracts included — is queried live when you run
+it, so it is always as current as the endpoint. The Eurostat query set was last
+measured against the live graph on 2026-10-02 (see [eurostat/](eurostat/)).
 
 ## Quick start
 
@@ -185,9 +202,15 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
 - `scripts/innotrans2026-era-ontology-script.md` — booth/demo script for
   InnoTrans 2026: elevator pitch, demo queries, checklist.
 - `scripts/assets/` — the tools above, plus `era-follow-your-nose-scene.html`
-  (a stylised demo scene used for a short explainer video).
+  (a stylised demo scene used for a short explainer video),
+  `era-data-stories-member-state-demo.html` (a Data Stories reuse demo for a
+  Member State) and `era-rinf-value-explorer-v0.html` (the first version of the
+  value explorer, kept for reference). None of the three is deployed.
 - `scripts/build-rinf-parameter-catalog.py` — regenerates the parameter and
   country/dataset snapshot embedded in the Value Explorer; see below.
+- `scripts/build-eradis-snapshot.py` — rebuilds the two ERADIS snapshots
+  from ERADIS-KG and era-lex, with the queries in `eradis/`; it needs access to
+  the development endpoint.
 - `scripts/build-eurostat-queries.py` — generates the optimised Eurostat
   queries in `eurostat/` and the copies embedded in the Eurostat Exporter, so
   the two never drift apart.
@@ -204,6 +227,12 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
   documents what was wrong with the original and the measured runtimes.
 - `sample-data/` — example SPARQL query + RDF/XML result pairs, with the
   engineering rationale in `sample-data/README.md`.
+- `website/` — draft text and architecture diagram for an ERA Knowledge Graph
+  web page.
+- `.claude/skills/era-graph/` — what was measured about querying the ERA graph
+  (publisher variations, validity rules, query shapes), kept for anyone, human
+  or AI assistant, writing queries against it.
+- `LICENSE` — the European Union Public Licence v1.2.
 
 ## Keeping the RINF parameter snapshot fresh
 
@@ -212,7 +241,24 @@ parameter/country catalogue from the live endpoint (~80 s) and rewrites it in
 place, reproducibly.
 [.github/workflows/refresh-rinf-catalog.yml](.github/workflows/refresh-rinf-catalog.yml)
 runs it nightly and only commits when something actually changed — a quiet
-night leaves a "checked — no change" note rather than an empty commit. The
+night leaves a "checked — no change" note rather than an empty commit. A commit
+also updates the extraction date in [Data snapshots](#data-snapshots). The
 script refuses to write a snapshot that looks broken (wrong HTTP status,
 missing columns, or a >20% drop in properties/countries) rather than
 silently publishing bad data.
+
+## Licence
+
+The code and documentation in this repository are licensed under the
+[European Union Public Licence v1.2](LICENSE) (EUPL-1.2), the official text
+published by the European Commission
+([Joinup](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)).
+Under its Article 5, a work derived from both this code and code under one of
+the compatible licences in its appendix may be distributed under that other
+licence: GPL v2 and v3, AGPL v3, OSL v2.1 and v3.0, EPL v1.0, CeCILL v2.0 and
+v2.1, MPL v2, LGPL v2.1 and v3, CC BY-SA 3.0 (for works other than software),
+EUPL v1.1, and LiLiQ-R / LiLiQ-R+.
+
+The railway data the tools query, and the snapshots derived from it, come from
+the European Union Agency for Railways and remain under the Agency's own terms
+of use; the licence above does not cover them.

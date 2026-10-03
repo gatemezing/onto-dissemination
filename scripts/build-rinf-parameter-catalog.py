@@ -16,6 +16,19 @@ import concurrent.futures as futures
 
 EP = "https://graph.data.era.europa.eu/repositories/rinf-plus"
 APP = pathlib.Path(__file__).resolve().parent / "assets" / "era-rinf-value-explorer.html"
+
+README = APP.parent.parent.parent / "README.md"
+
+
+def stamp_readme(key, text):
+    """Write `text` between the <!-- extract:KEY --> markers of the README's
+    "Data snapshots" table, so the date shown there is the date of the file
+    that was just written."""
+    readme = README.read_text(encoding="utf-8")
+    pattern = re.compile(r"(<!-- extract:" + key + r" -->).*?(<!-- /extract:" + key + r" -->)")
+    if not pattern.search(readme):
+        sys.exit("README.md has no <!-- extract:" + key + " --> marker")
+    README.write_text(pattern.sub(lambda m: m.group(1) + text + m.group(2), readme, count=1), encoding="utf-8")
 GRAPH_PREFIX = "http://data.europa.eu/949/graph/"
 COUNTRY_PREFIX = "http://publications.europa.eu/resource/authority/country/"
 # Graphs that hold data for several countries at once and so cannot stand in
@@ -283,6 +296,9 @@ SELECT ?c ?label WHERE {
                      f"if the drop is real.")
 
     APP.write_text(pattern.sub(lambda _: block, html, count=1))
+    stamp_readme("rinf-catalog", f"{meta['snapshot']} — {len(catalog)} properties "
+                 f"({sum(1 for e in catalog if e['s'])} populated), {len(countries)} countries, "
+                 f"{meta['datasets']} datasets")
     before_cat = const_of(prev, "CATALOG")
     added = {e["n"] for e in catalog} - {e["n"] for e in before_cat}
     removed = {e["n"] for e in before_cat} - {e["n"] for e in catalog}
