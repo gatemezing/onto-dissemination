@@ -38,7 +38,7 @@ the scripts that build each extract, so they stay current with the files.
 
 | Extract | Used by | Latest extraction | Built by |
 |---|---|---|---|
-| RINF parameter catalogue — every ERA property with a RINF index, with per-country coverage | RINF Parameter Values explorer | <!-- extract:rinf-catalog -->2026-10-03 — 294 properties (213 populated), 27 countries, 54 datasets<!-- /extract:rinf-catalog --> | `scripts/build-rinf-parameter-catalog.py`, checked nightly (see [below](#keeping-the-rinf-parameter-snapshot-fresh)) |
+| RINF parameter catalogue — every ERA property with a RINF index, with per-country coverage | RINF Parameter Values explorer | <!-- extract:rinf-catalog -->2026-10-04 — 294 properties (213 populated), 27 countries, 54 datasets<!-- /extract:rinf-catalog --> | `scripts/build-rinf-parameter-catalog.py`, checked nightly (see [below](#keeping-the-rinf-parameter-snapshot-fresh)) |
 | ERADIS EC declarations, organisations, TSIs and directives | ERADIS Explorer | <!-- extract:eradis-declarations -->2026-09-30 — 22,256 declarations<!-- /extract:eradis-declarations --> | `scripts/build-eradis-snapshot.py` |
 | ERADIS NoBo certificates | ERADIS Explorer | <!-- extract:eradis-certificates -->2026-09-30 — 43,471 certificates<!-- /extract:eradis-certificates --> | `scripts/build-eradis-snapshot.py` |
 
