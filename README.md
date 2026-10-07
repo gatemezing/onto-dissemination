@@ -25,6 +25,7 @@ cross-origin requests yet (see [Data snapshots](#data-snapshots)).
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
+| Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
 
 Every tool links to the others in its footer. Deployment is automatic:
 [.github/workflows/pages.yml](.github/workflows/pages.yml) rebuilds and

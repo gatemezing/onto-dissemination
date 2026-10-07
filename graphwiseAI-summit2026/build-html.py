@@ -17,7 +17,21 @@ SRC = HERE / 'connected-by-data-answers.md'
 OUT = HERE / 'connected-by-data-answers.html'
 
 
+LINK = re.compile(r'\[((?:[^\]`]|`[^`]*`)+)\]\(([^)\s]+)\)')
+
+
 def inline(text):
+    """Links first, so a label may hold code or emphasis; then code spans."""
+    out, pos = [], 0
+    for m in LINK.finditer(text):
+        out.append(spans(text[pos:m.start()]))
+        out.append('<a href="' + html.escape(m.group(2)) + '">' + spans(m.group(1)) + '</a>')
+        pos = m.end()
+    out.append(spans(text[pos:]))
+    return ''.join(out)
+
+
+def spans(text):
     out, pos = [], 0
     # code spans first, so nothing inside them is touched
     for m in re.finditer(r'`([^`]+)`', text):
@@ -31,7 +45,6 @@ def inline(text):
 def fmt(t):
     t = html.escape(t, quote=False)
     t = re.sub(r'&lt;(https?://[^&]+)&gt;', r'<a href="\1">\1</a>', t)
-    t = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', t)
     t = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', t)
     t = re.sub(r'(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])', r'<em>\1</em>', t)
     return t

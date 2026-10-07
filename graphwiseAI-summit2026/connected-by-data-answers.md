@@ -181,6 +181,6 @@ back without an error."
 - ERA Ontology v3.3.4 — <https://rinf.data.era.europa.eu/era-vocabulary/>
 - ERA knowledge graph (SPARQL) — <https://graph.data.era.europa.eu/> (repositories `rinf-plus`, `OCR-KG`, `era-lex`)
 - Directive (EU) 2016/797, Art. 4(8); Implementing Regulation (EU) 2019/777, as amended by (EU) 2023/1694 (RINF)
-- [interop-europe/answers.md](../interop-europe/answers.md): ERA reusability answers, measured 22 Aug 2026
-- Tools and measurements in this repository: [README](../README.md); commits `06d2042`, `b50217e`, `48db48b`
+- [interop-europe/answers.md](https://github.com/gatemezing/onto-dissemination/blob/main/interop-europe/answers.md): ERA reusability answers, measured 22 Aug 2026
+- Tools and measurements in this repository: [README](https://github.com/gatemezing/onto-dissemination#readme); commits [`06d2042`](https://github.com/gatemezing/onto-dissemination/commit/06d2042), [`b50217e`](https://github.com/gatemezing/onto-dissemination/commit/b50217e), [`48db48b`](https://github.com/gatemezing/onto-dissemination/commit/48db48b)
 - ERA / railML.org Memorandum of Intent, 30 May 2023
