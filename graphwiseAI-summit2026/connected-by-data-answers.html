@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connected by Data — ERA</title>
+<style>
+  :root{
+    --bg:#f7f8fb; --paper:#ffffff; --ink:#18202f; --muted:#5a6475; --line:#dde2ea;
+    --accent:#1f5fae; --key-bg:#eef4fc; --stage-bg:#fdf6e7; --stage-line:#d99a1c;
+    --live:#1d7a4f; --published:#1f5fae; --repo:#7a3fb0; --arith:#5a6475;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e131c; --paper:#161d29; --ink:#e7ecf4; --muted:#a3adbf; --line:#2a3445;
+      --accent:#7fb0ef; --key-bg:#18263a; --stage-bg:#2a2414; --stage-line:#e0a93a;
+      --live:#5fcf98; --published:#7fb0ef; --repo:#c79bef; --arith:#a3adbf;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e131c; --paper:#161d29; --ink:#e7ecf4; --muted:#a3adbf; --line:#2a3445;
+    --accent:#7fb0ef; --key-bg:#18263a; --stage-bg:#2a2414; --stage-line:#e0a93a;
+    --live:#5fcf98; --published:#7fb0ef; --repo:#c79bef; --arith:#a3adbf;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;}
+  main{max-width:920px;margin:0 auto;padding:32px 16px 64px;}
+  h1{font-size:26px;line-height:1.25;margin:0 0 12px;}
+  h2{font-size:20px;margin:36px 0 10px;padding-top:4px;color:var(--accent);}
+  h3{font-size:16px;margin:28px 0 8px;}
+  p{margin:10px 0;}
+  ul,ol{margin:8px 0 12px;padding-left:22px;}
+  li{margin:5px 0;}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0;}
+  a{color:var(--accent);}
+  code{font:13px/1.4 "SF Mono",Consolas,monospace;background:color-mix(in srgb,var(--line) 55%,transparent);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere;}
+  .key{background:var(--key-bg);border-left:4px solid var(--accent);padding:12px 14px;border-radius:6px;}
+  .stage{background:var(--stage-bg);border-left:4px solid var(--stage-line);padding:12px 14px;border-radius:6px;font-style:italic;}
+  .stage strong{font-style:normal;}
+  .tableWrap{overflow-x:auto;margin:12px 0;border:1px solid var(--line);border-radius:8px;background:var(--paper);}
+  table{border-collapse:collapse;width:100%;font-size:14px;}
+  th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line);}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600;}
+  tr:last-child td{border-bottom:none;}
+  td:last-child{white-space:nowrap;}
+  td code{white-space:nowrap;overflow-wrap:normal;}
+  .kind{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.3px;border:1px solid currentColor;border-radius:4px;padding:0 5px;}
+  .k-live{color:var(--live);} .k-published{color:var(--published);} .k-repo{color:var(--repo);} .k-arithmetic{color:var(--arith);}
+  @media (max-width:640px){ td:last-child{white-space:normal;} }
+  @media print{
+    body{background:#fff;color:#000;font-size:12px;} main{max-width:none;padding:0;}
+    h2{break-after:avoid;} .tableWrap,.key,.stage{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<main>
+<h1 id="connected-by-data-era-s-answers-questions-1-to-5">Connected by data — ERA's answers, questions 1 to 5</h1>
+<p><strong>Graphwise AI Summit 2026 · panel "Connected by data: how knowledge graphs drive interoperability and ROI in complex, regulated ecosystems" · 7 October 2026</strong> Speaker: Ghislain Atemezing (ERA). These are ERA's answers only.</p>
+<p><strong>How to read the evidence.</strong> Every figure is one of three kinds, labelled in each table:</p>
+<ul><li><strong>Live</strong>: measured against the public knowledge graph (<code>graph.data.era.europa.eu</code>) on the date given. Anyone can rerun it.</li><li><strong>Published</strong>: counted in ERA's published artefacts (ontology v3.3.4, SHACL shapes, SKOS schemes) or stated in EU law.</li><li><strong>Repo</strong>: measured while building the tools in this repository, with the commit that holds the details.</li></ul>
+<p>No figure here is a euro amount. ERA has not published cost figures for the knowledge graph, so ROI is shown as time, effort and risk removed. A cost figure should come from ERA's own records before it is quoted.</p>
+<hr>
+<h2 id="1-the-interoperability-tax">1. The "interoperability tax"</h2>
+<p class="key"><strong>Key message:</strong> the tax is the cost of every party re-describing the same thing in its own terms. It is paid in bilateral requests, manual reconciliation, and answers that look complete but are not.</p>
+<ul><li><strong>Before:</strong> comparing a single parameter across Europe meant collecting it country by country, from 27 different national setups.</li><li><strong>The hidden part of the tax is risk, not effort.</strong> Data that does not share identifiers fails silently: a query returns an empty or partial answer, with no error.</li><li><strong>What the knowledge graph changes:</strong> one vocabulary, one identifier per thing, and the legal parameter number on every property. A Europe-wide question becomes one query.</li></ul>
+<div class="tableWrap"><table><thead><tr><th>Evidence</th><th>Figure</th><th>Kind</th></tr></thead><tbody><tr><td>The gauge landscape of the whole European network: 8 nominal gauges, from 1435 mm (383,474 tracks) to 750 mm (4)</td><td><strong>1 query, 3.8 s</strong>, instead of one request per country</td><td><span class="kind k-live">Live</span>, 7 Oct 2026</td></tr><tr><td>Infrastructure managers named in RINF whose organisation URI does not resolve in ERA's organisation register (e.g. Infrabel is <code>0088</code> in RINF, <code>1976</code> in the register)</td><td><strong>87 of 180 (48%)</strong></td><td><span class="kind k-live">Live</span>, 22 Aug 2026</td></tr><tr><td>Statements still published on 17 retired RINF parameters, in 9 countries; only 1 of the 17 names its successor</td><td><strong>237,781</strong></td><td><span class="kind k-live">Live</span>, 22 Aug 2026</td></tr><tr><td>Operational-point positions in the Eurostat export, when read through the old WGS84 property instead of the shared geometry model</td><td><strong>187 of 62,117 points</strong>: filled for Lithuania only</td><td><span class="kind k-live">Live</span> / <span class="kind k-repo">Repo</span> <code>06d2042</code></td></tr></tbody></table></div>
+<p class="stage"><strong>On stage:</strong> "The tax isn't the integration project you can see. It's the answer that comes back complete-looking and wrong. Shared identifiers are how you stop paying it."</p>
+<hr>
+<h2 id="2-ontologies-versus-one-off-integrations">2. Ontologies versus one-off integrations</h2>
+<p class="key"><strong>Key message:</strong> the deciding factor was that the ontology can carry the <strong>law itself</strong>. Each property is tied to the numbered parameter of the regulation that requires it, so the model stays correct as the law changes.</p>
+<ul><li><strong>The old way:</strong> each register and each national system kept its own format, exchanged as files and reconciled bilaterally. Every new question meant a new extraction; every partner pair meant a new mapping.</li><li><strong>Its limits:</strong> effort grows with the number of partner pairs (27 countries give 351 pairs). Meaning lives in documents, not in the data. And nothing shows when two partners drift apart.</li><li><strong>The critical factor:</strong> <code>era:rinfIndex</code>. Parameter 1.1.1.1.4.1, "Nominal track gauge", <em>is</em> the property <code>era:wheelSetGauge</code>, so tools can be written once over <em>any</em> parameter instead of being hard-coded parameter by parameter.</li><li><strong>Confirmation from outside the mandate:</strong> Bane NOR (Norway) publishes on its own server with the ERA ontology, and railML.org aligned its model with ERA under a Memorandum of Intent (30 May 2023).</li></ul>
+<div class="tableWrap"><table><thead><tr><th>Evidence</th><th>Figure</th><th>Kind</th></tr></thead><tbody><tr><td>Live RINF parameters carrying their legal index in the ontology</td><td><strong>292</strong> (329 indexed, 37 retired)</td><td><span class="kind k-published">Published</span>, v3.3.4</td></tr><tr><td>The same design on other registers: vehicle-type index; route-book (TSI OPE Appendix D2) index</td><td><strong>174</strong>; <strong>46</strong> indices</td><td><span class="kind k-published">Published</span> / <span class="kind k-live">Live</span>, 7 Oct 2026</td></tr><tr><td>Properties flagged for route-compatibility checks (<code>era:usedInRCCCalculations</code>)</td><td><strong>89</strong></td><td><span class="kind k-live">Live</span>, 7 Oct 2026</td></tr><tr><td>Partner pairs needing a mapping: point-to-point versus one shared model, for 27 countries</td><td><strong>351 pairs</strong> versus <strong>27 mappings</strong></td><td><span class="kind k-arithmetic">Arithmetic</span>: n(n−1)/2 versus n</td></tr><tr><td>Tools in this repository built once over the legal annotations rather than per parameter: RINF value explorer (<code>rinfIndex</code>), route compatibility (<code>usedInRCCCalculations</code>), route book (D2 index)</td><td><strong>3</strong></td><td><span class="kind k-repo">Repo</span></td></tr></tbody></table></div>
+<p class="stage"><strong>On stage:</strong> "We didn't choose graphs because they were fashionable. We chose them because a regulation is already a structured model, and an ontology lets the data carry the legal reference with it."</p>
+<hr>
+<h2 id="3-regulation-and-compliance">3. Regulation and compliance</h2>
+<p class="key"><strong>Key message:</strong> when the regulation is part of the data model, a compliance question becomes a query, and an audit becomes something anyone can rerun.</p>
+<ul><li><strong>The ontology is itself a regulatory instrument.</strong> It is a Technical Document issued by ERA under Article 4(8) of Directive (EU) 2016/797.</li><li><strong>The law is in the graph too.</strong> <code>era-lex</code> publishes EU rail law with ELI identifiers, so a data field links to the parameter number and the parameter to the provision in the Official Journal. No human is needed in the loop.</li><li><strong>Compliance questions become queries:</strong> route compatibility, the route-book obligations an infrastructure manager owes a railway undertaking, and TEN-T corridor membership.</li><li><strong>Legacy registers get the same treatment:</strong> migrating ERADIS into the graph exposes, for instance, how many certificates are really still valid.</li><li><strong>Stated honestly:</strong> the rules live online lag the published ones, so compliance tooling must name which version it checks against.</li></ul>
+<div class="tableWrap"><table><thead><tr><th>Evidence</th><th>Figure</th><th>Kind</th></tr></thead><tbody><tr><td>Legal acts and individually addressable provisions in <code>era-lex</code>, in 24 languages</td><td><strong>7,317</strong> acts, <strong>7,198</strong> subdivisions</td><td><span class="kind k-live">Live</span>, 22 Aug 2026</td></tr><tr><td>Validation rules shipped with the ontology: node shapes / property shapes / SPARQL constraints</td><td><strong>147 / 882 / 323</strong> (the deployed repository holds <strong>76 / 393 / 211</strong>)</td><td><span class="kind k-published">Published</span> / <span class="kind k-live">Live</span></td></tr><tr><td>ERADIS migrated into the graph: EC declarations and notified-body certificates, each TSI resolved to its ELI</td><td><strong>22,256</strong> and <strong>43,471</strong></td><td><span class="kind k-repo">Repo</span>, 30 Sep 2026</td></tr><tr><td>Certificates whose recorded state says "amended" although they are the current version, so validity has to be derived from the validity window</td><td><strong>42,088</strong> of 43,471</td><td><span class="kind k-repo">Repo</span> <code>48db48b</code></td></tr><tr><td>Route-book elements (TSI OPE Appendix D2) that <em>no</em> manager can fill today, because their class (<code>SpecialArea</code>, <code>RadioBlockCenter</code>) has no instance</td><td><strong>5</strong> of 46</td><td><span class="kind k-live">Live</span>, 7 Oct 2026</td></tr></tbody></table></div>
+<p class="stage"><strong>On stage:</strong> "Regulation stops being a blocker once it is in the model. The auditor no longer asks for a report; they rerun the query."</p>
+<hr>
+<h2 id="4-proving-trust-and-roi">4. Proving trust and ROI</h2>
+<p class="key"><strong>Key message:</strong> trust is not claimed, it is made checkable. Publish the query next to the number, publish your own defect findings, and test every derived figure against an independent source.</p>
+<p><strong>Showing trust to regulators and safety bodies</strong></p>
+<ul><li><strong>Every figure comes with its query.</strong> Each tool shows the exact SPARQL before it runs, and the endpoint is open, so a regulator can rerun it.</li><li><strong>Gaps are shown, not hidden.</strong> Missing values read "no data", and coverage statistics come with every export.</li><li><strong>ERA publishes its own audit queries,</strong> including those that expose its defects (2,244 operational points not connected to the network).</li><li><strong>Figures are cross-checked before release.</strong> Live answers were compared field by field against independent snapshots; country totals were checked against known traps such as Germany's yearly republication.</li></ul>
+<p><strong>Before and after: three moments, measured</strong></p>
+<div class="tableWrap"><table><thead><tr><th>Moment</th><th>Before</th><th>After</th><th>Kind</th></tr></thead><tbody><tr><td>A Europe-wide parameter question (e.g. track gauge)</td><td>One request per country, then reconciliation</td><td><strong>1 query, 3.8 s</strong></td><td><span class="kind k-live">Live</span>, 7 Oct 2026</td></tr><tr><td>Searching all current notified-body certificates in ERADIS</td><td><strong>88 s</strong> for the first 500 only</td><td><strong>all 43,471 in ~10 s</strong></td><td><span class="kind k-repo">Repo</span> <code>b50217e</code></td></tr><tr><td>The Eurostat sections-of-line export for the whole EU</td><td><strong>79 s</strong>, positions empty outside Lithuania</td><td><strong>51 s</strong>, all 62,117 point positions filled</td><td><span class="kind k-repo">Repo</span> <code>06d2042</code></td></tr></tbody></table></div>
+<div class="tableWrap"><table><thead><tr><th>Trust evidence</th><th>Figure</th><th>Kind</th></tr></thead><tbody><tr><td>ERADIS live answers compared with the snapshot, field by field, on 7 searches</td><td><strong>64,000+ rows</strong>, identical documents and fields</td><td><span class="kind k-repo">Repo</span> <code>b50217e</code></td></tr><tr><td>A plausible-looking deduplication rule (newest date per line) on France's line 830000‑1</td><td><strong>67,281 → 132 rows: 99.6% data loss.</strong> Caught by a test, not by eye</td><td><span class="kind k-repo">Repo</span> (RCC tool)</td></tr><tr><td>German sections counted twice without the validity rule</td><td><strong>36,648</strong> rows instead of <strong>18,313</strong></td><td><span class="kind k-repo">Repo</span> <code>06d2042</code></td></tr><tr><td>Operational points flagged as disconnected by ERA's own published audit query</td><td><strong>2,244</strong></td><td><span class="kind k-live">Live</span>, 22 Aug 2026</td></tr></tbody></table></div>
+<p class="stage"><strong>On stage:</strong> "A regulator doesn't need to understand a graph. They need to rerun the number and get the same answer, and to see that we publish what's wrong as readily as what's right."</p>
+<hr>
+<h2 id="5-the-single-lesson-for-any-regulated-industry">5. The single lesson for any regulated industry</h2>
+<p class="key"><strong>Key message:</strong> govern the identifiers and the meaning centrally. Publish openly, so anyone can verify. And treat a quiet, plausible answer as the main risk.</p>
+<ol><li><strong>Identifiers first.</strong> Reuse an existing one before minting your own, and mint once. In rail, 48% of infrastructure-manager references fail to join the organisation register for lack of exactly this rule. Healthcare and finance have the same problem with patients, products and legal entities.</li><li><strong>Put the regulation in the model.</strong> A legal index on each field turns "are we compliant?" from a report into a query.</li><li><strong>Test for the silent failure.</strong> The costly errors never raise an exception: an empty result, a doubled count, a 99.6% loss that looks like tidy deduplication. Make "no data" explicit, and check every derived total against an independent source.</li></ol>
+<p class="stage"><strong>On stage:</strong> "Agree on what things are called and who owns the name, put the rulebook in the data, and never trust an answer just because it came back without an error."</p>
+<hr>
+<h3 id="sources">Sources</h3>
+<ul><li>ERA Ontology v3.3.4 — <a href="https://rinf.data.era.europa.eu/era-vocabulary/">https://rinf.data.era.europa.eu/era-vocabulary/</a></li><li>ERA knowledge graph (SPARQL) — <a href="https://graph.data.era.europa.eu/">https://graph.data.era.europa.eu/</a> (repositories <code>rinf-plus</code>, <code>OCR-KG</code>, <code>era-lex</code>)</li><li>Directive (EU) 2016/797, Art. 4(8); Implementing Regulation (EU) 2019/777, as amended by (EU) 2023/1694 (RINF)</li><li><a href="../interop-europe/answers.md">interop-europe/answers.md</a>: ERA reusability answers, measured 22 Aug 2026</li><li>Tools and measurements in this repository: <a href="../README.md">README</a>; commits <code>06d2042</code>, <code>b50217e</code>, <code>48db48b</code></li><li>ERA / railML.org Memorandum of Intent, 30 May 2023</li></ul>
+</main>
+</body>
+</html>
