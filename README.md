@@ -24,7 +24,7 @@ cross-origin requests yet (see [Data snapshots](#data-snapshots)).
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
-| SHACL Shape Viewer (ERA's validation shapes, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
+| SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 | Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
 
@@ -182,7 +182,17 @@ to (`sh:node`, or `sh:class` when another shape targets that class, including
 inside `sh:or` / `sh:xone` / `sh:and`) and from the shapes that point to it.
 Click any shape to follow it. ERA's SHACL-SPARQL constraints are listed under
 the property they name with `era:affectedProperty`, each with its full query.
-It loads ERA's own shapes live (`graph/shacl` in `ERA-Onto`, one `CONSTRUCT`).
+Three ERA views:
+- **PROD**: the production shapes, live (`graph/shacl` in `ERA-Onto`, one
+  `CONSTRUCT`).
+- **UAT**: the shapes in acceptance testing for the next release, from the
+  published file `rinf.uat.data.test-era.europa.eu/era-vocabulary/era-shapes`.
+- **Compare**: what UAT changes. Shapes and property shapes are marked new,
+  changed or removed, and a changed row shows the statements removed and
+  added, plus a line diff of each changed SHACL-SPARQL query. Queries are
+  compared by body and message; differences only in their `PREFIX`
+  declarations are ignored.
+
 You can also open, drop or paste any Turtle, N-Triples, N-Quads or TriG file;
 it is parsed in the browser with N3.js (pinned, with SRI) and never uploaded.
 

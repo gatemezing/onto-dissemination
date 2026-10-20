@@ -44,6 +44,14 @@
   button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);}
   button.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#4a89e0,#3568b3);}
   button:focus-visible,label.btn:focus-within{outline:2px solid var(--teal);outline-offset:2px;}
+  .envSeg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .envSeg button{background:rgba(255,255,255,.03);border:none;border-right:1px solid var(--line);color:var(--muted);
+    padding:7px 14px;font:600 13px "Segoe UI",Arial,sans-serif;cursor:pointer;text-align:left;}
+  .envSeg button:last-child{border-right:none;}
+  .envSeg button:hover{background:rgba(255,255,255,.07);color:var(--paper);}
+  .envSeg button[aria-pressed="true"]{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);color:var(--paper);}
+  .envSeg button .sub{display:block;font-weight:400;font-size:10.5px;opacity:.8;}
+  .linkBtn{background:none;border:none;color:var(--blue);cursor:pointer;font:inherit;font-size:12.5px;padding:0;text-decoration:underline;}
   #pasteBox{flex-basis:100%;}
   #pasteBox summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
   #pasteText{width:100%;min-height:140px;margin:8px 0;background:rgba(255,255,255,.05);border:1px solid var(--line);
@@ -136,12 +144,31 @@
   .rowHead .type{font-family:var(--mono);font-size:11.5px;color:var(--muted);overflow-wrap:anywhere;}
   .rowHead .type .lnk{color:#8fb3ff;}
   .rowHead .card{font-family:var(--mono);font-size:11.5px;color:var(--muted);text-align:right;}
-  .rowHead .badges{display:flex;gap:4px;justify-content:flex-end;}
+  .rowHead .badges{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;}
   .b{font-size:9.5px;font-weight:700;letter-spacing:.3px;border-radius:4px;padding:1px 5px;white-space:nowrap;border:1px solid;}
   .b.sparql{color:var(--orange);border-color:rgba(240,168,58,.5);}
   .b.shared{color:var(--muted);border-color:var(--line);}
   .b.off{color:var(--danger);border-color:rgba(242,109,109,.5);}
   .row.deactivated .path{text-decoration:line-through;opacity:.7;}
+
+  /* ---- PROD → UAT comparison ---- */
+  .b.d-added{color:var(--green);border-color:rgba(122,195,106,.55);}
+  .b.d-changed{color:var(--orange);border-color:rgba(240,168,58,.55);}
+  .b.d-removed{color:var(--danger);border-color:rgba(242,109,109,.55);}
+  .row.d-added{box-shadow:inset 3px 0 0 var(--green);}
+  .row.d-changed{box-shadow:inset 3px 0 0 var(--orange);}
+  .row.d-removed{box-shadow:inset 3px 0 0 var(--danger);}
+  .row.d-removed .path{text-decoration:line-through;}
+  .row.d-removed>.rowHead{opacity:.65;}
+  .diffBox{border:1px solid var(--line);border-radius:8px;padding:6px 0;background:rgba(0,0,0,.2);margin:6px 0;overflow:hidden;}
+  .dl{font:11.5px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;padding:0 10px;}
+  .dl.add{color:#a8e39a;background:rgba(122,195,106,.09);}
+  .dl.del{color:#f6a9a9;background:rgba(242,109,109,.09);}
+  .dl.ctx{color:var(--muted);}
+  .dl .k{color:var(--muted);}
+  .fcHead .diffBox{margin-top:10px;}
+  .toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);margin:8px 2px 0;cursor:pointer;}
+  .toggle[hidden]{display:none;}
 
   .rowBody{padding:4px 16px 14px 36px;font-size:12.5px;line-height:1.5;}
   .rowBody .msg{border-left:3px solid var(--line);padding:2px 0 2px 10px;color:var(--muted);margin:6px 0;}
@@ -189,6 +216,8 @@
   }
   @media (max-width:560px){
     #app{padding:20px 16px 40px;}
+    .envSeg{width:100%;}
+    .envSeg button{flex:1;padding:7px 10px;}
     .rowHead{grid-template-columns:10px minmax(0,1fr) 40px;padding:8px 12px;}
     .rowHead .type{grid-column:2 / span 2;grid-row:2;}
     .rowHead .badges{grid-column:2 / span 2;justify-content:flex-start;}
@@ -203,13 +232,20 @@
     <p>See what a SHACL shapes graph actually asks of the data: every node shape as a card listing its property
       constraints — path, value type, cardinality, severity, and the SHACL-SPARQL rules that check the same property —
       with lines to the shapes its values must conform to (left: shapes that point here; right: shapes this one points to).
-      Click any shape to follow it. Starts with ERA's own shapes, read live from the ERA ontology repository;
-      drop in any Turtle, N-Triples or TriG file to view your own.</p>
+      Click any shape to follow it. Starts with ERA's production shapes, read live; switch to UAT for the shapes
+      being tested for the next release, or to <em>Compare</em> to see what UAT changes — shapes and property constraints
+      marked new, changed or removed, with the statements and SPARQL queries before and after. You can also drop in any
+      Turtle, N-Triples or TriG file to view your own.</p>
   </header>
 
   <div class="panel">
     <div class="srcRow">
-      <button type="button" class="btn primary" id="loadEra">Load ERA shapes (live)</button>
+      <div class="envSeg" role="group" aria-label="ERA environment">
+        <button type="button" data-env="prod" aria-pressed="false">PROD<span class="sub">production graph</span></button>
+        <button type="button" data-env="uat" aria-pressed="false">UAT<span class="sub">acceptance testing</span></button>
+        <button type="button" data-env="diff" aria-pressed="false">Compare<span class="sub">PROD → UAT</span></button>
+      </div>
+      <button type="button" class="linkBtn" id="reloadEnv" title="Fetch the selected environment again">Reload</button>
       <span class="or">or</span>
       <label class="btn" tabindex="0">Open a SHACL file…<input type="file" id="fileIn" hidden
         accept=".ttl,.nt,.nq,.trig,.n3,text/turtle,application/n-triples,application/trig"></label>
@@ -227,6 +263,7 @@
   <div class="layout" id="layout" hidden>
     <nav class="panel" id="sidebar" aria-label="Node shapes">
       <input id="shapeFilter" type="search" placeholder="Find a shape, class or property…" spellcheck="false">
+      <label class="toggle" id="onlyDiffWrap" hidden><input type="checkbox" id="onlyDiff"> Only differences</label>
       <div id="shapeCount"></div>
       <div id="shapeList"></div>
     </nav>
@@ -239,9 +276,13 @@
   </div>
 
   <footer>
-    Live mode sends one <code>CONSTRUCT</code> for the named graph <code>http://data.europa.eu/949/graph/shacl</code>
-    to <code>graph.data.era.europa.eu/repositories/ERA-Onto</code>, straight from your browser. A file you open or paste
-    is parsed on this page and never leaves your machine. A property links to another shape through
+    PROD sends one <code>CONSTRUCT</code> for the named graph <code>http://data.europa.eu/949/graph/shacl</code>
+    to <code>graph.data.era.europa.eu/repositories/ERA-Onto</code>; UAT reads the published shapes file
+    <code>rinf.uat.data.test-era.europa.eu/era-vocabulary/era-shapes</code>. Both go straight from your browser.
+    <em>Compare</em> matches shapes and property shapes by IRI (a property shape whose IRI changed is matched by its path),
+    compares every statement about them, and compares SHACL-SPARQL constraints by query body and message — differences
+    only in a query's <code>PREFIX</code> declarations are ignored. A file you open or paste is parsed on this page and
+    never leaves your machine. A property links to another shape through
     <code>sh:node</code>, or through <code>sh:class</code> when another shape targets that class — including inside
     <code>sh:or</code> / <code>sh:xone</code> / <code>sh:and</code> lists. SHACL-SPARQL constraints attached to a node shape
     are listed under the property they name with <code>era:affectedProperty</code>; the rest stay at shape level.
@@ -258,9 +299,21 @@
 <div id="dropHint">Drop a SHACL file (Turtle, N-Triples, TriG) to view it</div>
 
 <script>
-const ERA_SOURCE = {
-  endpoint: 'https://graph.data.era.europa.eu/repositories/ERA-Onto',
-  graph: 'http://data.europa.eu/949/graph/shacl',
+/* The two ERA environments. PROD's shapes live in a named graph of the
+   ontology repository; UAT publishes its shapes as one Turtle file. Both
+   answer cross-origin requests from any page. */
+const SOURCES = {
+  prod: {
+    label: 'PROD',
+    describe: 'ERA shapes, live from graph.data.era.europa.eu (ERA-Onto, graph/shacl)',
+    endpoint: 'https://graph.data.era.europa.eu/repositories/ERA-Onto',
+    graph: 'http://data.europa.eu/949/graph/shacl',
+  },
+  uat: {
+    label: 'UAT',
+    describe: 'ERA shapes from the UAT vocabulary release (rinf.uat.data.test-era.europa.eu/era-vocabulary/era-shapes)',
+    url: 'https://rinf.uat.data.test-era.europa.eu/era-vocabulary/era-shapes',
+  },
 };
 const TIMEOUT_MS = 60000;
 const WIDE_QUERY = '(min-width: 1181px)';
@@ -374,20 +427,21 @@ function buildModel(store, declaredPrefixes){
     }
     return out;
   };
-  const termText = (t, depth = 0) => {
+  const termText = (t, depth = 0, max = 120) => {
     if(!t) return '';
     if(t.termType === 'NamedNode') return compact(t.value);
     if(t.termType === 'Literal'){
-      const v = t.value.length > 120 ? t.value.slice(0, 117) + '…' : t.value;
+      const v = t.value.length > max ? t.value.slice(0, max - 3) + '…' : t.value;
       if(t.language) return JSON.stringify(v) + '@' + t.language;
       const dt = t.datatype && t.datatype.value;
       return /#(string|integer|decimal|boolean|double)$/.test(dt || '') && !/#string$/.test(dt) ? v : JSON.stringify(v);
     }
     const list = readList(t);
-    if(list) return '( ' + list.map(x => termText(x, depth + 1)).join(' ') + ' )';
+    if(list) return '( ' + list.map(x => termText(x, depth + 1, max)).join(' ') + ' )';
     if(depth > 2) return '[…]';
-    const inner = store.getQuads(t, null, null, null).map(q => compact(q.predicate.value) + ' ' + termText(q.object, depth + 1));
-    return '[ ' + inner.join(' ; ') + ' ]';
+    // Sorted, so the same blank node reads the same in two releases.
+    const inner = store.getQuads(t, null, null, null).map(q => compact(q.predicate.value) + ' ' + termText(q.object, depth + 1, max));
+    return '[ ' + inner.sort().join(' ; ') + ' ]';
   };
 
   // SPARQL property path syntax, which is what most readers know.
@@ -445,14 +499,15 @@ function buildModel(store, declaredPrefixes){
     const k = key(t);
     if(sparqlCache.has(k)) return sparqlCache.get(k);
     const sel = one(t, SH + 'select'), ask = one(t, SH + 'ask');
-    const body = sel || ask;
+    const body = sel || ask ? dedent((sel || ask).value) : '';
     const pre = prefixLines(objs(t, SH + 'prefixes'));
     const c = {
       key: k,
       name: t.termType === 'NamedNode' ? localName(t.value) : 'SPARQL constraint',
       iri: t.termType === 'NamedNode' ? t.value : '',
       kind: sel ? 'SELECT' : ask ? 'ASK' : '',
-      query: body ? (pre.length ? pre.join('\n') + '\n\n' : '') + dedent(body.value) : '',
+      body,
+      query: body ? (pre.length ? pre.join('\n') + '\n\n' : '') + body : '',
       message: pickLit(objs(t, SH + 'message')),
       comment: pickLit([...objs(t, RDFS + 'comment'), ...objs(t, SH + 'description')]),
       affected: objs(t, ERA + 'affectedProperty').map(x => x.value),
@@ -516,8 +571,8 @@ function buildModel(store, declaredPrefixes){
 
   const statements = t => store.getQuads(t, null, null, null)
     .filter(q => q.predicate.value !== RDF + 'type' || q.object.value !== SH + 'PropertyShape')
-    .map(q => ({p: compact(q.predicate.value), o: termText(q.object)}))
-    .sort((a, b) => a.p.localeCompare(b.p));
+    .map(q => ({p: compact(q.predicate.value), o: termText(q.object, 0, Infinity)}))
+    .sort((a, b) => a.p.localeCompare(b.p) || a.o.localeCompare(b.o));
 
   // ---- property shapes (shared between node shapes, so cached) ----
   const rowCache = new Map();
@@ -667,26 +722,137 @@ function parseRdf(text, fileName){
   return {store: new N3.Store(quads), prefixes};
 }
 
-if(typeof module !== 'undefined') module.exports = {buildModel, shapeView, parseRdf};
+/* ------------------------------------------------------------------ *
+ * Comparison: what UAT changes relative to PROD. Both models must be built
+ * with the same prefix map, so that the same IRI reads the same in both.
+ * Returns a model like buildModel's — UAT's shapes, plus PROD's removed ones
+ * — with a `diff` describing every difference, shape by shape. */
+
+function diffModels(P, U){
+  const shapes = new Map([...P.shapes, ...U.shapes]);
+  const stmtKey = s => s.p + '\u0001' + s.o;
+  // Most PROD and UAT queries differ only in their PREFIX block; the body and
+  // the message are what a reader means by "the constraint changed".
+  const sqSig = c => c.body.replace(/\s+/g, ' ').trim() + '\u0000' + c.message + '\u0000' + c.deactivated;
+  const sqDiff = (a, b) => {
+    const A = new Map(a.map(c => [c.key, c])), B = new Map(b.map(c => [c.key, c]));
+    return {
+      added: b.filter(c => !A.has(c.key)),
+      removed: a.filter(c => !B.has(c.key)),
+      changed: b.filter(c => A.has(c.key) && sqSig(A.get(c.key)) !== sqSig(c)).map(c => ({before: A.get(c.key), after: c})),
+    };
+  };
+  const sqCount = d => d.added.length + d.removed.length + d.changed.length;
+  const multisetDiff = (a, b) => {
+    const left = new Map();
+    for(const x of a) left.set(x, (left.get(x) || 0) + 1);
+    const added = [];
+    for(const x of b){ const n = left.get(x) || 0; if(n) left.set(x, n - 1); else added.push(x); }
+    const removed = [];
+    for(const [x, n] of left) for(let i = 0; i < n; i++) removed.push(x);
+    return {added, removed};
+  };
+
+  const info = new Map();
+  const counts = {added: 0, removed: 0, changed: 0, same: 0};
+  for(const k of shapes.keys()){
+    const p = P.shapes.get(k), u = U.shapes.get(k);
+    if(!p || !u){
+      const status = p ? 'removed' : 'added';
+      info.set(k, {status});
+      counts[status]++;
+      continue;
+    }
+    const vp = shapeView(P, p), vu = shapeView(U, u);
+    const rows = new Map();
+    const pByKey = new Map(vp.rows.map(v => [v.row.key, v]));
+    const pairs = [], unmatched = [];
+    for(const v of vu.rows){
+      const pv = pByKey.get(v.row.key);
+      if(pv){ pairs.push([pv, v]); pByKey.delete(v.row.key); } else unmatched.push(v);
+    }
+    // A property shape renamed (or turned into a blank node) between releases
+    // still constrains the same path: pair them when the path is unambiguous.
+    const count = (list, path) => list.filter(v => v.row.path === path).length;
+    for(const v of unmatched){
+      const cand = [...pByKey.values()].filter(x => x.row.path === v.row.path);
+      if(cand.length === 1 && count(unmatched, v.row.path) === 1){
+        pairs.push([cand[0], v]);
+        pByKey.delete(cand[0].row.key);
+      }else rows.set(v.row.key, {status: 'added'});
+    }
+    for(const [pv, v] of pairs){
+      const stmts = multisetDiff(pv.row.statements.map(stmtKey), v.row.statements.map(stmtKey));
+      const sparql = sqDiff(pv.sparql, v.sparql);
+      const renamedFrom = pv.row.key !== v.row.key ? (pv.row.iri || 'a blank node') : '';
+      if(stmts.added.length || stmts.removed.length || sqCount(sparql) || renamedFrom)
+        rows.set(v.row.key, {status: 'changed', stmts, sparql, renamedFrom});
+    }
+    const removedRows = [...pByKey.values()];
+    const head = [];
+    const cmp = (label, a, b) => { if(a !== b) head.push({label, before: a, after: b}); };
+    cmp('Name', p.name, u.name);
+    cmp('Targets', p.targets.map(t => t.text).join(', '), u.targets.map(t => t.text).join(', '));
+    cmp('Description', p.comment, u.comment);
+    cmp('Every focus node', p.nodeCons.join(' · '), u.nodeCons.join(' · '));
+    cmp('Deactivated', String(p.deactivated), String(u.deactivated));
+    const shapeSparql = sqDiff(vp.shapeLevel, vu.shapeLevel);
+    const nChanges = rows.size + removedRows.length + head.length + sqCount(shapeSparql);
+    const status = nChanges ? 'changed' : 'same';
+    info.set(k, {status, rows, removedRows, head, shapeSparql, nChanges});
+    counts[status]++;
+  }
+  return {shapes, compact: U.compact, stats: U.stats, diff: {info, counts, P: P.stats, U: U.stats}};
+}
+
+// Line diff (longest common subsequence) for SPARQL query bodies; lines that
+// differ only in indentation count as equal.
+function lineDiff(a, b){
+  const A = a.split('\n'), B = b.split('\n');
+  const n = A.length, m = B.length;
+  if(n * m > 250000) return [...A.map(t => ({op: '-', t})), ...B.map(t => ({op: '+', t}))];
+  const same = (i, j) => A[i].trim() === B[j].trim();
+  const L = Array.from({length: n + 1}, () => new Uint16Array(m + 1));
+  for(let i = n - 1; i >= 0; i--)
+    for(let j = m - 1; j >= 0; j--)
+      L[i][j] = same(i, j) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = [];
+  let i = 0, j = 0;
+  while(i < n && j < m){
+    if(same(i, j)){ out.push({op: ' ', t: B[j]}); i++; j++; }
+    else if(L[i + 1][j] >= L[i][j + 1]) out.push({op: '-', t: A[i++]});
+    else out.push({op: '+', t: B[j++]});
+  }
+  while(i < n) out.push({op: '-', t: A[i++]});
+  while(j < m) out.push({op: '+', t: B[j++]});
+  return out;
+}
+
+if(typeof module !== 'undefined') module.exports = {buildModel, shapeView, parseRdf, diffModels, lineDiff};
 
 /* ------------------------------------------------------------------ *
  * Page */
 
 if(typeof document !== 'undefined') (() => {
   const $ = id => document.getElementById(id);
-  let model = null, current = null, sourceLabel = '';
-  let loadCtrl = null;
+  // env: 'prod' | 'uat' | 'diff' | 'file'. model is what is drawn; for 'diff'
+  // it is UAT's shapes plus PROD's removed ones, with model.diff alongside.
+  let model = null, current = null, env = null, fileLabel = '';
+  let view = null, dinfo = null;
+  const texts = {}, parsed = {}, models = {};
+  let loadSeq = 0, loadCtrl = null;
 
   function setStatus(msg, kind){
     const el = $('statusArea');
     el.className = kind || '';
     el.innerHTML = kind === 'loading' ? '<span class="spinner"></span><span>' + esc(msg) + '</span>' : esc(msg);
   }
-  async function showFetchError(err, retry){
-    const diag = await describeFetchError(err, ERA_SOURCE.endpoint);
+  async function showFetchError(err, sourceId, retry){
+    const s = SOURCES[sourceId];
+    const diag = await describeFetchError(err, s.endpoint || s.url);
     const el = $('statusArea');
     el.className = 'error';
-    el.innerHTML = '<div class="fetchErr"><div class="h">' + esc(diag.title) + '</div>' +
+    el.innerHTML = '<div class="fetchErr"><div class="h">' + esc(s.label + ': ' + diag.title) + '</div>' +
       '<div class="b">' + esc(diag.message) + (retry ? ' <button type="button" class="retryBtn">Try again</button>' : '') + '</div>' +
       '<details><summary>Technical detail</summary><code class="tech">' + esc(diag.detail) + '</code></details></div>';
     if(retry) el.querySelector('.retryBtn').addEventListener('click', retry);
@@ -698,85 +864,157 @@ if(typeof document !== 'undefined') (() => {
     return false;
   }
 
-  async function loadEra(){
+  async function fetchText(id, signal){
+    const s = SOURCES[id];
+    const res = s.graph
+      ? await fetch(s.endpoint, {
+          method:'POST', signal,
+          headers:{'Accept':'text/turtle', 'Content-Type':'application/x-www-form-urlencoded'},
+          body:new URLSearchParams({query:`CONSTRUCT { ?s ?p ?o } WHERE { GRAPH <${s.graph}> { ?s ?p ?o } }`}),
+        })
+      : await fetch(s.url, {headers:{'Accept':'text/turtle'}, signal});
+    if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+    return res.text();
+  }
+  const parseCached = id => parsed[id] || (parsed[id] = parseRdf(texts[id], id + '.ttl'));
+
+  function setEnvButtons(e){
+    for(const b of document.querySelectorAll('.envSeg button')) b.setAttribute('aria-pressed', String(b.dataset.env === e));
+    $('reloadEnv').hidden = !SOURCES[e] && e !== 'diff';
+  }
+
+  /* Each environment is fetched once per visit and kept, so switching back
+     and forth (or comparing) costs nothing after the first time. */
+  async function selectEnv(next, reload){
     if(!parserReady()) return;
+    const seq = ++loadSeq;
     if(loadCtrl) loadCtrl.abort();
     const ctrl = loadCtrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-    $('loadEra').disabled = true;
-    setStatus('Reading the shapes graph from graph.data.era.europa.eu (ERA-Onto)…', 'loading');
+    const need = next === 'diff' ? ['prod', 'uat'] : [next];
+    if(reload){
+      for(const id of need){ delete texts[id]; delete parsed[id]; delete models[id]; }
+      delete models.diff;
+    }
+    setEnvButtons(next);
+    const missing = need.filter(id => texts[id] === undefined);
     try{
-      const query = `CONSTRUCT { ?s ?p ?o } WHERE { GRAPH <${ERA_SOURCE.graph}> { ?s ?p ?o } }`;
-      const res = await fetch(ERA_SOURCE.endpoint, {
-        method:'POST', signal:ctrl.signal,
-        headers:{'Accept':'text/turtle', 'Content-Type':'application/x-www-form-urlencoded'},
-        body:new URLSearchParams({query}),
-      });
-      if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
-      const text = await res.text();
-      if(ctrl !== loadCtrl) return;
-      useGraph(text, 'shapes.ttl', 'ERA shapes, live from ERA-Onto <' + ERA_SOURCE.graph + '>');
+      if(missing.length){
+        setStatus('Reading the ' + missing.map(id => SOURCES[id].label).join(' and ') + ' shapes…', 'loading');
+        await Promise.all(missing.map(async id => {
+          try{ texts[id] = await fetchText(id, ctrl.signal); }
+          catch(err){ err.sourceId = id; throw err; }
+        }));
+      }
     }catch(err){
-      if(ctrl !== loadCtrl) return;
-      await showFetchError(err, loadEra);
+      if(seq !== loadSeq) return;
+      setEnvButtons(env);
+      await showFetchError(err, err.sourceId || need[0], () => selectEnv(next));
+      return;
     }finally{
       clearTimeout(timer);
-      if(ctrl === loadCtrl){ $('loadEra').disabled = false; loadCtrl = null; }
+      if(seq === loadSeq) loadCtrl = null;
     }
+    if(seq !== loadSeq) return;
+    let m;
+    try{
+      if(next === 'diff'){
+        if(!models.diff){
+          const p = parseCached('prod'), u = parseCached('uat');
+          const prefixes = {...p.prefixes, ...u.prefixes};
+          models.diff = diffModels(buildModel(p.store, prefixes), buildModel(u.store, prefixes));
+        }
+        m = models.diff;
+      }else{
+        if(!models[next]){ const x = parseCached(next); models[next] = buildModel(x.store, x.prefixes); }
+        m = models[next];
+      }
+    }catch(err){
+      setEnvButtons(env);
+      setStatus('Couldn’t read the shapes as RDF: ' + (err.message || err), 'error');
+      return;
+    }
+    show(m, next);
   }
 
   function loadText(text, fileName){
     if(!parserReady()) return;
-    if(loadCtrl){ loadCtrl.abort(); loadCtrl = null; $('loadEra').disabled = false; }
-    useGraph(text, fileName, fileName ? 'your file ' + fileName : 'pasted Turtle');
-  }
-
-  function useGraph(text, fileName, label){
-    let parsed;
-    try{ parsed = parseRdf(text, fileName); }
+    ++loadSeq;
+    if(loadCtrl){ loadCtrl.abort(); loadCtrl = null; }
+    let p;
+    try{ p = parseRdf(text, fileName); }
     catch(err){
-      setStatus('Couldn’t read ' + (fileName ? fileName : 'this text') + ' as RDF: ' + (err.message || err) +
+      setStatus('Couldn’t read ' + (fileName || 'this text') + ' as RDF: ' + (err.message || err) +
         ' (Turtle, N-Triples, N-Quads and TriG are supported; JSON-LD and RDF/XML are not.)', 'error');
       return;
     }
-    const m = buildModel(parsed.store, parsed.prefixes);
+    const m = buildModel(p.store, p.prefixes);
     if(!m.shapes.size){
-      setStatus('Read ' + parsed.store.size.toLocaleString('en-GB') + ' triples, but none of them is a SHACL shape (nothing typed sh:NodeShape, nothing with sh:targetClass or sh:property).', 'error');
+      setStatus('Read ' + p.store.size.toLocaleString('en-GB') + ' triples, but none of them is a SHACL shape (nothing typed sh:NodeShape, nothing with sh:targetClass or sh:property).', 'error');
       return;
     }
-    model = m; sourceLabel = label;
-    setStatus('Showing ' + label + '.', 'success');
-    const st = m.stats;
-    $('stats').innerHTML = [
-      [st.nodeShapes, 'node shapes'], [st.propertyShapes, 'property shapes'],
-      [st.sparql, 'SPARQL constraints'], [st.links, 'shape-to-shape links'], [st.triples, 'triples'],
-    ].map(([n, l]) => '<span><b>' + n.toLocaleString('en-GB') + '</b>' + esc(l) + '</span>').join('');
+    fileLabel = fileName ? 'your file ' + fileName : 'pasted Turtle';
+    show(m, 'file');
+  }
+
+  function show(m, nextEnv){
+    model = m; env = nextEnv;
+    setEnvButtons(env);
+    const fmt = n => n.toLocaleString('en-GB');
+    const tiles = (list) => list.map(([n, l]) => '<span><b>' + fmt(n) + '</b>' + esc(l) + '</span>').join('');
+    if(m.diff){
+      const c = m.diff.counts;
+      setStatus('Comparing PROD → UAT. Shapes and property constraints are marked new, changed or removed in UAT; expand a changed row to see what changed.', 'success');
+      $('stats').innerHTML = tiles([
+        [m.diff.P.nodeShapes, 'node shapes in PROD'], [m.diff.U.nodeShapes, 'in UAT'],
+        [c.added, 'new in UAT'], [c.removed, 'removed in UAT'], [c.changed, 'changed'], [c.same, 'unchanged'],
+      ]);
+    }else{
+      setStatus('Showing ' + (SOURCES[env] ? env.toUpperCase() + ': ' + SOURCES[env].describe : fileLabel) + '.', 'success');
+      const st = m.stats;
+      $('stats').innerHTML = tiles([
+        [st.nodeShapes, 'node shapes'], [st.propertyShapes, 'property shapes'],
+        [st.sparql, 'SPARQL constraints'], [st.links, 'shape-to-shape links'], [st.triples, 'triples'],
+      ]);
+    }
+    $('onlyDiffWrap').hidden = !m.diff;
     $('layout').hidden = false;
     renderList();
-    const wanted = hashShape();
-    if(wanted && model.shapes.has(wanted)) render(wanted);
-    else render(defaultShape());
+    // Keep the shape in view when switching environment, so the same shape
+    // can be looked at in PROD, UAT and the comparison in turn.
+    const h = parseHash().shape;
+    const k = h && model.shapes.has(h) ? h : current && model.shapes.has(current) ? current : defaultShape();
+    render(k);
+    history.replaceState(null, '', hashFor(env, k));
   }
 
   // The best-connected shape is the most telling first view, unless it is so
-  // long that the connectors turn into a fan; prefer one that fits a screen.
+  // long that the connectors turn into a fan; when comparing, prefer one that
+  // changed.
   function defaultShape(){
     let best = null, score = -1;
     for(const s of model.shapes.values()){
       if(s.pseudo) continue;
-      const n = s.incoming.length + new Set(s.rows.flatMap(r => r.links)).size + (s.rows.length <= 40 ? 1000 : 0);
+      const d = model.diff && model.diff.info.get(s.key);
+      const tier = (d && d.status === 'changed' ? 2 : 0) + (s.rows.length <= 40 ? 1 : 0);
+      const n = tier * 1e6 + (d && d.nChanges || 0) * 100 + s.incoming.length + new Set(s.rows.flatMap(r => r.links)).size;
       if(n > score){ score = n; best = s.key; }
     }
     return best;
   }
 
   /* ---- shape list ---- */
+  const STATUS_TEXT = {added:'new in UAT', removed:'removed in UAT', changed:'changed'};
+  const statusOf = k => model.diff ? model.diff.info.get(k) : null;
   function renderList(){
     const q = $('shapeFilter').value.trim().toLowerCase();
+    const onlyDiff = !!model.diff && $('onlyDiff').checked;
     const items = [...model.shapes.values()].sort((a, b) =>
       (a.pseudo ? 1 : 0) - (b.pseudo ? 1 : 0) || a.name.localeCompare(b.name));
     let shown = 0;
     const html = items.map(s => {
+      const d = statusOf(s.key);
+      if(onlyDiff && d.status === 'same') return '';
       let why = '';
       if(q){
         const own = (s.name + ' ' + s.iri + ' ' + s.targets.map(t => t.text).join(' ')).toLowerCase().includes(q);
@@ -786,52 +1024,74 @@ if(typeof document !== 'undefined') (() => {
       }
       shown++;
       const tg = s.targets.length ? s.targets.map(t => t.text).join(', ') : (s.pseudo ? '' : 'no target');
+      const pill = d && d.status !== 'same'
+        ? '<span class="b d-' + d.status + '">' + STATUS_TEXT[d.status] + (d.status === 'changed' ? ' · ' + d.nChanges : '') + '</span> ' : '';
       return '<button type="button" class="shapeItem" data-key="' + esc(s.key) + '" aria-current="' + (s.key === current) + '">' +
         '<span class="nm" title="' + esc(s.name) + '">' + esc(s.name) + '</span><span class="ct" title="property shapes">' + s.rows.length + '</span>' +
-        '<span class="tg" title="' + esc(tg) + '">' + esc(tg) + '</span>' + (why ? '<span class="why">' + esc(why) + '</span>' : '') + '</button>';
+        '<span class="tg" title="' + esc(tg) + '">' + esc(tg) + '</span>' +
+        (pill || why ? '<span class="why">' + pill + esc(why) + '</span>' : '') + '</button>';
     }).join('');
     $('shapeList').innerHTML = html;
-    $('shapeCount').textContent = q ? `${shown} of ${items.length} shapes` : `${items.length} shapes`;
+    $('shapeCount').textContent = shown < items.length ? `${shown} of ${items.length} shapes` : `${items.length} shapes`;
   }
   $('shapeFilter').addEventListener('input', renderList);
+  $('onlyDiff').addEventListener('change', () => { renderList(); if(view) filterRows(); });
   $('shapeList').addEventListener('click', e => {
     const b = e.target.closest('.shapeItem');
     if(b) go(b.dataset.key);
   });
 
-  /* ---- navigation: the hash carries the shape, so Back/Forward and shared links work ---- */
-  function hashShape(){
-    const m = /(?:^#|&)shape=([^&]*)/.exec(location.hash);
-    if(!m) return null;
-    try{ return decodeURIComponent(m[1]); }catch{ return null; }
+  /* ---- navigation: the hash carries environment and shape, so Back/Forward and shared links work ---- */
+  function parseHash(){
+    const get = name => {
+      const m = new RegExp('(?:^#|&)' + name + '=([^&]*)').exec(location.hash);
+      if(!m) return null;
+      try{ return decodeURIComponent(m[1]); }catch{ return null; }
+    };
+    const e = get('env');
+    return {env: SOURCES[e] || e === 'diff' ? e : null, shape: get('shape')};
   }
+  // A file can't be reopened from a link, so its hash carries no environment.
+  const hashFor = (e, k) => '#' + (e && e !== 'file' ? 'env=' + e + '&' : '') + (k ? 'shape=' + encodeURIComponent(k) : '');
   function go(k){
     if(!model || !model.shapes.has(k)) return;
-    const h = '#shape=' + encodeURIComponent(k);
+    const h = hashFor(env, k);
     if(location.hash === h) render(k); else location.hash = h;
   }
-  // No shape in the hash is the landing view (Back from the first click).
   window.addEventListener('hashchange', () => {
+    const h = parseHash();
+    const wanted = h.env || (env === 'file' ? 'file' : 'prod');
+    if(wanted !== env && wanted !== 'file'){ selectEnv(wanted); return; }
     if(!model) return;
-    const h = hashShape();
-    const k = h && model.shapes.has(h) ? h : defaultShape();
+    const k = h.shape && model.shapes.has(h.shape) ? h.shape : defaultShape();
     if(k !== current) render(k);
   });
+  for(const b of document.querySelectorAll('.envSeg button'))
+    b.addEventListener('click', () => {
+      const h = hashFor(b.dataset.env, current);
+      if(location.hash === h && env === b.dataset.env) return;
+      if(location.hash === h) selectEnv(b.dataset.env); else location.hash = h;
+    });
+  $('reloadEnv').addEventListener('click', () => { if(env && env !== 'file') selectEnv(env, true); });
 
   /* ---- diagram ---- */
-  let view = null;
   function render(k){
     const s = model.shapes.get(k);
     current = k;
+    dinfo = statusOf(k);
     view = shapeView(model, s);
+    // Property shapes UAT dropped are listed after the rest, struck through.
+    if(dinfo && dinfo.removedRows) for(const v of dinfo.removedRows) view.rows.push({row:v.row, sparql:v.sparql, removed:true});
     for(const b of $('shapeList').querySelectorAll('.shapeItem')) b.setAttribute('aria-current', String(b.dataset.key === k));
 
     const card = (key, cls, attr, via) => {
       const t = model.shapes.get(key);
       const tg = t.targets.map(x => x.text).join(', ');
+      const d = statusOf(key);
       return '<button type="button" class="nodeCard ' + cls + '" ' + attr + ' data-key="' + esc(key) + '">' +
         '<span class="nm">' + esc(t.name) + '</span>' + (tg ? '<span class="tg">' + esc(tg) + '</span>' : '') +
-        '<span class="via">' + esc(via) + '</span></button>';
+        '<span class="via">' + esc(via) + '</span>' +
+        (d && d.status !== 'same' ? '<span class="b d-' + d.status + '">' + STATUS_TEXT[d.status] + '</span>' : '') + '</button>';
     };
     const viaText = paths => 'via ' + [...new Set(paths)].slice(0, 3).join(', ') + (new Set(paths).size > 3 ? ', …' : '');
 
@@ -842,11 +1102,15 @@ if(typeof document !== 'undefined') (() => {
       ? view.outgoing.map(x => card(x.key, 'outCard', 'data-rows="' + x.rows.join(',') + '"', viaText(x.paths))).join('')
       : '<div class="none">Values are not required to conform to another shape here.</div>');
 
-    const selfLinks = view.rows.some(v => v.row.links.includes(k));
+    const selfLinks = view.rows.some(v => !v.removed && v.row.links.includes(k));
+    const kicker = (s.pseudo ? 'Not a shape' : 'Node shape') +
+      (s.deactivated ? ' · <span class="b off">deactivated</span>' : '') +
+      (dinfo && dinfo.status !== 'same' ? ' · <span class="b d-' + dinfo.status + '">' + STATUS_TEXT[dinfo.status] + '</span>' : '') +
+      (dinfo && dinfo.status === 'same' ? ' · unchanged in UAT' : '');
     $('focusCol').innerHTML =
       '<article class="focusCard">' +
         '<header class="fcHead" id="fcHead">' +
-          '<div class="kicker">' + (s.pseudo ? 'Not a shape' : 'Node shape') + (s.deactivated ? ' · <span class="b off">deactivated</span>' : '') + '</div>' +
+          '<div class="kicker">' + kicker + '</div>' +
           '<h2>' + esc(s.name) + '</h2>' +
           (s.iri ? '<div class="iri">' + esc(s.iri) + '</div>' : '') +
           (s.targets.length ? '<div class="targets">Applies to ' + s.targets.map(t => esc(targetText(t))).join(' · ') + '</div>'
@@ -854,6 +1118,7 @@ if(typeof document !== 'undefined') (() => {
           (s.comment ? '<p class="comment">' + esc(s.comment) + '</p>' : '') +
           (s.nodeCons.length ? '<div class="nodeCons">Every focus node: ' + esc(s.nodeCons.join(' · ')) + '</div>' : '') +
           (selfLinks ? '<div class="nodeCons">↺ Some values must themselves conform to this shape.</div>' : '') +
+          headDiffHtml() +
         '</header>' +
         '<div class="fcTools">' +
           '<input id="rowFilter" type="search" placeholder="Filter ' + view.rows.length + ' properties…" spellcheck="false">' +
@@ -861,13 +1126,32 @@ if(typeof document !== 'undefined') (() => {
         '</div>' +
         '<div class="rows" id="rows">' + view.rows.map(rowHtml).join('') +
           (view.rows.length ? '' : '<div class="rowBody">This shape has no property shapes.</div>') + '</div>' +
-        (view.shapeLevel.length ? '<details class="shapeLevel"><summary>' + view.shapeLevel.length +
-          ' SHACL-SPARQL constraint' + (view.shapeLevel.length > 1 ? 's' : '') + ' on the shape as a whole</summary>' +
-          view.shapeLevel.map(sparqlHtml).join('') + '</details>' : '') +
+        shapeLevelHtml() +
       '</article>';
 
     $('rowFilter').addEventListener('input', filterRows);
-    scheduleWires();
+    filterRows();
+  }
+
+  function headDiffHtml(){
+    if(!dinfo) return '';
+    if(dinfo.status === 'added') return '<div class="nodeCons">This shape is new in UAT — PROD has no shape with this IRI.</div>';
+    if(dinfo.status === 'removed') return '<div class="nodeCons">This shape is in PROD but not in UAT; its PROD definition is shown.</div>';
+    if(!dinfo.head.length) return '';
+    return '<div class="diffBox">' + dinfo.head.map(h =>
+      '<div class="dl del">− <span class="k">' + esc(h.label) + ':</span> ' + esc(h.before || '(none)') + '</div>' +
+      '<div class="dl add">+ <span class="k">' + esc(h.label) + ':</span> ' + esc(h.after || '(none)') + '</div>').join('') + '</div>';
+  }
+
+  function shapeLevelHtml(){
+    const sd = dinfo && dinfo.shapeSparql;
+    const nDiff = sd ? sd.added.length + sd.removed.length + sd.changed.length : 0;
+    if(!view.shapeLevel.length && !nDiff) return '';
+    const n = view.shapeLevel.length;
+    return '<details class="shapeLevel"' + (nDiff ? ' open' : '') + '><summary>' + n +
+      ' SHACL-SPARQL constraint' + (n === 1 ? '' : 's') + ' on the shape as a whole' +
+      (nDiff ? ' · <span class="b d-changed">' + nDiff + ' changed in UAT</span>' : '') + '</summary>' +
+      (nDiff ? sparqlDiffHtml(sd) : '') + view.shapeLevel.map(sparqlHtml).join('') + '</details>';
   }
 
   function targetText(t){
@@ -877,18 +1161,24 @@ if(typeof document !== 'undefined') (() => {
   // Long camelCase property names wrap at word boundaries, not mid-word.
   const breakable = s => esc(s).replace(/([a-z])([A-Z])/g, '$1<wbr>$2');
 
+  // In a comparison, a row's change; rows of a shape that is wholly new or
+  // removed carry no mark of their own — the header says it.
+  const rowChange = v => v.removed ? {status:'removed'} : dinfo && dinfo.rows ? dinfo.rows.get(v.row.key) || null : null;
+
   function rowHtml(v, i){
     const r = v.row;
-    const linked = r.links.length > 0;
+    const ch = rowChange(v);
+    const linked = r.links.length > 0 && !v.removed;
     const type = r.types.map(x => x.text).join(' · ') || '—';
     const card = r.min + '..' + (r.max === null ? '*' : r.max);
-    return '<div class="row sev-' + esc(r.severity) + (r.deactivated ? ' deactivated' : '') + '" data-i="' + i + '">' +
+    return '<div class="row sev-' + esc(r.severity) + (r.deactivated ? ' deactivated' : '') + (ch ? ' d-' + ch.status : '') + '" data-i="' + i + '">' +
       '<button type="button" class="rowHead" aria-expanded="false" title="' + esc(r.severity) + '">' +
         '<span class="dot"></span>' +
         '<span class="path">' + breakable(r.path) + '</span>' +
         '<span class="type">' + (linked ? '<span class="lnk">' + esc(type) + ' →</span>' : esc(type)) + '</span>' +
         '<span class="card" title="cardinality: min..max">' + card + '</span>' +
         '<span class="badges">' +
+          (ch ? '<span class="b d-' + ch.status + '">' + (ch.status === 'added' ? 'new' : ch.status) + '</span>' : '') +
           (v.sparql.length ? '<span class="b sparql" title="SHACL-SPARQL constraints on this property">' + v.sparql.length + ' SPARQL</span>' : '') +
           (r.usedBy.length > 1 ? '<span class="b shared" title="this property shape is reused by other node shapes">×' + r.usedBy.length + '</span>' : '') +
           (r.deactivated ? '<span class="b off">off</span>' : '') +
@@ -898,9 +1188,46 @@ if(typeof document !== 'undefined') (() => {
     '</div>';
   }
 
+  const dlLine = (op, stmt) => {
+    const [p, o] = stmt.split('\u0001');
+    return '<div class="dl ' + (op === '+' ? 'add' : 'del') + '">' + (op === '+' ? '+ ' : '− ') +
+      '<span class="k">' + esc(p) + '</span> ' + esc(o) + '</div>';
+  };
+
+  function sparqlDiffHtml(sd){
+    const lines = [
+      ...sd.removed.map(c => '<div class="dl del">− SPARQL constraint <span class="k">' + esc(c.name) + '</span>' + (c.message ? ' — ' + esc(c.message) : '') + '</div>'),
+      ...sd.added.map(c => '<div class="dl add">+ SPARQL constraint <span class="k">' + esc(c.name) + '</span>' + (c.message ? ' — ' + esc(c.message) : '') + '</div>'),
+    ];
+    const changed = sd.changed.map(({before, after}) => {
+      const parts = [];
+      if(before.message !== after.message)
+        parts.push('<div class="dl del">− <span class="k">sh:message</span> ' + esc(before.message) + '</div>' +
+          '<div class="dl add">+ <span class="k">sh:message</span> ' + esc(after.message) + '</div>');
+      if(before.deactivated !== after.deactivated)
+        parts.push('<div class="dl ' + (after.deactivated ? 'add' : 'del') + '">' + (after.deactivated ? '+ deactivated in UAT' : '− no longer deactivated') + '</div>');
+      if(before.body.replace(/\s+/g, ' ').trim() !== after.body.replace(/\s+/g, ' ').trim())
+        parts.push('<div class="dl ctx">query (PREFIX lines left out):</div>' + lineDiff(before.body, after.body).map(l =>
+          '<div class="dl ' + (l.op === '+' ? 'add' : l.op === '-' ? 'del' : 'ctx') + '">' + (l.op === '-' ? '−' : l.op) + ' ' + esc(l.t) + '</div>').join(''));
+      return '<details class="sq" open><summary><span class="nm">' + esc(after.name) + '</span> — changed in UAT</summary>' +
+        '<div class="sqBody"><div class="diffBox">' + parts.join('') + '</div></div></details>';
+    });
+    return (lines.length ? '<div class="diffBox">' + lines.join('') + '</div>' : '') + changed.join('');
+  }
+
   function rowBodyHtml(v){
     const r = v.row;
+    const ch = rowChange(v);
     const parts = [];
+    if(ch && ch.status === 'changed'){
+      parts.push('<h4>Changed from PROD to UAT</h4>');
+      if(ch.renamedFrom) parts.push('<div>Property shape renamed — in PROD it was <code>' + esc(ch.renamedFrom.startsWith('http') ? model.compact(ch.renamedFrom) : ch.renamedFrom) + '</code>.</div>');
+      if(ch.stmts.removed.length || ch.stmts.added.length)
+        parts.push('<div class="diffBox">' + ch.stmts.removed.map(x => dlLine('-', x)).join('') + ch.stmts.added.map(x => dlLine('+', x)).join('') + '</div>');
+      parts.push(sparqlDiffHtml(ch.sparql));
+    }
+    if(ch && ch.status === 'removed') parts.push('<h4>Removed in UAT</h4><div>This property shape is in PROD but not in UAT. Its PROD definition:</div>');
+    if(ch && ch.status === 'added') parts.push('<h4>New in UAT</h4>');
     if(r.name) parts.push('<div><b>' + esc(r.name) + '</b></div>');
     if(r.comment) parts.push('<div>' + esc(r.comment) + '</div>');
     if(r.message) parts.push('<div class="msg">' + esc(r.message) + '</div>');
@@ -909,7 +1236,7 @@ if(typeof document !== 'undefined') (() => {
       parts.push('<h4>Values must conform to</h4><div class="chips">' + r.links.map(chip).join('') + '</div>');
     if(v.sparql.length)
       parts.push('<h4>SHACL-SPARQL constraints on this property</h4>' + v.sparql.map(sparqlHtml).join(''));
-    const others = r.usedBy.filter(k => k !== current);
+    const others = r.usedBy.filter(k => k !== current && model.shapes.has(k));
     if(others.length)
       parts.push('<h4>Also used by</h4><div class="chips">' + others.map(chip).join('') + '</div>');
     parts.push('<h4>All statements' + (r.iri ? ' about ' + esc(model.compact(r.iri)) : '') + '</h4>' +
@@ -927,12 +1254,15 @@ if(typeof document !== 'undefined') (() => {
         : '<div>No sh:select or sh:ask query.</div>') + '</div></details>';
   }
 
+  // "Only differences" hides unchanged rows of a changed shape; a shape that
+  // is new or removed as a whole keeps all its rows.
   function filterRows(){
     const q = $('rowFilter').value.trim().toLowerCase();
+    const onlyDiff = !!model.diff && $('onlyDiff').checked && dinfo && dinfo.status === 'changed';
     for(const el of $('rows').querySelectorAll('.row')){
-      const r = view.rows[+el.dataset.i].row;
+      const v = view.rows[+el.dataset.i], r = v.row;
       const hay = (r.path + ' ' + r.name + ' ' + r.types.map(x => x.text).join(' ') + ' ' + r.rinf.join(' ')).toLowerCase();
-      el.hidden = !!q && !hay.includes(q);
+      el.hidden = (!!q && !hay.includes(q)) || (onlyDiff && !rowChange(v));
     }
     scheduleWires();
   }
@@ -1044,8 +1374,7 @@ if(typeof document !== 'undefined') (() => {
   window.addEventListener('resize', scheduleWires);
   if(window.ResizeObserver) new ResizeObserver(scheduleWires).observe($('focusCol'));
 
-  /* ---- sources ---- */
-  $('loadEra').addEventListener('click', loadEra);
+  /* ---- your own file ---- */
   $('fileIn').addEventListener('change', e => {
     const f = e.target.files[0];
     if(f) f.text().then(t => loadText(t, f.name));
@@ -1072,7 +1401,7 @@ if(typeof document !== 'undefined') (() => {
     if(f) f.text().then(t => loadText(t, f.name));
   });
 
-  loadEra();
+  selectEnv(parseHash().env || 'prod');
 })();
 </script>
 </body>
