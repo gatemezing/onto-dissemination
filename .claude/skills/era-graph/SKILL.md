@@ -1,6 +1,6 @@
 ---
 name: era-graph
-description: Query the ERA (European Union Agency for Railways) knowledge graph correctly and fast — RINF infrastructure data and the Organisation Codes Register. Use when writing SPARQL against graph.data.era.europa.eu, building on the ERA ontology, or working on the era-*.html tools in this repo. Covers the publisher modelling differences that silently return zero rows, the validity rules that silently return duplicates, and the query shapes that turn a timeout into a second.
+description: Query the ERA (European Union Agency for Railways) knowledge graph correctly and fast — RINF infrastructure data and the Organisation Codes Register. Use when writing SPARQL against graph.data.era.europa.eu, building on the ERA ontology, or working on the era-*.html tools in this repo, or reading or comparing ERA's SHACL shapes (PROD and UAT). Covers the publisher modelling differences that silently return zero rows, the validity rules that silently return duplicates, the query shapes that turn a timeout into a second, and where the PROD and UAT shapes live and how they differ.
 ---
 
 # Querying the ERA knowledge graph
@@ -15,7 +15,7 @@ ontology. The ontology says what *may* be published; the data says what *is*.
 | `https://graph.data.era.europa.eu/repositories/rinf-plus` | RINF: lines, sections, operational points, tracks. The default. |
 | `.../repositories/OCR-KG` | Organisation Codes Register: organisation **names**, roles, sites |
 | `.../repositories/era-lex` | legal acts, ELI references |
-| `.../repositories/ERA-Onto` | the ontology alone |
+| `.../repositories/ERA-Onto` | the ontology, its SKOS schemes (`graph/skos`) and the PROD SHACL shapes (`graph/shacl`) — see [ERA's SHACL shapes](#eras-shacl-shapes--prod-and-uat) |
 
 Data is in **named graphs, one per infrastructure manager** (`graph/0080` = DB
 InfraGO). 54 datasets, 27 countries. A line can appear in two graphs.
@@ -179,12 +179,24 @@ FILTER(!BOUND(?b) || !BOUND(?latest) || ?b = ?latest)
 | Side | `?key` | Why |
 |---|---|---|
 | sections of line | the stretch — `(startPosition, endPosition)` | DEU republishes a stretch yearly (16,615 → 8,281 rows) |
-| operational points | `era:uopid`, **then** track window per point | DEU repeats the station; FRA repeats tracks inside one point |
+| operational points | `era:uopid` | DEU repeats the station |
+| tracks and sidings inside a point | the track itself — `era:trackId` / `era:sidingId` within the point — **never the point** | see below |
 
 **A line-wide `MAX` is the trap.** It is right for Germany and catastrophic for
 France, which dates each section by the day it *opened* — 25 beginnings across
 702 sections, so a line-wide maximum keeps **2** and reports a tidy "132 rows"
 that looks like successful deduplication and is 99.6 % data loss.
+
+**A per-point `MAX` is the same trap one level down.** France does not repeat
+tracks inside a point — in `graph/0087`, no (point, `era:trackId`) pair holds
+two track resources — but it dates each track and siding by the day it opened,
+and **2,013 French points** hold parts with different start dates. Keeping only
+the point's newest window drops every older, still-current track there: at
+`operationalPoint/dc106e9f97`, running tracks "D" and "Voie E de Villereversure"
+(valid 2010-07-01 → 2382-01-01) vanish because siding "4" starts 2012-01-01
+(measured 2026-10-20). The RCC and Route Book tools still apply the per-point
+window (`era-rcc-parameters.html` ~L789, `era-route-book.html` ~L967) — a known
+bug, not a pattern to copy.
 
 Always keep resources with no validity (`!BOUND(?b)`): **ten countries publish no
 dated validity at all** — SWE, ESP, IRL, EST, GRC, FIN, ROU, HRV, AUT, LUX.
@@ -331,9 +343,14 @@ does not publish it", and worth reporting separately.
 ## ERADIS-KG and era-lex — EC declarations and the acts they cite
 
 On the dev server (`graph.dev.data.test-era.europa.eu`); production `ERADIS-KG`
-answers 401. **The dev server sends no CORS headers at all**, so a browser page
-elsewhere cannot read it. `era-eradis-explorer.html` searches a snapshot
-(`scripts/build-eradis-snapshot.py`) and emits the same search as SPARQL.
+answers 401. **Since 2026-10-12 the dev server answers 401 too** (anonymous
+access switched off; login is Entra ID or password). It now reflects the
+request's `Origin` in `Access-Control-Allow-Origin` with
+`Access-Control-Allow-Credentials: true` (measured 2026-10-20), so a cross-origin
+page gets the 401 rather than a CORS failure — but still no data.
+`era-eradis-explorer.html` searches a snapshot (`scripts/build-eradis-snapshot.py`)
+and emits the same search as SPARQL; the snapshot can't be rebuilt without
+credentials. Probe `…/rest/security/free-access` before debugging a query.
 
 - **Pin only the declaration to its graph.** Declarations are in
   `graph/eradis` (the draft graph holds 979 unpublished submissions), but
@@ -394,6 +411,50 @@ elsewhere cannot read it. `era-eradis-explorer.html` searches a snapshot
     "first name" differs from the snapshot's `SAMPLE`. Return the organisation
     key and resolve it in the snapshot's organisation table.
 
+## ERA's SHACL shapes — PROD and UAT
+
+| Environment | Where | How a browser reads it |
+|---|---|---|
+| PROD | named graph `http://data.europa.eu/949/graph/shacl` in `ERA-Onto` (the same 7,569 triples are in `rinf-plus` as `graph/rinf/shacl`) | `CONSTRUCT { ?s ?p ?o } WHERE { GRAPH <…/graph/shacl> { ?s ?p ?o } }` with `Accept: text/turtle` (~1 MB). The server reflects the request's `Origin`. |
+| UAT | `https://rinf.uat.data.test-era.europa.eu/era-vocabulary/era-shapes` | a plain Turtle file (~840 KB), `Access-Control-Allow-Origin: *`; no SPARQL |
+
+Measured 2026-10-20: PROD has 76 node shapes, 393 property shapes and 211
+SHACL-SPARQL constraints. UAT has 156 node shapes, 911 property shapes and 204
+constraints, and also covers ERATV, EVR, CLD and ECM shapes.
+
+How ERA writes its shapes:
+- **Property shapes are named IRIs** (`era:shapes/LengthOfTunnel`), not blank
+  nodes, and are **shared**: 168 of PROD's 393 are listed by more than one node
+  shape (`sh:property`). Group by the property shape, not by its node shape.
+- **SHACL-SPARQL constraints sit on the node shape** (`sh:sparql`, 330 links in
+  PROD; only 7 on property shapes). Each names what it checks with ERA's own
+  annotations: `era:affectedClass`, `era:affectedProperty`, `era:rinfIndex`,
+  `era:scope`. To show a constraint next to its property, join on
+  `era:affectedProperty` = the property shape's `sh:path`.
+- **`sh:prefixes` points at the ontology IRI**, which carries 13 `sh:declare`s.
+  Rebuild a runnable query from those declarations plus the `sh:select` text.
+- **Node shapes link through `sh:class`**: a property shape's `sh:class X`
+  points at whichever node shape has `sh:targetClass X` (101 such links in
+  PROD). Several shapes can target the same class (`ContactLineSystemShape` and
+  `ContactLineSystemShapeSPARQLWarning`).
+- GraphDB's Turtle output groups triples by predicate across the file, so
+  line-based grepping misleads; parse it (N3.js in the browser).
+
+Comparing PROD with UAT:
+- **Compare SPARQL constraints by query body and message, not full text.** 147
+  of the PROD/UAT pairs differ only in their `PREFIX` lines. What remains is
+  real: 20 query bodies and 4 messages changed; 64 constraints are only in PROD
+  and 57 only in UAT.
+- What UAT changes (2026-10-20):
+  - **46 node shapes become `sh:closed`**, so data valid in PROD fails in UAT if
+    it carries any unlisted property.
+  - **42 `sh:pattern` regexes become numeric ranges**, e.g. `era:cantDeficiency`
+    goes to `sh:minInclusive -999` / `sh:maxInclusive 999`.
+  - **`ContactStripMaterialSKOS` drops its `skos:inScheme` membership check**
+    and now flags only `/eratv/` concepts.
+- `era-shacl-viewer.html` (`/shapes.html`) shows either environment, or a
+  PROD → UAT comparison with statement and query line diffs.
+
 ## The tools in this repo
 
 Single-file HTML, no build step, deployed by `.github/workflows/pages.yml` to
@@ -403,13 +464,15 @@ from the browser and share a dependency-free XLSX writer.
 | File | Page | Does |
 |---|---|---|
 | `era-graph-explorer-app.html` | `/` | bubble-graph "follow your nose" demo |
-| `era-holobox-frame.html` | `/holobox.html` | the same bubble graph, natively rendered (no iframe — see Rule 6) across 4 faces of a hologram-pyramid frame, with an Expand-to-next-bubble control dock |
+| `era-holobox-frame.html` | `/holobox.html` | the same bubble graph, natively rendered (no iframe — see Rule 6), in a single desktop view since commit `27ab948` (the 4-face pyramid layout was removed), with an Expand-to-next-bubble control |
+| `era-ask.html` | `/ask.html` | plain-language or voice questions (EN/FR/DE/ES/IT), keyword-matched into live SPARQL across `rinf-plus`, `OCR-KG` and `era-lex` |
 | `era-rdf-exporter.html` | `/exporter.html` | export any resource URI as RDF/XML |
 | `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country, plus a network map |
 | `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters, multi-country/multi-line with "Select all", plus a network map |
 | `era-route-book.html` | `/routebook.html` | TSI OPE Appendix D2 elements + coverage, multi-country/multi-line with "Select all", plus a network map |
 | `era-eurostat-exporter.html` | `/eurostat.html` | the two Eurostat CSV extracts (sections + track parameters with point positions, TEN-T flags), "no data" for missing values; queries generated by `scripts/build-eurostat-queries.py` |
 | `era-eradis-explorer.html` | `/eradis.html` | ERADIS-KG EC declarations and NoBo certificates with the ERADIS search forms, multi-country/multi-organisation pickers (nothing picked = all), over a snapshot, every search also as SPARQL |
+| `era-shacl-viewer.html` | `/shapes.html` | ERA's SHACL shapes as navigable node-shape cards: PROD (live), UAT (published file), or a PROD → UAT comparison; also any SHACL file dropped in |
 
 Verified query sets with measurements live in `scripts/assets/rcc/` and
 `scripts/assets/routebook/`. `scripts/build-rinf-parameter-catalog.py` refreshes
