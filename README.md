@@ -24,6 +24,7 @@ cross-origin requests yet (see [Data snapshots](#data-snapshots)).
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
+| SHACL Shape Viewer (ERA's validation shapes, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 | Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
 
@@ -172,6 +173,18 @@ certificate snapshot loads only when its tab is opened. Some values are derived
 rather than recorded — "type of subsystem" (from the TSIs, through era-lex) and
 a certificate's validity (from its validity window) — see
 [eradis/README.md](eradis/README.md).
+
+**[era-shacl-viewer.html](scripts/assets/era-shacl-viewer.html)** — shows
+what a SHACL shapes graph asks of the data. Each node shape is a card listing
+its property shapes (path in SPARQL property-path syntax, value type,
+cardinality, severity), with connectors to the shapes its values must conform
+to (`sh:node`, or `sh:class` when another shape targets that class, including
+inside `sh:or` / `sh:xone` / `sh:and`) and from the shapes that point to it.
+Click any shape to follow it. ERA's SHACL-SPARQL constraints are listed under
+the property they name with `era:affectedProperty`, each with its full query.
+It loads ERA's own shapes live (`graph/shacl` in `ERA-Onto`, one `CONSTRUCT`).
+You can also open, drop or paste any Turtle, N-Triples, N-Quads or TriG file;
+it is parsed in the browser with N3.js (pinned, with SRI) and never uploaded.
 
 **[era-interop-answers.html](scripts/assets/era-interop-answers.html)** — the
 ERA reusability answers for the Interoperable Europe assessment (source text
