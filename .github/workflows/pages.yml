@@ -17,6 +17,7 @@ on:
       - 'scripts/assets/era-eurostat-exporter.html'
       - 'scripts/assets/era-eradis-explorer.html'
       - 'scripts/assets/era-shacl-viewer.html'
+      - 'scripts/assets/era-skos-explorer.html'
       - 'scripts/assets/era-eradis-snapshot.json.gz'
       - 'scripts/assets/era-eradis-certificates.json.gz'
       - 'graphwiseAI-summit2026/connected-by-data-answers.html'
@@ -56,6 +57,7 @@ jobs:
           cp scripts/assets/era-eurostat-exporter.html _site/eurostat.html
           cp scripts/assets/era-eradis-explorer.html _site/eradis.html
           cp scripts/assets/era-shacl-viewer.html _site/shapes.html
+          cp scripts/assets/era-skos-explorer.html _site/skos.html
           cp scripts/assets/era-eradis-snapshot.json.gz _site/era-eradis-snapshot.json.gz
           cp scripts/assets/era-eradis-certificates.json.gz _site/era-eradis-certificates.json.gz
           cp graphwiseAI-summit2026/connected-by-data-answers.html _site/connected-by-data.html
