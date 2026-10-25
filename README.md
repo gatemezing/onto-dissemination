@@ -5,11 +5,13 @@ demonstrating "follow your nose" Linked Data navigation over live railway
 infrastructure data (RINF), published by the European Union Agency for
 Railways at `graph.data.era.europa.eu`.
 
-Every tool is a single self-contained HTML file — no build step, no server,
-no dependencies — that queries the live SPARQL endpoints directly from the
-browser and exports results as CSV or Excel. The one exception is the ERADIS
-Explorer, which searches a snapshot because its endpoint does not allow
-cross-origin requests yet (see [Data snapshots](#data-snapshots)).
+Every tool is a single self-contained HTML file — no build step, no server —
+that queries the live SPARQL endpoints directly from the browser and exports
+results as CSV or Excel. The only external code is Leaflet in the map tools and
+N3.js in the SHACL Shape Viewer, both pinned to a version and checked with
+SRI. The one tool that doesn't query live is the ERADIS Explorer, which
+searches a snapshot because its endpoint asks for a login (see
+[Data snapshots](#data-snapshots)).
 
 ## Live demos
 
@@ -17,7 +19,7 @@ cross-origin requests yet (see [Data snapshots](#data-snapshots)).
 |---|---|
 | ERA Graph Explorer (bubble-graph, offline + live) | https://gatemezing.github.io/onto-dissemination/ |
 | Ask the ERA Graph (natural-language / voice query) | https://gatemezing.github.io/onto-dissemination/ask.html |
-| Holobox Frame (4-face pyramid hologram display) | https://gatemezing.github.io/onto-dissemination/holobox.html |
+| Holobox Frame (the bubble graph on a single stage, natively rendered) | https://gatemezing.github.io/onto-dissemination/holobox.html |
 | RDF Exporter | https://gatemezing.github.io/onto-dissemination/exporter.html |
 | RINF Parameter Values explorer | https://gatemezing.github.io/onto-dissemination/values.html |
 | RCC Parameters (route compatibility) | https://gatemezing.github.io/onto-dissemination/rcc.html |
@@ -28,7 +30,9 @@ cross-origin requests yet (see [Data snapshots](#data-snapshots)).
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 | Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
 
-Every tool links to the others in its footer. Deployment is automatic:
+The live-query tools link to each other in their footers. No other page links
+yet to the Holobox Frame, the ERADIS Explorer, the SHACL Shape Viewer or the
+two answer pages. Deployment is automatic:
 [.github/workflows/pages.yml](.github/workflows/pages.yml) rebuilds and
 publishes GitHub Pages on every push to `main` that touches one of the tool
 files.
@@ -78,10 +82,10 @@ gets pointed at the sample questions rather than a guess, and the generated
 query is always one click away.
 
 **[era-holobox-frame.html](scripts/assets/era-holobox-frame.html)** — renders
-that same bubble-graph view natively across all four faces of a pyramid
-hologram display (white stage; per-face rotation calibrated to your physical
-reflector), driven from one shared live query so all four faces and the
-navigation trail stay in lock-step. An earlier version tried to embed the
+that same bubble-graph view natively on a single desktop stage, driven from one
+live query, with a navigation trail and an Expand-to-next-bubble control. It
+began as a four-face pyramid hologram layout, simplified to one view in commit
+`27ab948`. An earlier version tried to embed the
 GraphDB Workbench's own visual graph via `<iframe>`; that endpoint sends
 `X-Frame-Options: SAMEORIGIN`, which silently blocks framing from any other
 origin in every browser, so it's now a first-party renderer instead.
@@ -162,14 +166,19 @@ Every country and organisation field (applicant, authorised representative,
 manufacturer, notified body) takes several values or all: a searchable
 checkbox list, with the organisations narrowed to the countries picked.
 The two registers link to each other in both directions. Every search is shown
-as SPARQL, runnable live or in the GraphDB workbench; "Run live" returns every
-match (all 43,471 certificates in ~10 s), in two phases. Results come with a
+as SPARQL, to run live or in the GraphDB workbench. While the dev endpoint
+allowed anonymous queries, "Run live" returned every match (all 43,471
+certificates in ~10 s) in two phases. Since 2026-10-12 it asks for a login, so
+"Run live" now reports that instead. Results come with a
 per-year chart, CSV download, and a detail view with each cited TSI linked to
 its ELI in `era-lex`.
 
-The dev endpoint sends no CORS headers, so the page searches snapshots built by
-the same queries ([eradis/](eradis/), `scripts/build-eradis-snapshot.py`); the
-certificate snapshot loads only when its tab is opened. Some values are derived
+The page can't query the dev endpoint anonymously from a browser: until
+October 2026 it sent no CORS headers, and it now asks for a login. So the page
+searches snapshots built by the same queries ([eradis/](eradis/),
+`scripts/build-eradis-snapshot.py`), and the certificate snapshot loads only
+when its tab is opened. Rebuilding the snapshots now needs credentials for the
+dev endpoint, and `build-eradis-snapshot.py` can't pass any yet. Some values are derived
 rather than recorded — "type of subsystem" (from the TSIs, through era-lex) and
 a certificate's validity (from its validity window) — see
 [eradis/README.md](eradis/README.md).
@@ -254,8 +263,9 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
 - `website/` — draft text and architecture diagram for an ERA Knowledge Graph
   web page.
 - `.claude/skills/era-graph/` — what was measured about querying the ERA graph
-  (publisher variations, validity rules, query shapes), kept for anyone, human
-  or AI assistant, writing queries against it.
+  (publisher variations, validity rules, query shapes), and where ERA's PROD and
+  UAT SHACL shapes live and how they differ. It is kept for anyone, human or AI
+  assistant, writing queries against the graph.
 - `LICENSE` — the European Union Public Licence v1.2.
 
 ## Keeping the RINF parameter snapshot fresh
