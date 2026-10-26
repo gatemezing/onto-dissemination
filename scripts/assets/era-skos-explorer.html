@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ERA SKOS Explorer</title>
+<!-- N3.js parses the Turtle both ERA environments are fetched as. Pinned
+     with SRI, the same version era-shacl-viewer.html uses. -->
+<script src="https://unpkg.com/n3@1.17.2/browser/n3.min.js"
+        integrity="sha384-ruUAAJQGxq8irl0TkwhEuF5e+mMmG94W+xdYXeVe0PUvicJ2aW/oJZTBSZr2qH1o"
+        crossorigin="anonymous"></script>
 <style>
   :root{
     --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
@@ -49,6 +54,17 @@
   button.mini{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
     padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;font-family:inherit;}
   button.mini:hover{background:rgba(255,255,255,.1);color:var(--paper);}
+
+  /* ---- PROD / UAT / Compare, same control as era-shacl-viewer.html ---- */
+  .envBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .envSeg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .envSeg button{background:rgba(255,255,255,.03);border:none;border-right:1px solid var(--line);color:var(--muted);
+    padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;}
+  .envSeg button:last-child{border-right:none;}
+  .envSeg button:hover{background:rgba(255,255,255,.07);color:var(--paper);}
+  .envSeg button[aria-pressed="true"]{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);color:var(--paper);}
+  .envSeg button .sub{display:block;font-weight:400;font-size:10.5px;opacity:.8;}
+  @media (max-width:640px){ .envSeg{width:100%;} .envSeg button{flex:1;padding:7px 10px;} }
 
   /* ---- scheme combobox ---- */
   .comboWrap{position:relative;}
@@ -139,6 +155,7 @@
   .badge.bad{background:rgba(242,109,109,.16);color:var(--danger);}
   .badge.warn{background:rgba(240,168,58,.16);color:var(--orange);}
   .badge.ok{background:rgba(122,195,106,.16);color:var(--green);}
+  .badge.new{background:rgba(91,155,213,.18);color:var(--blue);}
   .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
   .resultActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
   .resultActions .grow{flex:1;}
@@ -168,14 +185,24 @@
     <h1>ERA SKOS Explorer</h1>
     <p>Browses the SKOS concept schemes that govern ERA/RINF's controlled-vocabulary properties — things like
        operational point type, rail inclination or current type, each bound to a scheme via
-       <code>era:inSkosConceptScheme</code>. Pick a scheme to see its concepts (notation, label, definition), then
-       check it against what the data actually uses: values present in the data but not declared as scheme members
-       are exactly the kind of gap a malformed IRI or a mis-typed value creates — silently, since nothing in the
-       endpoint validates a <code>skos:ConceptScheme</code> the way it validates a <code>skos:Concept</code>. Export
-       to CSV or Excel. Queries
+       <code>era:inSkosConceptScheme</code>. Pick a scheme to see its concepts (notation, label, definition), switch
+       between ERA's <strong>PROD</strong> and <strong>UAT</strong> vocabulary releases or <strong>compare</strong>
+       them, then check PROD against what the live data actually uses: values present in the data but not declared
+       as scheme members are exactly the kind of gap a malformed IRI or a mis-typed value creates — silently, since
+       nothing in the endpoint validates a <code>skos:ConceptScheme</code> the way it validates a
+       <code>skos:Concept</code>. Export to CSV or Excel. PROD and the usage check query
        <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>
-       live from your browser; nothing else is sent anywhere.</p>
+       live; UAT reads <a href="https://rinf.uat.data.test-era.europa.eu/era-vocabulary/era-skos" target="_blank" rel="noopener">ERA's published UAT vocabulary file</a>. Both go straight from your browser; nothing else is sent anywhere.</p>
   </header>
+
+  <div class="envBar">
+    <div class="envSeg" role="group" aria-label="ERA environment">
+      <button type="button" data-env="prod" aria-pressed="true">PROD<span class="sub">production graph</span></button>
+      <button type="button" data-env="uat" aria-pressed="false">UAT<span class="sub">acceptance testing</span></button>
+      <button type="button" data-env="diff" aria-pressed="false">Compare<span class="sub">PROD → UAT</span></button>
+    </div>
+    <button type="button" class="mini" id="reloadEnv" title="Fetch the selected environment again">Reload</button>
+  </div>
 
   <div class="panel">
     <h2><span class="step">1</span> Concept scheme</h2>
@@ -203,6 +230,11 @@
       <div class="statTile flag"><div class="n" id="statDupes">–</div><div class="l">Duplicate notations</div></div>
       <div class="statTile flag"><div class="n" id="statOutliers">–</div><div class="l">URI-pattern outliers</div></div>
     </div>
+    <div class="statGrid" id="diffStatGrid" hidden>
+      <div class="statTile"><div class="n" id="statAdded">–</div><div class="l">New in UAT</div></div>
+      <div class="statTile"><div class="n" id="statRemoved">–</div><div class="l">Removed in UAT</div></div>
+      <div class="statTile warnTile"><div class="n" id="statChanged">–</div><div class="l">Changed</div></div>
+    </div>
     <div class="tableWrap"><table id="conceptTable"><thead></thead><tbody></tbody></table></div>
     <div class="moreNote" id="conceptNote"></div>
     <div class="resultActions">
@@ -210,7 +242,7 @@
       <button class="btn xls" id="xlsBtn">Download Excel (.xlsx)</button>
     </div>
     <details>
-      <summary>Show the SPARQL that produced this</summary>
+      <summary>Show the request that produced this</summary>
       <pre class="code" id="sparqlOut"></pre>
     </details>
   </div>
@@ -242,18 +274,28 @@
   </div>
 
   <footer>
-    <p>Discovers schemes two ways — directly (<code>?scheme a skos:ConceptScheme</code>) and via every property that
-       declares one (<code>?property era:inSkosConceptScheme ?scheme</code>) — since a scheme need not be reachable
-       by both. Concept membership is checked three ways too (<code>skos:inScheme</code>,
-       <code>skos:hasTopConcept</code>, <code>skos:topConceptOf</code>), since ERA's datasets are not consistent
-       about which one they publish. Labels prefer English but accept an untagged literal, the same gap found and
-       fixed in the RCC Parameters and Route Book tools — some concepts here carry no language tag at all.</p>
+    <p>PROD and UAT are each fetched once as a single Turtle dump — PROD by <code>CONSTRUCT</code> over
+       <code>GRAPH &lt;http://data.europa.eu/949/graph/rinf/skos&gt;</code> in <code>rinf-plus</code> (148 schemes,
+       19,547 concepts; identical triple for triple to <code>graph/skos</code> in <code>ERA-Onto</code>), UAT from
+       ERA's published <code>era-vocabulary/era-skos</code> file — parsed in the browser with
+       <a href="https://github.com/rdfjs/N3.js" target="_blank" rel="noopener">N3.js</a>, the same library and the
+       same PROD/UAT split <a href="shapes.html">the SHACL Shape Viewer</a> uses for ERA's shapes. Scoping every
+       query to that one named graph, rather than the whole repository, is also what keeps the ontology's own
+       resources — <code>http://data.europa.eu/949/</code> itself is an <code>owl:Ontology</code>, not a concept —
+       out of the scheme and concept lists; excluded a second time, defensively, by type.</p>
+    <p>Concept membership is checked three ways (<code>skos:inScheme</code>, <code>skos:hasTopConcept</code>,
+       <code>skos:topConceptOf</code>), since ERA's datasets are not consistent about which one they publish. Labels
+       prefer English but accept an untagged literal, the same gap found and fixed in the RCC Parameters and Route
+       Book tools — some concepts here carry no language tag at all. Property-to-scheme bindings
+       (<code>era:inSkosConceptScheme</code>) are read once from PROD and reused for UAT and Compare, since there is
+       no published UAT ontology to read them from separately; the "check against real usage" panel only applies to
+       PROD, since UAT describes a release that is not yet live data.</p>
     <p>The "URI-pattern outlier" check flags concepts whose URI doesn't share the scheme's own dominant path prefix
        — the same shape of bug <a href="interopable-eu-portal-answers.html">the reusability answers page</a> found by
        hand for Operational Point Types: 8 concepts published at <code>…/op-types/OperationalPointTypes/{n}</code>
        instead of the scheme's own <code>…/op-types/{notation}</code>, with no <code>skos:notation</code> and
        Title-Case labels carrying typos. This tool surfaces that class of problem for every scheme with a bound
-       property, not just that one.</p>
+       property, not just that one — and now, with Compare, also surfaces which concepts UAT adds, drops or changes.</p>
   </footer>
 </div>
 
@@ -274,7 +316,6 @@ const PREFIXES = [
   'PREFIX era:     <http://data.europa.eu/949/>',
   'PREFIX owl:     <http://www.w3.org/2002/07/owl#>',
   'PREFIX skos:    <http://www.w3.org/2004/02/skos/core#>',
-  'PREFIX dcterms: <http://purl.org/dc/terms/>',
   'PREFIX xsd:     <http://www.w3.org/2001/XMLSchema#>',
 ].join('\n');
 
@@ -351,36 +392,121 @@ async function setFetchErrorStatus(el, className, err, endpoint, retry){
 }
 
 /* ------------------------------------------------------------------ *
- * Queries
- *
- * Schemes are discovered two ways, unioned: directly as declared
- * skos:ConceptScheme individuals, and indirectly through every property
- * that binds one via era:inSkosConceptScheme. A scheme need not be
- * reachable both ways, and ERA's own documented example (Operational
- * Point Types) is only reachable through the property. Scheme labels are
- * not known to be published under one single predicate, so rdfs:label,
- * skos:prefLabel and dcterms:title are all tried and coalesced; whichever
- * is absent simply contributes nothing, per this repo's usual rule that a
- * missing label is reported as a gap (falls back to the URI's local name
- * in the UI), never silently assumed. ------------------------------- */
-function schemesQuery(){
-  return `${PREFIXES}
-SELECT DISTINCT ?scheme ?schemeLabel WHERE {
-  { ?scheme a skos:ConceptScheme }
-  UNION
-  { ?anyProp era:inSkosConceptScheme ?scheme }
-  OPTIONAL { ?scheme rdfs:label ?l1 FILTER(LANG(?l1) = "" || LANGMATCHES(LANG(?l1), "en")) }
-  OPTIONAL { ?scheme skos:prefLabel ?l2 FILTER(LANG(?l2) = "" || LANGMATCHES(LANG(?l2), "en")) }
-  OPTIONAL { ?scheme dcterms:title ?l3 FILTER(LANG(?l3) = "" || LANGMATCHES(LANG(?l3), "en")) }
-  BIND(COALESCE(?l1, ?l2, ?l3) AS ?schemeLabel)
-}`;
+ * ERA environments — PROD is the live graph in rinf-plus
+ * (GRAPH <http://data.europa.eu/949/graph/rinf/skos>, 148 schemes, 19,547
+ * concepts, identical triple for triple to graph/skos in ERA-Onto); UAT is
+ * ERA's published vocabulary file for the next release. Both are fetched
+ * as one Turtle dump and parsed once with N3.js, the same library and the
+ * same PROD/UAT split era-shacl-viewer.html already uses for ERA's SHACL
+ * shapes — so scheme/concept browsing after the first load is instant,
+ * switching environments costs nothing after the first visit, and PROD vs
+ * UAT compares cleanly because both go through the same model builder.
+ * Scoping PROD's CONSTRUCT to this one named graph — rather than asking
+ * the whole repository, as an earlier version of this tool did — is also
+ * what keeps http://data.europa.eu/949/ itself (the ontology document, an
+ * owl:Ontology, not a concept) out of the results; excluded a second time,
+ * defensively, by type in buildSkosModel below. ---------------------- */
+const RDF_NS  = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+const RDFS_NS = 'http://www.w3.org/2000/01/rdf-schema#';
+const SKOS_NS = 'http://www.w3.org/2004/02/skos/core#';
+const OWL_NS  = 'http://www.w3.org/2002/07/owl#';
+const DCT_NS  = 'http://purl.org/dc/terms/';
+
+const ENVIRONMENTS = {
+  prod: {
+    label: 'PROD',
+    describe: 'ERA SKOS vocabulary, live from graph.data.era.europa.eu (rinf-plus, graph/rinf/skos)',
+    endpoint: ENDPOINT,
+    graph: 'http://data.europa.eu/949/graph/rinf/skos',
+  },
+  uat: {
+    label: 'UAT',
+    describe: 'ERA SKOS vocabulary from the UAT release (rinf.uat.data.test-era.europa.eu/era-vocabulary/era-skos)',
+    url: 'https://rinf.uat.data.test-era.europa.eu/era-vocabulary/era-skos',
+  },
+};
+
+function parserReady(){
+  if(typeof N3 !== 'undefined') return true;
+  setStatus('The Turtle parser (N3.js from unpkg.com) did not load — check your connection or ad-blocker, then reload the page.', 'error');
+  return false;
+}
+async function fetchSkosText(envId, signal){
+  const e = ENVIRONMENTS[envId];
+  const res = e.graph
+    ? await fetch(e.endpoint, {
+        method: 'POST', signal,
+        headers: {'Accept':'text/turtle', 'Content-Type':'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({query: `CONSTRUCT { ?s ?p ?o } WHERE { GRAPH <${e.graph}> { ?s ?p ?o } }`}),
+      })
+    : await fetch(e.url, {headers:{'Accept':'text/turtle'}, signal});
+  if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+  return res.text();
+}
+function parseTurtle(text){
+  return new N3.Store(new N3.Parser().parse(text));
+}
+
+/* Builds a {schemesByUri, conceptsByScheme, conceptDetail} model from a
+   parsed store, the same shape regardless of which environment it came
+   from. Multi-valued fields (notation, broader) are read straight off the
+   store rather than via SPARQL aggregation, so there is no OPTIONAL
+   cross-join to guard against — the store already holds each triple once. */
+function buildSkosModel(store){
+  const nn = N3.DataFactory.namedNode;
+  const ontologyUris = new Set(
+    store.getQuads(null, nn(RDF_NS + 'type'), nn(OWL_NS + 'Ontology'), null).map(q => q.subject.value));
+
+  function literalsOf(uri, pred){
+    return store.getQuads(nn(uri), nn(pred), null, null).map(q => q.object);
+  }
+  function bestLabel(uri){
+    for(const pred of [SKOS_NS + 'prefLabel', RDFS_NS + 'label', DCT_NS + 'title']){
+      const vals = literalsOf(uri, pred);
+      const en = vals.find(v => v.language === 'en');
+      if(en) return en.value;
+      const untagged = vals.find(v => !v.language);
+      if(untagged) return untagged.value;
+    }
+    return '';
+  }
+
+  const schemesByUri = new Map();
+  store.getQuads(null, nn(RDF_NS + 'type'), nn(SKOS_NS + 'ConceptScheme'), null).forEach(q => {
+    const uri = q.subject.value;
+    if(ontologyUris.has(uri) || schemesByUri.has(uri)) return;
+    schemesByUri.set(uri, {scheme: uri, label: bestLabel(uri)});
+  });
+
+  const conceptsByScheme = new Map();
+  function addMember(schemeUri, conceptUri){
+    if(ontologyUris.has(conceptUri)) return;
+    if(!conceptsByScheme.has(schemeUri)) conceptsByScheme.set(schemeUri, new Set());
+    conceptsByScheme.get(schemeUri).add(conceptUri);
+  }
+  store.getQuads(null, nn(SKOS_NS + 'inScheme'), null, null).forEach(q => addMember(q.object.value, q.subject.value));
+  store.getQuads(null, nn(SKOS_NS + 'hasTopConcept'), null, null).forEach(q => addMember(q.subject.value, q.object.value));
+  store.getQuads(null, nn(SKOS_NS + 'topConceptOf'), null, null).forEach(q => addMember(q.object.value, q.subject.value));
+
+  function conceptDetail(uri){
+    const notations = [...new Set(literalsOf(uri, SKOS_NS + 'notation').map(v => v.value))];
+    const defVals = literalsOf(uri, SKOS_NS + 'definition');
+    const def = defVals.find(v => v.language === 'en') || defVals.find(v => !v.language);
+    const deprecated = literalsOf(uri, OWL_NS + 'deprecated').some(v => v.value === 'true');
+    const broaderCount = new Set(store.getQuads(nn(uri), nn(SKOS_NS + 'broader'), null, null).map(q => q.object.value)).size;
+    return {concept: uri, notations: notations.join(' | '), label: bestLabel(uri),
+      definition: def ? def.value : '', deprecated, broaderCount};
+  }
+
+  return {schemesByUri, conceptsByScheme, conceptDetail, tripleCount: store.size};
 }
 
 /* The properties that bind a controlled vocabulary, so a scheme can be
-   checked against what actually uses it. Several properties can share one
-   scheme (rare but not impossible), so this is kept as its own query and
-   joined in JS rather than folded into schemesQuery's UNION, which would
-   otherwise multiply scheme rows per bound property. */
+   checked against what actually uses it. This is ontology metadata, read
+   once from PROD and reused for every environment — there is no published
+   UAT ontology to read era:inSkosConceptScheme from separately, and the
+   property-to-scheme bindings are not expected to be what a vocabulary
+   release changes. */
 function schemePropertiesQuery(){
   return `${PREFIXES}
 SELECT DISTINCT ?property ?propertyLabel ?rinfIndex ?scheme WHERE {
@@ -391,56 +517,13 @@ SELECT DISTINCT ?property ?propertyLabel ?rinfIndex ?scheme WHERE {
 }`;
 }
 
-/* Phase 1 for one scheme: which concepts belong to it. Tried three ways
-   because ERA's datasets are not consistent about which SKOS membership
-   predicate they publish — skos:inScheme is the usual one, but a scheme
-   that only states skos:hasTopConcept/skos:topConceptOf on a flat (no
-   broader/narrower) vocabulary would otherwise come back empty. Concept
-   counts here are expected to be small (tens, not thousands), so asking
-   for all three in one UNION is in a completely different performance
-   class from the part-whole direction problem documented for track
-   resources elsewhere in this repo — nothing here needs a direction probe. */
-function schemeConceptsQuery(scheme){
-  return `${PREFIXES}
-SELECT DISTINCT ?concept WHERE {
-  VALUES ?scheme { <${scheme}> }
-  { ?concept skos:inScheme ?scheme }
-  UNION { ?scheme skos:hasTopConcept ?concept }
-  UNION { ?concept skos:topConceptOf ?scheme }
-}`;
-}
-
-/* Phase 2: concept detail, pinned to the resolved set. GROUP_CONCAT/COUNT
-   DISTINCT and SAMPLE are used throughout because a concept with more than
-   one notation or more than one broader concept would otherwise cross-join
-   the independent OPTIONAL blocks below — a real possibility worth
-   detecting (multiple notations is itself a finding), not something to
-   silently multiply rows over. */
-function conceptDetailQuery(concepts){
-  return `${PREFIXES}
-SELECT ?concept
-       (GROUP_CONCAT(DISTINCT ?notation; separator=" | ") AS ?notations)
-       (SAMPLE(?label) AS ?label)
-       (SAMPLE(?definition) AS ?definition)
-       (MAX(?deprecated) AS ?deprecated)
-       (COUNT(DISTINCT ?broader) AS ?broaderCount)
-WHERE {
-  VALUES ?concept { ${concepts.map(u => '<' + u + '>').join(' ')} }
-  OPTIONAL { ?concept skos:notation ?notation }
-  OPTIONAL { ?concept skos:prefLabel ?label FILTER(LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")) }
-  OPTIONAL { ?concept skos:definition ?definition FILTER(LANG(?definition) = "" || LANGMATCHES(LANG(?definition), "en")) }
-  OPTIONAL { ?concept owl:deprecated ?deprecated }
-  OPTIONAL { ?concept skos:broader ?broader }
-}
-GROUP BY ?concept`;
-}
-
 /* Real usage of the property bound to this scheme. The predicate is bound
    (a single property URI, not scanned unbound), and the aggregate caps the
    result at the number of distinct values actually used — the same shape
    already measured fast elsewhere in this repo's value-distribution
    queries (1.1s for a bound single-property scan across all 27 countries,
-   versus 12.1s for an unbound-predicate VALUES form). */
+   versus 12.1s for an unbound-predicate VALUES form). Usage only applies to
+   PROD: UAT describes a release that is not yet live data. */
 function usageQuery(property){
   return `${PREFIXES}
 SELECT ?value (COUNT(*) AS ?uses) WHERE {
@@ -465,71 +548,117 @@ SELECT ?value (SAMPLE(?lb) AS ?label) WHERE {
 GROUP BY ?value`;
 }
 
-const CHUNK = 250, POOL = 6;
-function chunkList(arr, n){
-  const out = [];
-  for(let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
-  return out;
-}
-async function pooled(jobs, limit, signal){
-  const out = new Array(jobs.length);
-  let next = 0;
-  await Promise.all(Array.from({length: Math.min(limit, jobs.length)}, async () => {
-    while(next < jobs.length){
-      const i = next++;
-      if(signal && signal.aborted) throw new DOMException('aborted', 'AbortError');
-      out[i] = await jobs[i]();
-    }
-  }));
-  return out;
-}
-
 /* ------------------------------------------------------------------ *
  * State
  * ------------------------------------------------------------------ */
-let schemes = [];          // [{scheme, label, properties:[{property,label,rinfIndex}]}]
+let schemes = [];          // [{scheme, label, properties, inProd, inUat}]
 let pickedScheme = null;
 let lastRun = null;        // concept-table result
 let lastUsage = null;      // usage cross-check result
 let usageTab = 'notInScheme';
 
-/* ------------------------------------------------------------------ *
- * Load schemes
- * ------------------------------------------------------------------ */
-async function loadSchemes(){
+let currentEnv = 'prod';
+const envModels = {};      // envId -> {schemesByUri, conceptsByScheme, conceptDetail, tripleCount, text}
+let propsByScheme = null;  // Map(schemeUri -> [{property,label,rinfIndex}]), read once from PROD
+let envLoadToken = 0;
+
+async function ensureProps(){
+  if(propsByScheme) return propsByScheme;
+  const rows = await sparql(schemePropertiesQuery());
+  const map = new Map();
+  rows.forEach(b => {
+    const uri = b.scheme.value;
+    if(!map.has(uri)) map.set(uri, []);
+    map.get(uri).push({
+      property: b.property.value,
+      label: b.propertyLabel ? b.propertyLabel.value : localName(b.property.value),
+      rinfIndex: b.rinfIndex ? b.rinfIndex.value : '',
+    });
+  });
+  propsByScheme = map;
+  return map;
+}
+async function ensureEnvModel(envId, signal){
+  if(envModels[envId]) return envModels[envId];
+  if(!parserReady()) throw new Error('Turtle parser unavailable');
+  const text = await fetchSkosText(envId, signal);
+  const model = buildSkosModel(parseTurtle(text));
+  model.text = text;
+  envModels[envId] = model;
+  return model;
+}
+
+/* Merges whichever environment model(s) are loaded into the flat list the
+   combobox searches. In Compare mode a scheme gets inProd/inUat flags so a
+   scheme that exists in only one environment is visible as such. */
+function schemesFromModels(models, props){
+  const byUri = new Map();
+  const add = (s, inProd, inUat) => {
+    if(!byUri.has(s.scheme)) byUri.set(s.scheme, {scheme: s.scheme, label: '', properties: props.get(s.scheme) || [], inProd: false, inUat: false});
+    const row = byUri.get(s.scheme);
+    if(s.label && !row.label) row.label = s.label;
+    if(inProd) row.inProd = true;
+    if(inUat) row.inUat = true;
+  };
+  if(models.prod) [...models.prod.schemesByUri.values()].forEach(s => add(s, true, false));
+  if(models.uat)  [...models.uat.schemesByUri.values()].forEach(s => add(s, false, true));
+  return [...byUri.values()].sort((a, b) => (a.label || localName(a.scheme)).localeCompare(b.label || localName(b.scheme)));
+}
+
+function setEnvButtons(e){
+  for(const b of document.querySelectorAll('.envSeg button')) b.setAttribute('aria-pressed', String(b.dataset.env === e));
+}
+
+/* Each environment is fetched once per visit and kept, so switching back
+   and forth (or comparing) costs nothing after the first time — the same
+   caching era-shacl-viewer.html uses for ERA's SHACL shapes. */
+async function selectEnv(envId, reload){
+  const myToken = ++envLoadToken;
+  if(reload) for(const id of (envId === 'diff' ? ['prod', 'uat'] : [envId])) delete envModels[id];
+  currentEnv = envId;
+  setEnvButtons(envId);
+  schemeSearch.disabled = true;
+  schemeSearch.placeholder = 'Loading…';
+  const need = envId === 'diff' ? ['prod', 'uat'] : [envId];
+  setStatus('Fetching the ERA SKOS vocabulary (' + need.map(id => ENVIRONMENTS[id].label).join(' and ') + ')…', 'loading');
   try{
-    const [schemeRows, propRows] = await Promise.all([sparql(schemesQuery()), sparql(schemePropertiesQuery())]);
-    const byUri = new Map();
-    schemeRows.forEach(b => {
-      const uri = b.scheme.value;
-      if(!byUri.has(uri)) byUri.set(uri, {
-        scheme: uri,
-        label: b.schemeLabel ? b.schemeLabel.value : '',
-        properties: [],
-      });
-      const s = byUri.get(uri);
-      if(b.schemeLabel && !s.label) s.label = b.schemeLabel.value;
-    });
-    propRows.forEach(b => {
-      const uri = b.scheme.value;
-      if(!byUri.has(uri)) byUri.set(uri, {scheme: uri, label: '', properties: []});
-      byUri.get(uri).properties.push({
-        property: b.property.value,
-        label: b.propertyLabel ? b.propertyLabel.value : localName(b.property.value),
-        rinfIndex: b.rinfIndex ? b.rinfIndex.value : '',
-      });
-    });
-    schemes = [...byUri.values()].sort((a, b) =>
-      (a.label || localName(a.scheme)).localeCompare(b.label || localName(b.scheme)));
+    const [props, ...loaded] = await Promise.all([ensureProps(), ...need.map(id => ensureEnvModel(id))]);
+    if(myToken !== envLoadToken) return;
+    const models = {};
+    need.forEach((id, i) => { models[id] = loaded[i]; });
+    schemes = schemesFromModels(models, props);
     schemeSearch.disabled = false;
     schemeSearch.placeholder = 'Search ' + fmt(schemes.length) + ' concept scheme' + (schemes.length === 1 ? '' : 's') + '…';
+    const onlyProd = schemes.filter(s => s.inProd && !s.inUat).length;
+    const onlyUat = schemes.filter(s => s.inUat && !s.inProd).length;
     $('schemeSummary').textContent = fmt(schemes.length) + ' concept scheme' + (schemes.length === 1 ? '' : 's') +
-      ' found — ' + fmt(schemes.filter(s => s.properties.length).length) + ' bound to at least one property.';
+      ' — ' + fmt(schemes.filter(s => s.properties.length).length) + ' bound to a property' +
+      (envId === 'diff' ? (onlyProd || onlyUat
+        ? ` · ${fmt(onlyProd)} only in PROD, ${fmt(onlyUat)} only in UAT`
+        : ' · identical scheme sets in PROD and UAT') : '');
+    setStatus('Showing ' + (envId === 'diff' ? 'PROD → UAT.' : ENVIRONMENTS[envId].describe + '.'), 'success');
+    // Keep the picked scheme in view across environment switches, the same
+    // as era-shacl-viewer.html does for the shape in view.
+    if(pickedScheme){
+      const again = schemes.find(s => s.scheme === pickedScheme.scheme);
+      pickedScheme = again || null;
+      renderSchemeChip();
+      if(pickedScheme) runScheme();
+      else { $('resultPanel').hidden = true; $('usagePanel').hidden = true; }
+    }
   } catch(err){
-    schemeSearch.placeholder = 'Could not load concept schemes';
-    await setFetchErrorStatus($('statusArea'), 'error', err, ENDPOINT, loadSchemes);
+    if(myToken !== envLoadToken) return;
+    schemeSearch.placeholder = 'Could not load the vocabulary';
+    const first = ENVIRONMENTS[need[0]];
+    await setFetchErrorStatus($('statusArea'), 'error', err, first.endpoint || first.url, () => selectEnv(envId, true));
   }
 }
+document.querySelectorAll('.envSeg button').forEach(b => b.addEventListener('click', () => {
+  if(b.dataset.env !== currentEnv) selectEnv(b.dataset.env);
+}));
+$('reloadEnv').addEventListener('click', () => selectEnv(currentEnv, true));
+
+
 
 /* ------------------------------------------------------------------ *
  * Scheme combobox — single pick, like the RCC tool's parameter search.
@@ -567,9 +696,11 @@ function renderSchemeList(){
   } else {
     schemeListEl.innerHTML = schemeFiltered.map((s, i) => {
       const propNames = s.properties.map(p => p.label).join(', ');
+      const envNote = currentEnv === 'diff' && (!s.inProd || !s.inUat) ? (s.inProd ? 'PROD only' : 'UAT only') : '';
       return '<div class="opt' + (i === schemeActiveIdx ? ' active' : '') + '" role="option" data-i="' + i + '" id="sopt' + i + '"' +
         ' aria-selected="' + (i === schemeActiveIdx) + '">' +
-        '<span class="txt"><span class="nm">' + esc(s.label || localName(s.scheme)) + '</span>' +
+        '<span class="txt"><span class="nm">' + esc(s.label || localName(s.scheme)) +
+          (envNote ? ' <span class="badge ' + (s.inProd ? 'bad' : 'new') + '">' + envNote + '</span>' : '') + '</span>' +
         '<span class="sub">' + esc(s.scheme) + '</span></span>' +
         '<span class="vc">' + (s.properties.length
           ? esc(propNames.length > 40 ? propNames.slice(0, 40) + '…' : propNames)
@@ -604,10 +735,11 @@ function renderSchemeChip(){
   const el = $('schemeChip');
   if(!pickedScheme){ el.hidden = true; el.innerHTML = ''; return; }
   const s = pickedScheme;
+  const envNote = currentEnv === 'diff' && (!s.inProd || !s.inUat) ? (s.inProd ? ' · PROD only' : ' · UAT only') : '';
   el.hidden = false;
   el.innerHTML = '<span class="pchip">' +
     '<span class="nm">' + esc(s.label || localName(s.scheme)) + (s.properties.length
-      ? ' · ' + esc(s.properties.map(p => p.label).join(', ')) : ' · unbound') + '</span>' +
+      ? ' · ' + esc(s.properties.map(p => p.label).join(', ')) : ' · unbound') + esc(envNote) + '</span>' +
     '<button type="button" id="schemeClear" aria-label="Clear the picked scheme">×</button></span>';
 }
 $('schemeChip').addEventListener('click', ev => {
@@ -672,94 +804,111 @@ function dominantDir(concepts){
   return best;
 }
 
+/* Duplicate notations: two different concepts in the same scheme
+   publishing the same notation — the "no two members share a notation"
+   SHACL constraint the reusability answers page found missing entirely.
+   Shared with diffConcepts below, so Compare mode flags duplicates the
+   same way a single-environment view does. */
+function annotateFlags(concepts){
+  const dom = dominantDir(concepts.filter(c => c.status !== 'removed'));
+  const notationOwners = new Map();
+  concepts.forEach(c => {
+    c.outlier = dom !== null && dirOf(c.concept) !== dom;
+    c.notations.split(' | ').filter(Boolean).forEach(n => {
+      if(!notationOwners.has(n)) notationOwners.set(n, []);
+      notationOwners.get(n).push(c.concept);
+    });
+  });
+  const dupeNotations = new Set([...notationOwners].filter(([, owners]) => owners.length > 1).map(([n]) => n));
+  concepts.forEach(c => { c.duplicateNotation = c.notations.split(' | ').some(n => dupeNotations.has(n)); });
+  return dom;
+}
+function conceptSort(a, b){
+  return (a.notations || '~').localeCompare(b.notations || '~') ||
+    (a.label || localName(a.concept)).localeCompare(b.label || localName(b.concept));
+}
+
+/* Compare mode: every concept URI either model's scheme membership
+   mentions, each carrying both sides' detail (where present) and a status
+   — added (UAT only), removed (PROD only), changed (present in both, but
+   notation, label, definition or deprecated differs) or same. */
+function diffConcepts(prodModel, uatModel, schemeUri){
+  const prodSet = prodModel.conceptsByScheme.get(schemeUri) || new Set();
+  const uatSet = uatModel.conceptsByScheme.get(schemeUri) || new Set();
+  const allUris = new Set([...prodSet, ...uatSet]);
+  return [...allUris].map(uri => {
+    const inProd = prodSet.has(uri), inUat = uatSet.has(uri);
+    const pd = inProd ? prodModel.conceptDetail(uri) : null;
+    const ud = inUat ? uatModel.conceptDetail(uri) : null;
+    let status;
+    if(!inProd) status = 'added';
+    else if(!inUat) status = 'removed';
+    else status = (pd.notations !== ud.notations || pd.label !== ud.label ||
+      pd.definition !== ud.definition || pd.deprecated !== ud.deprecated) ? 'changed' : 'same';
+    return {...(ud || pd), status, prod: pd, uat: ud};
+  });
+}
+
 /* ------------------------------------------------------------------ *
- * Running it — scheme concepts
- * ------------------------------------------------------------------ */
-async function runScheme(){
+ * Running it — scheme concepts. Entirely in-memory once the active
+ * environment's model is loaded: no further network round trips, unlike
+ * the two-phase SPARQL shape most other tools in this repo need, because
+ * the whole vocabulary was already fetched once as a single Turtle dump. */
+function runScheme(){
   const s = pickedScheme;
   if(!s) return;
-  setStatus('Finding concepts in ' + (s.label || localName(s.scheme)) + '…', 'loading');
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 120000);
-  const started = performance.now();
-  const shown = [];
-  try{
-    const qConcepts = schemeConceptsQuery(s.scheme);
-    const conceptRows = await sparql(qConcepts, ctrl.signal);
-    shown.push('/* === phase 1: concepts of this scheme === */\n' + qConcepts);
-    const conceptUris = [...new Set(conceptRows.map(b => b.concept.value))];
-
-    if(!conceptUris.length){
-      clearTimeout(timer);
-      lastRun = {scheme: s, concepts: [], dominantDir: null, elapsed: (performance.now() - started) / 1000, query: shown.join('\n\n')};
-      renderConcepts();
-      setStatus('No concepts found for ' + (s.label || localName(s.scheme)) +
-        ' via skos:inScheme, skos:hasTopConcept or skos:topConceptOf.', 'warn');
-      renderUsagePanel();
-      return;
-    }
-
-    setStatus(`Collecting details for ${fmt(conceptUris.length)} concept${conceptUris.length === 1 ? '' : 's'}…`, 'loading');
-    const jobs = chunkList(conceptUris, CHUNK).map(c => () => sparql(conceptDetailQuery(c), ctrl.signal));
-    const results = await pooled(jobs, POOL, ctrl.signal);
-    clearTimeout(timer);
-    const elapsed = (performance.now() - started) / 1000;
-    shown.push('/* === phase 2: concept detail (first chunk shown) === */\n' + conceptDetailQuery(conceptUris.slice(0, CHUNK)));
-
-    const concepts = results.flat().map(b => ({
-      concept: b.concept.value,
-      notations: b.notations ? b.notations.value : '',
-      label: b.label ? b.label.value : '',
-      definition: b.definition ? b.definition.value : '',
-      deprecated: b.deprecated ? b.deprecated.value === 'true' : false,
-      broaderCount: b.broaderCount ? +b.broaderCount.value : 0,
-    }));
-
-    const dom = dominantDir(concepts);
-    concepts.forEach(c => { c.outlier = dom !== null && dirOf(c.concept) !== dom; });
-
-    /* Duplicate notations: two different concepts in the same scheme
-       publishing the same notation — the "no two members share a notation"
-       SHACL constraint the reusability answers page found missing entirely. */
-    const notationOwners = new Map();
-    concepts.forEach(c => {
-      c.notations.split(' | ').filter(Boolean).forEach(n => {
-        if(!notationOwners.has(n)) notationOwners.set(n, []);
-        notationOwners.get(n).push(c.concept);
-      });
-    });
-    const dupeNotations = new Set([...notationOwners].filter(([, owners]) => owners.length > 1).map(([n]) => n));
-    concepts.forEach(c => { c.duplicateNotation = c.notations.split(' | ').some(n => dupeNotations.has(n)); });
-
-    concepts.sort((a, b) => (a.notations || '~').localeCompare(b.notations || '~') ||
-      (a.label || localName(a.concept)).localeCompare(b.label || localName(b.concept)));
-
-    lastRun = {scheme: s, concepts, dominantDir: dom, elapsed, query: shown.join('\n\n')};
-    renderConcepts();
-    setStatus('Done — ' + fmt(concepts.length) + ' concept' + (concepts.length === 1 ? '' : 's') +
-      ' in ' + elapsed.toFixed(1) + 's.', 'success');
-    renderUsagePanel();
-  } catch(err){
-    clearTimeout(timer);
-    if(err.name === 'AbortError') setStatus('Timed out after 120 s.', 'error');
-    else await setFetchErrorStatus($('statusArea'), 'error', err, ENDPOINT, runScheme);
+  let concepts, dom, query;
+  if(currentEnv === 'diff'){
+    concepts = diffConcepts(envModels.prod, envModels.uat, s.scheme);
+    dom = annotateFlags(concepts);
+    concepts.sort((a, b) => (a.status !== 'same') - (b.status !== 'same') || conceptSort(a, b));
+    query = 'PROD: ' + ENVIRONMENTS.prod.describe + '\nUAT: ' + ENVIRONMENTS.uat.describe;
+  } else {
+    const model = envModels[currentEnv];
+    const conceptUris = [...(model.conceptsByScheme.get(s.scheme) || [])];
+    concepts = conceptUris.map(uri => model.conceptDetail(uri));
+    dom = annotateFlags(concepts);
+    concepts.sort(conceptSort);
+    const e = ENVIRONMENTS[currentEnv];
+    query = e.describe + '\n\n' + (e.graph
+      ? `CONSTRUCT { ?s ?p ?o } WHERE { GRAPH <${e.graph}> { ?s ?p ?o } }`
+      : 'GET ' + e.url);
+  }
+  lastRun = {scheme: s, env: currentEnv, concepts, dominantDir: dom, query};
+  renderConcepts();
+  renderUsagePanel();
+  if(!concepts.length){
+    setStatus('No concepts found for ' + (s.label || localName(s.scheme)) +
+      (currentEnv === 'diff' ? ' in either environment.' : ' via skos:inScheme, skos:hasTopConcept or skos:topConceptOf.'), 'warn');
+  } else {
+    setStatus('Done — ' + fmt(concepts.length) + ' concept' + (concepts.length === 1 ? '' : 's') + '.', 'success');
   }
 }
 
+const STATUS_TEXT = {added:'new in UAT', removed:'removed in UAT', changed:'changed'};
 function renderConcepts(){
   const r = lastRun;
   const cs = r.concepts;
+  const isDiff = r.env === 'diff';
   $('statConcepts').textContent = fmt(cs.length);
   $('statNotation').textContent = fmt(cs.filter(c => c.notations).length);
   $('statLabel').textContent = fmt(cs.filter(c => c.label).length);
   $('statDeprecated').textContent = fmt(cs.filter(c => c.deprecated).length);
   $('statDupes').textContent = fmt(new Set(cs.filter(c => c.duplicateNotation).map(c => c.concept)).size);
   $('statOutliers').textContent = fmt(cs.filter(c => c.outlier).length);
+  $('diffStatGrid').hidden = !isDiff;
+  if(isDiff){
+    $('statAdded').textContent = fmt(cs.filter(c => c.status === 'added').length);
+    $('statRemoved').textContent = fmt(cs.filter(c => c.status === 'removed').length);
+    $('statChanged').textContent = fmt(cs.filter(c => c.status === 'changed').length);
+  }
 
   const head = ['Notation', 'Label', 'Definition', 'Broader', 'Flags', 'Concept URI'];
   $('conceptTable').querySelector('thead').innerHTML = '<tr>' + head.map(h => `<th>${esc(h)}</th>`).join('') + '</tr>';
   $('conceptTable').querySelector('tbody').innerHTML = cs.map(c => {
     const flags = [];
+    if(isDiff && c.status !== 'same') flags.push('<span class="badge ' +
+      (c.status === 'added' ? 'new' : c.status === 'removed' ? 'bad' : 'warn') + '">' + STATUS_TEXT[c.status] + '</span>');
     if(!c.notations) flags.push('<span class="badge warn">no notation</span>');
     if(c.duplicateNotation) flags.push('<span class="badge bad">duplicate notation</span>');
     if(!c.label) flags.push('<span class="badge warn">no English label</span>');
@@ -773,9 +922,9 @@ function renderConcepts(){
       `<td class="uri" title="${esc(c.concept)}">${esc(c.concept)}</td></tr>`;
   }).join('') || `<tr><td colspan="${head.length}" style="padding:22px;text-align:center;color:var(--muted)">No concepts.</td></tr>`;
 
-  $('conceptNote').textContent = r.dominantDir
-    ? 'Dominant concept URI pattern: ' + r.dominantDir + '{notation} — concepts published anywhere else are flagged as outliers.'
-    : '';
+  $('conceptNote').textContent = (r.dominantDir
+    ? 'Dominant concept URI pattern: ' + r.dominantDir + '{notation} — concepts published anywhere else are flagged as outliers. '
+    : '') + (isDiff ? 'Status badges compare PROD against UAT for this scheme.' : '');
   $('sparqlOut').textContent = r.query;
   const hasRows = cs.length > 0;
   $('csvBtn').disabled = $('xlsBtn').disabled = !hasRows;
@@ -790,6 +939,13 @@ function renderUsagePanel(){
   $('usageResult').hidden = true;
   lastUsage = null;
   const wrap = $('usagePropertyWrap');
+  if(currentEnv !== 'prod'){
+    wrap.innerHTML = '<p class="hint">Usage can only be checked against PROD — ' +
+      (currentEnv === 'uat' ? 'UAT describes a release that is not yet live data.' : 'switch to PROD to check it.') + '</p>';
+    $('usageBtn').disabled = true;
+    $('usagePanel').hidden = false;
+    return;
+  }
   if(!s.properties.length){
     wrap.innerHTML = '<p class="hint">No property declares <code>era:inSkosConceptScheme</code> for this scheme, so there is nothing in the data to check it against.</p>';
     $('usageBtn').disabled = true;
@@ -806,7 +962,7 @@ function renderUsagePanel(){
 
 async function runUsage(){
   const s = pickedScheme;
-  if(!s || !s.properties.length) return;
+  if(!s || !s.properties.length || currentEnv !== 'prod') return;
   const propIdx = +($('usageProperty') ? $('usageProperty').value : 0);
   const prop = s.properties[propIdx] || s.properties[0];
   $('usageBtn').disabled = true;
@@ -909,11 +1065,15 @@ $('usageTabs').addEventListener('click', e => {
  * ------------------------------------------------------------------ */
 function conceptTable(){
   const r = lastRun;
+  const isDiff = r.env === 'diff';
+  const head = ['Scheme', 'Notation', 'Label', 'Definition', 'Broader count'].concat(
+    isDiff ? ['Status'] : [],
+    ['No notation', 'No English label', 'Duplicate notation', 'URI-pattern outlier', 'Deprecated', 'Concept URI']);
   return {
-    head: ['Scheme', 'Notation', 'Label', 'Definition', 'Broader count', 'No notation', 'No English label',
-           'Duplicate notation', 'URI-pattern outlier', 'Deprecated', 'Concept URI'],
+    head,
     body: r.concepts.map(c => [
       r.scheme.label || localName(r.scheme.scheme), c.notations, c.label, c.definition, c.broaderCount,
+      ...(isDiff ? [c.status === 'same' ? '' : (STATUS_TEXT[c.status] || c.status)] : []),
       c.notations ? '' : 'yes', c.label ? '' : 'yes', c.duplicateNotation ? 'yes' : '',
       c.outlier ? 'yes' : '', c.deprecated ? 'yes' : '', c.concept,
     ]),
@@ -958,9 +1118,16 @@ $('xlsBtn').addEventListener('click', () => {
     ['URI-pattern outliers', r.concepts.filter(c => c.outlier).length],
     ['Dominant concept URI pattern', r.dominantDir || '—'],
     [],
-    ['SPARQL endpoint', ENDPOINT],
+    ...(r.env === 'diff' ? [
+      ['Comparison', 'PROD → UAT'],
+      ['New in UAT', r.concepts.filter(c => c.status === 'added').length],
+      ['Removed in UAT', r.concepts.filter(c => c.status === 'removed').length],
+      ['Changed', r.concepts.filter(c => c.status === 'changed').length],
+    ] : [
+      ['Environment', ENVIRONMENTS[r.env].label],
+    ]),
+    [],
     ['Extracted at (UTC)', new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z'],
-    ['Query time', r.elapsed.toFixed(2) + ' s'],
     [],
     ['Method', 'Concepts are resolved via skos:inScheme, skos:hasTopConcept and skos:topConceptOf, unioned, since'],
     ['', 'ERA datasets are not consistent about which one they publish. "URI-pattern outlier" compares each'],
@@ -969,7 +1136,7 @@ $('xlsBtn').addEventListener('click', () => {
     ['', 'enforced by the endpoint’s own SHACL validation, which has shapes for skos:Concept but none for'],
     ['', 'skos:ConceptScheme.'],
     [],
-    ['SPARQL', ''],
+    ['Request', ''],
   ];
   r.query.split('\n').forEach(line => about.push(['', line]));
   const specs = [
@@ -1193,7 +1360,7 @@ function buildXlsx(specs){
   ]);
 }
 
-loadSchemes();
+selectEnv('prod');
 </script>
 </body>
 </html>
