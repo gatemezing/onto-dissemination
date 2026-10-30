@@ -190,9 +190,13 @@
        them, then check PROD against what the live data actually uses: values present in the data but not declared
        as scheme members are exactly the kind of gap a malformed IRI or a mis-typed value creates — silently, since
        nothing in the endpoint validates a <code>skos:ConceptScheme</code> the way it validates a
-       <code>skos:Concept</code>. Export to CSV or Excel. PROD and the usage check query
-       <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>
-       live; UAT reads <a href="https://rinf.uat.data.test-era.europa.eu/era-vocabulary/era-skos" target="_blank" rel="noopener">ERA's published UAT vocabulary file</a>. Both go straight from your browser; nothing else is sent anywhere.</p>
+       <code>skos:Concept</code>. Export to CSV or Excel. Both environments read the <code>graph/skos</code> named
+       graph of ERA's ontology repository live —
+       <a href="https://graph.data.era.europa.eu/repositories/ERA-Onto" target="_blank" rel="noopener">PROD</a> and
+       <a href="https://graph.uat.data.test-era.europa.eu/repositories/ERA-Onto" target="_blank" rel="noopener">UAT</a>;
+       the usage check queries the RINF data in
+       <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">rinf-plus</a>.
+       Everything goes straight from your browser; nothing else is sent anywhere.</p>
   </header>
 
   <div class="envBar">
@@ -274,10 +278,9 @@
   </div>
 
   <footer>
-    <p>PROD and UAT are each fetched once as a single Turtle dump — PROD by <code>CONSTRUCT</code> over
-       <code>GRAPH &lt;http://data.europa.eu/949/graph/rinf/skos&gt;</code> in <code>rinf-plus</code> (148 schemes,
-       19,547 concepts; identical triple for triple to <code>graph/skos</code> in <code>ERA-Onto</code>), UAT from
-       ERA's published <code>era-vocabulary/era-skos</code> file — parsed in the browser with
+    <p>PROD and UAT are each fetched once as a single Turtle dump, by the same <code>CONSTRUCT</code> over
+       <code>GRAPH &lt;http://data.europa.eu/949/graph/skos&gt;</code> in each environment's <code>ERA-Onto</code>
+       repository (PROD 70,705 triples, UAT 136,071, measured 2026-10-30) — parsed in the browser with
        <a href="https://github.com/rdfjs/N3.js" target="_blank" rel="noopener">N3.js</a>, the same library and the
        same PROD/UAT split <a href="shapes.html">the SHACL Shape Viewer</a> uses for ERA's shapes. Scoping every
        query to that one named graph, rather than the whole repository, is also what keeps the ontology's own
@@ -287,9 +290,10 @@
        <code>skos:topConceptOf</code>), since ERA's datasets are not consistent about which one they publish. Labels
        prefer English but accept an untagged literal, the same gap found and fixed in the RCC Parameters and Route
        Book tools — some concepts here carry no language tag at all. Property-to-scheme bindings
-       (<code>era:inSkosConceptScheme</code>) are read once from PROD and reused for UAT and Compare, since there is
-       no published UAT ontology to read them from separately; the "check against real usage" panel only applies to
-       PROD, since UAT describes a release that is not yet live data.</p>
+       (<code>era:inSkosConceptScheme</code>) are read from each environment's own <code>graph/ontology</code> in
+       the same repository (Compare uses both); UAT's <code>graph/netex</code> binds another 1,030 NeTEx schemes that
+       <code>graph/skos</code> does not define, so they are left out. The "check against real usage" panel only
+       applies to PROD, since UAT describes a release that is not yet live data.</p>
     <p>The "URI-pattern outlier" check flags concepts whose URI doesn't share the scheme's own dominant path prefix
        — the same shape of bug <a href="interopable-eu-portal-answers.html">the reusability answers page</a> found by
        hand for Operational Point Types: 8 concepts published at <code>…/op-types/OperationalPointTypes/{n}</code>
@@ -304,6 +308,7 @@
  * ERA SKOS Explorer — concept schemes behind ERA/RINF's controlled
  * vocabularies, cross-checked against what the data actually uses.
  * ------------------------------------------------------------------ */
+// RINF data, for the usage check only; the vocabulary comes from ERA-Onto (ENVIRONMENTS below)
 const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
 
 const $ = id => document.getElementById(id);
@@ -322,8 +327,8 @@ const PREFIXES = [
 /* ------------------------------------------------------------------ *
  * SPARQL
  * ------------------------------------------------------------------ */
-async function sparql(query, signal){
-  const res = await fetch(ENDPOINT, {
+async function sparql(query, signal, endpoint = ENDPOINT){
+  const res = await fetch(endpoint, {
     method: 'POST',
     headers: {'Content-Type':'application/sparql-query', 'Accept':'application/sparql-results+json'},
     body: query, signal,
@@ -392,16 +397,17 @@ async function setFetchErrorStatus(el, className, err, endpoint, retry){
 }
 
 /* ------------------------------------------------------------------ *
- * ERA environments — PROD is the live graph in rinf-plus
- * (GRAPH <http://data.europa.eu/949/graph/rinf/skos>, 148 schemes, 19,547
- * concepts, identical triple for triple to graph/skos in ERA-Onto); UAT is
- * ERA's published vocabulary file for the next release. Both are fetched
- * as one Turtle dump and parsed once with N3.js, the same library and the
+ * ERA environments — both read GRAPH <http://data.europa.eu/949/graph/skos>
+ * in their own ERA-Onto repository: PROD on graph.data.era.europa.eu
+ * (70,705 triples, ~12 MB of Turtle, ~9 s), UAT on
+ * graph.uat.data.test-era.europa.eu (136,071 triples, ~19 MB, ~12 s;
+ * measured 2026-10-30). Both send CORS headers for this page's origin.
+ * Both are fetched as one Turtle dump and parsed once with N3.js, the same library and the
  * same PROD/UAT split era-shacl-viewer.html already uses for ERA's SHACL
  * shapes — so scheme/concept browsing after the first load is instant,
  * switching environments costs nothing after the first visit, and PROD vs
  * UAT compares cleanly because both go through the same model builder.
- * Scoping PROD's CONSTRUCT to this one named graph — rather than asking
+ * Scoping the CONSTRUCT to this one named graph — rather than asking
  * the whole repository, as an earlier version of this tool did — is also
  * what keeps http://data.europa.eu/949/ itself (the ontology document, an
  * owl:Ontology, not a concept) out of the results; excluded a second time,
@@ -412,19 +418,21 @@ const SKOS_NS = 'http://www.w3.org/2004/02/skos/core#';
 const OWL_NS  = 'http://www.w3.org/2002/07/owl#';
 const DCT_NS  = 'http://purl.org/dc/terms/';
 
+const SKOS_GRAPH = 'http://data.europa.eu/949/graph/skos';
+const ONTOLOGY_GRAPH = 'http://data.europa.eu/949/graph/ontology';
 const ENVIRONMENTS = {
   prod: {
     label: 'PROD',
-    describe: 'ERA SKOS vocabulary, live from graph.data.era.europa.eu (rinf-plus, graph/rinf/skos)',
-    endpoint: ENDPOINT,
-    graph: 'http://data.europa.eu/949/graph/rinf/skos',
+    describe: 'ERA SKOS vocabulary, live from graph.data.era.europa.eu (ERA-Onto, graph/skos)',
+    endpoint: 'https://graph.data.era.europa.eu/repositories/ERA-Onto',
   },
   uat: {
     label: 'UAT',
-    describe: 'ERA SKOS vocabulary from the UAT release (rinf.uat.data.test-era.europa.eu/era-vocabulary/era-skos)',
-    url: 'https://rinf.uat.data.test-era.europa.eu/era-vocabulary/era-skos',
+    describe: 'ERA SKOS vocabulary, live from graph.uat.data.test-era.europa.eu (ERA-Onto, graph/skos)',
+    endpoint: 'https://graph.uat.data.test-era.europa.eu/repositories/ERA-Onto',
   },
 };
+const skosConstruct = () => `CONSTRUCT { ?s ?p ?o } WHERE { GRAPH <${SKOS_GRAPH}> { ?s ?p ?o } }`;
 
 function parserReady(){
   if(typeof N3 !== 'undefined') return true;
@@ -432,14 +440,11 @@ function parserReady(){
   return false;
 }
 async function fetchSkosText(envId, signal){
-  const e = ENVIRONMENTS[envId];
-  const res = e.graph
-    ? await fetch(e.endpoint, {
-        method: 'POST', signal,
-        headers: {'Accept':'text/turtle', 'Content-Type':'application/x-www-form-urlencoded'},
-        body: new URLSearchParams({query: `CONSTRUCT { ?s ?p ?o } WHERE { GRAPH <${e.graph}> { ?s ?p ?o } }`}),
-      })
-    : await fetch(e.url, {headers:{'Accept':'text/turtle'}, signal});
+  const res = await fetch(ENVIRONMENTS[envId].endpoint, {
+    method: 'POST', signal,
+    headers: {'Accept':'text/turtle', 'Content-Type':'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({query: skosConstruct()}),
+  });
   if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
   return res.text();
 }
@@ -503,17 +508,20 @@ function buildSkosModel(store){
 
 /* The properties that bind a controlled vocabulary, so a scheme can be
    checked against what actually uses it. This is ontology metadata, read
-   once from PROD and reused for every environment — there is no published
-   UAT ontology to read era:inSkosConceptScheme from separately, and the
-   property-to-scheme bindings are not expected to be what a vocabulary
-   release changes. */
+   from the same ERA-Onto repository as the vocabulary, per environment.
+   Pinned to graph/ontology: in UAT, graph/netex binds 1,030 more NeTEx
+   schemes that graph/skos does not define, and graph/shacl holds 7 stray
+   bindings on blank nodes (measured 2026-10-30; PROD has 121 properties
+   bound to 98 schemes whether pinned or not). */
 function schemePropertiesQuery(){
   return `${PREFIXES}
 SELECT DISTINCT ?property ?propertyLabel ?rinfIndex ?scheme WHERE {
-  ?property era:inSkosConceptScheme ?scheme .
-  OPTIONAL { ?property rdfs:label ?propertyLabel FILTER(LANG(?propertyLabel) = "" || LANGMATCHES(LANG(?propertyLabel), "en")) }
-  OPTIONAL { ?property era:rinfIndex ?rinfIndex }
-  FILTER NOT EXISTS { ?property owl:deprecated true }
+  GRAPH <${ONTOLOGY_GRAPH}> {
+    ?property era:inSkosConceptScheme ?scheme .
+    OPTIONAL { ?property rdfs:label ?propertyLabel FILTER(LANG(?propertyLabel) = "" || LANGMATCHES(LANG(?propertyLabel), "en")) }
+    OPTIONAL { ?property era:rinfIndex ?rinfIndex }
+    FILTER NOT EXISTS { ?property owl:deprecated true }
+  }
 }`;
 }
 
@@ -559,24 +567,36 @@ let usageTab = 'notInScheme';
 
 let currentEnv = 'prod';
 const envModels = {};      // envId -> {schemesByUri, conceptsByScheme, conceptDetail, tripleCount, text}
-let propsByScheme = null;  // Map(schemeUri -> [{property,label,rinfIndex}]), read once from PROD
+const envProps = {};       // envId -> Map(schemeUri -> [{property,label,rinfIndex}])
 let envLoadToken = 0;
 
-async function ensureProps(){
-  if(propsByScheme) return propsByScheme;
-  const rows = await sparql(schemePropertiesQuery());
+async function ensureProps(envId){
+  if(envProps[envId]) return envProps[envId];
+  const rows = await sparql(schemePropertiesQuery(), undefined, ENVIRONMENTS[envId].endpoint);
   const map = new Map();
   rows.forEach(b => {
     const uri = b.scheme.value;
     if(!map.has(uri)) map.set(uri, []);
+    // a property with two English labels comes back twice; keep the first
+    if(map.get(uri).some(p => p.property === b.property.value)) return;
     map.get(uri).push({
       property: b.property.value,
       label: b.propertyLabel ? b.propertyLabel.value : localName(b.property.value),
       rinfIndex: b.rinfIndex ? b.rinfIndex.value : '',
     });
   });
-  propsByScheme = map;
+  envProps[envId] = map;
   return map;
+}
+/* Compare shows a scheme's bindings from both environments, PROD first. */
+function mergeProps(maps){
+  const merged = new Map();
+  maps.forEach(map => map.forEach((props, scheme) => {
+    if(!merged.has(scheme)) merged.set(scheme, []);
+    const row = merged.get(scheme);
+    props.forEach(p => { if(!row.some(x => x.property === p.property)) row.push(p); });
+  }));
+  return merged;
 }
 async function ensureEnvModel(envId, signal){
   if(envModels[envId]) return envModels[envId];
@@ -614,7 +634,7 @@ function setEnvButtons(e){
    caching era-shacl-viewer.html uses for ERA's SHACL shapes. */
 async function selectEnv(envId, reload){
   const myToken = ++envLoadToken;
-  if(reload) for(const id of (envId === 'diff' ? ['prod', 'uat'] : [envId])) delete envModels[id];
+  if(reload) for(const id of (envId === 'diff' ? ['prod', 'uat'] : [envId])){ delete envModels[id]; delete envProps[id]; }
   currentEnv = envId;
   setEnvButtons(envId);
   schemeSearch.disabled = true;
@@ -622,11 +642,14 @@ async function selectEnv(envId, reload){
   const need = envId === 'diff' ? ['prod', 'uat'] : [envId];
   setStatus('Fetching the ERA SKOS vocabulary (' + need.map(id => ENVIRONMENTS[id].label).join(' and ') + ')…', 'loading');
   try{
-    const [props, ...loaded] = await Promise.all([ensureProps(), ...need.map(id => ensureEnvModel(id))]);
+    const [propMaps, loaded] = await Promise.all([
+      Promise.all(need.map(id => ensureProps(id))),
+      Promise.all(need.map(id => ensureEnvModel(id))),
+    ]);
     if(myToken !== envLoadToken) return;
     const models = {};
     need.forEach((id, i) => { models[id] = loaded[i]; });
-    schemes = schemesFromModels(models, props);
+    schemes = schemesFromModels(models, mergeProps(propMaps));
     schemeSearch.disabled = false;
     schemeSearch.placeholder = 'Search ' + fmt(schemes.length) + ' concept scheme' + (schemes.length === 1 ? '' : 's') + '…';
     const onlyProd = schemes.filter(s => s.inProd && !s.inUat).length;
@@ -650,7 +673,7 @@ async function selectEnv(envId, reload){
     if(myToken !== envLoadToken) return;
     schemeSearch.placeholder = 'Could not load the vocabulary';
     const first = ENVIRONMENTS[need[0]];
-    await setFetchErrorStatus($('statusArea'), 'error', err, first.endpoint || first.url, () => selectEnv(envId, true));
+    await setFetchErrorStatus($('statusArea'), 'error', err, first.endpoint, () => selectEnv(envId, true));
   }
 }
 document.querySelectorAll('.envSeg button').forEach(b => b.addEventListener('click', () => {
@@ -870,9 +893,7 @@ function runScheme(){
     dom = annotateFlags(concepts);
     concepts.sort(conceptSort);
     const e = ENVIRONMENTS[currentEnv];
-    query = e.describe + '\n\n' + (e.graph
-      ? `CONSTRUCT { ?s ?p ?o } WHERE { GRAPH <${e.graph}> { ?s ?p ?o } }`
-      : 'GET ' + e.url);
+    query = e.describe + '\n' + e.endpoint + '\n\n' + skosConstruct();
   }
   lastRun = {scheme: s, env: currentEnv, concepts, dominantDir: dom, query};
   renderConcepts();
