@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Primary locations: names (lang-tagged)
+SELECT ?pl (SAMPLE(?en) AS ?name_en) (GROUP_CONCAT(DISTINCT CONCAT(STR(?n),"@",LANG(?n));separator="|") AS ?names) WHERE { ?pl a era:PrimaryLocation ; era:primaryLocationName ?n . OPTIONAL { ?pl era:primaryLocationName ?en FILTER(LANGMATCHES(LANG(?en),"en")) } } GROUP BY ?pl

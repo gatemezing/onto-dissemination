@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Primary locations: validity window
+SELECT ?pl (MIN(?b) AS ?begin) (MAX(?e) AS ?end) (SAMPLE(?l) AS ?validity_label) WHERE { ?pl a era:PrimaryLocation ; era:validity ?v . OPTIONAL { ?v time:hasBeginning/time:inXSDDate ?b } OPTIONAL { ?v time:hasEnd/time:inXSDDate ?e } OPTIONAL { ?v rdfs:label ?l } } GROUP BY ?pl

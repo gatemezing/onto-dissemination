@@ -1,0 +1,107 @@
+code_prefix,field,comparable,agree,agree_pct
+AT,container,84,80,95.2
+AT,country,2624,2624,100.0
+AT,freight,84,71,84.5
+AT,handover,84,76,90.5
+AT,im,2624,2624,100.0
+AT,name,2624,2565,97.8
+AT,nuts3,13,13,100.0
+AT,passenger,84,51,60.7
+AT,position within 1 km,2624,2618,99.8
+AT,validity begin,2547,2434,95.6
+BE,country,1324,1324,100.0
+BE,position within 1 km,1324,1323,99.9
+BG,country,297,297,100.0
+BG,position within 1 km,297,293,98.7
+CH,country,2387,2387,100.0
+CZ,country,3474,3474,100.0
+CZ,name,3474,3400,97.9
+CZ,position within 1 km,3473,3470,99.9
+CZ,validity begin,3,0,0.0
+DE,container,9166,9166,100.0
+DE,country,9170,9170,100.0
+DE,freight,9166,9166,100.0
+DE,handover,9166,9166,100.0
+DE,im,9166,9166,100.0
+DE,name,9166,9166,100.0
+DE,passenger,9166,9166,100.0
+DE,position within 1 km,9169,9168,100.0
+DE,validity begin,9166,9166,100.0
+DK,country,297,297,100.0
+DK,position within 1 km,297,1,0.3
+ES,country,2226,2226,100.0
+ES,position within 1 km,1,1,100.0
+FI,country,362,362,100.0
+FI,position within 1 km,362,357,98.6
+FR,container,8036,8036,100.0
+FR,country,8074,8074,100.0
+FR,freight,8036,8036,100.0
+FR,handover,8036,8036,100.0
+FR,im,8036,8036,100.0
+FR,name,8036,7925,98.6
+FR,passenger,8036,8036,100.0
+FR,position within 1 km,8074,7990,99.0
+FR,validity begin,8036,2472,30.8
+GR,country,187,187,100.0
+GR,im,187,187,100.0
+GR,name,187,14,7.5
+GR,position within 1 km,187,178,95.2
+GR,validity begin,16,0,0.0
+HR,name,552,551,99.8
+HR,position within 1 km,552,552,100.0
+HR,validity begin,552,0,0.0
+HU,country,1739,1739,100.0
+IT,container,2791,2791,100.0
+IT,country,2911,2911,100.0
+IT,freight,2791,2791,100.0
+IT,handover,2791,2791,100.0
+IT,passenger,2791,2791,100.0
+IT,position within 1 km,2911,2909,99.9
+LI,country,4,4,100.0
+LI,im,4,4,100.0
+LI,name,4,4,100.0
+LI,position within 1 km,4,4,100.0
+LI,validity begin,4,0,0.0
+LT,container,199,197,99.0
+LT,freight,199,192,96.5
+LT,handover,199,199,100.0
+LT,name,199,196,98.5
+LT,passenger,199,186,93.5
+LT,validity begin,199,0,0.0
+LU,container,140,140,100.0
+LU,country,140,140,100.0
+LU,freight,140,140,100.0
+LU,handover,140,140,100.0
+LU,im,140,140,100.0
+LU,name,140,140,100.0
+LU,passenger,140,140,100.0
+LU,position within 1 km,140,139,99.3
+LU,validity begin,140,0,0.0
+LV,country,23,23,100.0
+LV,position within 1 km,23,22,95.7
+NL,container,780,780,100.0
+NL,country,780,780,100.0
+NL,freight,780,780,100.0
+NL,handover,780,780,100.0
+NL,im,780,780,100.0
+NL,name,780,780,100.0
+NL,passenger,780,780,100.0
+NL,position within 1 km,780,780,100.0
+NL,validity begin,780,780,100.0
+NO,country,448,448,100.0
+NO,freight,5,3,60.0
+NO,handover,4,4,100.0
+NO,im,448,448,100.0
+NO,name,448,412,92.0
+NO,passenger,427,352,82.4
+NO,position within 1 km,446,434,97.3
+NO,validity begin,448,14,3.1
+PL,country,3940,3940,100.0
+PL,position within 1 km,3940,3906,99.1
+RO,country,2140,2140,100.0
+RO,position within 1 km,2140,1819,85.0
+SE,country,1103,1103,100.0
+SI,country,296,296,100.0
+SI,position within 1 km,296,291,98.3
+SK,country,1036,1036,100.0
+SK,position within 1 km,1036,1019,98.4

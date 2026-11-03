@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Subsidiary locations: one row per SL
+SELECT ?sl ?g (SAMPLE(?c) AS ?code) (GROUP_CONCAT(DISTINCT STR(?pl);separator="|") AS ?pl) (GROUP_CONCAT(DISTINCT STRAFTER(STR(?t),"subsidiary-location-types/");separator="|") AS ?type) (GROUP_CONCAT(DISTINCT REPLACE(STR(?ac),"^.*/([^/_]+)(_[A-Z]+)?$","$1");separator="|") AS ?alloc) (GROUP_CONCAT(DISTINCT STRAFTER(STR(?cc),"/country/");separator="|") AS ?country) (SAMPLE(?nm) AS ?name) (SAMPLE(?w) AS ?wkt) WHERE { GRAPH ?g { ?sl a era:SubsidiaryLocation } OPTIONAL { ?sl era:subsidiaryLocationCode ?c } OPTIONAL { ?sl era:linkedToPrimaryLocation ?pl } OPTIONAL { ?sl era:subsidiaryLocationType ?t } OPTIONAL { ?sl era:allocationCompany ?ac } OPTIONAL { ?sl era:inCountry ?cc } OPTIONAL { ?sl era:subsidiaryLocationName ?nm } OPTIONAL { ?sl geo:hasGeometry/geo:asWKT ?w } } GROUP BY ?sl ?g

@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Primary locations: NUTS3
+SELECT ?pl (GROUP_CONCAT(DISTINCT REPLACE(STR(?n),"^.*/","");separator="|") AS ?nuts3) WHERE { ?pl a era:PrimaryLocation ; era:inNUTS3 ?n } GROUP BY ?pl

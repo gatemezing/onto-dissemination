@@ -1,0 +1,14 @@
+PREFIX era: <http://data.europa.eu/949/>
+# Deterministic sample (ORDER BY MD5 of the IRI) of 3,000 primary + 3,000 subsidiary locations,
+# with every node they reach within three hops, for SHACL validation with pyshacl.
+CONSTRUCT { ?s ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?pl a era:PrimaryLocation }
+WHERE {
+  { { SELECT ?s WHERE { GRAPH <https://rinf-ris-alignment.com/graph/crd/primary-locations> { ?s a era:PrimaryLocation } } ORDER BY MD5(STR(?s)) LIMIT 3000 } }
+  UNION
+  { { SELECT ?s WHERE { GRAPH <https://rinf-ris-alignment.com/graph/crd/subsidiary-locations> { ?s a era:SubsidiaryLocation } } ORDER BY MD5(STR(?s)) LIMIT 3000 } }
+  ?s ?p ?o .
+  OPTIONAL { ?s era:linkedToPrimaryLocation ?pl }
+  OPTIONAL { FILTER(isIRI(?o) && ?p NOT IN (era:inCountry, era:operatingLanguage, era:inNUTS3, era:subsidiaryLocationType, era:ofParameter, era:linkedToPrimaryLocation))
+             ?o ?p2 ?o2 .
+             OPTIONAL { FILTER(isIRI(?o2) && ?p2 NOT IN (era:hasOrganisationRole, era:ofParameter)) ?o2 ?p3 ?o3 } }
+}

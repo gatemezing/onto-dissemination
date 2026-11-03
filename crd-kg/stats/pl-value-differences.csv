@@ -1,0 +1,2615 @@
+field,code,crd,rinf
+name,AT01012,Unter Purkersdorf (in Up),Unter Purkersdorf
+name,AT01030,Baernbach,Baernbach H-Lst
+name,AT01033,Wiederndorf-Aich/Vidra vas-Dob (in Wia),Wiederndorf-Aich (in Wia)
+name,AT01048,Hollenegg,Hollenegg Hst
+name,AT01115,Hst ausser Betrieb,Gaisfeld
+name,AT01172,Kundl (in W),Woergl Kundl (in W)
+name,AT01218,Paternion-Feistritz (in Pf),Paternion-Feistritz Haltestelle (in Pf)
+name,AT01244,Wulkaprodersdorf Rathausgasse/Vulkaprodrstof Rathausgasse,Wulkaprodersdorf Rathausgasse
+name,AT01246,St.Peter im Sulmtal,St.Peter i. Sulmtal
+name,AT01248,Wien Bruenner Strasse,Wien Bruenner Strasse (in F)
+name,AT01301,St.Poelten-Kaiserwald (in Pl),St.Poelten-Kaiserwald
+name,AT01399,Steinakirchen am Forst,Steinakirchen/F.
+name,AT01760,Aschach a.d.Donau,Aschach a.d.Donau (Gf)
+name,AT01796,Braunau am Inn (in Bru),Braunau am Inn
+name,AT01887,Laakirchen,Laakirchen (Gf)
+name,AT01915,Antiesenhofen,Antiesenhofen (Gf)
+name,AT02645,Jedlersdorf (in J),Jedlersdorf (in F)
+name,AT02646,Wien Strebersdorf (in J),Wien Strebersdorf (in F)
+name,AT02808,Leopoldau (in Lp),Leopoldau
+name,AT02975,Parndorf Ort/Pandrof mjesto,Parndorf Ort
+name,AT02976,Parndorf/Pandrof,Parndorf
+name,AT03003,Pama/Bijelo Selo,Pama
+name,AT03005,Neudorf/Novo Selo,Neudorf
+name,AT03036,Laxenburg-Biedermannsdorf,Laxenburg-Biedermannsdorf (Gf)
+name,AT03702,Poels,Poels (Gf)
+name,AT03710,Hst ausser Betrieb,Wiesenau
+name,AT03824,St.Michael ob Bleiburg/Smihel nad Pliberkom,St.Michael ob Bleiburg
+name,AT03825,Bleiburg/Pliberk (in Ble),Bleiburg (in Ble)
+name,AT03826,Bleiburg Stadt/Pliberk mesto (in Ble),Bleiburg Stadt (in Ble)
+name,AT05222,Freiland Lst,Freiland
+name,AT05369,Jedlersdorf-Gleisgr 300 (in J),Jedlersdorf-Gleisgr 300 (in F)
+name,AT05768,Bernschlag,Bernschlag Lst
+name,AT13479,Sbl J 2,Sbl F 2
+name,AT33212,Neufeld a.d.  Leitha,Neufeld an der Leitha
+name,AT33215,Drassburg,Drassburg Hst
+name,AT33216,Baumgarten-Schattendorf,Baumgarten
+name,AT34004,AB,AB Muellendorfer Industriezentrum
+name,AT34029,Sbl Wul 2,Sbl Wul 2-Ad30
+name,AT34030,Sbl Wul 2,Sbl Wul 2-Zd40
+name,AT34034,St. Anton im Montafon,St. Anton im Montafon (in Amo)
+name,AT34038,Tschagguns H-Lst,Tschagguns H-Lst (Awanst)
+name,AT90165,Sbl J 1,Sbl F 1
+name,AT90166,Sbl J 1,Sbl F 1
+name,AT90681,Sbl Rdf 4N,Sbl Rdf 2N
+name,AT90682,Sbl Rdf 4N,Sbl Rdf 2N
+name,AT90683,Sbl Rdf 7N,Sbl Rdf 3N
+name,AT90684,Sbl Rdf 7N,Sbl Rdf 3N
+name,AT90685,Sbl Rdf 9N,Sbl Rdf 4N
+name,AT90686,Sbl Rdf 9N,Sbl Rdf 4N
+name,AT90687,Sbl Rdf 12N,Sbl Rdf 5N
+name,AT90742,Sbl See 2,Sbl See 1
+name,AT90766,Sbl V 3,Sbl Sns 4N
+name,AT90767,Sbl V 3,Sbl Sns 4N
+name,AT90768,Sbl V 5,Sbl Sns 5N
+name,AT90769,Sbl V 5,Sbl Sns 5N
+name,AT90955,Staatsgrenze naechst Schaerding,Staatsgrenze naechst Wernstein
+name,AT91013,Sbl J 2,Sbl F 2
+name,AT94157,Sbl Mld 1,Sbl Mld 1-Ac10
+name,AT94158,Sbl Mld 1,Sbl Mld 1-Zc30/zc10
+name,CZ30004,hi Ostrava střed,Ostr.stred V06009 HI
+name,CZ33005,Bojkovice město z,Bojkovice mesto
+name,CZ33465,Jankovice z,AHr Jankovice z
+name,CZ34393,Ostrava-Stodolní z,Ostrava-Stodolni
+name,CZ34621,Vlečka OAMP-Mošnov,Ter. Ova Mosnov OAMP
+name,CZ34865,Březí z,AHr Brezi z
+name,CZ35002,Troubelice,Vyh Troubelice
+name,CZ35725,Prostějov míst.n. nz,Prostejov m.n. z
+name,CZ36215,AHr Troubsko z,Troubsko z
+name,CZ36706,"vl. v km 21,390","vl. v km 21,391"
+name,CZ38100,"vl. v km 0,832",Hanusovice nav. L
+name,CZ38225,Odb B.-Čern.zhl.Táb.,Brno-Cernov.zhl.Tab.
+name,CZ53459,Kyjice,Vyh Kyjice
+name,CZ53569,Kadaň předměstí nz,Kadan predmesti
+name,CZ53669,Radonice u Kadaně,Radonice u Kadane z
+name,CZ53711,Meziměstí výh.č. 201,Mezimesti vyh.201
+name,CZ53829,Domina,Domina z
+name,CZ53843,Brandýs nad Orlicí,Brandys nad Orlici z
+name,CZ53889,Rusová,Rusova z
+name,CZ53922,Trasovaci DVM CST 2,3. TK trebovicka
+name,CZ54105,Solnice zastávka z,Solnice zastavka
+name,CZ54309,Jílové u Děčína,Jilove u Decina nz
+name,CZ54343,Svitavy-Lačnov z,Opatovec z
+name,CZ54349,Libouchec,Libouchec nz
+name,CZ54379,Malé Chvojno,Male Chvojno nz
+name,CZ54399,Chlumec u Chabařovic nz,Chlumec u Chabar. nz
+name,CZ54524,AHr Třebestovice nz,AHr Trebestovice n
+name,CZ54552,Nymburk město výh.21,Nymburk mesto vyh.17
+name,CZ54553,Nymburk město výh.22,Nymburk mesto vyh.19
+name,CZ54611,Louny předm. St.II,Louny predm. vyh.c.2
+name,CZ54615,Louny předm. St.I,Louny predm. vyh.c.1
+name,CZ54866,Nučice zastávka z,Nucice zastavka
+name,CZ55252,Plavy z,Plavy
+name,CZ55386,Trhový Štěpánov,Trhovy Stepanov nz
+name,CZ55499,Libochovice město z,Libochovice mesto
+name,CZ55519,Radonice nad Ohří z,Vyh Radonice n. Ohri
+name,CZ55666,Malá Hraštice,Mala Hrastice z
+name,CZ55956,Stříbrná Skalice nz,Stribrna Skalice z
+name,CZ56311,hi Kamensko AŽD,hi Kopidlno AZD
+name,CZ56406,Rataje n.S. předm.nz,Rataje n.S. predm. z
+name,CZ56709,Varnsdorf st.n. nz,Varnsdorf st.n. z
+name,CZ56739,Hl Jiřetín p.Jedl. z,Jiretin pod Jedl. z
+name,CZ56771,"vl. v km 4,400","vl. v km 4,390"
+name,CZ56790,AHr Rychnovek z,AHr Rychnovek z Lo
+name,CZ56829,Č.Lípa střelnice z,Ceska Lipa strelnice
+name,CZ57390,Teplice n.M.město nz,Teplice n.M.mesto
+name,CZ57501,"vl. v km 10,361","vl. v km 10,370"
+name,CZ58060,Odb Kamensko,Kopidlno kol. 1b
+name,CZ58075,"vl. v km 12,696","vl. v km 12,693"
+name,CZ58104,Neratovice výh.č.104,Neratovice kol. c.6a
+name,CZ58218,Ahr. Rašovice,Vyh Rasovice
+name,CZ58326,Odb Skály,Vyh Skaly
+name,CZ58367,"Km 76,440","Km 76,130"
+name,CZ70026,státní hranice,Vojtanov 2 st.hr.
+name,CZ70027,státní hranice,Plesna 3 st.hr.
+name,CZ70045,Železná Ruda st.hr.,Z.Ruda-Alzbet.st.hr.
+name,CZ73535,Havlovice z,Havlovice
+name,CZ73585,Nový Kramolín nz,Novy Kramolin z
+name,CZ73815,Dobříkov na Šum. nz,Dobrikov na Sumave z
+name,CZ74105,Chrást u Plzně zast. z,Chrast u Plz zast. z
+name,CZ74655,Plzeň-Jižní Předm.,Plzen-Jizni Predm. z
+name,CZ74702,Lnáře nz,Lnare z
+name,CZ75295,Plzeň zastávka z,Plzen zastavka
+name,CZ75902,Pernek na Šumavě z,Pernek-Hory z
+name,CZ76184,Lubná,Lubna nz
+name,CZ76204,Zavidov,Zavidov z
+name,CZ76224,Čistá,Cista nz
+name,CZ76254,Rakovník západ z,Rakovnik zapad
+name,CZ76255,Kralovice u Rak.,Kralovice u Rak. nz
+name,CZ76325,Mirošov město z,Mirosov mesto
+name,CZ76444,Rožmitál pod Třemš.,Rozmital p.Trems. nz
+name,CZ77187,"Km 108,347=114,400","Km 108,047=114,100"
+name,CZ78201,"Tunel Homolka 1L,2L",Portal Homolka
+name,CZ78202,"Tunel Chlum 1S,2S",Portal Chlum
+name,FR00082,Noisy-le-Sec - Bif Impaire O,Noisy-le-Sec-Bif Imp Ouest
+name,FR00101,Rosny-Bois-Perrier,Rosny-Bois-Perrier-00
+name,FR00110,Villiers-sur-Marne-Le Plessis- - Bât Voyageurs,Villiers-sur-Marne-Le Plessis-Trévise-Bât Voyageurs
+name,FR00205,Nogent-l'Artaud-Charly - Bât Voyageurs,Nogent-l'Artaud-Bât Voyageurs
+name,FR01060,Walibi-Lorraine,Walygator-Parc-
+name,FR01523,Paris-Nord - P Sat Périp,Paris-Nord-Poste Sat Perip
+name,FR01839,Calais-Fréthun - Carré 103,Calais-Fréthun-C103
+name,FR01944,Lille - Flandres - At Helleme -Pt A,Lille-Flandres-At Hellèmes PtA
+name,FR01946,Hellemmes - Ateliers,Hellemmes-
+name,FR02419,Bibliothèque-François-Mitterra - Bât Voyageurs,Bibliothèque-François-Mitterrand-Bât Voyageurs
+name,FR02422,Bibliothèque-François-Mitterra - Sortie V1BIS,Bibliothèque-François-Mitterrand-Sortie V1BIS
+name,FR02568,Cambrai - Bif Cambrai N,Cambrai Ville-Bif Cambrai N
+name,FR02570,Cambrai - Bât Voyageurs,Cambrai Ville-Bât Voyageurs
+name,FR03122,Écommoy - Carré C91,Écommoy-Carré 91
+name,FR03123,Écommoy - Carré C92,Écommoy-Carré 92
+name,FR03133,Château-du-Loir,Château-du-Loir-Bif Courtalain
+name,FR03143,Poste 17 - Changement de V,Courtalain SEI 17-Changement de Voie
+name,FR03316,Vernon (Eure)-Bât Voyageurs,Vernon-Giverny-Bât Voyageurs
+name,FR03317,Vernon (Eure)-Pancarte Arrêt,Vernon-Giverny-Pancarte Arrêt
+name,FR03318,Vernon (Eure)-Quai Embarquem,Vernon-Giverny-Quai Embarquem
+name,FR03319,Vernon (Eure)-Entrée Voie 4,Vernon-Giverny-Entrée Voie 4
+name,FR03343,Reims-Franchet-d'Espèrey,Franchet-d'Esperey-
+name,FR03359,Vitrolles-Aéroport-Marseille-P,Vitrolles-Aéroport-Marseille-Provence-
+name,FR03955,Belleville-Vendée-,Bellevigny-
+name,FR04059,La Grave-d'Ambarès-Gare-Inféri - Bât Voyageurs,La Grave-d'Ambarès-Gare-Inférieure-Bât Voyageurs
+name,FR04305,Paris-Austerlitz (Banlieue) - Carré 131,Paris-Austerlitz (Banlieue)-C583
+name,FR04656,Marseille-Euroméditerranée,Arenc-Euroméditerranée-
+name,FR04697,Bordeaux-Hourcade-Triage - Accès Nord,Hourcade-Triage-Accès Nord
+name,FR04698,Bordeaux-Hourcade-Triage - Accès Sud,Hourcade-Triage-Accès Sud
+name,FR04700,Bordeaux-Hourcade-Triage - Aiguille 306,Hourcade-Triage-Aiguille 306
+name,FR04724,Facture-Biganos - Bât Voyageurs,Biganos Facture-Bât Voyageurs
+name,FR04780,Vars - Bât Voyageurs,Gare Vars-Bât Voyageurs
+name,FR04836,La Grave-d'Ambarès-Gare-Supéri - Bât Voyageurs,La Grave-d'Ambarès-Gare-Supérieure-Bât Voyageurs
+name,FR04837,La Grave-d'Ambarès-Gare-Supéri - Raccordement,La Grave-d'Ambarès-Gare-Supérieure-Raccordement
+name,FR04927,Haluchère - Jonction,Haluchère-Jonction V1 V2
+name,FR06146,École-Valentin,Halte École-Valentin-
+name,FR06312,Miserey-Salines,Halte de Miserey-Salines-
+name,FR06313,Miserey-Salines - ITE Halle Fret,Halte de Miserey-Salines-ITE Halle Fret
+name,FR06681,Lyon-Guillotière - Carré 2701/2707,Lyon-Guillotière-Poste 27
+name,FR06874,Petit-Coeur-La Léchère-les-Bai,Petit-Coeur-La Léchère-les-Bains-
+name,FR06876,Moûtiers-Salins-Brides-les-Bai,Moûtiers-Salins-Brides-les-Bains-
+name,FR06895,Chambéry-Poste-Bois - Poste Bois-Plan,Chambéry-Poste-Bois-
+name,FR07690,"Poste 30 Étivey - Km 8,3","Poste 30 Étivey-Km 8,1"
+name,FR07752,La Bastide-St-Laurent-les-Bain,La Bastide-St-Laurent-les-Bains-
+name,FR07753,La Bastide-St-Laurent-les-Bain - Aig Km 692 0,La Bastide-St-Laurent-les-Bains-Aig Km 692 0
+name,FR07807,Béziers - Capiscol,Béziers-Chantier PVSI
+name,FR07824,"Narbonne - Bif Km404,7-LGV","Narbonne-Bif Km 404,7"
+name,FR08080,Paris-Nord - Poste 8,Paris-Nord-Poste 6
+name,FR08232,Vernon (Eure)-Poste 1,Vernon-Giverny-Poste 1
+name,FR08306,Bordeaux-Hourcade-Triage - Chantier Multi-Technique,Hourcade-Triage-Chantier MT
+name,FR08510,Cambrai - Poste 2,Cambrai Ville-Poste 2
+name,FR08533,Paris-La Villette-Est-Pierres,Paris-La Vilette-Est-Pierres-
+name,FR08585,Calais-Fréthun - Accès Offerkerque,Calais-Fréthun-Acc Offerkerque
+name,FR08586,"Rennes - Carrés 131, 133, 135","Rennes-C 131,133,135"
+name,FR08587,Bordeaux-Hourcade-Triage - FSC Réc Est,Hourcade-Triage-Fsc Réc Est
+name,FR08588,Bordeaux-Hourcade-Triage - FSC Réc Ouest,Hourcade-Triage-Fsc Réc Ouest
+name,FR08590,Charix-Lalleyriat - Croisements (Ex BV),Charix-Lalleyriat-Croisements
+name,FR08601,Arlac - Carré Violet 6310,Arlac-CV6306
+name,FR08617,Laval - Bif St-Berth I,Laval-Bif St-Berthevi
+name,FR08618,Laval - Bif St-Berth P,Laval-Bif St-Berthevi
+name,FR08656,"Lyon-Perrache-Voyageurss - Km 510,5","Lyon-Perrache-Voyageurs-Km 510,5"
+name,FR08658,Châlons-sur-Saône - Accès Châlons,Chalon-sur-Saône-Accès Chalon
+name,FR08662,St-Gervasy-Bezouce - Virgule Ouest,St-Gervasy-Bezouce-Virgul Ouest
+name,FR08686,Paris-Nord - JCT DR/RT,Paris-Nord-Zone Poste 47
+name,FR08688,Le Bourget-Triage - CV 8119,Le Bourget-Triage-C8119
+name,FR08689,Le Bourget-Triage - CV 8122,Le Bourget-Triage-C8122/C8124
+name,FR08726,Paris-Nord - Carré C2402/C2401,Paris-Nord-C2402/C2401
+name,FR08757,Calais-Fréthun - C102/204,Calais-Fréthun-C102/104
+name,FR08800,Paris-Batignolles - Voie Auxil,Paris-Batignolles-V Aux
+name,FR08807,LYON-GUILLOTIÈRE - SACRONNE PAIR,Lyon-Guillotière-Scaronne Pair
+name,FR08840,BORDEAUX-HOURCADE - RELAIS DÉPART,Hourcade-Triage-Relais Départ
+name,FR08841,BORDEAUX-HOURCADE - TIROIRS 1 et 2,Hourcade-Triage-Tiroirs 1et 2
+name,FR08850,PETIT-VAUX - BIF RÉS URBAIN,Petit-Vaux-Bif Réseau Urb
+name,FR08855,Rambouillet - Rbt Impair,Rambouillet-Rebr Impair
+name,FR08877,Marseille-Blancarde - Ent/Sort Technicentre,Marseille-Blancarde-Ent/Sort Techn
+name,FR08883,Les Aubrais-Orléans - Circ Machines,Les Aubrais-Orléans-Circu Machines
+name,FR08886,Orléans - Garage des Rames,Orléans-Gge des Rames
+name,FR08895,Nice-St-Roch - Maintenance TGV,Nice-St-Roch-CM TGV
+name,FR08902,Nice-Ville - FSC Impair,Nice-Ville-Faisceau impair
+name,FR08916,Pierrefitte-Stains - E/S Bifurcation de Pierrefitte,Pierrefitte-Stains-E/S Bif Pierref
+name,FR08924,Valence - Ent/Sort Sud,Valence-E/S sud
+name,FR08926,Livron - Ent/Sort Sud,Livron-E/S sud
+name,FR08927,"Tournon - Sig 603,5","Tournon-S603,5"
+name,FR08932,Orly-Ville - Ent/Sort 2R,Orly-Ville-E/S 2R
+name,FR08939,Versailles-Matelots - Maint Remisage,Versailles-Matelots-Maint Rem
+name,FR08950,Les Portes-de-St-Cyr - Transition RFN,Les Portes de Saint-Cyr T13-Transition RFN/Urbain
+name,FR08959,La Défense Grande Arche - Bâtiment Voyageurs,La Défense Grande Arche-Bât Voyageurs
+name,FR08960,Porte-Maillot-Palais des Congrès - Bâtiment Voyageurs,Porte-Maillot-Palais des Congrès-Bât Voyageurs
+name,FR08961,La Défense Grande Arche - Pr itinéraire,La Défense Grande Arche-PR iti
+name,FR08962,La Folie-Nanterre - Bâtiment Voyageurs,Nanterre La Folie-Bât Voyageurs
+name,FR08986,Bordeaux-Hourcade-Triage - Circulation Est,Hourcade-Triage-Circulation Est
+name,FR08988,Bordeaux-Hourcade-Triage - Voies de circulation,Hourcade-Triage-V de circul
+name,FR08990,Bordeaux-Hourcade-Triage - Dépôt relais traction,Hourcade-Triage-Dep Rel Trac
+name,FR09005,HIRSON - Voies de services GC,Hirson-VS GC
+name,FR09043,Épône-Mézières-Pont Sentier G,Épône-Mézières-Pont du Sentier des Gravois
+name,FR09068,La Folie-Nanterre - Service maintenance,Nanterre La Folie-Serv Maint
+name,FR09082,La Folie-Nanterre - Faisceau des Groues,Nanterre La Folie-Fsc des Groues
+name,FR09083,La Folie-Nanterre - Point chantier V,Nanterre La Folie-Pt chant V
+name,FR09084,La Folie-Nanterre - Raccordement Ouest,Nanterre La Folie-Raccordement
+name,FR09085,La Folie-Nanterre - Faisceau Tiroirs,Nanterre La Folie-Fsc Tiroirs
+name,FR09087,La Folie-Nanterre - Pr itinéraire,Nanterre La Folie-Pr iti
+name,FR09089,La Folie-Nanterre - Tiroir 4,Nanterre La Folie-Tiroir 4
+name,FR09307,Facture-Biganos - Faisceau Impair,Biganos Facture-Faisceau Impair
+name,FR09338,Épône-Mézières-Bif P-G,Épône-Mézières-Bif Plaisir-Grignon
+name,FR09339,Épône-Mézières - Bif Plaisir-Grignon,Épône-Mézières-Raccordement d'Épône
+name,FR09379,Bonnière - E/S Tunnel de Rolleboise,Bonnières-E/S Tunnel de Rolleboise
+name,FR09486,Belfort - Carré 39081,Belfort-Carré 39801
+name,FR09492,Villiers-sur-Marne-Le Plessis-Trévise-C201,Villiers-sur-Marne-Le Plessis-Trévise-Carré 201
+name,FR09989,Metz-Sablon-E/S Tech,Metz-Sablon-E/S Technicentre
+name,FR15261,St-Hilaire-au-Temple-Base maintenace,St-Hilaire-au-Temple-Base de maintenance
+name,FR22192,Chasse-sur-Rhône-FSC pair,Chasse-sur-Rhône-Faisceau pair
+name,GR00101,Piraeus,101-PEIRAIAS
+name,GR00102,Lefka,102-LEFKA
+name,GR00103,Rentis,103-A_I_RENTIS
+name,GR00104,Tavros,104-TAVROS
+name,GR00105,Rouf,105-ROUF
+name,GR00106,Athens,106-ATHINA
+name,GR00107,Agioi Anargyroi,107-AG_ANARGYROI
+name,GR00108,Pyrgos Vasilissis,108-PYRGOS_VASILISSIS
+name,GR00115,Acharnes,115-ACHARNAI
+name,GR00116,Dekeleia,116-DEKELEIA
+name,GR00120,Afidnes,120-AFIDNAI
+name,GR00123,Sfendali,123-SFENDALI
+name,GR00126,Avlona,126-AVLON
+name,GR00127,Agios Thomas,127-AG_THOMAS
+name,GR00128,Oinofyta,128-OINOFYTA
+name,GR00129,Oinoi,129-OINOI
+name,GR00130,Kalochori-Panteichi,130-PANTEICHI
+name,GR00131,Dilesi,131-DILESI
+name,GR00132,Avlida,132-AVLIDA
+name,GR00135,Chalkida,135-CHALKIDA
+name,GR00136,Agios Georgios,136-AG_GEORGIOS
+name,GR00148,Thibes,148-THIVA
+name,GR00152,Aliartos,152-ALIARTOS
+name,GR00158,Levadia,158-LIVADEIA
+name,GR00162,Diavlia,162-DAVLEIA
+name,GR00166,Tithorea,166-TITHOREA
+name,GR00168,Amfikleia,AMFIKLEIA_OLD_LINE
+name,GR00170,Lilaia,LILAIA_OLD_LINE
+name,GR00171,Bralos,BRALOS_OLD_LINE
+name,GR00180,Mousiko Sxoleio Lamias,MOUSIKO_SCHOLEIO
+name,GR00184,Megali Vrysi,M_VRYSI
+name,GR00208,Angeies,208-ANGEIES
+name,GR00218,Domokos,218-DOMOKOS
+name,GR00232,Orfana,232-ORFANA
+name,GR00237,Mezourlo,237-MEZOURLO
+name,GR00238,Larissa,LARISA
+name,GR00264,Evangelismos,264-EVANGELISMOS
+name,GR00268,Rapsani,268-RAPSANI
+name,GR00271,Neoi Poroi,271-N_POROI
+name,GR00275,Leptokarya,275-LEPTOKARYA
+name,GR00279,Litochoro,279-LITOCHORO
+name,GR00284,Katerini,284-KATERINI
+name,GR00286,Korinos,286-KORINOS
+name,GR00296,Aiginio,296-AIGINIO
+name,GR00298,Platanos,298-PLATANOS
+name,GR00306,Fanari Karditsas,FANARI
+name,GR00309,Magoula Karditsis,MAGOULA
+name,GR00319,Kalambaka,KALAMPAKA
+name,GR00400,Platy,400-PLATY
+name,GR00404,Adendro,404-ADENDRO
+name,GR00406,Axios,406-AXIOS
+name,GR00408,Sindos,408-SINDOS
+name,GR00415,Thessaloniki Gare Centrale,415-THESSALONIKI_PASS_RS
+name,GR00417,Thessaloniki Triage,417-THESSALONIKI_TRIAGE
+name,GR00418,Thessaloniki Terminal,418-THESSALONIKI_FREIGHT_RS
+name,GR00504,Alexandreia,504-ALEXANDREIA
+name,GR00514,Veria,514-VEROIA
+name,GR00518,Naousa,518-NAOUSA
+name,GR00524,Skydra,524-SKYDRA
+name,GR00528,Edessa,528-EDESSA
+name,GR00534,Arnissa,534-ARNISSA
+name,GR00537,Agios Panteleimon,537-AG_PANTELEIMON
+name,GR00539,Amyntaio,539-AMYNTAIO
+name,GR00560,Xino Nero,560-XYNO_NERO
+name,GR00565,Vevi,565-VEVI
+name,GR00566,Sitaria,566-SITARIA
+name,GR00568,Mesonisi,568-MESONISI
+name,GR00580,Florina,580-FLORINA
+name,GR00626,Idomeni,626-EIDOMENI
+name,GR00703,Lachanokipi,703-LACHANOKIPOI
+name,GR00706,Nea Filadelfeia,706-N_FILADELFEIA
+name,GR00707,Gallikos,707-GALLIKOS
+name,GR00708,Pedino,708-PEDINO
+name,GR00709,Kilkis,709-KILKIS
+name,GR00710,Metalliko,710-METALLIKO
+name,GR00712,Chersos,712-CHERSOS
+name,GR00715,Doirani,715-DOIRANI
+name,GR00718,Mouries,718-MOURIES
+name,GR00719,Kastanoosa,719-KASTANOUSA
+name,GR00722,Rodopoli,722-RODOPOLI
+name,GR00724,Livadia Kerkinis,724-LIVADIA
+name,GR00726,Mandraki,726-MANDRAKI
+name,GR00728,Omalo Thrakis,728-OMALO
+name,GR00729,Vyroneia,729-VYRONEIA
+name,GR00730,Neo Petritsi,730-PETRITSI
+name,GR00734,Strymon,734-STRYMONAS
+name,GR00739,Sidirokastro,739-SIDIROKASTRO
+name,GR00744,Skotousa,744-SKOTOUSA
+name,GR00749,Serres,749-SERRES
+name,GR00756,Gazoros,756-GAZOROS
+name,GR00757,Tholos,757-THOLOS
+name,GR00766,Dimitra,766-DIMITRA
+name,GR00768,Lefkothea,768-LEFKOTHEA
+name,GR00776,Fotolivos,776-FOTOLIVOS
+name,GR00779,Drama,779-DRAMA
+name,GR00802,Nikiforos,802-NIKIFOROS
+name,GR00806,Platania,806-PLATANIAS
+name,GR00808,Paranesti,808-PARANESTI
+name,GR00814,Neoxori,814-NEOCHORI
+name,GR00818,Stavroupoli,818-STAVROUPOLI
+name,GR00824,Toxote,824-TOXOTES
+name,GR00828,Xanthi,828-XANTHI
+name,GR00833,Polisito,833-POLYSITOS_(STATION)
+name,GR00835,Iasmos,835-IASMOS
+name,GR00836,Polyanthos,836-POLYANTHOS
+name,GR00839,Komotini,839-KOMOTINI
+name,GR00844,Venna,844-VENNA
+name,GR00849,Mesti,849-MESTI
+name,GR00852,Sikorachi,852-SYKORACHI
+name,GR00854,Kirki,854-KIRKI
+name,GR00857,Potamos,857-POTAMOS
+name,GR00858,Alexandroupolis,858-ALEXANDROUPOLI_KSA
+name,GR00859,Alexandroupolis Port,859-ALEXANDROUPOLI_PORT
+name,GR00904,Feres,904-FERRES
+name,GR00909,Peplos,909-PEPLOS
+name,GR00910,Tychero,910-TYCHERO
+name,GR00911,Filakto,911-FYLAKTO
+name,GR00912,Lagina,912-LAGYNA
+name,GR00918,Soufli,918-SOUFLI
+name,GR00922,Lavara,922-LAVARA
+name,GR00924,Amorio,924-AMORIO
+name,GR00928,Didimoteicho,928-DIDYMOTEICHO
+name,GR00931,Petrades,931-PETRADES
+name,GR00933,Pythio,933-PYTHIO_STATION
+name,GR00941,Rigio,941-RIGIO
+name,GR00942,Thourio,942-THOURIO
+name,GR00943,Cheimonio,943-CHEIMONIO
+name,GR00945,Nea Orestiada,945-N_ORESTIADA
+name,GR00946,Sakkos,946-SAKKOS
+name,GR00948,Nea Vyssa,948-N_VYSSA
+name,GR00952,Marasia,952-MARASIA
+name,GR00954,Dilofos,954-DILOFO
+name,GR00956,Dikaia,956-DIKAIA
+name,GR00957,Ftelia,957-PTELEA
+name,GR00959,Ormenio,959-ORMENIO
+name,GR00960,Svilengrad,960-BULG_BORDER_SVILENGRAD
+name,GR01143,Lykoporia,143-LYKOPORIA
+name,GR01145,Lygia,145-LYGIA
+name,GR01172,Eliki,172-ELIKI
+name,GR01801,Kalivia Lamias,KALYVIA
+name,GR01802,Pagkrati Lamias,REVENIA
+name,GR01941,Sofiko,941-SOFIKO
+name,GR02002,Airport,002-AIRPORT
+name,GR02003,Koropi,003-KOROPI
+name,GR02004,Kantza,004-KANTZA
+name,GR02005,Pallini,005-PALLINI
+name,GR02006,Doukissis Plakentias,006-D_PLAKENTIAS
+name,GR02007,Pentelis,007-PENTELI
+name,GR02008,Kifisias,008-KIFISIAS
+name,GR02009,Neratziotissa,009-NERATZIOTISSA
+name,GR02010,Irakleio,010-IRAKLEIO
+name,GR02011,Metamorfosi,011-METAMORFOSI
+name,GR02012,SKA,012-SKA
+name,GR02015,Ano Liosia,015-ANO_LIOSIA
+name,GR02018,Ikonio A,018-IKONIO_PORT_STATION|018-SGYT_IKONIO_SWITCH
+name,GR02022,Thriasio,022-THRIASIO_SWITCH
+name,GR02023,Aspropyrgos,023-ASPROPYRGOS
+name,GR02024,Magoula,024-MAGOULA
+name,GR02026,Nea Peramos,026-N_PERAMOS
+name,GR02027,Megara,027-MEGARA
+name,GR02028,Kineta,028-KINETA
+name,GR02029,Agioi Theodoroi,029-AG_THEODOROI
+name,GR02032,corinth,032-KORINTHOS_NEW_RS
+name,GR02034,Zevgolatio,034-ZEVGOLATIO
+name,GR02036,Kiato,036-KIATO
+name,GR02038,Diminio,038-DIMINIO
+name,GR02040,Xylokastro,040-XYLOKASTRO
+name,GR02048,Akrata,048-AKRATA
+name,GR02052,Diakopto,052-DIAKOPTO
+name,GR02075,Aigio,075-AIGIO
+name,GR02111,Kato Acharnes,111-KATO_ACHARNAI
+name,GR02114,Zefyri,114-ZEFYRI
+name,GR02204,Agios Stefanos,204-AG_STEFANOS
+name,HR72703,Stari Slatinik,Stari Slatnik
+name,LT10033,BP278,BP248
+name,LT10040,BP344,BP248
+name,LT60014,Lauksargiai blok. postas,Lauksargiai
+name,NO00004,Alf. Andersen Mek. Verksted,Alfr. Andersen mek. verksted og Revet sidespr. ul. Larvik
+name,NO00015,Bekkedalshøgda Bp,Bekkedalshøgda
+name,NO00067,Gropa grustak s.sp.,Gropa
+name,NO00087,Hovdmoen s.sp (HIS),Hovdmoen Ssp
+name,NO00109,Ideal Flatbrødfabrikk s.sp.,Ideal flatbrødfabr.sidespor ul. Hamar
+name,NO00155,Mangå s.sp.,Mangå
+name,NO00203,Høybråten (HØB),Høybråten
+name,NO00226,Lillestrøm Hensetting (LLH),Lillestrøm H
+name,NO00227,Lillestrøm Ø (LLØ),Lillestrøm Ø
+name,NO00239,Soknabruket s.sp.,Soknabrukets sidespor ul. Sokna
+name,NO00254,Skoger,Skoger Bp.A
+name,NO00290,Tistedal s.sp.,Tistedal sidespor
+name,NO00293,Tanumåsen Bp,Tanumåsen Bp.A
+name,NO00411,Braskereidfoss (BFS),Braskereidfoss
+name,NO00509,Ski Nord (SKD),Ski N
+name,NO00512,Ski Hensetting (SKH),Ski H
+name,NO00544,Ingedal (ING),Ingedal
+name,NO00721,Bergsvika,Bergsvika kr.spor stasjon
+name,NO01126,Trondheim,Trondheim S
+name,NO01403,Bestum (BES),Bestum
+name,NO01503,Holm,Holm Bp.A
+name,NO01537,Gunnarsrød Blokkpost A,Gunnarsrød Bp A
+name,NO01625,Bergermoen (BGM),Bergermoen
+name,NO01632,Kongsberg Driftsbanegård (KB4),Kongsberg H
+name,NO02018,Aker (AKE),Aker
+name,NO02226,Sandnes Sentrum,Sandnes
+name,NO02229,Kvalaberg Verksted (KVB),Kvalaberg H
+name,NO02561,Auma hlp (ASS),Auma sidespor
+name,NO02762,Vatnestrøm s.sp (VAT),Vatnestrøm
+name,NO10201,Nyland (NYL),Nyland
+name,NO10202,Haugenstua (HGA),Haugenstua
+name,NO10204,Hanaborg (HAB),Hanaborg
+name,NO10206,Sagdalen (SDA),Sagdalen
+name,NO30012,Haven (HAV),Haven
+name,NO99554,FAJ Bp.,Flaj UA/B Bp.
+name,NO99555,FAK Bp.,Flak A/UB Bp.
+validity begin,AT01012,2025-12-14,2013-01-01
+validity begin,AT01030,2025-12-14,2024-06-09
+validity begin,AT01033,2025-12-14,2024-12-15
+validity begin,AT01048,2025-12-14,2024-06-09
+validity begin,AT01115,2025-12-14,2024-06-09
+validity begin,AT01172,2026-09-07,2013-01-01
+validity begin,AT01218,2025-12-14,2024-12-15
+validity begin,AT01228,2025-08-04,2024-06-09
+validity begin,AT01244,2025-12-14,2024-12-15
+validity begin,AT01246,2025-12-14,2024-06-09
+validity begin,AT01248,2026-09-07,2024-12-15
+validity begin,AT01266,2025-08-04,2025-12-14
+validity begin,AT01301,2025-12-14,2013-01-01
+validity begin,AT01310,2025-08-04,2025-12-14
+validity begin,AT01311,2025-08-04,2025-12-14
+validity begin,AT01312,2025-08-04,2025-12-14
+validity begin,AT01313,2025-08-04,2025-12-14
+validity begin,AT01346,2025-08-04,2025-12-14
+validity begin,AT01399,2025-12-14,2013-01-01
+validity begin,AT01619,2025-08-04,2025-12-14
+validity begin,AT01760,2025-12-14,2013-01-01
+validity begin,AT01796,2025-12-14,2013-01-01
+validity begin,AT01887,2025-12-14,2013-01-01
+validity begin,AT01915,2025-12-14,2013-01-01
+validity begin,AT02645,2026-09-07,2013-01-01
+validity begin,AT02646,2026-09-07,2013-01-01
+validity begin,AT02647,2026-09-07,2013-01-01
+validity begin,AT02648,2026-09-07,2013-01-01
+validity begin,AT02803,2026-09-07,2017-12-10
+validity begin,AT02806,2026-09-07,2023-12-10
+validity begin,AT02808,2026-09-07,2013-01-01
+validity begin,AT02975,2025-12-14,2013-01-01
+validity begin,AT02976,2025-12-14,2013-01-01
+validity begin,AT03003,2025-12-14,2013-01-01
+validity begin,AT03005,2025-12-14,2013-01-01
+validity begin,AT03036,2025-12-14,2013-01-01
+validity begin,AT03188,2025-08-04,2025-12-14
+validity begin,AT03702,2025-12-14,2013-01-01
+validity begin,AT03710,2025-12-14,2013-01-01
+validity begin,AT03824,2025-12-14,2013-01-01
+validity begin,AT03825,2025-12-14,2023-12-10
+validity begin,AT03826,2025-12-14,2023-12-10
+validity begin,AT05222,2025-12-14,2014-09-01
+validity begin,AT05369,2026-09-07,2014-09-01
+validity begin,AT05520,2025-08-04,2014-09-01
+validity begin,AT05556,2026-09-07,2014-09-01
+validity begin,AT05581,2026-09-07,2014-09-01
+validity begin,AT05768,2025-12-14,2014-09-01
+validity begin,AT13479,2026-09-07,2015-12-13
+validity begin,AT34050,2026-05-28,2017-11-12
+validity begin,AT34051,2026-05-28,2017-11-12
+validity begin,AT90017,2025-08-04,2025-12-14
+validity begin,AT90058,2025-08-04,2025-12-14
+validity begin,AT90059,2025-08-04,2025-12-14
+validity begin,AT90061,2025-08-04,2025-12-14
+validity begin,AT90062,2025-08-04,2025-12-14
+validity begin,AT90063,2025-08-04,2025-12-14
+validity begin,AT90064,2025-08-04,2025-12-14
+validity begin,AT90074,2025-08-04,2025-12-14
+validity begin,AT90077,2025-08-04,2025-12-14
+validity begin,AT90079,2025-08-04,2025-12-14
+validity begin,AT90087,2025-08-04,2025-12-14
+validity begin,AT90088,2025-08-04,2025-12-14
+validity begin,AT90089,2025-08-04,2025-12-14
+validity begin,AT90090,2025-08-04,2025-12-14
+validity begin,AT90091,2025-08-04,2025-12-14
+validity begin,AT90092,2025-08-04,2025-12-14
+validity begin,AT90107,2025-08-04,2025-12-14
+validity begin,AT90110,2025-08-04,2025-12-14
+validity begin,AT90114,2025-08-04,2025-12-14
+validity begin,AT90115,2025-08-04,2025-12-14
+validity begin,AT90131,2025-08-04,2025-12-14
+validity begin,AT90136,2025-08-04,2025-12-14
+validity begin,AT90137,2025-08-04,2025-12-14
+validity begin,AT90143,2025-08-04,2025-12-14
+validity begin,AT90144,2025-08-04,2025-12-14
+validity begin,AT90153,2025-08-04,2025-12-14
+validity begin,AT90154,2025-08-04,2025-12-14
+validity begin,AT90155,2025-08-04,2025-12-14
+validity begin,AT90156,2025-08-04,2025-12-14
+validity begin,AT90157,2025-08-04,2025-12-14
+validity begin,AT90158,2025-08-04,2025-12-14
+validity begin,AT90161,2025-08-04,2025-12-14
+validity begin,AT90162,2025-08-04,2025-12-14
+validity begin,AT90165,2026-09-07,2014-09-01
+validity begin,AT90166,2026-09-07,2014-09-01
+validity begin,AT90169,2025-08-04,2025-12-14
+validity begin,AT90170,2025-08-04,2025-12-14
+validity begin,AT90175,2025-08-04,2025-12-14
+validity begin,AT90178,2025-08-04,2025-12-14
+validity begin,AT90179,2025-08-04,2025-12-14
+validity begin,AT90198,2025-08-04,2025-12-14
+validity begin,AT90604,2026-09-07,2014-09-01
+validity begin,AT90680,2026-09-07,2014-09-01
+validity begin,AT90681,2026-09-07,2014-09-01
+validity begin,AT90682,2026-09-07,2014-09-01
+validity begin,AT90683,2026-09-07,2014-09-01
+validity begin,AT90684,2026-09-07,2014-09-01
+validity begin,AT90685,2026-09-07,2014-09-01
+validity begin,AT90686,2026-09-07,2014-09-01
+validity begin,AT90687,2026-09-07,2014-09-01
+validity begin,AT90761,2026-09-07,2014-09-01
+validity begin,AT90766,2026-09-07,2014-09-01
+validity begin,AT90767,2026-09-07,2014-09-01
+validity begin,AT90768,2026-09-07,2014-09-01
+validity begin,AT90769,2026-09-07,2014-09-01
+validity begin,AT90955,2025-12-14,2014-09-01
+validity begin,AT91013,2026-09-07,2015-12-13
+validity begin,AT91092,2025-08-04,2025-12-14
+validity begin,AT91130,2026-05-28,2020-12-12
+validity begin,AT91131,2026-05-28,2020-12-12
+validity begin,AT94102,2025-08-04,2025-12-14
+validity begin,AT94103,2025-08-04,2025-12-14
+validity begin,CZ37341,2018-12-09,2026-01-01
+validity begin,CZ53922,2025-12-14,2026-03-10
+validity begin,CZ78112,2017-07-01,2026-09-30
+validity begin,FR00001,2001-12-02,2025-08-29
+validity begin,FR00003,1998-01-01,2025-08-29
+validity begin,FR00009,1998-01-01,2025-08-29
+validity begin,FR00010,1998-01-01,2025-08-29
+validity begin,FR00012,1998-01-01,2025-08-28
+validity begin,FR00013,1998-01-01,2025-08-28
+validity begin,FR00014,1998-01-01,2025-08-29
+validity begin,FR00015,1998-01-01,2025-08-29
+validity begin,FR00016,1998-01-01,2025-08-29
+validity begin,FR00017,1998-01-01,2025-08-29
+validity begin,FR00019,1998-01-01,2025-08-28
+validity begin,FR00020,1998-01-01,2025-08-29
+validity begin,FR00022,1998-01-01,2025-08-29
+validity begin,FR00031,1998-01-01,2025-08-29
+validity begin,FR00032,1998-01-01,2025-08-28
+validity begin,FR00033,1998-01-01,2025-08-29
+validity begin,FR00035,2007-12-09,2025-08-29
+validity begin,FR00036,1998-01-01,2025-08-28
+validity begin,FR00037,1998-01-01,2025-08-28
+validity begin,FR00045,1998-01-01,2025-08-29
+validity begin,FR00046,1998-01-01,2025-08-28
+validity begin,FR00047,1998-01-01,2025-08-28
+validity begin,FR00049,1998-01-01,2025-08-28
+validity begin,FR00050,1998-01-01,2025-08-28
+validity begin,FR00052,2004-12-12,2025-08-29
+validity begin,FR00053,2004-12-12,2025-08-29
+validity begin,FR00058,1998-01-01,2025-08-29
+validity begin,FR00059,1998-01-01,2025-08-29
+validity begin,FR00060,2013-12-15,2025-08-29
+validity begin,FR00062,1998-01-01,2025-08-29
+validity begin,FR00063,1998-01-01,2025-08-29
+validity begin,FR00065,2006-12-10,2025-08-28
+validity begin,FR00066,2006-12-10,2025-08-29
+validity begin,FR00067,2006-12-10,2025-08-29
+validity begin,FR00068,2006-12-10,2025-08-29
+validity begin,FR00069,1998-01-01,2025-08-28
+validity begin,FR00070,1998-01-01,2025-08-29
+validity begin,FR00071,1998-01-01,2025-08-29
+validity begin,FR00072,1998-01-01,2025-08-29
+validity begin,FR00073,1998-01-01,2025-08-29
+validity begin,FR00074,1998-01-01,2025-08-29
+validity begin,FR00075,1998-01-01,2025-08-29
+validity begin,FR00076,1998-01-01,2025-08-29
+validity begin,FR00077,1998-01-01,2025-08-29
+validity begin,FR00078,1998-01-01,2025-08-29
+validity begin,FR00079,1998-01-01,2025-08-29
+validity begin,FR00080,1998-01-01,2025-08-29
+validity begin,FR00081,1998-01-01,2025-08-29
+validity begin,FR00082,1998-01-01,2025-08-29
+validity begin,FR00083,2025-09-18,2025-10-23
+validity begin,FR00084,2025-09-19,2025-10-24
+validity begin,FR00085,2025-09-18,2025-10-23
+validity begin,FR00086,1998-01-01,2025-08-29
+validity begin,FR00087,2025-09-18,2025-10-23
+validity begin,FR00088,2025-09-19,2025-10-24
+validity begin,FR00089,2025-09-18,2025-10-23
+validity begin,FR00090,1998-01-01,2025-08-29
+validity begin,FR00091,1998-01-01,2025-08-29
+validity begin,FR00092,2025-09-19,2025-10-24
+validity begin,FR00093,2025-09-18,2025-10-23
+validity begin,FR00094,1998-01-01,2025-08-29
+validity begin,FR00095,1998-01-01,2025-08-29
+validity begin,FR00099,1998-01-01,2025-08-29
+validity begin,FR00100,1998-01-01,2025-08-28
+validity begin,FR00101,1998-01-01,2025-08-29
+validity begin,FR00102,1998-01-01,2025-08-29
+validity begin,FR00103,1998-01-01,2025-08-29
+validity begin,FR00104,1998-01-01,2025-08-28
+validity begin,FR00105,1998-01-01,2025-08-29
+validity begin,FR00106,1998-01-01,2025-08-29
+validity begin,FR00108,1998-01-01,2025-08-29
+validity begin,FR00109,1998-01-01,2025-08-29
+validity begin,FR00110,1998-01-01,2025-08-29
+validity begin,FR00111,1998-01-01,2025-08-29
+validity begin,FR00119,1998-01-01,2025-08-29
+validity begin,FR00120,1998-01-01,2025-08-28
+validity begin,FR00122,1998-01-01,2025-08-29
+validity begin,FR00125,2008-12-14,2025-08-29
+validity begin,FR00128,1998-01-01,2025-08-29
+validity begin,FR00129,1998-01-01,2025-08-29
+validity begin,FR00131,1998-01-01,2025-08-29
+validity begin,FR00132,1998-01-01,2025-08-28
+validity begin,FR00133,1998-01-01,2025-08-29
+validity begin,FR00135,1998-01-01,2025-08-28
+validity begin,FR00136,1998-01-01,2025-08-28
+validity begin,FR00137,1998-01-01,2025-08-29
+validity begin,FR00138,1998-01-01,2025-08-29
+validity begin,FR00139,1998-01-01,2025-08-28
+validity begin,FR00140,1998-01-01,2025-08-28
+validity begin,FR00141,1998-01-01,2025-08-29
+validity begin,FR00142,1998-01-01,2025-08-29
+validity begin,FR00143,1998-01-01,2025-08-29
+validity begin,FR00144,1998-01-01,2025-08-28
+validity begin,FR00145,1998-01-01,2025-08-29
+validity begin,FR00146,2011-12-11,2025-08-29
+validity begin,FR00147,1998-01-01,2025-08-29
+validity begin,FR00148,2006-12-10,2025-08-29
+validity begin,FR00150,1998-01-01,2025-08-28
+validity begin,FR00151,1998-01-01,2025-08-29
+validity begin,FR00152,1998-01-01,2025-08-28
+validity begin,FR00153,1998-01-01,2025-08-28
+validity begin,FR00154,1998-01-01,2025-08-29
+validity begin,FR00155,1998-01-01,2025-08-29
+validity begin,FR00156,1998-01-01,2025-08-29
+validity begin,FR00158,1998-01-01,2025-08-29
+validity begin,FR00162,1998-01-01,2025-08-29
+validity begin,FR00163,1998-01-01,2025-08-29
+validity begin,FR00165,2007-12-09,2025-08-28
+validity begin,FR00166,2007-12-09,2025-08-29
+validity begin,FR00167,1998-01-01,2025-08-29
+validity begin,FR00168,1998-01-01,2025-08-29
+validity begin,FR00169,1998-01-01,2025-08-29
+validity begin,FR00170,1998-01-01,2025-08-28
+validity begin,FR00171,1998-01-01,2025-08-29
+validity begin,FR00173,2006-12-10,2025-08-28
+validity begin,FR00176,2006-12-10,2025-08-29
+validity begin,FR00178,2002-06-16,2025-08-29
+validity begin,FR00182,1998-01-01,2025-08-29
+validity begin,FR00184,1998-01-01,2025-08-29
+validity begin,FR00185,2011-12-11,2025-08-29
+validity begin,FR00186,1998-01-01,2025-08-29
+validity begin,FR00187,2005-12-11,2025-08-29
+validity begin,FR00188,1998-01-01,2025-08-28
+validity begin,FR00190,1998-01-01,2025-08-29
+validity begin,FR00191,1998-01-01,2025-08-29
+validity begin,FR00192,1998-01-01,2025-08-29
+validity begin,FR00193,1998-01-01,2025-08-28
+validity begin,FR00194,1998-01-01,2025-08-29
+validity begin,FR00195,1998-01-01,2025-08-28
+validity begin,FR00196,1998-01-01,2025-08-28
+validity begin,FR00197,1998-01-01,2025-08-29
+validity begin,FR00198,1998-01-01,2025-08-29
+validity begin,FR00199,1998-01-01,2025-08-29
+validity begin,FR00200,1998-01-01,2025-08-29
+validity begin,FR00201,1998-01-01,2025-08-29
+validity begin,FR00203,2005-12-11,2025-08-29
+validity begin,FR00204,1998-01-01,2025-08-28
+validity begin,FR00205,1998-01-01,2025-08-28
+validity begin,FR00206,1998-01-01,2025-08-29
+validity begin,FR00207,1998-01-01,2025-08-28
+validity begin,FR00208,1998-01-01,2025-08-28
+validity begin,FR00209,1998-01-01,2025-08-29
+validity begin,FR00212,2004-12-12,2025-08-29
+validity begin,FR00215,1998-01-01,2025-08-29
+validity begin,FR00219,1998-01-01,2025-08-29
+validity begin,FR00223,1998-01-01,2025-08-29
+validity begin,FR00225,1998-01-01,2025-08-29
+validity begin,FR00226,1998-01-01,2025-08-29
+validity begin,FR00227,1998-01-01,2025-08-29
+validity begin,FR00230,1998-01-01,2025-08-29
+validity begin,FR00231,1998-01-01,2025-08-28
+validity begin,FR00232,1998-01-01,2025-08-29
+validity begin,FR00233,1998-01-01,2025-08-29
+validity begin,FR00234,1998-01-01,2025-08-29
+validity begin,FR00235,1998-01-01,2025-08-29
+validity begin,FR00236,1998-01-01,2025-08-29
+validity begin,FR00237,1998-01-01,2025-08-29
+validity begin,FR00238,1998-01-01,2025-08-28
+validity begin,FR00239,1998-01-01,2025-08-29
+validity begin,FR00240,2001-12-02,2025-08-29
+validity begin,FR00241,2002-06-16,2025-08-29
+validity begin,FR00242,1998-01-01,2025-08-29
+validity begin,FR00243,1998-01-01,2025-08-29
+validity begin,FR00244,1998-01-01,2025-08-28
+validity begin,FR00245,1998-01-01,2025-08-29
+validity begin,FR00246,1998-01-01,2025-08-29
+validity begin,FR00247,1998-01-01,2025-08-29
+validity begin,FR00251,2007-12-09,2025-08-29
+validity begin,FR00253,1998-01-01,2025-08-29
+validity begin,FR00254,1998-01-01,2025-08-29
+validity begin,FR00255,1998-01-01,2025-08-29
+validity begin,FR00256,1998-01-01,2025-08-29
+validity begin,FR00257,1998-01-01,2025-08-29
+validity begin,FR00258,1998-01-01,2025-08-29
+validity begin,FR00259,1998-01-01,2025-08-29
+validity begin,FR00260,1998-01-01,2025-08-29
+validity begin,FR00261,1998-01-01,2025-08-29
+validity begin,FR00262,1998-01-01,2025-08-29
+validity begin,FR00263,1998-01-01,2025-08-29
+validity begin,FR00265,1998-01-01,2025-08-29
+validity begin,FR00266,1998-01-01,2025-08-29
+validity begin,FR00267,1998-01-01,2025-08-28
+validity begin,FR00268,1998-01-01,2025-08-28
+validity begin,FR00269,1998-01-01,2025-08-29
+validity begin,FR00270,1998-01-01,2025-08-29
+validity begin,FR00271,1998-01-01,2025-08-29
+validity begin,FR00272,1998-01-01,2025-08-29
+validity begin,FR00273,2008-12-14,2025-08-29
+validity begin,FR00274,1998-01-01,2025-08-29
+validity begin,FR00275,1998-01-01,2025-08-29
+validity begin,FR00276,2014-12-14,2025-08-29
+validity begin,FR00277,1998-01-01,2025-08-29
+validity begin,FR00278,1998-01-01,2025-08-28
+validity begin,FR00279,1998-01-01,2025-08-28
+validity begin,FR00280,1998-01-01,2025-08-29
+validity begin,FR00281,1998-01-01,2025-08-29
+validity begin,FR00282,1998-01-01,2025-08-29
+validity begin,FR00283,1998-01-01,2025-08-28
+validity begin,FR00284,2001-12-02,2025-08-29
+validity begin,FR00285,1998-01-01,2025-08-29
+validity begin,FR00286,1998-01-01,2025-08-28
+validity begin,FR00287,1998-01-01,2025-08-28
+validity begin,FR00290,1998-01-01,2025-08-29
+validity begin,FR00291,1998-01-01,2025-08-28
+validity begin,FR00292,1998-01-01,2025-08-29
+validity begin,FR00293,1998-01-01,2025-08-29
+validity begin,FR00294,1998-01-01,2025-08-28
+validity begin,FR00295,1998-01-01,2025-08-29
+validity begin,FR00296,1998-01-01,2025-08-29
+validity begin,FR00297,2001-12-02,2025-08-29
+validity begin,FR00298,1998-01-01,2025-08-28
+validity begin,FR00299,2010-12-12,2025-08-29
+validity begin,FR00300,1998-01-01,2025-08-29
+validity begin,FR00301,1998-01-01,2025-08-29
+validity begin,FR00306,1998-01-01,2025-08-29
+validity begin,FR00307,1998-01-01,2025-08-29
+validity begin,FR00308,1998-01-01,2025-08-29
+validity begin,FR00309,1998-01-01,2025-08-28
+validity begin,FR00310,1998-01-01,2025-08-29
+validity begin,FR00313,1998-01-01,2025-08-28
+validity begin,FR00317,1998-01-01,2025-08-29
+validity begin,FR00318,1998-01-01,2025-08-28
+validity begin,FR00319,1998-01-01,2025-08-29
+validity begin,FR00320,1998-01-01,2025-08-28
+validity begin,FR00322,2009-12-13,2025-08-29
+validity begin,FR00323,2008-12-14,2025-08-29
+validity begin,FR00324,1998-01-01,2025-08-29
+validity begin,FR00325,1998-01-01,2025-08-29
+validity begin,FR00327,1998-01-01,2025-08-28
+validity begin,FR00330,1998-01-01,2025-08-29
+validity begin,FR00332,1998-01-01,2025-08-29
+validity begin,FR00334,1998-01-01,2025-08-29
+validity begin,FR00336,1998-01-01,2025-08-29
+validity begin,FR00337,2011-12-11,2025-08-29
+validity begin,FR00338,1998-01-01,2025-08-28
+validity begin,FR00339,2007-12-09,2025-08-29
+validity begin,FR00340,1998-01-01,2025-08-29
+validity begin,FR00341,1998-01-01,2025-08-29
+validity begin,FR00342,2007-12-09,2025-08-29
+validity begin,FR00343,2011-12-11,2025-08-29
+validity begin,FR00344,1998-01-01,2025-08-28
+validity begin,FR00345,2011-12-11,2025-08-29
+validity begin,FR00346,1998-01-01,2025-08-29
+validity begin,FR00348,1998-01-01,2025-08-28
+validity begin,FR00349,1998-01-01,2025-08-29
+validity begin,FR00350,2002-06-16,2025-08-29
+validity begin,FR00351,1998-01-01,2025-08-29
+validity begin,FR00352,1998-01-01,2025-08-29
+validity begin,FR00353,2001-12-02,2025-08-29
+validity begin,FR00354,1998-01-01,2025-08-29
+validity begin,FR00356,1998-01-01,2025-08-29
+validity begin,FR00358,1998-01-01,2025-08-29
+validity begin,FR00359,1998-01-01,2025-08-29
+validity begin,FR00360,2012-12-09,2025-08-28
+validity begin,FR00361,1998-01-01,2025-08-29
+validity begin,FR00362,1998-01-01,2025-08-28
+validity begin,FR00363,1998-01-01,2025-08-29
+validity begin,FR00364,2011-02-07,2025-08-29
+validity begin,FR00365,1998-01-01,2025-08-29
+validity begin,FR00366,1998-01-01,2025-08-29
+validity begin,FR00367,1998-01-01,2025-08-28
+validity begin,FR00368,1998-01-01,2025-08-29
+validity begin,FR00369,1998-01-01,2025-08-29
+validity begin,FR00370,1998-01-01,2025-08-29
+validity begin,FR00371,1998-01-01,2025-08-29
+validity begin,FR00372,1998-01-01,2025-08-28
+validity begin,FR00373,2013-12-15,2025-08-29
+validity begin,FR00374,2010-12-12,2025-08-28
+validity begin,FR00375,1998-01-01,2025-08-29
+validity begin,FR00376,1998-01-01,2025-08-29
+validity begin,FR00377,1998-01-01,2025-08-28
+validity begin,FR00379,1998-01-01,2025-08-29
+validity begin,FR00380,1998-01-01,2025-08-29
+validity begin,FR00381,1998-01-01,2025-08-29
+validity begin,FR00382,1998-01-01,2025-08-29
+validity begin,FR00383,1998-01-01,2025-08-29
+validity begin,FR00384,1998-01-01,2025-08-29
+validity begin,FR00385,1998-01-01,2025-08-29
+validity begin,FR00386,2005-12-11,2025-08-29
+validity begin,FR00387,1998-01-01,2025-08-28
+validity begin,FR00388,1998-01-01,2025-08-29
+validity begin,FR00389,1998-01-01,2025-08-29
+validity begin,FR00390,1998-01-01,2025-08-29
+validity begin,FR00391,1998-01-01,2025-08-29
+validity begin,FR00392,1998-01-01,2025-08-29
+validity begin,FR00393,1998-01-01,2025-08-28
+validity begin,FR00394,1998-01-01,2025-08-29
+validity begin,FR00395,1998-01-01,2025-08-29
+validity begin,FR00396,2011-12-11,2025-08-28
+validity begin,FR00397,2011-12-11,2025-08-29
+validity begin,FR00398,1998-01-01,2025-08-29
+validity begin,FR00399,1998-01-01,2025-08-29
+validity begin,FR00400,2007-12-09,2025-08-29
+validity begin,FR00402,1998-01-01,2025-08-29
+validity begin,FR00403,2014-12-14,2025-08-28
+validity begin,FR00406,1998-01-01,2025-08-29
+validity begin,FR00407,1998-01-01,2025-08-29
+validity begin,FR00408,1998-01-01,2025-08-29
+validity begin,FR00409,1998-01-01,2025-08-29
+validity begin,FR00410,1998-01-01,2025-08-29
+validity begin,FR00411,1998-01-01,2025-08-29
+validity begin,FR00414,1998-01-01,2025-08-29
+validity begin,FR00415,1998-01-01,2025-08-28
+validity begin,FR00433,1998-01-01,2025-08-29
+validity begin,FR00435,1998-01-01,2025-08-28
+validity begin,FR00436,1998-01-01,2025-08-29
+validity begin,FR00437,1998-01-01,2025-08-28
+validity begin,FR00438,1998-01-01,2025-08-29
+validity begin,FR00439,1998-01-01,2025-08-29
+validity begin,FR00440,1998-01-01,2025-08-29
+validity begin,FR00441,1998-01-01,2025-08-29
+validity begin,FR00443,2002-06-16,2025-08-29
+validity begin,FR00444,1998-01-01,2025-08-29
+validity begin,FR00445,1998-01-01,2025-08-28
+validity begin,FR00446,1998-01-01,2025-08-29
+validity begin,FR00447,1998-01-01,2025-08-29
+validity begin,FR00448,1998-01-01,2025-08-28
+validity begin,FR00449,1998-01-01,2025-08-29
+validity begin,FR00450,1998-01-01,2025-08-28
+validity begin,FR00451,1998-01-01,2025-08-29
+validity begin,FR00452,1998-01-01,2025-08-29
+validity begin,FR00455,1998-01-01,2025-08-28
+validity begin,FR00456,1998-01-01,2025-08-29
+validity begin,FR00457,2007-12-09,2025-08-29
+validity begin,FR00458,1998-01-01,2025-08-28
+validity begin,FR00459,1998-01-01,2025-08-29
+validity begin,FR00460,1998-01-01,2025-08-29
+validity begin,FR00461,1998-01-01,2025-08-29
+validity begin,FR00462,1998-01-01,2025-08-29
+validity begin,FR00463,1998-01-01,2025-08-28
+validity begin,FR00464,1998-01-01,2025-08-29
+validity begin,FR00465,1998-01-01,2025-08-29
+validity begin,FR00466,1998-01-01,2025-08-28
+validity begin,FR00467,1998-01-01,2025-08-29
+validity begin,FR00468,2006-12-10,2025-08-29
+validity begin,FR00469,1998-01-01,2025-08-29
+validity begin,FR00470,1998-01-01,2025-08-28
+validity begin,FR00472,1998-01-01,2025-08-29
+validity begin,FR00474,1998-01-01,2025-08-29
+validity begin,FR00476,1998-01-01,2025-08-28
+validity begin,FR00477,1998-01-01,2025-08-29
+validity begin,FR00478,1998-01-01,2025-08-29
+validity begin,FR00481,1998-01-01,2025-08-29
+validity begin,FR00486,1998-01-01,2025-08-28
+validity begin,FR00494,1998-01-01,2025-08-28
+validity begin,FR00495,1998-01-01,2025-08-29
+validity begin,FR00497,1998-01-01,2025-08-29
+validity begin,FR00498,2010-12-12,2025-08-29
+validity begin,FR00500,1998-01-01,2025-08-29
+validity begin,FR00501,2008-04-06,2025-08-29
+validity begin,FR00502,1998-01-01,2025-08-29
+validity begin,FR00505,1998-01-01,2025-08-28
+validity begin,FR00516,1998-01-01,2025-08-28
+validity begin,FR00517,2001-12-02,2025-08-29
+validity begin,FR00518,2025-09-18,2025-10-23
+validity begin,FR00519,1998-01-01,2025-08-29
+validity begin,FR00520,2025-09-19,2025-10-24
+validity begin,FR00521,2025-09-18,2025-10-23
+validity begin,FR00522,2025-09-18,2025-10-23
+validity begin,FR00523,1998-01-01,2025-08-29
+validity begin,FR00525,1998-01-01,2025-08-29
+validity begin,FR00527,1998-01-01,2025-08-29
+validity begin,FR00528,1998-01-01,2025-08-28
+validity begin,FR00529,1998-01-01,2025-08-29
+validity begin,FR00531,1998-01-01,2025-08-29
+validity begin,FR00532,1998-01-01,2025-08-29
+validity begin,FR00533,1998-01-01,2025-08-29
+validity begin,FR00535,2025-09-18,2025-10-23
+validity begin,FR00536,2025-09-18,2025-10-23
+validity begin,FR00537,1998-01-01,2025-08-29
+validity begin,FR00538,1998-01-01,2025-08-29
+validity begin,FR00540,1998-01-01,2025-08-29
+validity begin,FR00541,1998-01-01,2025-08-29
+validity begin,FR00543,1998-01-01,2025-08-29
+validity begin,FR00550,1998-01-01,2025-08-29
+validity begin,FR00553,2007-04-01,2025-08-29
+validity begin,FR00555,1998-01-01,2025-08-29
+validity begin,FR00556,1998-01-01,2025-08-28
+validity begin,FR00557,1998-01-01,2025-08-29
+validity begin,FR00558,1998-01-01,2025-08-29
+validity begin,FR00559,1998-01-01,2025-08-29
+validity begin,FR00560,1998-01-01,2025-08-29
+validity begin,FR00561,1998-01-01,2025-08-29
+validity begin,FR00562,1998-01-01,2025-08-29
+validity begin,FR00563,1998-01-01,2025-08-29
+validity begin,FR00564,1998-01-01,2025-08-29
+validity begin,FR00565,1998-01-01,2025-08-28
+validity begin,FR00566,1998-01-01,2025-08-29
+validity begin,FR00569,1998-01-01,2025-08-29
+validity begin,FR00576,1998-01-01,2025-08-29
+validity begin,FR00577,1998-01-01,2025-08-29
+validity begin,FR00578,2006-12-10,2025-08-29
+validity begin,FR00579,1998-01-01,2025-08-29
+validity begin,FR00580,1998-01-01,2025-08-28
+validity begin,FR00581,2006-12-10,2025-08-29
+validity begin,FR00583,1998-01-01,2025-08-29
+validity begin,FR00584,1998-01-01,2025-08-29
+validity begin,FR00585,1998-01-01,2025-08-28
+validity begin,FR00586,1998-01-01,2025-08-29
+validity begin,FR00587,1998-01-01,2025-08-29
+validity begin,FR00588,1998-01-01,2025-08-29
+validity begin,FR00590,1998-01-01,2025-08-28
+validity begin,FR00594,1998-01-01,2025-08-29
+validity begin,FR00596,1998-01-01,2025-08-29
+validity begin,FR00599,2007-12-09,2025-08-28
+validity begin,FR00601,1998-01-01,2025-08-29
+validity begin,FR00603,1998-01-01,2025-08-29
+validity begin,FR00606,1998-01-01,2025-08-29
+validity begin,FR00607,1998-01-01,2025-08-29
+validity begin,FR00608,1998-01-01,2025-08-28
+validity begin,FR00609,1998-01-01,2025-08-29
+validity begin,FR00610,2008-12-14,2025-08-29
+validity begin,FR00611,1998-01-01,2025-08-29
+validity begin,FR00613,1998-01-01,2025-08-29
+validity begin,FR00614,1998-01-01,2025-08-29
+validity begin,FR00615,1998-01-01,2025-08-29
+validity begin,FR00616,1998-01-01,2025-08-29
+validity begin,FR00617,1998-01-01,2025-08-29
+validity begin,FR00618,1998-01-01,2025-08-29
+validity begin,FR00619,1998-01-01,2025-08-28
+validity begin,FR00620,1998-01-01,2025-08-28
+validity begin,FR00622,1998-01-01,2025-08-29
+validity begin,FR00624,1998-01-01,2025-08-29
+validity begin,FR00627,1998-01-01,2025-08-28
+validity begin,FR00628,1998-01-01,2025-08-29
+validity begin,FR00629,1998-01-01,2025-08-29
+validity begin,FR00630,1998-01-01,2025-08-29
+validity begin,FR00634,1998-01-01,2025-08-28
+validity begin,FR00635,1998-01-01,2025-08-29
+validity begin,FR00636,1998-01-01,2025-08-29
+validity begin,FR00637,2007-12-09,2025-08-28
+validity begin,FR00638,1998-01-01,2025-08-29
+validity begin,FR00639,1998-01-01,2025-08-29
+validity begin,FR00640,1998-01-01,2025-08-28
+validity begin,FR00643,1998-01-01,2025-08-28
+validity begin,FR00644,1998-01-01,2025-08-29
+validity begin,FR00645,1998-01-01,2025-08-28
+validity begin,FR00646,1998-01-01,2025-08-28
+validity begin,FR00651,1998-01-01,2025-08-29
+validity begin,FR00653,1998-01-01,2025-08-29
+validity begin,FR00656,1998-01-01,2025-08-28
+validity begin,FR00657,2006-12-10,2025-08-29
+validity begin,FR00659,2006-12-10,2025-08-29
+validity begin,FR00660,2006-12-10,2025-08-29
+validity begin,FR00661,1998-01-01,2025-08-29
+validity begin,FR00662,2002-06-16,2025-08-29
+validity begin,FR00664,1998-01-01,2025-08-29
+validity begin,FR00665,1998-01-01,2025-08-29
+validity begin,FR00666,1998-01-01,2025-08-29
+validity begin,FR00667,1998-01-01,2025-08-28
+validity begin,FR00668,1998-01-01,2025-08-29
+validity begin,FR00669,1998-01-01,2025-08-29
+validity begin,FR00670,2002-06-16,2025-08-29
+validity begin,FR00671,1998-01-01,2025-08-28
+validity begin,FR00672,1998-01-01,2025-08-28
+validity begin,FR00673,1998-01-01,2025-08-29
+validity begin,FR00674,1998-01-01,2025-08-29
+validity begin,FR00675,1998-01-01,2025-08-29
+validity begin,FR00676,1998-01-01,2025-08-29
+validity begin,FR00677,1998-01-01,2025-08-28
+validity begin,FR00678,1998-01-01,2025-08-29
+validity begin,FR00679,2002-06-16,2025-08-28
+validity begin,FR00680,1998-01-01,2025-08-29
+validity begin,FR00681,1998-01-01,2025-08-29
+validity begin,FR00682,1998-01-01,2025-08-29
+validity begin,FR00684,1998-01-01,2025-08-29
+validity begin,FR00685,1998-01-01,2025-08-29
+validity begin,FR00686,1998-01-01,2025-08-28
+validity begin,FR00688,1998-01-01,2025-08-29
+validity begin,FR00689,1998-01-01,2025-08-29
+validity begin,FR00690,1998-01-01,2025-08-29
+validity begin,FR00691,1998-01-01,2025-08-29
+validity begin,FR00692,1998-01-01,2025-08-29
+validity begin,FR00693,1998-01-01,2025-08-28
+validity begin,FR00695,1998-01-01,2025-08-29
+validity begin,FR00696,1998-01-01,2025-08-29
+validity begin,FR00697,1998-01-01,2025-08-29
+validity begin,FR00701,2011-12-11,2025-08-28
+validity begin,FR00702,2011-12-11,2025-08-29
+validity begin,FR00703,1998-01-01,2025-08-29
+validity begin,FR00704,2011-12-11,2025-08-29
+validity begin,FR00705,1998-01-01,2025-08-28
+validity begin,FR00706,1998-01-01,2025-08-29
+validity begin,FR00707,1998-01-01,2025-08-28
+validity begin,FR00708,1998-01-01,2025-08-29
+validity begin,FR00709,1998-01-01,2025-08-29
+validity begin,FR00710,2011-12-11,2025-08-29
+validity begin,FR00711,2002-06-16,2025-08-29
+validity begin,FR00712,1998-01-01,2025-08-28
+validity begin,FR00713,1998-01-01,2025-08-29
+validity begin,FR00714,1998-01-01,2025-08-29
+validity begin,FR00715,1998-01-01,2025-08-29
+validity begin,FR00719,1998-01-01,2025-08-29
+validity begin,FR00720,1998-01-01,2025-08-28
+validity begin,FR00721,1998-01-01,2025-08-29
+validity begin,FR00726,1998-01-01,2025-08-29
+validity begin,FR00729,1998-01-01,2025-08-29
+validity begin,FR00730,1998-01-01,2025-08-29
+validity begin,FR00731,1998-01-01,2025-08-29
+validity begin,FR00732,1998-01-01,2025-08-29
+validity begin,FR00733,1998-01-01,2025-08-29
+validity begin,FR00734,1998-01-01,2025-08-29
+validity begin,FR00735,1998-01-01,2025-08-29
+validity begin,FR00736,1998-01-01,2025-08-29
+validity begin,FR00737,2001-12-02,2025-08-29
+validity begin,FR00739,1998-01-01,2025-08-29
+validity begin,FR00740,1998-01-01,2025-08-29
+validity begin,FR00741,1998-01-01,2025-08-28
+validity begin,FR00742,1998-01-01,2025-08-29
+validity begin,FR00743,1998-01-01,2025-08-29
+validity begin,FR00744,1998-01-01,2025-08-29
+validity begin,FR00745,1998-01-01,2025-08-29
+validity begin,FR00746,1998-01-01,2025-08-28
+validity begin,FR00747,1998-01-01,2025-08-29
+validity begin,FR00748,1998-01-01,2025-08-29
+validity begin,FR00749,1998-01-01,2025-08-29
+validity begin,FR00750,1998-01-01,2025-08-29
+validity begin,FR00751,1998-01-01,2025-08-29
+validity begin,FR00752,1998-01-01,2025-08-29
+validity begin,FR00753,1998-01-01,2025-08-28
+validity begin,FR00754,1998-01-01,2025-08-29
+validity begin,FR00755,1998-01-01,2025-08-29
+validity begin,FR00756,1998-01-01,2025-08-29
+validity begin,FR00757,1998-01-01,2025-08-29
+validity begin,FR00758,1998-01-01,2025-08-29
+validity begin,FR00759,1998-01-01,2025-08-29
+validity begin,FR00760,1998-01-01,2025-08-29
+validity begin,FR00761,1998-01-01,2025-08-29
+validity begin,FR00762,1998-01-01,2025-08-29
+validity begin,FR00763,1998-01-01,2025-08-29
+validity begin,FR00764,1998-01-01,2025-08-29
+validity begin,FR00765,1998-01-01,2025-08-29
+validity begin,FR00766,2006-12-10,2025-08-28
+validity begin,FR00767,2006-12-10,2025-08-29
+validity begin,FR00768,1998-01-01,2025-08-29
+validity begin,FR00773,1998-01-01,2025-08-29
+validity begin,FR00774,1998-01-01,2025-08-28
+validity begin,FR00775,1998-01-01,2025-08-29
+validity begin,FR00776,1998-01-01,2025-08-29
+validity begin,FR00777,1998-01-01,2025-08-28
+validity begin,FR00778,1998-01-01,2025-08-29
+validity begin,FR00779,1998-01-01,2025-08-28
+validity begin,FR00780,1998-01-01,2025-08-28
+validity begin,FR00781,1998-01-01,2025-08-29
+validity begin,FR00782,1998-01-01,2025-08-29
+validity begin,FR00783,1998-01-01,2025-08-29
+validity begin,FR00788,1998-01-01,2025-08-29
+validity begin,FR00790,1998-01-01,2025-08-29
+validity begin,FR00791,1998-01-01,2025-08-29
+validity begin,FR00792,1998-01-01,2025-08-29
+validity begin,FR00793,1998-01-01,2025-08-29
+validity begin,FR00794,1998-01-01,2025-08-28
+validity begin,FR00795,1998-01-01,2025-08-29
+validity begin,FR00796,1998-01-01,2025-08-28
+validity begin,FR00797,1998-01-01,2025-08-28
+validity begin,FR00798,1998-01-01,2025-08-29
+validity begin,FR00799,1998-01-01,2025-08-29
+validity begin,FR00800,2011-06-12,2025-08-29
+validity begin,FR00801,2010-12-12,2025-08-29
+validity begin,FR00810,1998-01-01,2025-08-29
+validity begin,FR00812,1998-01-01,2025-08-29
+validity begin,FR00813,1998-01-01,2025-08-29
+validity begin,FR00814,1998-01-01,2025-08-29
+validity begin,FR00816,1998-01-01,2025-08-29
+validity begin,FR00817,1998-01-01,2025-08-29
+validity begin,FR00818,1998-01-01,2025-08-29
+validity begin,FR00819,1998-01-01,2025-08-29
+validity begin,FR00821,1998-01-01,2025-08-29
+validity begin,FR00822,1998-01-01,2025-08-29
+validity begin,FR00823,1998-01-01,2025-08-29
+validity begin,FR00824,1998-01-01,2025-08-28
+validity begin,FR00832,2007-04-01,2025-08-29
+validity begin,FR00842,2007-04-01,2025-08-29
+validity begin,FR00844,2007-04-01,2025-08-28
+validity begin,FR00846,2007-04-01,2025-08-29
+validity begin,FR00847,2007-04-01,2025-08-29
+validity begin,FR00848,1998-01-01,2025-08-29
+validity begin,FR00849,1998-01-01,2025-08-29
+validity begin,FR00850,1998-01-01,2025-08-29
+validity begin,FR00851,2012-06-10,2025-08-29
+validity begin,FR00852,1998-01-01,2025-08-29
+validity begin,FR00853,1998-01-01,2025-08-29
+validity begin,FR00854,1998-01-01,2025-08-29
+validity begin,FR00855,1998-01-01,2025-08-29
+validity begin,FR00856,1998-01-01,2025-08-29
+validity begin,FR00858,1998-01-01,2025-08-29
+validity begin,FR00861,2006-12-10,2025-08-29
+validity begin,FR00862,2010-12-12,2025-08-29
+validity begin,FR00866,1998-01-01,2025-08-29
+validity begin,FR00871,1998-01-01,2025-08-29
+validity begin,FR00872,1998-01-01,2025-08-29
+validity begin,FR00873,1998-01-01,2025-08-29
+validity begin,FR00874,1998-01-01,2025-08-29
+validity begin,FR00875,1998-01-01,2025-08-28
+validity begin,FR00876,2014-12-14,2025-08-28
+validity begin,FR00878,1998-01-01,2025-08-29
+validity begin,FR00881,1998-01-01,2025-08-29
+validity begin,FR00884,1998-01-01,2025-08-29
+validity begin,FR00887,1998-01-01,2025-08-29
+validity begin,FR00889,2005-12-11,2025-08-29
+validity begin,FR00890,1998-01-01,2025-08-28
+validity begin,FR00892,1998-01-01,2025-08-29
+validity begin,FR00896,1998-01-01,2025-08-29
+validity begin,FR00898,1998-01-01,2025-08-28
+validity begin,FR00900,1998-01-01,2025-08-29
+validity begin,FR00901,1998-01-01,2025-08-28
+validity begin,FR00902,1998-01-01,2025-08-29
+validity begin,FR00905,1998-01-01,2025-08-29
+validity begin,FR00906,1998-01-01,2025-08-29
+validity begin,FR00907,1998-01-01,2025-08-29
+validity begin,FR00908,1998-01-01,2025-08-29
+validity begin,FR00909,1998-01-01,2025-08-29
+validity begin,FR00911,1998-01-01,2025-08-28
+validity begin,FR00913,1998-01-01,2025-08-29
+validity begin,FR00916,1998-01-01,2025-08-29
+validity begin,FR00918,1998-01-01,2025-08-28
+validity begin,FR00921,1998-01-01,2025-08-29
+validity begin,FR00923,1998-01-01,2025-08-28
+validity begin,FR00925,1998-01-01,2025-08-29
+validity begin,FR00926,2006-12-10,2025-08-29
+validity begin,FR00930,2010-12-12,2025-08-29
+validity begin,FR00933,2006-12-10,2025-08-29
+validity begin,FR00935,1998-01-01,2025-08-29
+validity begin,FR00936,1998-01-01,2025-08-29
+validity begin,FR00938,1998-01-01,2025-08-28
+validity begin,FR00941,1998-01-01,2025-08-28
+validity begin,FR00944,1998-01-01,2025-08-28
+validity begin,FR00946,1998-01-01,2025-08-29
+validity begin,FR00949,2011-12-11,2025-08-29
+validity begin,FR00952,1998-01-01,2025-08-29
+validity begin,FR00954,1998-01-01,2025-08-29
+validity begin,FR00956,1998-01-01,2025-08-29
+validity begin,FR00960,1998-01-01,2025-08-28
+validity begin,FR00964,2007-12-09,2025-08-29
+validity begin,FR00965,2007-12-09,2025-08-29
+validity begin,FR00967,2008-12-14,2025-08-28
+validity begin,FR00968,2010-12-12,2025-08-29
+validity begin,FR00969,1998-01-01,2025-08-28
+validity begin,FR00970,1998-01-01,2025-08-28
+validity begin,FR00971,1998-01-01,2025-08-29
+validity begin,FR00972,1998-01-01,2025-08-29
+validity begin,FR00973,1998-01-01,2025-08-29
+validity begin,FR00974,1998-01-01,2025-08-29
+validity begin,FR00975,1998-01-01,2025-08-29
+validity begin,FR00977,1998-01-01,2025-08-29
+validity begin,FR00978,1998-01-01,2025-08-29
+validity begin,FR00980,1998-01-01,2025-08-29
+validity begin,FR00981,1998-01-01,2025-08-29
+validity begin,FR00982,1998-01-01,2025-08-29
+validity begin,FR00983,1998-01-01,2025-08-29
+validity begin,FR00984,1998-01-01,2025-08-29
+validity begin,FR00986,2010-12-12,2025-08-28
+validity begin,FR00987,1998-01-01,2025-08-29
+validity begin,FR00996,1998-01-01,2025-08-29
+validity begin,FR01002,1998-01-01,2025-08-28
+validity begin,FR01005,1998-01-01,2025-08-29
+validity begin,FR01008,1998-01-01,2025-08-28
+validity begin,FR01010,1998-01-01,2025-08-28
+validity begin,FR01012,1998-01-01,2025-08-28
+validity begin,FR01013,1998-01-01,2025-08-29
+validity begin,FR01017,1998-01-01,2025-08-29
+validity begin,FR01018,1998-01-01,2025-08-29
+validity begin,FR01019,1998-01-01,2025-08-29
+validity begin,FR01020,1998-01-01,2025-08-29
+validity begin,FR01021,1998-01-01,2025-08-29
+validity begin,FR01022,1998-01-01,2025-08-29
+validity begin,FR01023,1998-01-01,2025-08-29
+validity begin,FR01024,1998-01-01,2025-08-29
+validity begin,FR01025,1998-01-01,2025-08-29
+validity begin,FR01026,1998-01-01,2025-08-29
+validity begin,FR01027,1998-01-01,2025-08-29
+validity begin,FR01028,1998-01-01,2025-08-28
+validity begin,FR01029,1998-01-01,2025-08-28
+validity begin,FR01030,1998-01-01,2025-08-29
+validity begin,FR01031,1998-01-01,2025-08-29
+validity begin,FR01032,1998-01-01,2025-08-29
+validity begin,FR01033,2025-09-18,2025-10-23
+validity begin,FR01034,1998-01-01,2025-08-29
+validity begin,FR01035,1998-01-01,2025-08-29
+validity begin,FR01036,1998-01-01,2025-08-29
+validity begin,FR01037,1998-01-01,2025-08-29
+validity begin,FR01038,2008-12-14,2025-08-29
+validity begin,FR01041,2025-09-18,2025-10-23
+validity begin,FR01042,2025-09-19,2025-10-24
+validity begin,FR01043,2025-09-18,2025-10-23
+validity begin,FR01046,1998-01-01,2025-08-28
+validity begin,FR01047,1998-01-01,2025-08-28
+validity begin,FR01048,1998-01-01,2025-08-29
+validity begin,FR01049,1998-01-01,2025-08-29
+validity begin,FR01051,1998-01-01,2025-08-28
+validity begin,FR01053,1998-01-01,2025-08-29
+validity begin,FR01056,1998-01-01,2025-08-28
+validity begin,FR01057,1998-01-01,2025-08-29
+validity begin,FR01060,1998-01-01,2025-08-29
+validity begin,FR01061,1998-01-01,2025-08-29
+validity begin,FR01062,1998-01-01,2025-08-29
+validity begin,FR01063,1998-01-01,2025-08-29
+validity begin,FR01064,1998-01-01,2025-08-29
+validity begin,FR01065,1998-01-01,2025-08-29
+validity begin,FR01066,1998-01-01,2025-08-29
+validity begin,FR01067,1998-01-01,2025-08-28
+validity begin,FR01071,1998-01-01,2025-08-29
+validity begin,FR01072,1998-01-01,2025-08-29
+validity begin,FR01073,1998-01-01,2025-08-29
+validity begin,FR01074,1998-01-01,2025-08-29
+validity begin,FR01075,1998-01-01,2025-08-29
+validity begin,FR01077,1998-01-01,2025-08-28
+validity begin,FR01078,1998-01-01,2025-08-28
+validity begin,FR01083,1998-01-01,2025-08-29
+validity begin,FR01085,1998-08-01,2025-08-29
+validity begin,FR01093,1998-01-01,2025-08-29
+validity begin,FR01094,1998-01-01,2025-08-29
+validity begin,FR01098,1998-01-01,2025-08-29
+validity begin,FR01102,2005-12-11,2025-08-28
+validity begin,FR01103,1998-01-01,2025-08-29
+validity begin,FR01104,1998-01-01,2025-08-29
+validity begin,FR01105,1998-01-01,2025-08-29
+validity begin,FR01106,2005-12-11,2025-08-29
+validity begin,FR01107,2005-12-11,2025-08-29
+validity begin,FR01108,1998-01-01,2025-08-29
+validity begin,FR01110,1998-01-01,2025-08-29
+validity begin,FR01111,1998-01-01,2025-08-28
+validity begin,FR01112,1998-01-01,2025-08-29
+validity begin,FR01113,1998-01-01,2025-08-29
+validity begin,FR01114,1998-01-01,2025-08-29
+validity begin,FR01115,1998-01-01,2025-08-29
+validity begin,FR01118,1998-01-01,2025-08-29
+validity begin,FR01119,1998-01-01,2025-08-29
+validity begin,FR01120,1998-01-01,2025-08-29
+validity begin,FR01121,1998-01-01,2025-08-29
+validity begin,FR01124,1998-01-01,2025-08-29
+validity begin,FR01125,1998-01-01,2025-08-29
+validity begin,FR01129,1998-01-01,2025-08-28
+validity begin,FR01133,1998-01-01,2025-08-29
+validity begin,FR01135,1998-01-01,2025-08-28
+validity begin,FR01136,1998-01-01,2025-08-28
+validity begin,FR01137,1998-01-01,2025-08-29
+validity begin,FR01138,1998-01-01,2025-08-29
+validity begin,FR01140,1998-01-01,2025-08-29
+validity begin,FR01142,2013-12-15,2025-08-29
+validity begin,FR01144,1998-01-01,2025-08-28
+validity begin,FR01146,2008-12-14,2025-08-28
+validity begin,FR01149,1998-01-01,2025-08-29
+validity begin,FR01150,1998-01-01,2025-08-29
+validity begin,FR01154,1998-01-01,2025-08-29
+validity begin,FR01155,1998-01-01,2025-08-29
+validity begin,FR01156,1998-01-01,2025-08-29
+validity begin,FR01157,1998-01-01,2025-08-29
+validity begin,FR01159,2012-12-09,2025-08-29
+validity begin,FR01160,1998-01-01,2025-08-29
+validity begin,FR01161,1998-01-01,2025-08-29
+validity begin,FR01163,1998-01-01,2025-08-28
+validity begin,FR01165,1998-01-01,2025-08-29
+validity begin,FR01166,1998-01-01,2025-08-29
+validity begin,FR01167,2008-12-14,2025-08-29
+validity begin,FR01168,2008-12-14,2025-08-29
+validity begin,FR01169,2008-12-14,2025-08-29
+validity begin,FR01175,1998-01-01,2025-08-29
+validity begin,FR01176,1998-01-01,2025-08-29
+validity begin,FR01177,1998-01-01,2025-08-29
+validity begin,FR01178,1998-01-01,2025-08-29
+validity begin,FR01179,2001-12-02,2025-08-28
+validity begin,FR01180,1998-01-01,2025-08-28
+validity begin,FR01183,1998-01-01,2025-08-29
+validity begin,FR01184,1998-01-01,2025-08-28
+validity begin,FR01185,1998-01-01,2025-08-29
+validity begin,FR01186,2009-12-13,2025-08-29
+validity begin,FR01187,1998-01-01,2025-08-28
+validity begin,FR01188,1998-08-01,2025-08-29
+validity begin,FR01190,1998-08-01,2025-08-29
+validity begin,FR01192,1998-01-01,2025-08-29
+validity begin,FR01194,1998-01-01,2025-08-29
+validity begin,FR01196,1998-01-01,2025-08-28
+validity begin,FR01197,1998-01-01,2025-08-28
+validity begin,FR01200,1998-01-01,2025-08-29
+validity begin,FR01201,1998-01-01,2025-08-28
+validity begin,FR01202,1998-01-01,2025-08-29
+validity begin,FR01203,1998-01-01,2025-08-29
+validity begin,FR01206,2013-12-15,2025-08-29
+validity begin,FR01209,1998-01-01,2025-08-29
+validity begin,FR01212,1998-01-01,2025-08-28
+validity begin,FR01213,1998-01-01,2025-08-29
+validity begin,FR01216,1998-01-01,2025-08-29
+validity begin,FR01219,2006-12-10,2025-08-29
+validity begin,FR01220,2006-12-10,2025-08-28
+validity begin,FR01221,1998-01-01,2025-08-29
+validity begin,FR01222,1998-01-01,2025-08-29
+validity begin,FR01223,1998-01-01,2025-08-29
+validity begin,FR01224,1998-01-01,2025-08-29
+validity begin,FR01240,1998-01-01,2025-08-29
+validity begin,FR01241,1998-01-01,2025-08-29
+validity begin,FR01242,1998-01-01,2025-08-28
+validity begin,FR01243,2002-06-16,2025-08-29
+validity begin,FR01244,1998-01-01,2025-08-29
+validity begin,FR01245,1998-01-01,2025-08-29
+validity begin,FR01246,1998-01-01,2025-08-29
+validity begin,FR01248,1998-01-01,2025-08-28
+validity begin,FR01249,1998-01-01,2025-08-28
+validity begin,FR01250,1998-01-01,2025-08-29
+validity begin,FR01252,1998-01-01,2025-08-29
+validity begin,FR01253,1998-01-01,2025-08-28
+validity begin,FR01256,1998-01-01,2025-08-28
+validity begin,FR01262,1998-01-01,2025-08-29
+validity begin,FR01267,1998-01-01,2025-08-29
+validity begin,FR01268,1998-01-01,2025-08-29
+validity begin,FR01269,1998-01-01,2025-08-29
+validity begin,FR01270,2006-12-10,2025-08-29
+validity begin,FR01271,1998-01-01,2025-08-29
+validity begin,FR01272,2007-12-09,2025-08-28
+validity begin,FR01274,2008-12-14,2025-08-29
+validity begin,FR01275,2006-12-10,2025-08-29
+validity begin,FR01276,1998-01-01,2025-08-28
+validity begin,FR01278,1998-01-01,2025-08-29
+validity begin,FR01279,1998-01-01,2025-08-29
+validity begin,FR01280,2013-12-15,2025-08-28
+validity begin,FR01282,2008-12-14,2025-08-29
+validity begin,FR01284,1998-01-01,2025-08-29
+validity begin,FR01285,2010-12-12,2025-08-29
+validity begin,FR01286,1998-01-01,2025-08-29
+validity begin,FR01290,2002-06-16,2025-08-28
+validity begin,FR01293,1998-01-01,2025-08-29
+validity begin,FR01294,1998-01-01,2025-08-29
+validity begin,FR01295,1998-01-01,2025-08-28
+validity begin,FR01296,2011-12-11,2025-08-29
+validity begin,FR01297,1998-01-01,2025-08-29
+validity begin,FR01298,2011-12-11,2025-08-29
+validity begin,FR01299,1998-01-01,2025-08-29
+validity begin,FR01300,1998-01-01,2025-08-29
+validity begin,FR01303,1998-01-01,2025-08-29
+validity begin,FR01304,1998-01-01,2025-08-29
+validity begin,FR01306,1998-01-01,2025-08-29
+validity begin,FR01307,1998-01-01,2025-08-29
+validity begin,FR01308,1998-01-01,2025-08-29
+validity begin,FR01309,1998-01-01,2025-08-28
+validity begin,FR01310,2004-12-12,2025-08-29
+validity begin,FR01311,2013-12-15,2025-08-28
+validity begin,FR01312,1998-01-01,2025-08-29
+validity begin,FR01313,1998-01-01,2025-08-29
+validity begin,FR01314,1998-01-01,2025-08-29
+validity begin,FR01315,2013-12-15,2025-08-29
+validity begin,FR01316,1998-01-01,2025-08-28
+validity begin,FR01317,1998-01-01,2025-08-28
+validity begin,FR01318,1998-01-01,2025-08-29
+validity begin,FR01319,1998-01-01,2025-08-28
+validity begin,FR01320,1998-01-01,2025-08-29
+validity begin,FR01321,2013-12-15,2025-08-29
+validity begin,FR01322,1998-01-01,2025-08-29
+validity begin,FR01324,1998-01-01,2025-08-29
+validity begin,FR01326,1998-01-01,2025-08-29
+validity begin,FR01327,1998-01-01,2025-08-28
+validity begin,FR01329,1998-01-01,2025-08-29
+validity begin,FR01333,1998-01-01,2025-08-29
+validity begin,FR01337,1998-01-01,2025-08-29
+validity begin,FR01338,1998-01-01,2025-08-29
+validity begin,FR01339,1998-01-01,2025-08-29
+validity begin,FR01340,1998-01-01,2025-08-29
+validity begin,FR01341,1998-01-01,2025-08-29
+validity begin,FR01347,1998-01-01,2025-08-29
+validity begin,FR01349,1998-01-01,2025-08-29
+validity begin,FR01350,1998-01-01,2025-08-29
+validity begin,FR01352,2007-12-09,2025-08-29
+validity begin,FR01353,1998-01-01,2025-08-28
+validity begin,FR01354,1998-01-01,2025-08-29
+validity begin,FR01355,1998-01-01,2025-08-29
+validity begin,FR01359,2007-12-09,2025-08-29
+validity begin,FR01360,1998-01-01,2025-08-29
+validity begin,FR01361,1998-01-01,2025-08-29
+validity begin,FR01364,2009-12-13,2025-08-28
+validity begin,FR01366,1998-01-01,2025-08-29
+validity begin,FR01367,1998-01-01,2025-08-29
+validity begin,FR01368,1998-01-01,2025-08-28
+validity begin,FR01375,1998-01-01,2025-08-29
+validity begin,FR01378,1998-01-01,2025-08-29
+validity begin,FR01379,1998-01-01,2025-08-28
+validity begin,FR01380,2006-12-10,2025-08-29
+validity begin,FR01381,2006-12-10,2025-08-29
+validity begin,FR01384,1998-01-01,2025-08-29
+validity begin,FR01390,1998-01-01,2025-08-29
+validity begin,FR01392,1998-01-01,2025-08-29
+validity begin,FR01393,1998-01-01,2025-08-29
+validity begin,FR01395,1998-01-01,2025-08-29
+validity begin,FR01401,1998-01-01,2025-08-28
+validity begin,FR01404,2010-12-12,2025-08-29
+validity begin,FR01406,1998-01-01,2025-08-29
+validity begin,FR01408,1998-01-01,2025-08-29
+validity begin,FR01410,1998-01-01,2025-08-28
+validity begin,FR01416,1998-01-01,2025-08-29
+validity begin,FR01419,1998-01-01,2025-08-29
+validity begin,FR01421,2008-12-14,2025-08-29
+validity begin,FR01432,1998-01-01,2025-08-29
+validity begin,FR01434,1998-01-01,2025-08-29
+validity begin,FR01437,1998-01-01,2025-08-28
+validity begin,FR01441,1998-01-01,2025-08-28
+validity begin,FR01442,1998-01-01,2025-08-29
+validity begin,FR01448,1998-01-01,2025-08-29
+validity begin,FR01452,2012-12-09,2025-08-29
+validity begin,FR01453,1998-01-01,2025-08-29
+validity begin,FR01454,2007-12-09,2025-08-28
+validity begin,FR01455,1998-01-01,2025-08-28
+validity begin,FR01456,1998-01-01,2025-08-29
+validity begin,FR01457,1998-01-01,2025-08-29
+validity begin,FR01458,1998-01-01,2025-08-29
+validity begin,FR01459,1998-01-01,2025-08-29
+validity begin,FR01461,1998-01-01,2025-08-29
+validity begin,FR01472,1998-01-01,2025-08-29
+validity begin,FR01475,1998-01-01,2025-08-29
+validity begin,FR01476,1998-01-01,2025-08-29
+validity begin,FR01485,1998-01-01,2025-08-28
+validity begin,FR01486,2025-09-18,2025-10-23
+validity begin,FR01487,1998-01-01,2025-08-29
+validity begin,FR01488,2014-12-14,2025-08-28
+validity begin,FR01489,2014-12-14,2025-08-29
+validity begin,FR01490,2014-12-14,2025-08-29
+validity begin,FR01491,1998-01-01,2025-08-29
+validity begin,FR01492,1998-01-01,2025-08-28
+validity begin,FR01495,1998-01-01,2025-08-28
+validity begin,FR01500,2003-12-14,2025-08-28
+validity begin,FR01501,2003-12-14,2025-08-28
+validity begin,FR01502,1998-01-01,2025-08-29
+validity begin,FR01503,1998-01-01,2025-08-28
+validity begin,FR01504,2003-12-14,2025-08-29
+validity begin,FR01505,1998-01-01,2025-08-29
+validity begin,FR01515,2013-12-15,2025-08-29
+validity begin,FR01516,1998-01-01,2025-08-29
+validity begin,FR01517,1998-01-01,2025-08-29
+validity begin,FR01518,1998-01-01,2025-08-29
+validity begin,FR01519,1998-01-01,2025-08-29
+validity begin,FR01521,1998-01-01,2025-08-28
+validity begin,FR01522,1998-01-01,2025-08-28
+validity begin,FR01523,1998-01-01,2025-08-29
+validity begin,FR01524,1998-01-01,2025-08-28
+validity begin,FR01525,1998-01-01,2025-08-29
+validity begin,FR01527,1998-01-01,2025-08-29
+validity begin,FR01528,1998-01-01,2025-08-29
+validity begin,FR01529,1998-01-01,2025-08-29
+validity begin,FR01530,1998-01-01,2025-08-29
+validity begin,FR01531,1998-01-01,2025-08-29
+validity begin,FR01532,1998-01-01,2025-08-28
+validity begin,FR01533,1998-01-01,2025-08-29
+validity begin,FR01534,1998-01-01,2025-08-29
+validity begin,FR01535,1998-01-01,2025-08-28
+validity begin,FR01536,1998-01-01,2025-08-28
+validity begin,FR01537,2011-12-11,2025-08-29
+validity begin,FR01538,1998-01-01,2025-08-29
+validity begin,FR01539,2013-12-15,2025-08-29
+validity begin,FR01540,1998-01-01,2025-08-29
+validity begin,FR01541,1998-01-01,2025-08-28
+validity begin,FR01542,1998-01-01,2025-08-29
+validity begin,FR01545,1998-01-01,2025-08-29
+validity begin,FR01546,1998-01-01,2025-08-29
+validity begin,FR01547,1998-01-01,2025-08-28
+validity begin,FR01548,1998-01-01,2025-08-29
+validity begin,FR01549,1998-01-01,2025-08-29
+validity begin,FR01550,1998-01-01,2025-08-29
+validity begin,FR01551,1998-01-01,2025-08-28
+validity begin,FR01553,2025-09-18,2025-10-23
+validity begin,FR01555,2025-09-18,2025-10-23
+validity begin,FR01556,1998-01-01,2025-08-29
+validity begin,FR01557,1998-01-01,2025-08-29
+validity begin,FR01561,1998-01-01,2025-08-28
+validity begin,FR01562,1998-01-01,2025-08-29
+validity begin,FR01563,1998-01-01,2025-08-29
+validity begin,FR01566,1998-01-01,2025-08-29
+validity begin,FR01568,1998-01-01,2025-08-29
+validity begin,FR01569,2008-12-14,2025-08-29
+validity begin,FR01571,1998-01-01,2025-08-28
+validity begin,FR01573,1998-01-01,2025-08-28
+validity begin,FR01574,2025-09-18,2025-10-23
+validity begin,FR01577,1998-01-01,2025-08-29
+validity begin,FR01579,1998-01-01,2025-08-29
+validity begin,FR01580,1998-01-01,2025-08-28
+validity begin,FR01582,2001-12-02,2025-08-29
+validity begin,FR01583,1998-01-01,2025-08-28
+validity begin,FR01584,2008-12-14,2025-08-29
+validity begin,FR01585,1998-01-01,2025-08-29
+validity begin,FR01586,2025-09-18,2025-10-23
+validity begin,FR01587,2025-09-18,2025-10-23
+validity begin,FR01588,2025-09-18,2025-10-23
+validity begin,FR01589,1998-01-01,2025-08-28
+validity begin,FR01590,2025-09-18,2025-10-23
+validity begin,FR01591,2025-09-18,2025-10-23
+validity begin,FR01592,2025-09-18,2025-10-23
+validity begin,FR01593,2025-09-19,2025-10-24
+validity begin,FR01598,1998-01-01,2025-08-29
+validity begin,FR01599,1998-01-01,2025-08-29
+validity begin,FR01601,2001-12-02,2025-08-28
+validity begin,FR01603,1998-01-01,2025-08-29
+validity begin,FR01604,1998-01-01,2025-08-29
+validity begin,FR01605,1998-01-01,2025-08-29
+validity begin,FR01607,1998-01-01,2025-08-28
+validity begin,FR01608,1998-01-01,2025-08-29
+validity begin,FR01609,1998-01-01,2025-08-29
+validity begin,FR01611,1998-01-01,2025-08-29
+validity begin,FR01612,1998-01-01,2025-08-29
+validity begin,FR01613,1998-01-01,2025-08-28
+validity begin,FR01614,1998-01-01,2025-08-29
+validity begin,FR01615,2005-12-11,2025-08-29
+validity begin,FR01616,1998-01-01,2025-08-29
+validity begin,FR01617,1998-01-01,2025-08-29
+validity begin,FR01618,1998-01-01,2025-08-29
+validity begin,FR01619,1998-01-01,2025-08-29
+validity begin,FR01620,1998-01-01,2025-08-29
+validity begin,FR01621,1998-01-01,2025-08-29
+validity begin,FR01622,1998-01-01,2025-08-29
+validity begin,FR01623,1998-01-01,2025-08-28
+validity begin,FR01627,1998-01-01,2025-08-28
+validity begin,FR01628,1998-01-01,2025-08-29
+validity begin,FR01629,2011-12-11,2025-08-29
+validity begin,FR01630,2011-12-11,2025-08-28
+validity begin,FR01631,2014-12-14,2025-08-28
+validity begin,FR01632,1998-01-01,2025-08-28
+validity begin,FR01633,1998-01-01,2025-08-29
+validity begin,FR01634,1998-01-01,2025-08-28
+validity begin,FR01635,1998-01-01,2025-08-29
+validity begin,FR01636,1998-01-01,2025-08-29
+validity begin,FR01637,2005-12-11,2025-08-29
+validity begin,FR01639,1998-01-01,2025-08-29
+validity begin,FR01640,1998-01-01,2025-08-29
+validity begin,FR01641,1998-01-01,2025-08-29
+validity begin,FR01642,1998-01-01,2025-08-29
+validity begin,FR01643,1998-01-01,2025-08-29
+validity begin,FR01644,1998-01-01,2025-08-29
+validity begin,FR01645,1998-01-01,2025-08-29
+validity begin,FR01646,1998-01-01,2025-08-28
+validity begin,FR01647,1998-01-01,2025-08-29
+validity begin,FR01648,1998-01-01,2025-08-29
+validity begin,FR01649,2009-12-13,2025-08-29
+validity begin,FR01650,2009-12-13,2025-08-29
+validity begin,FR01654,2009-02-02,2025-08-29
+validity begin,FR01655,2009-02-02,2025-08-29
+validity begin,FR01656,2009-02-02,2025-08-28
+validity begin,FR01659,1998-01-01,2025-08-29
+validity begin,FR01660,1998-01-01,2025-08-29
+validity begin,FR01661,1998-01-01,2025-08-29
+validity begin,FR01662,1998-01-01,2025-08-29
+validity begin,FR01663,1998-01-01,2025-08-28
+validity begin,FR01664,1998-01-01,2025-08-29
+validity begin,FR01665,1998-01-01,2025-08-29
+validity begin,FR01666,1998-01-01,2025-08-29
+validity begin,FR01668,1998-01-01,2025-08-29
+validity begin,FR01669,1998-01-01,2025-08-29
+validity begin,FR01672,1998-01-01,2025-08-28
+validity begin,FR01673,1998-01-01,2025-08-28
+validity begin,FR01674,1998-01-01,2025-08-29
+validity begin,FR01675,1998-01-01,2025-08-29
+validity begin,FR01677,1998-01-01,2025-08-29
+validity begin,FR01679,1998-01-01,2025-08-29
+validity begin,FR01680,1998-01-01,2025-08-29
+validity begin,FR01681,1998-01-01,2025-08-28
+validity begin,FR01682,1998-01-01,2025-08-28
+validity begin,FR01683,1998-01-01,2025-08-29
+validity begin,FR01685,1998-01-01,2025-08-29
+validity begin,FR01686,1998-01-01,2025-08-29
+validity begin,FR01687,1998-01-01,2025-08-28
+validity begin,FR01689,1998-01-01,2025-08-29
+validity begin,FR01691,1998-01-01,2025-08-29
+validity begin,FR01692,2008-12-14,2025-08-29
+validity begin,FR01693,1998-01-01,2025-08-29
+validity begin,FR01694,2006-12-10,2025-08-29
+validity begin,FR01695,2006-12-10,2025-08-28
+validity begin,FR01697,1998-01-01,2025-08-29
+validity begin,FR01698,1998-01-01,2025-08-28
+validity begin,FR01702,1998-01-01,2025-08-29
+validity begin,FR01703,1998-01-01,2025-08-28
+validity begin,FR01704,1998-01-01,2025-08-28
+validity begin,FR01706,1998-01-01,2025-08-29
+validity begin,FR01712,2005-12-11,2025-08-29
+validity begin,FR01713,1998-01-01,2025-08-29
+validity begin,FR01714,1998-01-01,2025-08-28
+validity begin,FR01715,1998-01-01,2025-08-29
+validity begin,FR01716,1998-01-01,2025-08-29
+validity begin,FR01718,1998-01-01,2025-08-28
+validity begin,FR01719,1998-01-01,2025-08-28
+validity begin,FR01720,1998-01-01,2025-08-28
+validity begin,FR01721,2007-12-09,2025-08-29
+validity begin,FR01722,2008-12-14,2025-08-28
+validity begin,FR01723,2013-12-15,2025-08-29
+validity begin,FR01724,2013-12-15,2025-08-29
+validity begin,FR01725,1998-01-01,2025-08-29
+validity begin,FR01726,1998-01-01,2025-08-29
+validity begin,FR01727,1998-01-01,2025-08-28
+validity begin,FR01728,1998-01-01,2025-08-29
+validity begin,FR01729,1998-01-01,2025-08-29
+validity begin,FR01730,1998-01-01,2025-08-29
+validity begin,FR01731,2013-12-15,2025-08-28
+validity begin,FR01732,1998-01-01,2025-08-29
+validity begin,FR01733,1998-01-01,2025-08-28
+validity begin,FR01734,1998-01-01,2025-08-29
+validity begin,FR01735,1998-01-01,2025-08-29
+validity begin,FR01738,1998-01-01,2025-08-28
+validity begin,FR01739,1998-01-01,2025-08-28
+validity begin,FR01740,1998-01-01,2025-08-29
+validity begin,FR01741,1998-01-01,2025-08-28
+validity begin,FR01742,1998-01-01,2025-08-29
+validity begin,FR01743,1998-01-01,2025-08-29
+validity begin,FR01744,1998-01-01,2025-08-28
+validity begin,FR01745,1998-01-01,2025-08-29
+validity begin,FR01746,1998-01-01,2025-08-29
+validity begin,FR01747,1998-01-01,2025-08-29
+validity begin,FR01748,1998-01-01,2025-08-29
+validity begin,FR01749,1998-01-01,2025-08-29
+validity begin,FR01750,1998-01-01,2025-08-29
+validity begin,FR01751,1998-01-01,2025-08-29
+validity begin,FR01753,1998-01-01,2025-08-28
+validity begin,FR01755,1998-01-01,2025-08-29
+validity begin,FR01758,1998-01-01,2025-08-28
+validity begin,FR01759,1998-01-01,2025-08-28
+validity begin,FR01760,1998-01-01,2025-08-29
+validity begin,FR01761,1998-01-01,2025-08-28
+validity begin,FR01762,1998-01-01,2025-08-28
+validity begin,FR01763,1998-01-01,2025-08-29
+validity begin,FR01764,1998-01-01,2025-08-28
+validity begin,FR01765,1998-01-01,2025-08-29
+validity begin,FR01766,1998-01-01,2025-08-28
+validity begin,FR01767,1998-01-01,2025-08-29
+validity begin,FR01768,1998-01-01,2025-08-28
+validity begin,FR01769,1998-01-01,2025-08-29
+validity begin,FR01772,1998-01-01,2025-08-29
+validity begin,FR01774,1998-01-01,2025-08-29
+validity begin,FR01775,1998-01-01,2025-08-28
+validity begin,FR01776,1998-01-01,2025-08-29
+validity begin,FR01777,1998-01-01,2025-08-29
+validity begin,FR01778,1998-01-01,2025-08-29
+validity begin,FR01780,1998-01-01,2025-08-29
+validity begin,FR01784,1998-01-01,2025-08-29
+validity begin,FR01785,1998-01-01,2025-08-29
+validity begin,FR01787,1998-01-01,2025-08-29
+validity begin,FR01788,2001-12-02,2025-08-29
+validity begin,FR01789,1998-01-01,2025-08-28
+validity begin,FR01790,2009-02-02,2025-08-29
+validity begin,FR01791,1998-01-01,2025-08-28
+validity begin,FR01792,1998-01-01,2025-08-29
+validity begin,FR01793,1998-01-01,2025-08-29
+validity begin,FR01794,1998-01-01,2025-08-28
+validity begin,FR01795,1998-01-01,2025-08-29
+validity begin,FR01796,1998-01-01,2025-08-29
+validity begin,FR01797,1998-01-01,2025-08-29
+validity begin,FR01798,1998-01-01,2025-08-29
+validity begin,FR01799,1998-01-01,2025-08-28
+validity begin,FR01800,1998-01-01,2025-08-29
+validity begin,FR01801,1998-01-01,2025-08-28
+validity begin,FR01802,2009-02-02,2025-08-29
+validity begin,FR01803,2009-02-02,2025-08-29
+validity begin,FR01808,1998-01-01,2025-08-29
+validity begin,FR01814,1998-01-01,2025-08-29
+validity begin,FR01815,2004-12-12,2025-08-29
+validity begin,FR01818,1998-01-01,2025-08-29
+validity begin,FR01822,2009-12-13,2025-08-29
+validity begin,FR01825,1998-01-01,2025-08-29
+validity begin,FR01826,1998-01-01,2025-08-29
+validity begin,FR01827,2010-12-12,2025-08-29
+validity begin,FR01829,2010-12-12,2025-08-29
+validity begin,FR01830,1998-01-01,2025-08-29
+validity begin,FR01833,1998-01-01,2025-08-29
+validity begin,FR01834,1998-01-01,2025-08-29
+validity begin,FR01835,1998-01-01,2025-08-29
+validity begin,FR01836,1998-01-01,2025-08-29
+validity begin,FR01837,1998-01-01,2025-08-29
+validity begin,FR01838,2011-12-11,2025-08-29
+validity begin,FR01839,1998-01-01,2025-08-29
+validity begin,FR01840,1998-01-01,2025-08-29
+validity begin,FR01841,1998-01-01,2025-08-29
+validity begin,FR01842,1998-01-01,2025-08-29
+validity begin,FR01843,1998-01-01,2025-08-29
+validity begin,FR01844,1998-01-01,2025-08-29
+validity begin,FR01845,1998-01-01,2025-08-29
+validity begin,FR01846,1998-01-01,2025-08-29
+validity begin,FR01847,1998-01-01,2025-08-29
+validity begin,FR01848,1998-01-01,2025-08-29
+validity begin,FR01849,1998-01-01,2025-08-28
+validity begin,FR01850,1998-01-01,2025-08-29
+validity begin,FR01851,1998-01-01,2025-08-29
+validity begin,FR01852,1998-01-01,2025-08-29
+validity begin,FR01853,1998-01-01,2025-08-28
+validity begin,FR01854,1998-01-01,2025-08-29
+validity begin,FR01855,2002-06-16,2025-08-29
+validity begin,FR01856,1998-01-01,2025-08-29
+validity begin,FR01857,1998-01-01,2025-08-29
+validity begin,FR01858,1998-01-01,2025-08-28
+validity begin,FR01859,2013-12-15,2025-08-29
+validity begin,FR01860,2013-12-15,2025-08-29
+validity begin,FR01861,1998-01-01,2025-08-29
+validity begin,FR01862,1998-01-01,2025-08-29
+validity begin,FR01863,1998-01-01,2025-08-28
+validity begin,FR01866,1998-01-01,2025-08-29
+validity begin,FR01867,1998-01-01,2025-08-29
+validity begin,FR01868,1998-01-01,2025-08-28
+validity begin,FR01869,1998-01-01,2025-08-29
+validity begin,FR01870,1998-01-01,2025-08-28
+validity begin,FR01871,1998-01-01,2025-08-29
+validity begin,FR01872,1998-01-01,2025-08-29
+validity begin,FR01873,1998-01-01,2025-08-29
+validity begin,FR01874,1998-01-01,2025-08-29
+validity begin,FR01875,2010-12-12,2025-08-29
+validity begin,FR01876,1998-01-01,2025-08-29
+validity begin,FR01881,1999-01-01,2025-08-29
+validity begin,FR01891,2009-12-13,2025-08-29
+validity begin,FR01894,1998-01-01,2025-08-29
+validity begin,FR01895,1998-01-01,2025-08-28
+validity begin,FR01897,1998-01-01,2025-08-29
+validity begin,FR01898,1998-01-01,2025-08-29
+validity begin,FR01901,1998-01-01,2025-08-29
+validity begin,FR01903,1998-01-01,2025-08-29
+validity begin,FR01905,1998-01-01,2025-08-28
+validity begin,FR01908,1998-01-01,2025-08-29
+validity begin,FR01909,1998-01-01,2025-08-28
+validity begin,FR01910,1998-01-01,2025-08-29
+validity begin,FR01911,2011-12-11,2025-08-29
+validity begin,FR01912,2012-12-09,2025-08-29
+validity begin,FR01914,1998-01-01,2025-08-29
+validity begin,FR01916,1998-01-01,2025-08-29
+validity begin,FR01917,1998-01-01,2025-08-28
+validity begin,FR01918,1998-01-01,2025-08-29
+validity begin,FR01920,1998-01-01,2025-08-29
+validity begin,FR01922,1998-01-01,2025-08-29
+validity begin,FR01923,1998-01-01,2025-08-29
+validity begin,FR01924,2009-12-13,2025-08-29
+validity begin,FR01925,1998-01-01,2025-08-29
+validity begin,FR01926,1998-01-01,2025-08-28
+validity begin,FR01927,1998-01-01,2025-08-29
+validity begin,FR01928,1998-01-01,2025-08-29
+validity begin,FR01930,1998-01-01,2025-08-29
+validity begin,FR01931,2002-06-16,2025-08-28
+validity begin,FR01932,1998-01-01,2025-08-29
+validity begin,FR01934,1998-01-01,2025-08-29
+validity begin,FR01939,1998-01-01,2025-08-29
+validity begin,FR01941,1998-01-01,2025-08-29
+validity begin,FR01942,2006-12-10,2025-08-28
+validity begin,FR01944,2019-12-15,2025-08-29
+validity begin,FR01945,1998-01-01,2025-08-29
+validity begin,FR01946,1998-01-01,2025-08-29
+validity begin,FR01947,1998-01-01,2025-08-29
+validity begin,FR01949,1998-01-01,2025-08-29
+validity begin,FR01950,1998-01-01,2025-08-28
+validity begin,FR01953,1998-01-01,2025-08-29
+validity begin,FR01954,1998-01-01,2025-08-28
+validity begin,FR01955,1998-01-01,2025-08-29
+validity begin,FR01956,1998-01-01,2025-08-28
+validity begin,FR01958,1998-01-01,2025-08-29
+validity begin,FR01960,1998-01-01,2025-08-29
+validity begin,FR01961,1998-01-01,2025-08-29
+validity begin,FR01962,1998-01-01,2025-08-29
+validity begin,FR01966,1998-01-01,2025-08-29
+validity begin,FR01967,1998-01-01,2025-08-28
+validity begin,FR01968,1998-01-01,2025-08-29
+validity begin,FR01969,1998-01-01,2025-08-28
+validity begin,FR01970,1998-01-01,2025-08-29
+validity begin,FR01971,1998-01-01,2025-08-29
+validity begin,FR01972,1998-01-01,2025-08-29
+validity begin,FR01973,1998-01-01,2025-08-29
+validity begin,FR01974,1998-01-01,2025-08-28
+validity begin,FR01975,1998-01-01,2025-08-29
+validity begin,FR01976,1998-01-01,2025-08-29
+validity begin,FR01977,1998-01-01,2025-08-29
+validity begin,FR01982,1998-01-01,2025-08-29
+validity begin,FR01983,1998-01-01,2025-08-29
+validity begin,FR01984,1998-01-01,2025-08-29
+validity begin,FR01985,1998-01-01,2025-08-28
+validity begin,FR01986,1998-01-01,2025-08-29
+validity begin,FR01987,1998-01-01,2025-08-29
+validity begin,FR01988,1998-01-01,2025-08-28
+validity begin,FR01989,1998-01-01,2025-08-29
+validity begin,FR01990,1998-01-01,2025-08-29
+validity begin,FR01992,1998-01-01,2025-08-29
+validity begin,FR01993,2001-12-02,2025-08-29
+validity begin,FR01996,1998-01-01,2025-08-29
+validity begin,FR01997,1998-01-01,2025-08-29
+validity begin,FR01998,1998-01-01,2025-08-28
+validity begin,FR01999,1998-01-01,2025-08-28
+validity begin,FR02000,1998-01-01,2025-08-29
+validity begin,FR02001,1998-01-01,2025-08-29
+validity begin,FR02002,1998-01-01,2025-08-28
+validity begin,FR02005,1998-01-01,2025-08-29
+validity begin,FR02011,1998-01-01,2025-08-29
+validity begin,FR02014,1998-01-01,2025-08-29
+validity begin,FR02015,1998-01-01,2025-08-29
+validity begin,FR02016,1998-01-01,2025-08-29
+validity begin,FR02018,1998-01-01,2025-08-28
+validity begin,FR02021,1998-01-01,2025-08-29
+validity begin,FR02026,1998-01-01,2025-08-29
+validity begin,FR02027,1998-01-01,2025-08-29
+validity begin,FR02028,1998-01-01,2025-08-29
+validity begin,FR02030,1998-01-01,2025-08-29
+validity begin,FR02032,1998-01-01,2025-08-29
+validity begin,FR02033,1998-01-01,2025-08-28
+validity begin,FR02041,1998-01-01,2025-08-29
+validity begin,FR02042,1998-01-01,2025-08-28
+validity begin,FR02043,1998-01-01,2025-08-29
+validity begin,FR02044,1998-01-01,2025-08-28
+validity begin,FR02045,1998-01-01,2025-08-29
+validity begin,FR02046,1998-01-01,2025-08-28
+validity begin,FR02047,2010-12-12,2025-08-29
+validity begin,FR02048,1998-01-01,2025-08-29
+validity begin,FR02049,1998-01-01,2025-08-29
+validity begin,FR02050,1998-01-01,2025-08-29
+validity begin,FR02051,1998-01-01,2025-08-29
+validity begin,FR02052,1998-01-01,2025-08-28
+validity begin,FR02053,1998-01-01,2025-08-29
+validity begin,FR02054,1998-01-01,2025-08-28
+validity begin,FR02055,1998-01-01,2025-08-29
+validity begin,FR02056,1998-01-01,2025-08-29
+validity begin,FR02057,1998-01-01,2025-08-29
+validity begin,FR02058,1998-01-01,2025-08-29
+validity begin,FR02059,1998-01-01,2025-08-29
+validity begin,FR02060,1998-01-01,2025-08-29
+validity begin,FR02061,1998-01-01,2025-08-29
+validity begin,FR02062,1998-01-01,2025-08-29
+validity begin,FR02063,1998-01-01,2025-08-29
+validity begin,FR02064,1998-01-01,2025-08-29
+validity begin,FR02065,1998-01-01,2025-08-28
+validity begin,FR02066,1998-01-01,2025-08-29
+validity begin,FR02067,1998-01-01,2025-08-29
+validity begin,FR02069,1998-01-01,2025-08-29
+validity begin,FR02070,1998-01-01,2025-08-29
+validity begin,FR02071,1998-01-01,2025-08-29
+validity begin,FR02072,1998-01-01,2025-08-28
+validity begin,FR02073,1998-01-01,2025-08-29
+validity begin,FR02074,1998-01-01,2025-08-29
+validity begin,FR02075,1998-01-01,2025-08-29
+validity begin,FR02076,2008-12-14,2025-08-29
+validity begin,FR02077,2008-12-14,2025-08-29
+validity begin,FR02078,1998-01-01,2025-08-29
+validity begin,FR02079,1998-01-01,2025-08-29
+validity begin,FR02081,1998-01-01,2025-08-29
+validity begin,FR02082,1998-01-01,2025-08-29
+validity begin,FR02083,1998-01-01,2025-08-29
+validity begin,FR02084,1998-01-01,2025-08-29
+validity begin,FR02085,1998-01-01,2025-08-29
+validity begin,FR02086,1998-01-01,2025-08-29
+validity begin,FR02087,1998-01-01,2025-08-29
+validity begin,FR02088,1998-01-01,2025-08-29
+validity begin,FR02089,2007-12-09,2025-08-29
+validity begin,FR02090,1998-01-01,2025-08-29
+validity begin,FR02091,1998-01-01,2025-08-29
+validity begin,FR02092,1998-01-01,2025-08-29
+validity begin,FR02093,1998-01-01,2025-08-29
+validity begin,FR02094,1998-01-01,2025-08-29
+validity begin,FR02095,1998-01-01,2025-08-29
+validity begin,FR02096,1998-01-01,2025-08-29
+validity begin,FR02097,1998-01-01,2025-08-29
+validity begin,FR02098,1998-01-01,2025-08-29
+validity begin,FR02099,1998-01-01,2025-08-29
+validity begin,FR02100,1998-01-01,2025-08-29
+validity begin,FR02101,1998-01-01,2025-08-29
+validity begin,FR02102,2001-12-02,2025-08-28
+validity begin,FR02104,1998-01-01,2025-08-29
+validity begin,FR02105,1998-01-01,2025-08-29
+validity begin,FR02106,1998-01-01,2025-08-29
+validity begin,FR02107,1998-01-01,2025-08-29
+validity begin,FR02108,1998-01-01,2025-08-29
+validity begin,FR02109,2007-12-09,2025-08-28
+validity begin,FR02110,1998-01-01,2025-08-29
+validity begin,FR02112,2007-12-09,2025-08-28
+validity begin,FR02113,2007-12-09,2025-08-28
+validity begin,FR02114,1998-01-01,2025-08-29
+validity begin,FR02115,1998-01-01,2025-08-29
+validity begin,FR02116,1998-01-01,2025-08-29
+validity begin,FR02117,2002-06-16,2025-08-28
+validity begin,FR02118,1998-01-01,2025-08-29
+validity begin,FR02119,1998-01-01,2025-08-29
+validity begin,FR02120,1998-01-01,2025-08-29
+validity begin,FR02121,1998-01-01,2025-08-29
+validity begin,FR02122,1998-01-01,2025-08-29
+validity begin,FR02123,1998-01-01,2025-08-29
+validity begin,FR02124,1998-01-01,2025-08-29
+validity begin,FR02125,1998-01-01,2025-08-29
+validity begin,FR02126,1998-01-01,2025-08-28
+validity begin,FR02127,1998-01-01,2025-08-29
+validity begin,FR02128,1998-01-01,2025-08-29
+validity begin,FR02129,1998-01-01,2025-08-29
+validity begin,FR02131,1998-01-01,2025-08-29
+validity begin,FR02132,1998-01-01,2025-08-29
+validity begin,FR02133,1998-01-01,2025-08-29
+validity begin,FR02134,1998-01-01,2025-08-29
+validity begin,FR02135,1998-01-01,2025-08-29
+validity begin,FR02136,1998-01-01,2025-08-29
+validity begin,FR02137,1998-01-01,2025-08-29
+validity begin,FR02138,1998-01-01,2025-08-29
+validity begin,FR02139,1998-01-01,2025-08-29
+validity begin,FR02140,1998-01-01,2025-08-29
+validity begin,FR02141,1998-01-01,2025-08-28
+validity begin,FR02142,1998-01-01,2025-08-28
+validity begin,FR02143,1998-01-01,2025-08-28
+validity begin,FR02144,1998-01-01,2025-08-29
+validity begin,FR02145,1998-01-01,2025-08-29
+validity begin,FR02146,1998-01-01,2025-08-29
+validity begin,FR02147,1998-01-01,2025-08-29
+validity begin,FR02149,1998-01-01,2025-08-29
+validity begin,FR02150,1998-01-01,2025-08-29
+validity begin,FR02151,1998-01-01,2025-08-29
+validity begin,FR02152,1998-01-01,2025-08-29
+validity begin,FR02153,1998-01-01,2025-08-29
+validity begin,FR02154,1998-01-01,2025-08-29
+validity begin,FR02155,1998-01-01,2025-08-29
+validity begin,FR02156,1998-01-01,2025-08-28
+validity begin,FR02157,1998-01-01,2025-08-29
+validity begin,FR02159,2010-12-12,2025-08-29
+validity begin,FR02162,2010-12-12,2025-08-28
+validity begin,FR02164,2010-12-12,2025-08-29
+validity begin,FR02165,2009-12-13,2025-08-29
+validity begin,FR02168,1998-01-01,2025-08-29
+validity begin,FR02169,1998-01-01,2025-08-29
+validity begin,FR02171,1998-01-01,2025-08-29
+validity begin,FR02173,2012-12-09,2025-08-29
+validity begin,FR02174,1998-01-01,2025-08-29
+validity begin,FR02175,1998-01-01,2025-08-29
+validity begin,FR02176,2012-12-09,2025-08-29
+validity begin,FR02177,2012-12-09,2025-08-28
+validity begin,FR02178,1998-01-01,2025-08-28
+validity begin,FR02179,1998-01-01,2025-08-29
+validity begin,FR02180,2012-12-09,2025-08-29
+validity begin,FR02181,2012-12-09,2025-08-29
+validity begin,FR02182,2012-12-09,2025-08-29
+validity begin,FR02183,2012-12-09,2025-08-29
+validity begin,FR02184,2012-12-09,2025-08-28
+validity begin,FR02185,2012-12-09,2025-08-29
+validity begin,FR02187,2012-12-09,2025-08-29
+validity begin,FR02188,1998-01-01,2025-08-29
+validity begin,FR02190,2012-12-09,2025-08-29
+validity begin,FR02192,2009-09-07,2025-08-29
+validity begin,FR02193,1998-01-01,2025-08-29
+validity begin,FR02194,1998-01-01,2025-08-29
+validity begin,FR02195,1998-01-01,2025-08-29
+validity begin,FR02196,1998-01-01,2025-08-29
+validity begin,FR02197,1998-01-01,2025-08-29
+validity begin,FR02198,1998-01-01,2025-08-29
+validity begin,FR02199,1998-01-01,2025-08-28
+validity begin,FR02200,1998-01-01,2025-08-28
+validity begin,FR02201,1998-01-01,2025-08-29
+validity begin,FR02203,2007-12-09,2025-08-29
+validity begin,FR02204,2006-09-03,2025-08-29
+validity begin,FR02205,1998-01-01,2025-08-29
+validity begin,FR02206,1998-01-01,2025-08-29
+validity begin,FR02207,1998-01-01,2025-08-29
+validity begin,FR02208,1998-01-01,2025-08-29
+validity begin,FR02209,1998-01-01,2025-08-29
+validity begin,FR02210,1998-01-01,2025-08-29
+validity begin,FR02212,1998-01-01,2025-08-29
+validity begin,FR02213,1998-01-01,2025-08-29
+validity begin,FR02214,1998-01-01,2025-08-28
+validity begin,FR02215,1998-01-01,2025-08-28
+validity begin,FR02216,1998-01-01,2025-08-29
+validity begin,FR02217,1998-01-01,2025-08-29
+validity begin,FR02218,2009-02-02,2025-08-29
+validity begin,FR02219,1998-01-01,2025-08-28
+validity begin,FR02221,2009-09-07,2025-08-28
+validity begin,FR02222,1998-01-01,2025-08-29
+validity begin,FR02224,2009-09-07,2025-08-29
+validity begin,FR02225,1998-01-01,2025-08-29
+validity begin,FR02228,1998-01-01,2025-08-28
+validity begin,FR02229,1998-01-01,2025-08-28
+validity begin,FR02230,1998-01-01,2025-08-29
+validity begin,FR02231,2007-12-09,2025-08-29
+validity begin,FR02232,2007-12-09,2025-08-29
+validity begin,FR02233,1998-01-01,2025-08-29
+validity begin,FR02234,2007-12-09,2025-08-28
+validity begin,FR02235,1998-01-01,2025-08-28
+validity begin,FR02236,1998-01-01,2025-08-29
+validity begin,FR02237,2007-12-09,2025-08-29
+validity begin,FR02238,2007-12-09,2025-08-29
+validity begin,FR02239,2007-12-09,2025-08-28
+validity begin,FR02240,2007-12-09,2025-08-29
+validity begin,FR02241,2007-12-09,2025-08-29
+validity begin,FR02244,2007-12-09,2025-08-28
+validity begin,FR02245,1998-01-01,2025-08-29
+validity begin,FR02246,1998-01-01,2025-08-29
+validity begin,FR02247,2007-12-09,2025-08-28
+validity begin,FR02248,1998-01-01,2025-08-29
+validity begin,FR02249,1998-01-01,2025-08-29
+validity begin,FR02250,1998-01-01,2025-08-29
+validity begin,FR02251,1998-01-01,2025-08-29
+validity begin,FR02252,1998-01-01,2025-08-29
+validity begin,FR02254,1998-01-01,2025-08-29
+validity begin,FR02255,1998-01-01,2025-08-28
+validity begin,FR02256,1998-01-01,2025-08-28
+validity begin,FR02257,1998-01-01,2025-08-29
+validity begin,FR02259,1998-01-01,2025-08-29
+validity begin,FR02261,1998-01-01,2025-08-29
+validity begin,FR02262,1998-01-01,2025-08-29
+validity begin,FR02263,1998-01-01,2025-08-29
+validity begin,FR02264,1998-01-01,2025-08-28
+validity begin,FR02268,1998-01-01,2025-08-29
+validity begin,FR02269,1998-01-01,2025-08-29
+validity begin,FR02270,1998-01-01,2025-08-29
+validity begin,FR02271,2001-12-02,2025-08-29
+validity begin,FR02272,1998-01-01,2025-08-29
+validity begin,FR02273,1998-01-01,2025-08-29
+validity begin,FR02274,1998-01-01,2025-08-29
+validity begin,FR02275,1998-01-01,2025-08-29
+validity begin,FR02276,1998-01-01,2025-08-28
+validity begin,FR02277,1998-01-01,2025-08-29
+validity begin,FR02278,1998-01-01,2025-08-29
+validity begin,FR02279,1998-01-01,2025-08-29
+validity begin,FR02280,1998-01-01,2025-08-29
+validity begin,FR02281,1998-01-01,2025-08-29
+validity begin,FR02282,1998-01-01,2025-08-29
+validity begin,FR02283,1998-01-01,2025-08-28
+validity begin,FR02284,1998-01-01,2025-08-29
+validity begin,FR02285,1998-01-01,2025-08-28
+validity begin,FR02286,1998-01-01,2025-08-29
+validity begin,FR02287,1998-01-01,2025-08-29
+validity begin,FR02289,1998-01-01,2025-08-29
+validity begin,FR02290,2012-12-09,2025-08-28
+validity begin,FR02291,2013-12-15,2025-08-29
+validity begin,FR02292,1998-01-01,2025-08-28
+validity begin,FR02293,1998-01-01,2025-08-29
+validity begin,FR02296,1998-01-01,2025-08-28
+validity begin,FR02298,1998-01-01,2025-08-28
+validity begin,FR02299,1998-01-01,2025-08-29
+validity begin,FR02300,2007-12-09,2025-08-28
+validity begin,FR02303,2009-02-02,2025-08-28
+validity begin,FR02306,2009-02-02,2025-08-29
+validity begin,FR02312,2009-02-02,2025-08-29
+validity begin,FR02313,2009-02-02,2025-08-29
+validity begin,FR02314,2009-02-02,2025-08-29
+validity begin,FR02315,1998-01-01,2025-08-29
+validity begin,FR02316,2007-12-09,2025-08-28
+validity begin,FR02317,2007-12-09,2025-08-29
+validity begin,FR02318,1998-01-01,2025-08-28
+validity begin,FR02319,1998-01-01,2025-08-29
+validity begin,FR02320,1998-01-01,2025-08-29
+validity begin,FR02321,1998-01-01,2025-08-29
+validity begin,FR02322,1998-01-01,2025-08-29
+validity begin,FR02325,1998-01-01,2025-08-29
+validity begin,FR02326,1998-01-01,2025-08-29
+validity begin,FR02327,1998-01-01,2025-08-28
+validity begin,FR02330,1998-01-01,2025-08-29
+validity begin,FR02334,1998-01-01,2025-08-29
+validity begin,FR02335,1998-01-01,2025-08-29
+validity begin,FR02337,1998-01-01,2025-08-29
+validity begin,FR02339,1998-01-01,2025-08-29
+validity begin,FR02340,1998-01-01,2025-08-29
+validity begin,FR02341,1998-01-01,2025-08-28
+validity begin,FR02344,1998-01-01,2025-08-29
+validity begin,FR02346,1998-01-01,2025-08-29
+validity begin,FR02347,2011-12-11,2025-08-29
+validity begin,FR02348,2011-12-11,2025-08-29
+validity begin,FR02349,1998-01-01,2025-08-28
+validity begin,FR02350,2008-12-14,2025-08-29
+validity begin,FR02351,2010-12-12,2025-08-29
+validity begin,FR02352,1998-01-01,2025-08-29
+validity begin,FR02353,1998-01-01,2025-08-29
+validity begin,FR02354,1998-01-01,2025-08-29
+validity begin,FR02355,1998-01-01,2025-08-29
+validity begin,FR02356,1998-01-01,2025-08-28
+validity begin,FR02357,1998-01-01,2025-08-29
+validity begin,FR02358,1998-01-01,2025-08-28
+validity begin,FR02359,2010-12-12,2025-08-29
+validity begin,FR02360,1998-01-01,2025-08-29
+validity begin,FR02361,1998-01-01,2025-08-28
+validity begin,FR02362,1998-01-01,2025-08-29
+validity begin,FR02363,1998-01-01,2025-08-28
+validity begin,FR02364,1998-01-01,2025-08-29
+validity begin,FR02366,1998-01-01,2025-08-29
+validity begin,FR02367,1998-01-01,2025-08-29
+validity begin,FR02368,1998-01-01,2025-08-28
+validity begin,FR02369,1998-01-01,2025-08-29
+validity begin,FR02370,1998-01-01,2025-08-29
+validity begin,FR02371,1998-01-01,2025-08-28
+validity begin,FR02373,1998-01-01,2025-08-28
+validity begin,FR02374,1998-01-01,2025-08-29
+validity begin,FR02375,1998-01-01,2025-08-29
+validity begin,FR02376,1998-01-01,2025-08-28
+validity begin,FR02377,1998-01-01,2025-08-29
+validity begin,FR02378,1998-01-01,2025-08-29
+validity begin,FR02379,2011-12-11,2025-08-29
+validity begin,FR02380,2011-12-11,2025-08-29
+validity begin,FR02381,1998-01-01,2025-08-29
+validity begin,FR02382,2011-12-11,2025-08-29
+validity begin,FR02383,2011-12-11,2025-08-28
+validity begin,FR02384,2011-12-11,2025-08-29
+validity begin,FR02385,1998-01-01,2025-08-29
+validity begin,FR02391,1998-01-01,2025-08-29
+validity begin,FR02392,1998-01-01,2025-08-29
+validity begin,FR02395,1998-01-01,2025-08-29
+validity begin,FR02397,1998-01-01,2025-08-29
+validity begin,FR02398,1998-01-01,2025-08-29
+validity begin,FR02399,1998-01-01,2025-08-29
+validity begin,FR02400,2013-12-15,2025-08-29
+validity begin,FR02402,1998-01-01,2025-08-29
+validity begin,FR02403,1998-01-01,2025-08-28
+validity begin,FR02404,2004-12-12,2025-08-29
+validity begin,FR02406,2004-12-12,2025-08-28
+validity begin,FR02407,1998-01-01,2025-08-29
+validity begin,FR02410,1998-01-01,2025-08-28
+validity begin,FR02411,1998-01-01,2025-08-29
+validity begin,FR02414,2001-12-02,2025-08-29
+validity begin,FR02415,2001-12-02,2025-08-28
+validity begin,FR02418,2001-12-02,2025-08-29
+validity begin,FR02419,2001-12-02,2025-08-29
+validity begin,FR02422,2006-12-10,2025-08-28
+validity begin,FR02426,1998-01-01,2025-08-29
+validity begin,FR02428,1998-01-01,2025-08-29
+validity begin,FR02429,1998-01-01,2025-08-29
+validity begin,FR02430,2002-06-16,2025-08-29
+validity begin,FR02432,2001-12-02,2025-08-29
+validity begin,FR02433,1998-01-01,2025-08-29
+validity begin,FR02434,2010-12-12,2025-08-28
+validity begin,FR02435,1998-01-01,2025-08-29
+validity begin,FR02436,1998-01-01,2025-08-28
+validity begin,FR02437,1998-01-01,2025-08-29
+validity begin,FR02438,1998-01-01,2025-08-29
+validity begin,FR02439,2010-12-12,2025-08-29
+validity begin,FR02440,1998-01-01,2025-08-29
+validity begin,FR02441,1998-01-01,2025-08-29
+validity begin,FR02442,1998-01-01,2025-08-29
+validity begin,FR02443,2010-12-12,2025-08-28
+validity begin,FR02444,2012-12-09,2025-08-28
+validity begin,FR02445,2010-12-12,2025-08-29
+validity begin,FR02446,1998-01-01,2025-08-29
+validity begin,FR02447,1998-01-01,2025-08-29
+validity begin,FR02448,1998-01-01,2025-08-29
+validity begin,FR02449,1998-01-01,2025-08-29
+validity begin,FR02450,1998-01-01,2025-08-28
+validity begin,FR02451,1998-01-01,2025-08-29
+validity begin,FR02452,1998-01-01,2025-08-29
+validity begin,FR02453,1998-01-01,2025-08-29
+validity begin,FR02454,1998-01-01,2025-08-28
+validity begin,FR02455,1998-01-01,2025-08-29
+validity begin,FR02456,1998-01-01,2025-08-29
+validity begin,FR02457,1998-01-01,2025-08-29
+validity begin,FR02458,1998-01-01,2025-08-29
+validity begin,FR02459,1998-01-01,2025-08-28
+validity begin,FR02460,1998-01-01,2025-08-29
+validity begin,FR02461,1998-01-01,2025-08-29
+validity begin,FR02462,1998-01-01,2025-08-28
+validity begin,FR02463,1998-01-01,2025-08-29
+validity begin,FR02464,1998-01-01,2025-08-28
+validity begin,FR02465,1998-01-01,2025-08-29
+validity begin,FR02466,1998-01-01,2025-08-29
+validity begin,FR02467,1998-01-01,2025-08-29
+validity begin,FR02468,1998-01-01,2025-08-29
+validity begin,FR02469,1998-01-01,2025-08-29
+validity begin,FR02470,1998-01-01,2025-08-29
+validity begin,FR02471,1998-01-01,2025-08-29
+validity begin,FR02472,1998-01-01,2025-08-29
+validity begin,FR02473,1998-01-01,2025-08-29
+validity begin,FR02474,1998-01-01,2025-08-28
+validity begin,FR02475,1998-01-01,2025-08-29
+validity begin,FR02477,1998-01-01,2025-08-28
+validity begin,FR02478,1998-01-01,2025-08-29
+validity begin,FR02479,1998-01-01,2025-08-29
+validity begin,FR02480,1998-01-01,2025-08-29
+validity begin,FR02481,1998-01-01,2025-08-28
+validity begin,FR02484,1998-01-01,2025-08-29
+validity begin,FR02485,1998-01-01,2025-08-29
+validity begin,FR02486,1998-01-01,2025-08-28
+validity begin,FR02487,1998-01-01,2025-08-29
+validity begin,FR02489,1998-01-01,2025-08-29
+validity begin,FR02490,1998-01-01,2025-08-29
+validity begin,FR02491,1998-01-01,2025-08-28
+validity begin,FR02492,1998-01-01,2025-08-29
+validity begin,FR02493,1998-01-01,2025-08-29
+validity begin,FR02494,1998-01-01,2025-08-29
+validity begin,FR02495,1998-01-01,2025-08-29
+validity begin,FR02496,1998-01-01,2025-08-29
+validity begin,FR02497,1998-01-01,2025-08-28
+validity begin,FR02498,1998-01-01,2025-08-29
+validity begin,FR02501,2008-12-14,2025-08-28
+validity begin,FR02502,2008-12-14,2025-08-28
+validity begin,FR02503,2008-12-14,2025-08-29
+validity begin,FR02504,1998-01-01,2025-08-29
+validity begin,FR02505,1998-01-01,2025-08-28
+validity begin,FR02507,2014-12-14,2025-08-29
+validity begin,FR02508,1998-01-01,2025-08-29
+validity begin,FR02509,1998-01-01,2025-08-28
+validity begin,FR02510,2014-12-14,2025-08-28
+validity begin,FR02511,1998-01-01,2025-08-28
+validity begin,FR02512,1998-01-01,2025-08-29
+validity begin,FR02513,1998-01-01,2025-08-29
+validity begin,FR02514,1998-01-01,2025-08-29
+validity begin,FR02515,1998-01-01,2025-08-29
+validity begin,FR02516,1998-01-01,2025-08-29
+validity begin,FR02517,1998-01-01,2025-08-29
+validity begin,FR02519,1998-01-01,2025-08-29
+validity begin,FR02520,1998-01-01,2025-08-28
+validity begin,FR02521,1998-01-01,2025-08-29
+validity begin,FR02522,1998-01-01,2025-08-28
+validity begin,FR02523,1998-01-01,2025-08-29
+validity begin,FR02524,1998-01-01,2025-08-29
+validity begin,FR02525,1998-01-01,2025-08-29
+validity begin,FR02526,1998-01-01,2025-08-29
+validity begin,FR02527,1998-01-01,2025-08-29
+validity begin,FR02529,1998-01-01,2025-08-29
+validity begin,FR02530,1998-01-01,2025-08-28
+validity begin,FR02531,1998-01-01,2025-08-29
+validity begin,FR02532,1998-01-01,2025-08-28
+validity begin,FR02533,1998-01-01,2025-08-29
+validity begin,FR02535,1998-01-01,2025-08-29
+validity begin,FR02536,1998-01-01,2025-08-28
+validity begin,FR02537,1998-01-01,2025-08-29
+validity begin,FR02538,2005-12-11,2025-08-29
+validity begin,FR02540,1998-01-01,2025-08-29
+validity begin,FR02541,1998-01-01,2025-08-28
+validity begin,FR02542,1998-01-01,2025-08-29
+validity begin,FR02545,1998-01-01,2025-08-29
+validity begin,FR02549,1998-01-01,2025-08-28
+validity begin,FR02555,1998-01-01,2025-08-29
+validity begin,FR02556,1998-01-01,2025-08-29
+validity begin,FR02557,1998-01-01,2025-08-29
+validity begin,FR02558,1998-01-01,2025-08-29
+validity begin,FR02559,1998-01-01,2025-08-29
+validity begin,FR02560,1998-01-01,2025-08-28
+validity begin,FR02561,1998-01-01,2025-08-29
+validity begin,FR02562,1998-01-01,2025-08-29
+validity begin,FR02563,1998-01-01,2025-08-29
+validity begin,FR02564,1998-01-01,2025-08-29
+validity begin,FR02565,1998-01-01,2025-08-28
+validity begin,FR02566,1998-01-01,2025-08-28
+validity begin,FR02567,1998-01-01,2025-08-29
+validity begin,FR02568,1998-01-01,2025-08-28
+validity begin,FR02569,2014-12-14,2025-08-29
+validity begin,FR02570,1998-01-01,2025-08-29
+validity begin,FR02574,1998-01-01,2025-08-29
+validity begin,FR02575,1998-01-01,2025-08-29
+validity begin,FR02576,1998-01-01,2025-08-29
+validity begin,FR02577,1998-01-01,2025-08-29
+validity begin,FR02578,1998-01-01,2025-08-29
+validity begin,FR02581,2003-06-16,2025-08-29
+validity begin,FR02583,2003-06-15,2025-08-29
+validity begin,FR02584,2003-06-15,2025-08-28
+validity begin,FR02586,1998-01-01,2025-08-28
+validity begin,FR02587,1998-01-01,2025-08-29
+validity begin,FR02588,1998-01-01,2025-08-29
+validity begin,FR02590,1998-01-01,2025-08-29
+validity begin,FR02591,2003-06-15,2025-08-29
+validity begin,FR02592,2003-06-15,2025-08-29
+validity begin,FR02593,2008-12-14,2025-08-29
+validity begin,FR02602,1998-01-01,2025-08-29
+validity begin,FR02603,1998-01-01,2025-08-29
+validity begin,FR02604,1998-01-01,2025-08-29
+validity begin,FR02605,1998-01-01,2025-08-28
+validity begin,FR02606,1998-01-01,2025-08-28
+validity begin,FR02607,1998-01-01,2025-08-28
+validity begin,FR02609,2025-09-18,2025-10-23
+validity begin,FR02610,1998-01-01,2025-08-29
+validity begin,FR02611,1998-01-01,2025-08-29
+validity begin,FR02612,2025-09-18,2025-10-23
+validity begin,FR02613,2025-09-18,2025-10-23
+validity begin,FR02614,2025-09-18,2025-10-23
+validity begin,FR02615,2025-09-18,2025-10-23
+validity begin,FR02616,1998-01-01,2025-08-29
+validity begin,FR02617,2025-09-18,2025-10-23
+validity begin,FR02619,1998-01-01,2025-08-29
+validity begin,FR02620,1998-01-01,2025-08-29
+validity begin,FR02621,1998-01-01,2025-08-29
+validity begin,FR02622,1998-01-01,2025-08-29
+validity begin,FR02623,1998-01-01,2025-08-29
+validity begin,FR02624,1998-01-01,2025-08-28
+validity begin,FR02625,1998-01-01,2025-08-29
+validity begin,FR02626,1998-01-01,2025-08-29
+validity begin,FR02627,1998-01-01,2025-08-29
+validity begin,FR02628,1998-01-01,2025-08-29
+validity begin,FR02629,1998-01-01,2025-08-28
+validity begin,FR02632,1998-01-01,2025-08-29
+validity begin,FR02633,1998-01-01,2025-08-29
+validity begin,FR02634,1998-01-01,2025-08-28
+validity begin,FR02635,1998-01-01,2025-08-28
+validity begin,FR02636,1998-01-01,2025-08-29
+validity begin,FR02637,1998-01-01,2025-08-29
+validity begin,FR02638,2008-12-14,2025-08-29
+validity begin,FR02639,1998-01-01,2025-08-29
+validity begin,FR02640,1998-01-01,2025-08-29
+validity begin,FR02641,1998-01-01,2025-08-29
+validity begin,FR02642,1998-01-01,2025-08-29
+validity begin,FR02644,2025-09-18,2025-10-23
+validity begin,FR02645,2025-09-18,2025-10-23
+validity begin,FR02646,2025-10-16,2025-10-23
+validity begin,FR02648,2025-09-18,2025-10-23
+validity begin,FR02649,2025-09-18,2025-10-23
+validity begin,FR02652,2025-09-19,2025-10-24
+validity begin,FR02654,1998-01-01,2025-08-29
+validity begin,FR02655,2025-09-18,2025-10-23
+validity begin,FR02658,2025-09-18,2025-10-23
+validity begin,FR02659,2025-09-18,2025-10-23
+validity begin,FR02660,1998-01-01,2025-08-28
+validity begin,FR02661,1998-01-01,2025-08-29
+validity begin,FR02662,1998-01-01,2025-08-29
+validity begin,FR02664,1998-01-01,2025-08-28
+validity begin,FR02666,1998-01-01,2025-08-28
+validity begin,FR02667,2025-09-18,2025-10-23
+validity begin,FR02669,1998-01-01,2025-08-28
+validity begin,FR02671,1998-01-01,2025-08-28
+validity begin,FR02672,1998-01-01,2025-08-28
+validity begin,FR02673,1998-01-01,2025-08-29
+validity begin,FR02674,1998-01-01,2025-08-29
+validity begin,FR02675,2025-09-18,2025-10-23
+validity begin,FR02676,2025-09-19,2025-10-24
+validity begin,FR02677,1998-01-01,2025-08-29
+validity begin,FR02678,1998-01-01,2025-08-29
+validity begin,FR02679,1998-01-01,2025-08-29
+validity begin,FR02680,1998-01-01,2025-08-29
+validity begin,FR02681,1998-01-01,2025-08-29
+validity begin,FR02682,1998-01-01,2025-08-29
+validity begin,FR02683,1998-01-01,2025-08-29
+validity begin,FR02686,1998-01-01,2025-08-28
+validity begin,FR02687,2025-09-18,2025-10-23
+validity begin,FR02688,1998-01-01,2025-08-28
+validity begin,FR02689,2025-09-18,2025-10-23
+validity begin,FR02690,1998-01-01,2025-08-29
+validity begin,FR02691,1998-01-01,2025-08-29
+validity begin,FR02692,1998-01-01,2025-08-29
+validity begin,FR02693,1998-01-01,2025-08-29
+validity begin,FR02694,1998-01-01,2025-08-29
+validity begin,FR02695,2002-06-16,2025-08-29
+validity begin,FR02696,1998-01-01,2025-08-29
+validity begin,FR02698,1998-01-01,2025-08-29
+validity begin,FR02699,2025-09-18,2025-10-23
+validity begin,FR02700,2025-09-19,2025-10-24
+validity begin,FR02701,2025-09-18,2025-10-23
+validity begin,FR02702,2025-09-18,2025-10-23
+validity begin,FR02703,2025-09-19,2025-10-24
+validity begin,FR02704,2025-09-18,2025-10-23
+validity begin,FR02705,2025-09-18,2025-10-23
+validity begin,FR02706,2025-09-18,2025-10-23
+validity begin,FR02707,2025-09-18,2025-10-23
+validity begin,FR02708,2025-09-18,2025-10-23
+validity begin,FR02709,2025-09-18,2025-10-23
+validity begin,FR02710,2025-09-18,2025-10-23
+validity begin,FR02711,2025-09-18,2025-10-23
+validity begin,FR02712,2025-09-19,2025-10-24
+validity begin,FR02714,2025-09-18,2025-10-23
+validity begin,FR02715,2025-09-18,2025-10-23
+validity begin,FR02716,2025-10-02,2025-10-23
+validity begin,FR02717,2025-09-18,2025-10-23
+validity begin,FR02718,2025-09-19,2025-10-24
+validity begin,FR02719,2025-09-19,2025-10-24
+validity begin,FR02720,2025-09-18,2025-10-23
+validity begin,FR02721,2025-09-18,2025-10-23
+validity begin,FR02722,2025-09-18,2025-10-23
+validity begin,FR02723,2025-09-18,2025-10-23
+validity begin,FR02724,2025-09-18,2025-10-23
+validity begin,FR02727,2025-09-19,2025-10-24
+validity begin,FR02729,1998-01-01,2025-08-28
+validity begin,FR02732,1998-01-01,2025-08-29
+validity begin,FR02733,2025-09-19,2025-10-24
+validity begin,FR02734,2025-09-18,2025-10-23
+validity begin,FR02735,2025-09-18,2025-10-23
+validity begin,FR02737,1998-01-01,2025-08-29
+validity begin,FR02738,1998-01-01,2025-08-29
+validity begin,FR02739,1998-01-01,2025-08-28
+validity begin,FR02740,2007-12-09,2025-08-29
+validity begin,FR02741,1998-01-01,2025-08-29
+validity begin,FR02742,1998-01-01,2025-08-29
+validity begin,FR02746,1998-01-01,2025-08-29
+validity begin,FR02748,2025-09-18,2025-10-23
+validity begin,FR02749,2025-09-19,2025-10-24
+validity begin,FR02750,2025-09-18,2025-10-23
+validity begin,FR02752,1998-01-01,2025-08-28
+validity begin,FR02753,1998-01-01,2025-08-28
+validity begin,FR02759,2025-09-18,2025-10-23
+validity begin,FR02760,2025-09-19,2025-10-24
+validity begin,FR02766,2025-09-18,2025-10-23
+validity begin,FR02767,2025-09-18,2025-10-23
+validity begin,FR02768,2025-09-18,2025-10-23
+validity begin,FR02769,2025-09-18,2025-10-23
+validity begin,FR02770,2025-09-18,2025-10-23
+validity begin,FR02772,2025-09-18,2025-10-23
+validity begin,FR02773,2025-09-18,2025-10-23
+validity begin,FR02774,2025-09-18,2025-10-23
+validity begin,FR02775,2025-09-18,2025-10-23
+validity begin,FR02776,2025-09-18,2025-10-23
+validity begin,FR02777,2025-09-19,2025-10-24
+validity begin,FR02778,2025-09-18,2025-10-23
+validity begin,FR02779,2010-12-12,2025-08-29
+validity begin,FR02780,2025-09-19,2025-10-24
+validity begin,FR02781,2025-09-18,2025-10-23
+validity begin,FR02782,2025-09-18,2025-10-23
+validity begin,FR02783,1998-01-01,2025-08-29
+validity begin,FR02785,1998-01-01,2025-08-29
+validity begin,FR02786,1998-01-01,2025-08-29
+validity begin,FR02787,1998-01-01,2025-08-29
+validity begin,FR02788,1998-01-01,2025-08-29
+validity begin,FR02789,1998-01-01,2025-08-29
+validity begin,FR02790,2025-09-18,2025-10-23
+validity begin,FR02791,1998-01-01,2025-08-28
+validity begin,FR02792,2025-09-18,2025-10-23
+validity begin,FR02793,2025-09-18,2025-10-23
+validity begin,FR02794,1998-01-01,2025-08-29
+validity begin,FR02795,1998-01-01,2025-08-28
+validity begin,FR02796,1998-01-01,2025-08-29
+validity begin,FR02797,1998-01-01,2025-08-28
+validity begin,FR02798,1998-01-01,2025-08-29
+validity begin,FR02799,2025-10-02,2025-10-24
+passenger,AT01046,false,true
+passenger,AT02769,false,true
+passenger,AT34004,true,false
+passenger,AT34029,true,false
+passenger,AT34030,true,false
+passenger,AT34041,true,false
+passenger,AT34042,false,true
+passenger,AT34045,false,true
+passenger,AT34046,false,true
+passenger,AT34047,false,true
+passenger,AT35002,false,true
+passenger,AT35003,false,true
+passenger,AT35004,false,true
+passenger,AT35005,false,true
+passenger,AT35006,false,true
+passenger,AT35007,false,true
+passenger,AT35008,false,true
+passenger,AT35010,false,true
+passenger,AT35011,false,true
+passenger,AT35012,false,true
+passenger,AT35013,false,true
+passenger,AT35015,false,true
+passenger,AT35016,false,true
+passenger,AT35017,false,true
+passenger,AT35018,false,true
+passenger,AT35019,false,true
+passenger,AT35020,false,true
+passenger,AT35021,false,true
+passenger,AT35022,false,true
+passenger,AT35023,false,true
+passenger,AT35024,false,true
+passenger,AT35025,false,true
+passenger,AT35026,false,true
+passenger,LT10044,false,true
+passenger,LT10052,true,false
+passenger,LT10053,true,false
+passenger,LT10054,true,false
+passenger,LT10057,true,false
+passenger,LT10091,true,false
+passenger,LT10111,true,false
+passenger,LT40043,true,false
+passenger,LT40044,true,false
+passenger,LT50001,false,true
+passenger,LT60013,true,false
+passenger,LT60014,true,false
+passenger,LT60015,true,false
+passenger,NO00091,true,false
+passenger,NO00105,false,true
+passenger,NO00134,true,false
+passenger,NO00226,true,false
+passenger,NO00228,true,false
+passenger,NO00275,true,false
+passenger,NO00323,false,true
+passenger,NO00414,false,true
+passenger,NO00544,false,true
+passenger,NO00545,false,true
+passenger,NO00548,true,false
+passenger,NO00551,false,true
+passenger,NO00627,true,false
+passenger,NO00705,true,false
+passenger,NO00707,true,false
+passenger,NO00709,true,false
+passenger,NO00718,true,false
+passenger,NO00721,true,false
+passenger,NO00722,true,false
+passenger,NO00723,true,false
+passenger,NO00730,true,false
+passenger,NO00732,true,false
+passenger,NO00736,true,false
+passenger,NO00737,true,false
+passenger,NO00741,true,false
+passenger,NO00744,true,false
+passenger,NO00745,true,false
+passenger,NO00927,false,true
+passenger,NO01014,false,true
+passenger,NO01121,true,false
+passenger,NO01206,true,false
+passenger,NO01302,true,false
+passenger,NO01312,true,false
+passenger,NO01318,true,false
+passenger,NO01319,true,false
+passenger,NO01322,true,false
+passenger,NO01506,true,false
+passenger,NO01511,true,false
+passenger,NO01537,true,false
+passenger,NO01629,true,false
+passenger,NO01632,true,false
+passenger,NO01634,false,true
+passenger,NO01673,true,false
+passenger,NO01819,false,true
+passenger,NO02018,false,true
+passenger,NO02106,true,false
+passenger,NO02112,true,false
+passenger,NO02114,true,false
+passenger,NO02118,true,false
+passenger,NO02119,true,false
+passenger,NO02185,true,false
+passenger,NO02205,true,false
+passenger,NO02229,true,false
+passenger,NO02303,false,true
+passenger,NO02310,true,false
+passenger,NO05007,true,false
+passenger,NO05115,true,false
+passenger,NO05135,false,true
+passenger,NO05185,false,true
+passenger,NO07281,true,false
+passenger,NO10211,true,false
+passenger,NO10213,true,false
+passenger,NO11411,false,true
+passenger,NO12226,false,true
+passenger,NO13661,true,false
+passenger,NO15010,true,false
+passenger,NO15090,true,false
+passenger,NO15244,false,true
+passenger,NO15300,true,false
+passenger,NO15310,true,false
+passenger,NO16001,true,false
+passenger,NO21751,true,false
+passenger,NO23215,true,false
+passenger,NO23225,true,false
+passenger,NO92403,true,false
+freight,AT33020,true,false
+freight,AT33021,true,false
+freight,AT33022,true,false
+freight,AT33026,true,false
+freight,AT33027,true,false
+freight,AT33028,true,false
+freight,AT34004,true,false
+freight,AT34029,true,false
+freight,AT34030,true,false
+freight,AT34043,false,true
+freight,AT34044,true,false
+freight,AT34046,false,true
+freight,AT34049,false,true
+freight,LT10023,false,true
+freight,LT40048,false,true
+freight,LT50001,false,true
+freight,LT60007,true,false
+freight,LT60013,true,false
+freight,LT60014,true,false
+freight,LT60015,true,false
+freight,NO16001,false,true
+freight,NO92403,false,true
+handover,AT33021,true,false
+handover,AT34004,false,true
+handover,AT35000,false,true
+handover,AT35005,false,true
+handover,AT35014,false,true
+handover,AT35027,false,true
+handover,AT90045,false,true
+handover,AT94159,false,true
+container,AT34029,false,true
+container,AT34030,false,true
+container,AT94157,false,true
+container,AT94158,false,true
+container,LT10047,true,false
+container,LT50008,true,false

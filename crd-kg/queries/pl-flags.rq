@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Primary locations: the four TAF/TAP flags
+SELECT ?pl (GROUP_CONCAT(DISTINCT STR(?pf);separator="|") AS ?passenger) (GROUP_CONCAT(DISTINCT STR(?ff);separator="|") AS ?freight) (GROUP_CONCAT(DISTINCT STR(?cf);separator="|") AS ?container) (GROUP_CONCAT(DISTINCT STR(?hf);separator="|") AS ?handover) WHERE { ?pl a era:PrimaryLocation . OPTIONAL { ?pl era:passengerFlag ?pf } OPTIONAL { ?pl era:freightFlag ?ff } OPTIONAL { ?pl era:containerHandlingFlag ?cf } OPTIONAL { ?pl era:handoverPointFlag ?hf } FILTER(BOUND(?pf)||BOUND(?ff)||BOUND(?cf)||BOUND(?hf)) } GROUP BY ?pl

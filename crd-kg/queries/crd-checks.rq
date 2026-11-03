@@ -1,0 +1,30 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+# Exact full-dataset counts for the CRD data-quality checks used in the report (one row per check).
+SELECT ?check (COUNT(DISTINCT ?x) AS ?n) WHERE {
+  { ?x a era:PrimaryLocation ; era:primaryLocationName ?a, ?b FILTER(?a != ?b && LANG(?a) = LANG(?b)) BIND("PL: two names in the same language (sh:uniqueLang)" AS ?check) }
+  UNION { ?x a era:SubsidiaryLocation ; era:subsidiaryLocationName ?a, ?b FILTER(?a != ?b && LANG(?a) = LANG(?b)) BIND("SL: two names in the same language (sh:uniqueLang)" AS ?check) }
+  UNION { ?x a era:PrimaryLocation ; era:passengerFlag ?f FILTER(DATATYPE(?f) != xsd:boolean) BIND("PL: passengerFlag not xsd:boolean" AS ?check) }
+  UNION { ?x a era:SubsidiaryLocation ; era:subsidiaryLocationCode ?c FILTER(DATATYPE(?c) != xsd:string || STRLEN(?c) > 10 || STRLEN(?c) < 1) BIND("SL: code not a 1-10 char xsd:string" AS ?check) }
+  UNION { ?x a era:SubsidiaryLocation ; era:subsidiaryLocationType ?t FILTER NOT EXISTS { GRAPH <https://rinf-ris-alignment.com/graph/era/skos> { ?t skos:inScheme <http://data.europa.eu/949/concepts/subsidiary-location-types/SubsidiaryLocationTypes> } } BIND("SL: type not in the SubsidiaryLocationTypes scheme" AS ?check) }
+  UNION { ?x a era:SubsidiaryLocation FILTER NOT EXISTS { ?x era:infrastructureManager ?im } BIND("SL: no infrastructureManager" AS ?check) }
+  UNION { ?x a era:SubsidiaryLocation FILTER NOT EXISTS { ?x era:operatingLanguage ?l } BIND("SL: no operatingLanguage" AS ?check) }
+  UNION { ?x a era:SubsidiaryLocation ; era:inCountry ?c BIND("SL: carries inCountry/infrastructureManager/operatingLanguage (outside UAT closed shape)" AS ?check) }
+  UNION { ?x a era:SubsidiaryLocation FILTER NOT EXISTS { ?x geo:hasGeometry ?g } BIND("SL: no geometry" AS ?check) }
+  UNION { ?x a era:SubsidiaryLocation ; era:linkedToPrimaryLocation ?pl ; era:inCountry ?c1 . ?pl era:inCountry ?c2 FILTER(?c1 != ?c2) BIND("SL: country differs from its primary location's" AS ?check) }
+  UNION { ?x a era:PrimaryLocation ; geo:hasGeometry/geo:asWKT ?w FILTER(REGEX(STR(?w), "^POINT\\(0(\\.0+)? 0(\\.0+)?\\)$")) BIND("PL: geometry is POINT(0 0)" AS ?check) }
+  UNION { ?x a era:NetBasicReference ; wgs:lat ?lat FILTER(DATATYPE(?lat) != xsd:decimal && DATATYPE(?lat) != xsd:double && DATATYPE(?lat) != xsd:float) BIND("NetBasicReference: wgs84 lat as plain string" AS ?check) }
+  UNION { ?x a era:NetBasicReference ; wgs:lat ?lat BIND("NetBasicReference: carries wgs84 lat/lon (not a wgs:SpatialThing in ERA)" AS ?check) }
+  UNION { ?x a era:ParameterApplicability ; time:hasBeginning ?b BIND("ParameterApplicability: time:hasBeginning asserted directly (no era:validity)" AS ?check) }
+  UNION { ?x a era:TemporalFeature FILTER(CONTAINS(STR(?x), "None")) BIND("TemporalFeature IRI contains 'None'" AS ?check) }
+  UNION { ?x era:validity ?v FILTER NOT EXISTS { ?v time:hasBeginning ?b } BIND("validity without time:hasBeginning" AS ?check) }
+  UNION { ?x a era:PrimaryLocation ; era:parameterApplicability ?pa1, ?pa2 . ?pa1 era:ofParameter ?p ; era:parameterValue ?v1 . ?pa2 era:ofParameter ?p ; era:parameterValue ?v2 FILTER(?v1 != ?v2) BIND("PL: conflicting ParameterApplicability values for the same flag" AS ?check) }
+  UNION { ?x a era:PrimaryLocation ; era:parameterApplicability ?pa . ?pa era:ofParameter ?p ; era:parameterValue ?v . ?x ?p ?fv FILTER(STR(?v) != STR(?fv)) BIND("PL: ParameterApplicability value contradicts the flag itself" AS ?check) }
+  UNION { ?x a era:PrimaryLocation ; rdfs:label ?l FILTER NOT EXISTS { ?x era:primaryLocationName ?l } BIND("PL: rdfs:label not equal to a primaryLocationName" AS ?check) }
+  UNION { GRAPH ?g { ?x a ?k } FILTER(STRSTARTS(STR(?g), "https://rinf-ris-alignment.com/graph/crd/") && ?k IN (<http://www.w3.org/2002/07/owl#Class>, <http://www.w3.org/2002/07/owl#ObjectProperty>, <http://www.w3.org/2002/07/owl#DatatypeProperty>, <http://www.w3.org/2002/07/owl#AnnotationProperty>, <http://www.w3.org/2002/07/owl#Ontology>)) BIND("ontology terms re-declared inside the data graphs" AS ?check) }
+} GROUP BY ?check ORDER BY ?check

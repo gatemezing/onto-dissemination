@@ -1,0 +1,12 @@
+check,n
+NetBasicReference: carries wgs84 lat/lon (not a wgs:SpatialThing in ERA),59155
+NetBasicReference: wgs84 lat as plain string,59155
+PL: geometry is POINT(0 0),7315
+ParameterApplicability: time:hasBeginning asserted directly (no era:validity),54572
+SL: carries inCountry/infrastructureManager/operatingLanguage (outside UAT closed shape),75917
+SL: no geometry,63650
+SL: no infrastructureManager,79
+SL: no operatingLanguage,4
+SL: type not in the SubsidiaryLocationTypes scheme,19990
+TemporalFeature IRI contains 'None',2235
+ontology terms re-declared inside the data graphs,37
