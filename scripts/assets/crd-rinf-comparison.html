@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRD versus RINF</title>
+<meta name="description" content="Review of the CRD knowledge graph (RNE primary and subsidiary locations modelled with the ERA ontology) against ERA's ontology, ERA's PROD and UAT SHACL shapes, and the RINF dataset in rinf-plus. Measured 3 November 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+  :root{
+    --ground:#f6f7f9; --surface:#ffffff; --sunken:#eef1f5;
+    --ink:#10161f; --muted:#535e6d; --faint:#7b8695; --rule:#d7dde5;
+    --rail:#2b4a6f; --rail-soft:#e5ecf4;
+    --signal:#8a5610; --signal-soft:#fbf1e0;
+    --verify:#255c45; --verify-soft:#e6f0eb;
+    --alarm:#9b2c2c; --alarm-soft:#f9e7e7;
+    /* chart series — validated (light, on #ffffff): adjacent CVD ΔE ≥ 9.2, normal ΔE ≥ 27.6;
+       slot 3 is < 3:1 on white, so the per-country table ships with the chart */
+    --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a;
+    --track:#eef1f5;
+    --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+    --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Consolas,monospace;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0e1319; --surface:#151c25; --sunken:#111821;
+      --ink:#e7ecf3; --muted:#a3aebd; --faint:#7d8899; --rule:#28323f;
+      --rail:#8fb5dd; --rail-soft:#1a2634;
+      --signal:#e0a955; --signal-soft:#2a2113;
+      --verify:#7ec9a6; --verify-soft:#132520;
+      --alarm:#f08f8f; --alarm-soft:#2c1717;
+      --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70;
+      --track:#1c2530;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1319; --surface:#151c25; --sunken:#111821;
+    --ink:#e7ecf3; --muted:#a3aebd; --faint:#7d8899; --rule:#28323f;
+    --rail:#8fb5dd; --rail-soft:#1a2634;
+    --signal:#e0a955; --signal-soft:#2a2113;
+    --verify:#7ec9a6; --verify-soft:#132520;
+    --alarm:#f08f8f; --alarm-soft:#2c1717;
+    --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70;
+    --track:#1c2530;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px;}
+  @media (max-width:560px){ .wrap{padding:0 16px 72px;} }
+  a{color:var(--rail);text-underline-offset:2px;}
+  code{font-family:var(--mono);font-size:.86em;background:var(--sunken);padding:.08em .32em;border-radius:3px;overflow-wrap:anywhere;}
+  strong{font-weight:600;}
+
+  /* masthead */
+  header.mast{padding:52px 0 36px;border-bottom:2px solid var(--ink);}
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--rail);margin:0 0 18px;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.1rem,5vw,3.3rem);line-height:1.06;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance;}
+  .standfirst{font-family:var(--serif);font-size:clamp(1.05rem,2vw,1.27rem);line-height:1.5;color:var(--muted);margin:0;max-width:64ch;}
+  dl.ident{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px 28px;margin:32px 0 0;padding:22px 0 0;border-top:1px solid var(--rule);}
+  dl.ident div{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  dl.ident dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);}
+  dl.ident dd{margin:0;font-size:14px;line-height:1.45;overflow-wrap:anywhere;}
+
+  /* nav */
+  nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;padding:16px 0;border-bottom:1px solid var(--rule);font-size:14px;}
+  nav.toc a{text-decoration:none;color:var(--muted);}
+  nav.toc a:hover{color:var(--rail);}
+  nav.toc span{font-family:var(--mono);font-size:11px;color:var(--faint);margin-right:5px;}
+
+  /* sections */
+  section{padding:48px 0 8px;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(1.55rem,3vw,2rem);line-height:1.15;margin:0 0 6px;}
+  h2 .num{font-family:var(--mono);font-size:.5em;font-weight:500;color:var(--faint);vertical-align:.45em;margin-right:10px;letter-spacing:.06em;}
+  h3{font-family:var(--serif);font-weight:600;font-size:1.22rem;margin:34px 0 10px;}
+  h4{font-size:15px;font-weight:600;margin:24px 0 8px;}
+  p{margin:0 0 14px;max-width:76ch;}
+  .lede{color:var(--muted);margin-bottom:22px;}
+  ul.points{margin:0 0 16px;padding-left:20px;max-width:80ch;}
+  ul.points li{margin:0 0 9px;}
+
+  /* KPI tiles */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:28px 0 8px;}
+  .tile{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:16px 18px 14px;}
+  .tile .v{font-family:var(--serif);font-weight:700;font-size:2rem;line-height:1.05;font-variant-numeric:tabular-nums;}
+  .tile .l{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.4;}
+
+  /* callouts */
+  .note{background:var(--rail-soft);border-left:3px solid var(--rail);padding:14px 18px;border-radius:0 6px 6px 0;margin:18px 0;font-size:15px;max-width:none;}
+  .note.warn{background:var(--signal-soft);border-left-color:var(--signal);}
+  .note p:last-child{margin-bottom:0;}
+
+  /* tables */
+  .tablewrap{overflow-x:auto;margin:12px 0 20px;border:1px solid var(--rule);border-radius:6px;background:var(--surface);}
+  table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.45;}
+  th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule);}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--sunken);white-space:nowrap;}
+  tbody tr:last-child td{border-bottom:0;}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  td.n.w{white-space:normal;min-width:110px;}
+  .tablewrap table{min-width:600px;}
+  table.inv td:first-child{white-space:nowrap;}
+  td.c,th.c{text-align:center;}
+  tr.em td{font-weight:600;}
+
+  /* severity chips: text label carries the meaning, colour only supports it */
+  .sev{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;border:1px solid currentColor;}
+  .sev.major{color:var(--alarm);background:var(--alarm-soft);}
+  .sev.minor{color:var(--signal);background:var(--signal-soft);}
+  .sev.sugg{color:var(--rail);background:var(--rail-soft);}
+  .sev.ok{color:var(--verify);background:var(--verify-soft);}
+  .side{display:block;font-size:11.5px;color:var(--faint);margin-top:3px;}
+
+  /* charts */
+  .chart{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px 18px 14px;margin:14px 0 10px;position:relative;}
+  .chart .ctitle{font-weight:600;font-size:15px;margin:0 0 2px;}
+  .chart .csub{font-size:13px;color:var(--muted);margin:0 0 12px;}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin:0 0 12px;}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px;}
+  .rows{display:flex;flex-direction:column;gap:5px;}
+  .row{display:grid;grid-template-columns:44px 1fr 74px;align-items:center;gap:10px;border-radius:3px;outline:none;}
+  .row:focus-visible{box-shadow:0 0 0 2px var(--rail);}
+  .row .k{font-family:var(--mono);font-size:12px;color:var(--muted);}
+  .row .t{font-size:12.5px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;}
+  .bar{display:flex;height:16px;gap:2px;}
+  .bar span{display:block;height:100%;min-width:0;}
+  .bar span:last-child{border-radius:0 4px 4px 0;}
+  .row:hover .bar span,.row:focus .bar span{filter:saturate(1.15) brightness(1.04);}
+  .axis{display:grid;grid-template-columns:44px 1fr 74px;gap:10px;margin-top:6px;}
+  .axis .ticks{position:relative;height:16px;border-top:1px solid var(--rule);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;}
+  .axis .ticks b{position:absolute;top:2px;font-weight:400;transform:translateX(-50%);}
+  .axis .ticks b:first-child{transform:none;}
+  .hbar{display:grid;grid-template-columns:minmax(120px,240px) 1fr 58px;align-items:center;gap:12px;outline:none;border-radius:3px;}
+  .hbar:focus-visible{box-shadow:0 0 0 2px var(--rail);}
+  .hbar .k{font-size:13px;color:var(--ink);}
+  .hbar .track{height:14px;background:var(--track);border-radius:0 4px 4px 0;position:relative;}
+  .hbar .fill{height:100%;background:var(--series-1);border-radius:0 4px 4px 0;}
+  .hbar .t{font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);}
+  @media (max-width:560px){
+    .hbar{grid-template-columns:1fr 52px;}
+    .hbar .k{grid-column:1 / -1;margin-bottom:-6px;}
+    .row{grid-template-columns:34px 1fr 60px;gap:8px;}
+    .axis{grid-template-columns:34px 1fr 60px;gap:8px;}
+    .axis .ticks b.mid{display:none;}
+  }
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--ground);font-size:12.5px;line-height:1.45;padding:8px 10px;border-radius:5px;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transition:opacity .08s;z-index:5;min-width:170px;max-width:260px;}
+  .tip.on{opacity:1;}
+  .tip b{font-weight:600;}
+  .tip .r{display:flex;justify-content:space-between;gap:14px;font-variant-numeric:tabular-nums;}
+  .tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;}
+  details.tv{margin:6px 0 18px;}
+  details.tv summary{cursor:pointer;font-size:14px;color:var(--rail);}
+  @media (forced-colors:active){ .bar span,.hbar .fill{forced-color-adjust:none;} }
+
+  /* finding cards */
+  .finding{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px 20px 6px;margin:14px 0;}
+  .finding h4{margin:0 0 10px;font-size:16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;}
+  .finding h4 .id{font-family:var(--mono);font-size:12px;color:var(--faint);}
+  .finding p{max-width:none;font-size:15px;}
+  .fix{color:var(--muted);}
+  .fix::before{content:"Fix — ";font-weight:600;color:var(--ink);}
+
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.5;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;overflow-x:auto;margin:10px 0 18px;}
+  footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);font-size:13px;color:var(--muted);}
+  footer p{max-width:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Data review · measured 3 November 2026</p>
+  <h1>The CRD knowledge graph, checked against ERA and RINF</h1>
+  <p class="standfirst">RNE's Common Reference Data (59,155 primary and 75,917 subsidiary locations) published with the ERA ontology, reviewed against ERA's ontology and SHACL shapes and compared with the RINF data in rinf-plus.</p>
+  <dl class="ident">
+    <div><dt>Reviewed endpoint</dt><dd><a href="https://rinf-ris-alignment.com/repositories/CRD">rinf-ris-alignment.com/repositories/CRD</a><br>dataset <code>graph/crd</code>, modified 2026-11-03 13:14 UTC</dd></div>
+    <div><dt>Reference data</dt><dd><a href="https://graph.data.era.europa.eu/repositories/rinf-plus">graph.data.era.europa.eu/repositories/rinf-plus</a></dd></div>
+    <div><dt>Reference model</dt><dd>ERA ontology v3.3.4 · SHACL PROD (<code>ERA-Onto</code> <code>graph/shacl</code>) and UAT (<code>era-shapes</code>)</dd></div>
+    <div><dt>Evidence</dt><dd>Every figure comes from a query or script in <a href="https://github.com/gatemezing/onto-dissemination/tree/main/crd-kg"><code>crd-kg/</code></a></dd></div>
+  </dl>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#summary"><span>1</span>Summary</a>
+  <a href="#inventory"><span>2</span>Inventory</a>
+  <a href="#conformance"><span>3</span>Ontology &amp; SHACL</a>
+  <a href="#comparison"><span>4</span>Comparison with RINF</a>
+  <a href="#findings"><span>5</span>Findings</a>
+  <a href="#method"><span>6</span>Method &amp; limits</a>
+</nav>
+
+<!-- ============================== 1 ============================== -->
+<section id="summary">
+  <h2><span class="num">01</span>Summary</h2>
+  <p>The CRD graph replicates RNE's Common Reference Data every day: TAF/TAP <strong>primary locations</strong> (PLC) and <strong>subsidiary locations</strong> (SLC). It uses only ERA v3.3.4 terms, and every term it uses exists, undeprecated, in the PROD ontology. Its PLC structure is cleaner than RINF's. Each code has one IRI, and every location is named in English, flagged, dated and attributed to an IM, with a valid code pattern throughout. Against ERA's own shapes, <strong>CRD conforms better than RINF</strong>: under PROD only two vocabulary-alignment constraints fire.</p>
+
+  <div class="tiles">
+    <div class="tile"><div class="v">59,155</div><div class="l">primary locations in CRD, one IRI per code</div></div>
+    <div class="tile"><div class="v">50,172</div><div class="l">PL codes in RINF, spread over 53,679 IRIs</div></div>
+    <div class="tile"><div class="v">45,733</div><div class="l">codes in both sources</div></div>
+    <div class="tile"><div class="v">100 %</div><div class="l">country and IM agreement on shared codes</div></div>
+    <div class="tile"><div class="v">2</div><div class="l">PROD SHACL constraints failing on CRD (RINF: 15 result groups)</div></div>
+  </div>
+
+  <h3>What needs fixing</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>#</th><th>Severity</th><th>Finding</th><th class="n">Affected</th></tr></thead>
+    <tbody>
+      <tr><td><a href="#f1">F1</a></td><td><span class="sev major">MAJOR</span></td><td>Every allocation company is typed with the <strong>IM</strong> role, including UIC, freight RUs and others that OCR-KG does not list as IMs.</td><td class="n w">30,059 SLs (39.6 %)</td></tr>
+      <tr><td><a href="#f2">F2</a></td><td><span class="sev major">MAJOR</span></td><td>All Great Britain PLCs sit at <code>POINT(0 0)</code> ("null island") rather than having no geometry.</td><td class="n w">7,312 PLs (+3)</td></tr>
+      <tr><td><a href="#f3">F3</a></td><td><span class="sev major">MAJOR</span></td><td>SL type codes <code>01 02 03 10 15 27</code> exist only in the <strong>UAT</strong> scheme, so PROD's <code>SubsidiaryLocationTypeSKOS</code> fails.</td><td class="n w">19,990 SLs (26 %)</td></tr>
+      <tr><td><a href="#f4">F4</a></td><td><span class="sev major">MAJOR</span><span class="side">under UAT</span></td><td>Every SL carries <code>inCountry</code>, <code>infrastructureManager</code> and <code>operatingLanguage</code>, which UAT's <code>sh:closed</code> <code>SubsidiaryLocationShape</code> does not allow.</td><td class="n w">75,917 SLs (100 %)</td></tr>
+      <tr><td><a href="#f5">F5</a></td><td><span class="sev major">MAJOR</span><span class="side">RINF side</span></td><td>Danish codes identify <strong>different places</strong> in the two sources. RINF's <code>DK00010</code> is Høje Taastrup, which CRD codes <code>DK00005</code>.</td><td class="n w">289 / 297 DK codes &gt; 10 km apart</td></tr>
+      <tr><td><a href="#f6">F6</a></td><td><span class="sev minor">MINOR</span></td><td>The data graphs re-declare 37 ERA ontology terms, including an <code>owl:Ontology</code>.</td><td class="n w">both data graphs</td></tr>
+      <tr><td><a href="#f6">F7</a></td><td><span class="sev minor">MINOR</span></td><td><code>wgs84:lat</code>/<code>lon</code> appear as plain strings on <code>era:NetBasicReference</code>, duplicating the WKT.</td><td class="n w">59,155</td></tr>
+      <tr><td><a href="#f6">F8</a></td><td><span class="sev minor">MINOR</span></td><td>IRIs leak Python's <code>None</code> (<code>temporalFeature/20170701_None</code>).</td><td class="n w">2,235 + 54,572</td></tr>
+      <tr><td><a href="#f6">F9</a></td><td><span class="sev minor">MINOR</span></td><td>Names carry fixed-width whitespace runs.</td><td class="n w">613 names</td></tr>
+      <tr><td><a href="#f10">F10</a></td><td><span class="sev minor">MINOR</span></td><td><code>era:inNUTS3</code> IRIs differ by source, and the scheme the ontology names has no members.</td><td class="n w">9,425 PLs</td></tr>
+      <tr><td><a href="#f11">F11</a></td><td><span class="sev sugg">SUGGESTION</span></td><td>IRIs are minted in ERA's namespace by a third party; provenance metadata is thin; the SKOS graph mixes PROD with UAT.</td><td class="n w">governance</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>What the comparison with RINF shows</h3>
+  <ul class="points">
+    <li><strong>Coverage.</strong> 45,733 PLCs are in both sources. 13,422 are in CRD only (GB 7,312, FR 962, PT 825, PL 685, RS 682, DE 550, …); 4,439 are in RINF only (DE 1,935, CH 922, IT 362, PL 271, NO 269, DK 221, EU 91, …).</li>
+    <li><strong>4,413 PLCs that RINF operational points reference are absent from CRD.</strong> Most belong to DB InfraGO (1,934) and the Swiss graphs 0085 + 3915 (905).</li>
+    <li><strong>RINF is already partly CRD-derived.</strong> 9,166 of DB InfraGO's 11,104 RINF PLs and all 780 of ProRail's carry this pipeline's IRI fingerprints, so agreement there is reported separately.</li>
+    <li><strong>Validity start dates disagree</strong> on 59 % of the independent overlap. The most likely reason is that the two sources date different events.</li>
+    <li><strong>Subsidiary locations do not overlap.</strong> RINF's 3,899 SLs are Bane NOR tracks; CRD's 75,917 are the RNE SLC catalogue. Not one (PLC, SLC) pair is shared.</li>
+  </ul>
+</section>
+
+<!-- ============================== 2 ============================== -->
+<section id="inventory">
+  <h2><span class="num">02</span>Inventory</h2>
+  <div class="tablewrap"><table class="inv">
+    <thead><tr><th></th><th>CRD</th><th>RINF (rinf-plus)</th></tr></thead>
+    <tbody>
+      <tr><td>Statements</td><td>2,940,942</td><td>—</td></tr>
+      <tr><td>Named graphs</td><td><code>crd/primary-locations</code> 1,767,521 · <code>crd/subsidiary-locations</code> 1,067,261 · <code>era/skos</code> 91,169 · <code>era/ontology</code> 14,974 · <code>crd/metadata</code> 17</td><td>one per IM (47 hold PLs)</td></tr>
+      <tr><td><code>era:PrimaryLocation</code></td><td>59,155 IRIs = 59,155 codes</td><td>53,679 IRIs → 50,172 codes (167 codes with &gt; 1 IRI; 3,332 in &gt; 1 IM graph)</td></tr>
+      <tr><td><code>era:SubsidiaryLocation</code></td><td>75,917</td><td>3,899 (<code>graph/0076</code>, Bane NOR only)</td></tr>
+      <tr><td>PL IRI pattern</td><td><code>…/949/primaryLocation/{PLC}</code></td><td>the same for 42,330; others include <code>…/functionalInfrastructure/primaryLocations/{PLC}</code>, <code>…/PrimaryLocation/57-PL-…</code> and <code>data.banenor.no/…</code></td></tr>
+      <tr><td>Same IRI, same code</td><td colspan="2">38,105 of the 45,733 shared codes</td></tr>
+    </tbody>
+  </table></div>
+  <p>The metadata graph describes the dataset in VoID/DCAT (title, description, <code>dct:conformsTo</code>, subsets, triple and entity counts). It records no licence, no publisher and no <code>prov:wasDerivedFrom</code> pointing back to RNE CRD.</p>
+
+  <h3>Primary locations per country</h3>
+  <div class="chart" id="cov">
+    <p class="ctitle">Primary-location codes by code prefix</p>
+    <p class="csub">Bar length is the union of both sources. Hover or focus a row for the counts.</p>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:var(--series-1)"></i>In both</span>
+      <span><i style="background:var(--series-2)"></i>CRD only</span>
+      <span><i style="background:var(--series-3)"></i>RINF only</span>
+    </div>
+    <div class="rows" id="cov-rows" role="list"></div>
+    <div class="axis" aria-hidden="true"><span></span><div class="ticks" id="cov-ticks"></div><span></span></div>
+    <div class="tip" id="cov-tip" role="status" aria-live="polite"></div>
+  </div>
+  <details class="tv">
+    <summary>Show the per-country table</summary>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Prefix</th><th class="n">CRD</th><th class="n">RINF</th><th class="n">Both</th><th class="n">CRD only</th><th class="n">RINF only</th><th class="n">Share of CRD in RINF</th></tr></thead>
+      <tbody id="cov-table"></tbody>
+    </table></div>
+  </details>
+  <p>GB and RS lie outside RINF's scope. <strong>PT and EE are EU Member States whose RINF publishes no <code>era:PrimaryLocation</code></strong>, which leaves CRD as the only linked-data source of PLCs for them. Denmark's low overlap and positional mismatch are a separate problem (<a href="#f5">F5</a>).</p>
+
+  <h3>Subsidiary locations</h3>
+  <p>CRD holds 75,917 SLs in 28 countries: CZE 19,030, FRA 16,602, DEU 14,705, SVK 6,289, AUT 5,083, CHE 3,884, BEL 2,543, …. Every SL links to a PL present in CRD (none dangling), and 72,500 of those PLs are also in RINF. 12,267 (16 %) carry a geometry. 34 companies allocate the SLCs, UIC (3011) 17,559 of them. For 35,285 SLs the allocation company is not the PL's IM.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Type (<code>subsidiary-location-types/…</code>)</th><th class="n">SLs</th><th class="c">PROD scheme</th><th class="c">UAT scheme</th></tr></thead>
+    <tbody>
+      <tr><td>37 Loading point</td><td class="n">20,768</td><td class="c">✓</td><td class="c">✓</td></tr>
+      <tr class="em"><td>01</td><td class="n">19,051</td><td class="c">✗ missing</td><td class="c">✓</td></tr>
+      <tr><td>41 Company specific identifier</td><td class="n">18,570</td><td class="c">✓</td><td class="c">✓</td></tr>
+      <tr><td>42 DIUM</td><td class="n">12,275</td><td class="c">✓</td><td class="c">✓</td></tr>
+      <tr><td>04 Sorting code</td><td class="n">1,969</td><td class="c">✓</td><td class="c">✓</td></tr>
+      <tr><td>36 Freight yard</td><td class="n">1,338</td><td class="c">✓</td><td class="c">✓</td></tr>
+      <tr class="em"><td>15</td><td class="n">598</td><td class="c">✗ missing</td><td class="c">✓</td></tr>
+      <tr><td>57 Intermodal terminal</td><td class="n">488</td><td class="c">✓</td><td class="c">✓</td></tr>
+      <tr><td>70 Network border</td><td class="n">414</td><td class="c">✓</td><td class="c">✓</td></tr>
+      <tr class="em"><td>03</td><td class="n">327</td><td class="c">✗ missing</td><td class="c">✓</td></tr>
+      <tr><td>06 Public loading places</td><td class="n">83</td><td class="c">✓</td><td class="c">✓</td></tr>
+      <tr class="em"><td>10, 27, 02</td><td class="n">11 + 2 + 1</td><td class="c">✗ missing</td><td class="c">✓</td></tr>
+      <tr><td>47, 60, 48, 54, 46, 99</td><td class="n">22</td><td class="c">✓</td><td class="c">✓</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================== 3 ============================== -->
+<section id="conformance">
+  <h2><span class="num">03</span>Conformance with the ERA ontology and shapes</h2>
+
+  <h3>3.1 Ontology</h3>
+  <ul class="points">
+    <li><strong>Vocabulary.</strong> All 8 classes and 29 properties the data uses are declared in ERA PROD v3.3.4, none deprecated, with the expected domains and ranges. The deprecated <code>era:tafTAPCode</code> is not used.</li>
+    <li><strong>CRD's copy of the ontology</strong> is graph-isomorphic to PROD's once line endings are normalised. 296 literals use <code>\r\n</code> where PROD uses <code>\n</code>.</li>
+    <li><strong><code>ParameterApplicability</code></strong> is modelled correctly. It is a subclass of <code>era:TemporalFeature</code>, so <code>time:hasBeginning</code> directly on it is right. None of the 54,572 applicabilities contradicts its flag.</li>
+    <li><strong>Re-declared terms (<a href="#f6">F6</a>).</strong> Both data graphs carry full ERA descriptions of 37 terms, including <code>owl:Ontology &lt;http://data.europa.eu/949/&gt;</code>.</li>
+  </ul>
+
+  <h3>3.2 What the location shapes require</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Shape</th><th>PROD</th><th>UAT</th></tr></thead>
+    <tbody>
+      <tr><td><code>PrimaryLocationShape</code></td><td>open; code <code>^[A-Z]{2}[0-9]{5}$</code> exactly once; name <code>rdf:langString</code>, unique per language, with an <code>@en</code> value if any; flags <code>xsd:boolean</code> at most once; <code>inNUTS3</code> at most once (Warning)</td><td><strong><code>sh:closed</code></strong>; adds at least one name and one <code>validity</code>, at most one OP, and a geometry via <code>netReference</code> (Warning)</td></tr>
+      <tr><td><code>SubsidiaryLocationShape</code></td><td>open; code <code>xsd:string</code> of 1–10 characters; langString name with <code>@en</code>; <code>linkedToPrimaryLocation</code> must be a <code>PrimaryLocation</code>; <code>allocationCompany</code> must be an <code>OrganisationRole</code>; type must be in the scheme</td><td><strong><code>sh:closed</code></strong>, allowing only allocationCompany, linkedToPrimaryLocation, subsidiaryLocationCode/Name/Type, validity, notApplicable, notYetAvailable, <code>geo:hasGeometry</code>, <code>rdf:type</code> and <code>rdfs:label</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>3.3 SHACL results</h3>
+  <p class="lede">pyshacl 0.40.2 validated a deterministic sample from each source and reported only the sampled resources. The CRD sample held 3,000 PLs and 3,000 SLs; the RINF sample held 3,000 PLs and all 3,899 SLs. The data graph also included ERA's ontology, its SKOS and NUTS concepts, and rinf-plus <code>graph/rinf/countries</code>.</p>
+
+  <h4>CRD under PROD: two constraints fire, nothing else</h4>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Constraint</th><th class="n">In sample</th><th class="n">Full dataset</th></tr></thead>
+    <tbody>
+      <tr><td><code>SubsidiaryLocationTypeSKOS</code>: type not in the scheme (<a href="#f3">F3</a>)</td><td class="n">772 / 3,000 SLs</td><td class="n">19,990 (26.3 %)</td></tr>
+      <tr><td><code>InNUTS3SKOS</code>: NUTS concept not in the scheme (<a href="#f10">F10</a>)</td><td class="n">486 / 3,000 PLs</td><td class="n">9,425 (15.9 %)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Everything else passes: codes, names, flags, <code>allocationCompany</code>, <code>linkedToPrimaryLocation</code>, the validity chain, IM roles and countries.</p>
+
+  <h4>CRD under UAT: the closed shape dominates</h4>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Constraint</th><th class="n">In sample</th><th class="n">Full dataset</th></tr></thead>
+    <tbody>
+      <tr><td><code>SubsidiaryLocationShape</code> <code>sh:closed</code>: <code>inCountry</code> / <code>infrastructureManager</code> / <code>operatingLanguage</code> (<a href="#f4">F4</a>)</td><td class="n">100 % of SLs</td><td class="n">75,917 / 75,838 / 75,913</td></tr>
+      <tr><td><code>InSkosConceptScheme</code>: SL type (<a href="#f3">F3</a>)</td><td class="n">772 SLs</td><td class="n">19,990</td></tr>
+      <tr><td><code>InSkosConceptScheme</code>: NUTS (<a href="#f10">F10</a>)</td><td class="n">486 PLs</td><td class="n">9,425</td></tr>
+      <tr><td><code>HasSite</code>: <code>era:Body</code> without <code>org:hasSite</code></td><td class="n">65 bodies</td><td class="n">all 97</td></tr>
+    </tbody>
+  </table></div>
+  <p>CRD's PLs pass UAT's closed <code>PrimaryLocationShape</code> and its new minimums. Apart from the 7,315 <code>POINT(0 0)</code> PLs, CRD's primary locations are UAT-ready.</p>
+
+  <h4>RINF sample, for comparison</h4>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Issue</th><th class="n">PROD</th><th class="n">UAT</th></tr></thead>
+    <tbody>
+      <tr><td>PL with no geometry via <code>netReference</code> (Warning)</td><td class="n">852 / 3,000</td><td class="n">852 / 3,000</td></tr>
+      <tr><td>PL without <code>primaryLocationName</code> and <code>validity</code></td><td class="n">—</td><td class="n">1,322 / 3,000</td></tr>
+      <tr><td><code>NetPointReference</code> with <code>wgs84:lat</code>/<code>long</code> (closed shape)</td><td class="n">—</td><td class="n">1,290</td></tr>
+      <tr><td><code>hasTopoCoordinate</code> missing or of the wrong class</td><td class="n">280</td><td class="n">1,577</td></tr>
+      <tr><td>NUTS3 not in scheme / wrong class</td><td class="n">18</td><td class="n">18</td></tr>
+      <tr><td>Bane NOR <code>kmPost</code> of the wrong class</td><td class="n">95</td><td class="n">95</td></tr>
+      <tr><td>Body <code>role</code>/<code>roleOf</code>/<code>rdfs:label</code>/<code>hasSite</code> (results)</td><td class="n">10</td><td class="n">29</td></tr>
+      <tr><td>RINF subsidiary locations</td><td class="n">0</td><td class="n">0</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>3.4 Notes for ERA's shape maintainers</h3>
+  <p class="lede">These problems in ERA's own shapes came to light while running them. They have nothing to do with CRD.</p>
+  <ul class="points">
+    <li><strong>PROD <code>LangStringEnRequired</code> and <code>LangStringEnRequiredIfPresent</code> are invalid SPARQL</strong> once <code>$PATH</code> is substituted, because <code>SELECT $this $PATH</code> projects an IRI. UAT already reads <code>SELECT $this</code>.</li>
+    <li><strong>The ontology declares both <code>geo:</code> and <code>geosparql:</code></strong> for one namespace. rdflib-based validators bind only one, so the other stops resolving.</li>
+    <li><strong>Constraints use <code>VALUES</code>, <code>MINUS</code> and nested <code>SELECT</code></strong>, which SHACL 1.0's pre-binding rules forbid; pyshacl rejects them by default.</li>
+    <li><strong>17 UAT constraints use <code>SERVICE</code></strong> and cannot run on a local copy.</li>
+    <li><strong>Severity on <code>sh:SPARQLConstraint</code> nodes is ignored.</strong> The intended Warnings report as Violations.</li>
+    <li><strong><code>era:inNUTS3</code> points at a scheme with no members</strong> (<a href="#f10">F10</a>).</li>
+  </ul>
+
+  <h3>3.5 Exact full-dataset checks</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Check over the whole CRD graph</th><th class="n">Resources</th></tr></thead>
+    <tbody>
+      <tr><td>PL code not matching <code>^[A-Z]{2}[0-9]{5}$</code></td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr><td>PL or SL with two names in one language</td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr><td>PL without an <code>@en</code> name</td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr><td>PL flag not <code>xsd:boolean</code>, or with more than one value</td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr><td>SL code not a 1–10-character <code>xsd:string</code></td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr><td>SL link not resolving to a PL in CRD</td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr><td>SL in a different country from its PL</td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr><td>ParameterApplicability contradicting its flag</td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr><td>validity without <code>time:hasBeginning</code></td><td class="n"><span class="sev ok">0</span></td></tr>
+      <tr class="em"><td>PL geometry <code>POINT(0 0)</code></td><td class="n">7,315</td></tr>
+      <tr class="em"><td>SL type not in <code>SubsidiaryLocationTypes</code></td><td class="n">19,990</td></tr>
+      <tr class="em"><td>SL with properties outside the UAT closed shape</td><td class="n">75,917</td></tr>
+      <tr><td>SL without geometry (permitted)</td><td class="n">63,650</td></tr>
+      <tr><td>SL without <code>infrastructureManager</code> / <code>operatingLanguage</code></td><td class="n">79 / 4</td></tr>
+      <tr><td><code>NetBasicReference</code> with <code>wgs84:lat</code> as a plain string</td><td class="n">59,155</td></tr>
+      <tr><td><code>TemporalFeature</code> IRI containing <code>None</code></td><td class="n">2,235</td></tr>
+      <tr><td>ERA ontology terms re-declared in the data graphs</td><td class="n">37</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================== 4 ============================== -->
+<section id="comparison">
+  <h2><span class="num">04</span>Comparison with RINF</h2>
+
+  <h3>4.1 Property completeness, per code</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Property</th><th class="n">CRD</th><th class="n">RINF</th><th class="n">RINF, shared codes</th></tr></thead>
+    <tbody>
+      <tr><td><code>inCountry</code></td><td class="n">100 %</td><td class="n">98.4 %</td><td class="n">98.4 %</td></tr>
+      <tr><td><code>infrastructureManager</code></td><td class="n">100 %</td><td class="n">43.3 %</td><td class="n">46.8 %</td></tr>
+      <tr><td><code>primaryLocationName</code></td><td class="n">100 %</td><td class="n">51.8 %</td><td class="n">56.0 %</td></tr>
+      <tr><td>passenger / freight / container / handover flags</td><td class="n">100 %</td><td class="n">42–44 %</td><td class="n">46–47 %</td></tr>
+      <tr><td>position (non-zero WKT)</td><td class="n">87.6 %</td><td class="n">82.6 %</td><td class="n">83.3 %</td></tr>
+      <tr><td><code>validity</code></td><td class="n">100 %</td><td class="n">51.8 %</td><td class="n">56.0 %</td></tr>
+      <tr><td>validity end</td><td class="n">12.7 %</td><td class="n">23.0 %</td><td class="n">25.1 %</td></tr>
+      <tr><td><code>inNUTS3</code></td><td class="n">15.9 %</td><td class="n">0.6 %</td><td class="n">0.6 %</td></tr>
+    </tbody>
+  </table></div>
+  <p>CRD is the richer source. Many RINF publishers reduce the PL to a stub of code, label and geometry, and CRD can supply the IM, names and TAF/TAP flags for those.</p>
+
+  <h3>4.2 Which RINF graphs are CRD-derived</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>RINF graph</th><th class="n">PLs</th><th class="n">CRD-style validity</th><th class="n">With ParameterApplicability</th></tr></thead>
+    <tbody>
+      <tr><td><code>0080</code> DB InfraGO</td><td class="n">11,104</td><td class="n">9,166</td><td class="n">9,003</td></tr>
+      <tr><td><code>0084</code> ProRail</td><td class="n">780</td><td class="n">780</td><td class="n">636</td></tr>
+      <tr><td>the other 45 graphs</td><td class="n">41,795</td><td class="n">0</td><td class="n">0</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>4.3 Value agreement on shared codes</h3>
+  <div class="chart" id="agr">
+    <p class="ctitle">Agreement with RINF, independent graphs only</p>
+    <p class="csub">These are shared codes outside the CRD-derived graphs 0080 and 0084; the derived graphs agree 100 % on every field. Hover a bar for the counts and the all-graph figure.</p>
+    <div class="rows" id="agr-rows" role="list"></div>
+    <div class="tip" id="agr-tip" role="status" aria-live="polite"></div>
+  </div>
+  <details class="tv">
+    <summary>Show the agreement table</summary>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Field</th><th class="n">Comparable (all)</th><th class="n">Agree (all)</th><th class="n">Comparable (independent)</th><th class="n">Agree (independent)</th></tr></thead>
+      <tbody id="agr-table"></tbody>
+    </table></div>
+  </details>
+  <ul class="points">
+    <li><strong>Names.</strong> Most mismatches are in GR (7.5 % agree), because RINF prefixes the name with the code number (<code>954-DILOFO</code>). The places are the same.</li>
+    <li><strong>Positions.</strong> The median distance is 0 m, p90 137 m and p99 3.2 km. Of the 802 codes more than 1 km apart, 301 are over 10 km apart, and 289 of those are Danish (<a href="#f5">F5</a>). The rest look like single-record typos, for example DK00459 Hirtshals in CRD at <code>POINT(9.96 7.59)</code>.</li>
+    <li><strong>Validity.</strong> Start dates agree 100 % in the derived DE/NL graphs and 95.6 % in AT, but only 30.8 % in FR and 0–3 % in HR, LT, LU and NO. The most likely reason is that the two sources date different events, which has not been checked with the publishers. Keep both windows rather than overwrite one with the other.</li>
+    <li><strong>NUTS3.</strong> The 13 PLs that both sources code agree on the NUTS code, but under different IRIs (<a href="#f10">F10</a>).</li>
+  </ul>
+
+  <h3>4.4 Operational points → primary locations</h3>
+  <p>RINF links operational points to PLs with <code>era:primaryLocation</code>. 46,899 PL IRIs (46,897 codes) are referenced this way, 6,844 of them by more than one OP.</p>
+  <ul class="points">
+    <li><strong>42,484 referenced codes exist in CRD</strong>, so CRD can enrich those OPs by code.</li>
+    <li><strong>4,413 referenced codes are missing from CRD</strong>: DB InfraGO (0080) 1,934; SBB Infrastructure and Schweizerische Trassenvergabestelle (0085 + 3915) 905; PKP PLK (0051) 306; Bane NOR (0076) 269; Banedanmark (0086) 223; FER (3525) 123; …. The list, with uopids, is in <a href="https://github.com/gatemezing/onto-dissemination/blob/main/crd-kg/stats/rinf-op-pl-missing-from-crd.csv"><code>stats/rinf-op-pl-missing-from-crd.csv</code></a>.</li>
+  </ul>
+
+  <h3>4.5 Subsidiary locations</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th></th><th>CRD</th><th>RINF</th></tr></thead>
+    <tbody>
+      <tr><td>SLs</td><td>75,917 in 28 countries</td><td>3,899, NOR only</td></tr>
+      <tr><td>Code</td><td>RNE SLC (<code>53414</code>, <code>BMZD</code>, <code>0076700001</code>)</td><td>Bane NOR track id (<code>NO-S.1</code>)</td></tr>
+      <tr><td><code>subsidiaryLocationType</code></td><td>100 %</td><td>0 %</td></tr>
+      <tr><td>Geometry</td><td>16 %, as <code>POINT</code></td><td>99 %, as <code>LINESTRING</code> (the track)</td></tr>
+      <tr><td><code>allocationCompany</code></td><td>34 companies, all typed IM (<a href="#f1">F1</a>)</td><td>0076</td></tr>
+      <tr><td>Shared (PLC, SLC) pairs</td><td colspan="2">0</td></tr>
+    </tbody>
+  </table></div>
+  <p>Bane NOR uses <code>era:SubsidiaryLocation</code> for <strong>tracks within a station</strong>, whereas the class is defined for the TAF/TAP SLC catalogue. The two sources cannot be reconciled by code for Norway.</p>
+</section>
+
+<!-- ============================== 5 ============================== -->
+<section id="findings">
+  <h2><span class="num">05</span>Findings in detail</h2>
+
+  <div class="finding" id="f1">
+    <h4><span class="id">F1</span><span class="sev major">MAJOR</span>Allocation companies typed as infrastructure managers</h4>
+    <p>Every <code>era:allocationCompany</code> points at <code>…/organisationRole/{code}_IM</code>, which has <code>era:hasOrganisationRole</code> <code>organisation-roles/IM</code>. In OCR-KG, 11 of the 34 companies hold no IM role, and they cover <strong>30,059 SLs</strong>: UIC (3011, 17,559 SLs, role IRO), Rail Cargo Austria, DB Cargo, ČD Cargo, SBB Cargo, Rail Cargo Hungaria, UIRR, CFL Cargo, Gysev Cargo, DB Cargo Hungária and Rail&amp;Sea. As published, the graph says UIC is an infrastructure manager.</p>
+    <p class="fix">Point <code>allocationCompany</code> at an <code>era:OrganisationRole</code> carrying the role the company actually holds in OCR-KG, and keep the IM role for <code>era:infrastructureManager</code>.</p>
+  </div>
+
+  <div class="finding" id="f2">
+    <h4><span class="id">F2</span><span class="sev major">MAJOR</span>Great Britain at null island</h4>
+    <p>All 7,312 GB PLs, plus one each in DE, FR and CZ, have <code>geo:asWKT "POINT(0 0)"</code> and <code>wgs84:lat "0.0"</code>. A map draws them in the Gulf of Guinea, and nearest-neighbour and bounding-box queries are skewed.</p>
+    <p class="fix">Omit <code>netReference</code>/<code>hasGeometry</code> when CRD has no coordinates. UAT then raises its intended geometry warning instead of accepting a fake point.</p>
+  </div>
+
+  <div class="finding" id="f3">
+    <h4><span class="id">F3</span><span class="sev major">MAJOR</span>Subsidiary-location types from UAT</h4>
+    <p>19,990 SLs use type codes 01 (19,051), 15 (598), 03 (327), 10 (11), 27 (2) and 02 (1). These exist in the UAT scheme (50 codes) but not in PROD's (37). CRD's own <code>graph/era/skos</code> is PROD's scheme plus 293 UAT schemes, so the data fails CRD's own vocabulary too.</p>
+    <p class="fix">Pin one release, PROD or UAT, for both vocabulary and validation, and record the choice in the dataset metadata.</p>
+  </div>
+
+  <div class="finding" id="f4">
+    <h4><span class="id">F4</span><span class="sev major">MAJOR</span>SL properties outside the UAT closed shape <span class="side">no issue under PROD</span></h4>
+    <p>UAT closes <code>SubsidiaryLocationShape</code>, so <code>era:inCountry</code> (75,917), <code>era:infrastructureManager</code> (75,838) and <code>era:operatingLanguage</code> (75,913) each produce a <code>sh:ClosedConstraintComponent</code> violation on every SL.</p>
+    <p class="fix">The properties are useful, so either ERA adds them to the closed shape, or CRD derives them from the linked PL and stops asserting them on the SL. Raise this with ERA before UAT is promoted.</p>
+  </div>
+
+  <div class="finding" id="f5">
+    <h4><span class="id">F5</span><span class="sev major">MAJOR</span>Danish codes identify different places <span class="side">RINF side · verified on samples</span></h4>
+    <p>For 289 of the 297 shared DK codes, the CRD and RINF positions are more than 10 km apart. In 256 cases, the CRD position of one code exactly equals the RINF position of another. For example, RINF's OP <code>uopid DK00010</code> "Høje Taastrup" sits at <code>POINT(12.269823 55.648536)</code>, which is CRD's <code>DK00005</code> Høje Taastrup; CRD's <code>DK00010</code> is Borup, 25 km away. RINF's Danish PLs carry no names, so name matching cannot catch the error.</p>
+    <p class="fix">Report this to Banedanmark and ERA. Until it is fixed, do not join Danish data on code.</p>
+  </div>
+
+  <div class="finding" id="f6">
+    <h4><span class="id">F6–F9</span><span class="sev minor">MINOR</span>Modelling and hygiene</h4>
+    <p><strong>F6.</strong> The ontology is re-declared inside the data graphs; keep the schema in <code>graph/era/ontology</code> only. <strong>F7.</strong> <code>era:NetBasicReference</code> carries untyped <code>wgs84:lat</code>/<code>lon</code> next to a typed <code>geo:wktLiteral</code>; drop the WGS84 triples. <strong>F8.</strong> <code>None</code> appears in IRIs, apparently a serialised Python <code>None</code>. The same IRIs already exist in RINF's DE/NL graphs, so rename them only together with ERA. <strong>F9.</strong> 236 PL and 377 SL names contain runs of whitespace; normalise them.</p>
+  </div>
+
+  <div class="finding" id="f10">
+    <h4><span class="id">F10</span><span class="sev minor">MINOR</span>NUTS IRIs <span class="side">partly on the ERA side</span></h4>
+    <p>The ontology declares <code>era:inNUTS3</code>'s scheme as <code>https://publications.europa.eu/resource/authority/nuts</code>, but no concept in ERA-Onto is <code>skos:inScheme</code> it. ERA's <code>graph/nuts</code> uses <code>http://data.europa.eu/nuts/code/{code}</code>, which CRD follows, while RINF's Austrian publishers use the Publications Office IRIs. A join on IRI therefore returns nothing, and <code>InNUTS3SKOS</code> fires for every value in either form.</p>
+    <p class="fix">ERA should settle on one IRI form, and CRD should follow it.</p>
+  </div>
+
+  <div class="finding" id="f11">
+    <h4><span class="id">F11</span><span class="sev sugg">SUGGESTION</span>Governance and provenance</h4>
+    <p><strong>IRIs.</strong> All CRD resources are minted under ERA's namespace by a third party. For PLs this is useful, because 38,105 codes share the IRI with RINF, but it also means CRD triples merge silently with ERA's. Agree the pattern with ERA, or mint under a CRD namespace and link with <code>owl:sameAs</code>. <strong>Provenance.</strong> Add a publisher, a licence, <code>prov:wasDerivedFrom</code> (RNE CRD) and the snapshot timestamp. <strong>SKOS.</strong> Load PROD as it is, or label the graph as UAT. <strong>Validity.</strong> CRD appears to drop retired codes. Keeping them with a closed validity window would keep RINF's references to them resolvable.</p>
+  </div>
+</section>
+
+<!-- ============================== 6 ============================== -->
+<section id="method">
+  <h2><span class="num">06</span>Method, reproducibility and limits</h2>
+  <p>The queries, scripts and output files are all in <a href="https://github.com/gatemezing/onto-dissemination/tree/main/crd-kg"><code>crd-kg/</code></a>. Each field is extracted by its own query, which keeps RINF under its 120 s limit, and the extracts are joined locally on <code>era:primaryLocationCode</code>.</p>
+<pre>python3 -I scripts/fetch.py                # ~1 min, both endpoints → data/raw/ (git-ignored)
+python3 -I scripts/compare.py 2026-11-03   # joins on the PLC → stats/*.csv, stats/summary.json
+python3 -I scripts/sparql.py crd queries/crd-checks.rq
+python  -I scripts/validate.py SAMPLE.ttl SHAPES.ttl OUT.csv REF1.ttl REF2.ttl …</pre>
+  <div class="note warn">
+    <p><strong>Limits.</strong></p>
+    <ul class="points" style="margin-bottom:0">
+      <li><strong>Join key.</strong> Where a code means different things on each side (<a href="#f5">F5</a>), agreement figures say nothing for that country.</li>
+      <li><strong>RINF duplicates.</strong> RINF was not deduplicated for yearly republishing, and a field counts as agreeing when it matches any RINF variant. This flatters RINF slightly.</li>
+      <li><strong>SHACL scope.</strong> SHACL ran on a sample; every constraint that fired was then counted exactly over the full CRD dataset. The 17 <code>SERVICE</code> constraints were skipped, and pyshacl's pre-binding checks were relaxed so that ERA's queries run as ERA runs them.</li>
+      <li><strong>Roles.</strong> F1 relies on OCR-KG's role list as of 3 November 2026.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <p>Generated from <a href="https://github.com/gatemezing/onto-dissemination/blob/main/crd-kg/README.md"><code>crd-kg/README.md</code></a>. All measurements were taken on 3 November 2026 against the live endpoints named above. This is an independent review, not a publication of ERA or RNE.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  const fmt = n => n.toLocaleString("en-GB");
+
+  /* ---------- coverage per country ---------- */
+  // [prefix, crd, rinf, both, crdOnly, rinfOnly]  (stats/pl-by-country.csv)
+  const C = [
+    ["DE",9720,11105,9170,550,1935],["FR",9036,8074,8074,962,0],["GB",7312,0,0,7312,0],
+    ["PL",4625,4211,3940,685,271],["CZ",3717,3477,3474,243,3],["IT",2937,3273,2911,26,362],
+    ["CH",2688,3309,2387,301,922],["AT",2681,2647,2624,57,23],["ES",2506,2282,2226,280,56],
+    ["RO",2331,2174,2140,191,34],["HU",1931,1836,1739,192,97],["BE",1371,1325,1324,47,1],
+    ["SE",1336,1103,1103,233,0],["SK",1157,1040,1036,121,4],["PT",825,0,0,825,0],
+    ["NL",780,780,780,0,0],["NO",462,717,448,14,269],["RS",682,0,0,682,0],
+    ["DK",580,518,297,283,221],["HR",572,565,552,20,13],["FI",540,436,362,178,74],
+    ["BG",323,314,297,26,17],["SI",300,309,296,4,13],["GR",218,211,187,31,24],
+    ["LT",210,201,199,11,2],["LU",140,143,140,0,3],["LV",102,27,23,79,4],
+    ["EU",0,91,0,0,91],["EE",69,0,0,69,0],["LI",4,4,4,0,0]
+  ].map(r => ({k:r[0],crd:r[1],rinf:r[2],both:r[3],co:r[4],ro:r[5],u:r[3]+r[4]+r[5]}))
+   .sort((a,b) => b.u - a.u);
+  const max = 12000;
+  const rows = document.getElementById("cov-rows");
+  const tip = document.getElementById("cov-tip");
+  const chart = document.getElementById("cov");
+  const segs = [["both","var(--series-1)","In both"],["co","var(--series-2)","CRD only"],["ro","var(--series-3)","RINF only"]];
+  C.forEach(d => {
+    const row = document.createElement("div");
+    row.className = "row"; row.tabIndex = 0; row.setAttribute("role","listitem");
+    row.setAttribute("aria-label", `${d.k}: ${fmt(d.both)} in both, ${fmt(d.co)} CRD only, ${fmt(d.ro)} RINF only`);
+    const bar = document.createElement("div"); bar.className = "bar";
+    segs.forEach(([f,col]) => { if (d[f] > 0) { const s = document.createElement("span"); s.style.width = (100*d[f]/max)+"%"; s.style.background = col; bar.appendChild(s); } });
+    row.innerHTML = `<span class="k">${d.k}</span>`;
+    row.appendChild(bar);
+    const t = document.createElement("span"); t.className = "t"; t.textContent = fmt(d.u); row.appendChild(t);
+    const show = (x,y) => {
+      tip.innerHTML = `<b>${d.k}</b>` + segs.map(([f,col,l]) => `<div class="r"><span><i style="background:${col}"></i>${l}</span><span>${fmt(d[f])}</span></div>`).join("")
+        + `<div class="r" style="margin-top:4px;opacity:.8"><span>CRD / RINF total</span><span>${fmt(d.crd)} / ${fmt(d.rinf)}</span></div>`;
+      place(tip, chart, x, y); tip.classList.add("on");
+    };
+    row.addEventListener("mousemove", e => show(e.clientX, e.clientY));
+    row.addEventListener("mouseleave", () => tip.classList.remove("on"));
+    row.addEventListener("focus", () => { const r = row.getBoundingClientRect(); show(r.left + r.width*0.55, r.top); });
+    row.addEventListener("blur", () => tip.classList.remove("on"));
+    rows.appendChild(row);
+  });
+  const ticks = document.getElementById("cov-ticks");
+  [0,3000,6000,9000,12000].forEach(v => { const b = document.createElement("b"); b.style.left = (100*v/max)+"%"; b.textContent = v ? fmt(v) : "0"; if (v===max) b.style.transform="translateX(-100%)"; if (v===3000||v===9000) b.className="mid"; ticks.appendChild(b); });
+  document.getElementById("cov-table").innerHTML = C.map(d =>
+    `<tr><td>${d.k}</td><td class="n">${fmt(d.crd)}</td><td class="n">${fmt(d.rinf)}</td><td class="n">${fmt(d.both)}</td><td class="n">${fmt(d.co)}</td><td class="n">${fmt(d.ro)}</td><td class="n">${d.crd ? (100*d.both/d.crd).toFixed(1)+" %" : "—"}</td></tr>`).join("");
+
+  /* ---------- agreement ---------- */
+  // [field, comparableAll, agreeAllPct, comparableIndep, agreeIndepPct]  (stats/summary.json)
+  const A = [
+    ["Country",44982,100,35032,100],["IM organisation code",21385,100,11439,100],
+    ["containerHandlingFlag",21196,100,11250,99.9],["handoverPointFlag",21200,100,11254,99.9],
+    ["freightFlag",21201,99.9,11255,99.8],["passengerFlag",21623,99.4,11677,99.0],
+    ["Position within 1 km",38076,97.9,28127,97.2],["Name (normalised)",25610,98.2,15664,97.1],
+    ["Validity begin",21891,67.9,11945,41.2]
+  ];
+  const arows = document.getElementById("agr-rows"), atip = document.getElementById("agr-tip"), achart = document.getElementById("agr");
+  A.forEach(([f,ca,pa,ci,pi]) => {
+    const row = document.createElement("div");
+    row.className = "hbar"; row.tabIndex = 0; row.setAttribute("role","listitem");
+    row.setAttribute("aria-label", `${f}: ${pi} % agree on ${fmt(ci)} independent codes; ${pa} % on all ${fmt(ca)}`);
+    row.innerHTML = `<span class="k">${f}</span><div class="track"><div class="fill" style="width:${pi}%"></div></div><span class="t">${pi.toFixed(1)} %</span>`;
+    const show = (x,y) => {
+      atip.innerHTML = `<b>${f}</b><div class="r"><span>Independent</span><span>${pi.toFixed(1)} % of ${fmt(ci)}</span></div><div class="r"><span>All shared codes</span><span>${pa.toFixed(1)} % of ${fmt(ca)}</span></div>`;
+      place(atip, achart, x, y); atip.classList.add("on");
+    };
+    row.addEventListener("mousemove", e => show(e.clientX, e.clientY));
+    row.addEventListener("mouseleave", () => atip.classList.remove("on"));
+    row.addEventListener("focus", () => { const r = row.getBoundingClientRect(); show(r.left + r.width*0.6, r.top); });
+    row.addEventListener("blur", () => atip.classList.remove("on"));
+    arows.appendChild(row);
+  });
+  arows.style.gap = "9px";
+  document.getElementById("agr-table").innerHTML = A.map(([f,ca,pa,ci,pi]) =>
+    `<tr><td>${f}</td><td class="n">${fmt(ca)}</td><td class="n">${pa.toFixed(1)} %</td><td class="n">${fmt(ci)}</td><td class="n">${pi.toFixed(1)} %</td></tr>`).join("")
+    + `<tr><td>NUTS3 code</td><td class="n">13</td><td class="n">100.0 %</td><td class="n">13</td><td class="n">100.0 %</td></tr>`;
+
+  /* tooltip placement inside its chart box, flipped at the edges */
+  function place(t, box, cx, cy){
+    const b = box.getBoundingClientRect();
+    let x = cx - b.left + 14, y = cy - b.top - t.offsetHeight - 10;
+    if (x + t.offsetWidth > b.width - 6) x = cx - b.left - t.offsetWidth - 14;
+    if (x < 6) x = 6;
+    if (y < 6) y = cy - b.top + 18;
+    t.style.left = x + "px"; t.style.top = y + "px";
+  }
+})();
+</script>
+</body>
+</html>
