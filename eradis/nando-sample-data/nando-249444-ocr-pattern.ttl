@@ -1,0 +1,174 @@
+# NANDO notified body NANDO_INPUT_249444, modelled the OCR-KG way.
+#
+# REAL (from the NANDO page/app):  the reference code NANDO_INPUT_249444, the
+#   existence of organisation versions 1..5, and that the page filters on
+#   notificationStatusId 1 (active, i.e. end date >= today or none).
+# EXAMPLE (could not be read; NANDO's data is only reachable through its API):
+#   every name, address, NB number, date, legislation and change reason below.
+#   Replace them from the NANDO "Body versions" / notifications export.
+#   body.csv (the legislationId 31 list) cannot resolve this body: it has NB
+#   numbers but no NANDO_INPUT code. Its real bodies are modelled in
+#   nando-active-nobos-leg31.ttl.
+#
+# Reused as OCR-KG publishes them today (verified on graph.data.era.europa.eu,
+# 2026-10-30): era:Body + org:Organization, era:organisationCode, org:hasSite /
+# org:siteAddress / locn:*, era:role / era:roleOf / era:OrganisationRole,
+# era:hasOrganisationRole -> concepts/organisation-roles/NOBO, era:nandoCode
+# (on the role, as "NB nnnn", as in ERADIS), era:changeActivity -> era:Activity
+# (subclass of prov:Activity), prov:atTime, dct:type, dct:replaces.
+#
+# Proposed, NOT in the ERA ontology (kept in the nando: namespace on purpose):
+#   nando:Notification, nando:BodyVersion, nando:notificationStatus,
+#   nando:notification-statuses/*, nando:activity-types/*.
+
+@prefix era:   <http://data.europa.eu/949/> .
+@prefix org:   <http://www.w3.org/ns/org#> .
+@prefix locn:  <http://www.w3.org/ns/locn#> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix dct:   <http://purl.org/dc/terms/> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix adms:  <http://www.w3.org/ns/adms#> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix time:  <http://www.w3.org/2006/time#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix eli:   <http://data.europa.eu/eli/ontology#> .
+@prefix country: <http://publications.europa.eu/resource/authority/country/> .
+@prefix cb:    <http://publications.europa.eu/resource/authority/corporate-body/> .
+@prefix orgrole: <http://data.europa.eu/949/concepts/organisation-roles/> .
+@prefix body:  <http://data.europa.eu/949/body/organisation/> .
+@prefix nando: <https://example.org/nando/> .
+
+# ---------------------------------------------------------------------------
+# 1. The body: one stable resource, current state only (as OCR-KG does it)
+# ---------------------------------------------------------------------------
+body:XXXX a era:Body , org:Organization ;
+    era:organisationCode "XXXX" ;                      # EXAMPLE OCR code
+    org:identifier "XXXX" ;
+    foaf:name "Example Certificación Ferroviaria, S.L." ; # EXAMPLE, = version 5
+    rdfs:label "Example Certificación Ferroviaria, S.L." ;
+    foaf:nick "ECF" ;
+    adms:identifier body:XXXX\/id\/nando ;
+    org:hasSite body:site\/XXXX ;
+    era:role body:organisationRole\/XXXX_NOBO ;
+    # one activity per change, not one fixed activity/{code} slot
+    era:changeActivity nando:NANDO_INPUT_249444\/activity\/v2 ,
+                       nando:NANDO_INPUT_249444\/activity\/v3 ,
+                       nando:NANDO_INPUT_249444\/activity\/v4 ,
+                       nando:NANDO_INPUT_249444\/activity\/v5 ;
+    dct:created  "2019-03-01T00:00:00Z"^^xsd:dateTime ;   # EXAMPLE
+    dct:modified "2025-06-12T00:00:00Z"^^xsd:dateTime ;   # EXAMPLE
+    dct:creator cb:ERA .
+
+# The NANDO reference code is stable across organisation versions; it is not
+# the NB number, so it gets its own identifier, not era:nandoCode.
+body:XXXX\/id\/nando a adms:Identifier ;
+    skos:notation "NANDO_INPUT_249444" ;                 # REAL
+    adms:schemeAgency "European Commission, NANDO" ;
+    dct:source <https://webgate.ec.europa.eu/single-market-compliance-space/notified-bodies/notifications?organizationRefeCd=NANDO_INPUT_249444> .
+
+body:site\/XXXX a org:Site ;
+    rdfs:label "Site of Example Certificación Ferroviaria, S.L."@en ;
+    org:siteAddress body:address\/XXXX .
+
+body:address\/XXXX a locn:Address ;
+    locn:thoroughfare "Calle Ejemplo 1" ;                # EXAMPLE
+    locn:postCode "28001" ;
+    locn:postName "Madrid" ;
+    locn:adminUnitL1 country:ESP ;
+    locn:fullAddress "Calle Ejemplo 1\n28001 Madrid\nSpain" .
+
+# ---------------------------------------------------------------------------
+# 2. The NoBo role: era:nandoCode belongs here (domain era:OrganisationRole)
+# ---------------------------------------------------------------------------
+body:organisationRole\/XXXX_NOBO a era:OrganisationRole ;
+    era:hasOrganisationRole orgrole:NOBO ;
+    era:roleOf body:XXXX ;
+    era:nandoCode "NB 9999" ;                            # EXAMPLE NB number
+    nando:hasNotification nando:NANDO_INPUT_249444\/notification\/N1 ;
+    dct:created "2019-03-01T00:00:00Z"^^xsd:dateTime .
+
+# ---------------------------------------------------------------------------
+# 3. What the role is notified for (the notifications table)
+# ---------------------------------------------------------------------------
+nando:NANDO_INPUT_249444\/notification\/N1 a nando:Notification ;
+    dct:identifier "N1" ;                                # EXAMPLE notificationId
+    dct:subject <http://data.europa.eu/eli/dir/2016/797/oj> ;  # EXAMPLE legislation
+    nando:notificationStatus nando:notification-statuses\/1 ;  # REAL filter value
+    dct:valid [ a time:Interval ;
+        time:hasBeginning [ time:inXSDDate "2019-03-01"^^xsd:date ] ] ; # no end = in force
+    dct:hasVersion "3" .                                 # EXAMPLE notificationVersion
+
+nando:notification-statuses\/1 a skos:Concept ;
+    skos:prefLabel "Active"@en ;
+    skos:notation "1" ;
+    skos:inScheme nando:notification-statuses .
+
+# ---------------------------------------------------------------------------
+# 4. History: one snapshot per NANDO organisation version, chained, each made
+#    by a change activity. Versions 1..5 are REAL; their contents are EXAMPLE.
+# ---------------------------------------------------------------------------
+nando:NANDO_INPUT_249444\/version\/1 a nando:BodyVersion , prov:Entity ;
+    prov:specializationOf body:XXXX ;
+    dct:hasVersion "1" ;
+    foaf:name "Example Certificación, S.A." ;
+    prov:generatedAtTime "2019-03-01T00:00:00Z"^^xsd:dateTime .
+
+nando:NANDO_INPUT_249444\/version\/2 a nando:BodyVersion , prov:Entity ;
+    prov:specializationOf body:XXXX ;
+    dct:hasVersion "2" ;
+    dct:replaces nando:NANDO_INPUT_249444\/version\/1 ;
+    foaf:name "Example Certificación Ferroviaria, S.A." ;
+    prov:wasGeneratedBy nando:NANDO_INPUT_249444\/activity\/v2 .
+
+nando:NANDO_INPUT_249444\/version\/3 a nando:BodyVersion , prov:Entity ;
+    prov:specializationOf body:XXXX ;
+    dct:hasVersion "3" ;
+    dct:replaces nando:NANDO_INPUT_249444\/version\/2 ;
+    foaf:name "Example Certificación Ferroviaria, S.A." ;
+    prov:wasGeneratedBy nando:NANDO_INPUT_249444\/activity\/v3 .
+
+nando:NANDO_INPUT_249444\/version\/4 a nando:BodyVersion , prov:Entity ;
+    prov:specializationOf body:XXXX ;
+    dct:hasVersion "4" ;
+    dct:replaces nando:NANDO_INPUT_249444\/version\/3 ;
+    foaf:name "Example Certificación Ferroviaria, S.L." ;
+    prov:wasGeneratedBy nando:NANDO_INPUT_249444\/activity\/v4 .
+
+nando:NANDO_INPUT_249444\/version\/5 a nando:BodyVersion , prov:Entity ;
+    prov:specializationOf body:XXXX ;
+    dct:hasVersion "5" ;
+    dct:replaces nando:NANDO_INPUT_249444\/version\/4 ;
+    foaf:name "Example Certificación Ferroviaria, S.L." ;
+    foaf:nick "ECF" ;
+    prov:wasGeneratedBy nando:NANDO_INPUT_249444\/activity\/v5 .
+
+# The activities follow era:body/organisation/activity/0012 (RevocationCodeActivity):
+# era:Activity, dct:type a concept, prov:atTime, rdfs:comment for the reason.
+nando:NANDO_INPUT_249444\/activity\/v2 a era:Activity ;
+    dct:type nando:activity-types\/NameChange ;
+    prov:atTime "2020-09-15T00:00:00Z"^^xsd:dateTime ;
+    prov:used nando:NANDO_INPUT_249444\/version\/1 ;
+    prov:wasAssociatedWith cb:COM ;
+    rdfs:comment "Name change"@en .
+
+nando:NANDO_INPUT_249444\/activity\/v3 a era:Activity ;
+    dct:type nando:activity-types\/AddressChange ;
+    prov:atTime "2021-11-02T00:00:00Z"^^xsd:dateTime ;
+    prov:used nando:NANDO_INPUT_249444\/version\/2 ;
+    prov:wasAssociatedWith cb:COM ;
+    rdfs:comment "Address change"@en .
+
+nando:NANDO_INPUT_249444\/activity\/v4 a era:Activity ;
+    dct:type nando:activity-types\/LegalFormChange ;
+    prov:atTime "2023-04-20T00:00:00Z"^^xsd:dateTime ;
+    prov:used nando:NANDO_INPUT_249444\/version\/3 ;
+    prov:wasAssociatedWith cb:COM ;
+    rdfs:comment "Legal form S.A. to S.L."@en .
+
+nando:NANDO_INPUT_249444\/activity\/v5 a era:Activity ;
+    dct:type nando:activity-types\/ContactChange ;
+    prov:atTime "2025-06-12T00:00:00Z"^^xsd:dateTime ;
+    prov:used nando:NANDO_INPUT_249444\/version\/4 ;
+    prov:wasAssociatedWith cb:COM ;
+    rdfs:comment "Contact details updated"@en .

@@ -1,0 +1,68 @@
+nb,name,cc,ocr_status,ocr_code,ocr_name,ocr_roles,ocr_has_nobo,name_similarity,in_eradis,eradis_names
+NB 1602,Bahn Consult TEN Bewertungsges.m.b.H.,AUT,none,,,,False,0.51,True,Bahn Consult TEN Bewertungsges.m.b.H.
+NB 2212,Schieneninfrastruktur-Dienstleistungsgesellschaft mbH,AUT,confirmed,P0A9,Schieneninfrastruktur-Dienstleistungsgesellschaft mbh,NRE,False,1.0,True,Schieneninfrastruktur-Dienstleistungsgesellschaft mbH
+NB 2250,Arsenal Railway Certification GmbH,AUT,none,,,,False,0.54,True,Arsenal Railway Certification GmbH
+NB 2329,ERC GmbH,AUT,none,,,,False,0.67,True,ERC GmbH
+NB 2697,Railway Competence and Certification GmbH,AUT,none,,,,False,0.5,True,Railway Competence and Certification GmbH
+NB 2953,TÜV SÜD Landesgesellschaft Österreich GmbH,AUT,none,,,,False,0.57,False,
+NB 1615,CERTIFER BELGORAIL SA,BEL,confirmed,031F,CERTIFER BELGORAIL SA,ECM-CB|NOBO,True,1.0,True,Certifer Belgorail S.A.
+NB 2387,TINSA Ltd.,BGR,none,,,,False,0.5,True,TINSA Ltd
+NB 1991,SCONRAIL AG,CHE,confirmed,IV94,SCONRAIL AG,ECM-CB|EC-DoV-IB|NOBO,True,1.0,True,Sconrail AG
+NB 1714,"Vyzkumny Ustav Zeleznicni, a.s.",CZE,confirmed,3688,"Výzkumný Ústav Železniční, a.s.",RU-1|RU-3,False,1.0,True,"Výzkumný Ústav Železniční, a.s."
+NB 2987,"EUROSIGNAL, a.s.",CZE,none,,,,False,0.62,True,"EUROSIGNAL, a.s."
+NB 0893,EISENBAHN-CERT (EBC) Benannte Stelle Interoperabilität beim Eisenbahn-Bundesamt,DEU,none,,,,False,0.47,True,Eisenbahn-Bundesamt
+NB 2869,rail³ GmbH,DEU,none,,,,False,0.8,True,rail³ GmbH | rail³GmbH
+NB 2871,Railway Approvals Germany GmbH,DEU,confirmed,6TF6,Railway Approvals Germany GmbH,EC-DoV-IB|NOBO|ECM-CB,True,1.0,True,Railway Approvals Germany GmbH
+NB 2892,SCONRAIL GmbH,DEU,confirmed,YOYN,SCONRAIL GmbH,ECM-CB,False,1.0,True,SCONRAIL GmbH
+NB 2915,TÜV SÜD Rail GmbH,DEU,uncertain,1SV7,Tüv Süd,ECM-CB|SP|EC-DoV-IB|CONS,False,0.74,True,TÜV SÜD Rail GmbH
+NB 2816,Ricardo Certification Denmark ApS,DNK,none,,,,False,0.62,True,Ricardo Certification Denmark ApS
+NB 2836,Scandinavia Rail & Verification ApS,DNK,confirmed,C6UH,Scandinavia Rail & Verification ApS,ECM-CB|EC-DoV-IB|NOBO,True,1.0,True,Rail & Transit Verification Denmark ApS | Scandinavia Rail & Verification
+NB 0056,"BUREAU VERITAS INSPECCION Y TESTING, S.L. UNIPERSONAL",ESP,none,,,,False,0.5,True,"Bureau Veritas Inspeccion Y Testing, S.L. Unipersonal | ECA ENTIDAD COLABORADORA DE LA ADMINISTRACION, S.L.U (Grupo Bureau Veritas))"
+NB 0986,"ASOCIACIÓN DE ACCIÓN FERROVIARIA, CETREN",ESP,none,,,,False,0.64,True,"ASOCIACIÓN DE ACCIÓN FERROVIARIA (ADAF) (do not use it) | Asociación DE Acción Ferroviaria, Cetren"
+NB 1767,"SGS Inspecciones Reglamentarias, S.A.",ESP,none,,,,False,0.55,True,"SGS Inspecciones Reglamentarias, S.A.U."
+NB 2971,DNV Business Assurance Spain SLU,ESP,confirmed,WAUT,DNV GL Business Assurance España SLU,ECM-CB|EC-DoV-IB,False,0.9,False,
+NB 3029,AEGIS Certification S.L. (Unipersonal).,ESP,none,,,,False,0.5,True,AEGIS Certification S.L. (Unipersonal)
+NB 0537,Eurofins Electric & Electronics Finland Oy,FIN,none,,,,False,0.48,True,Eurofins Electric & Electronics Finland Oy | Eurofins Expert Services Ltd
+NB 2294,Bureau Veritas Certification France,FRA,uncertain,0O18,Bureau Veritas Exploitation SAS,ECM-CB,False,0.73,True,Bureau Veritas Certification France
+NB 3017,Certifer France,FRA,none,,,,False,0.74,False,
+NB 1128,European Inspection and Certification Company (EUROCERT) S.A.,GRC,none,,,,False,0.4,True,European Inspection and Certification Company (EUROCERT) S.A.
+NB 2782,EUCLIDIS SA CERTIFICATION AND INSPECTION SERVICES,GRC,none,,,,False,0.38,True,Euclidis S.A.
+NB 3014,INFRACERT d.o.o.,HRV,confirmed,JVSL,INFRACERT d.o.o.,ECM-CB|EC-DoV-IB|NOBO,True,1.0,False,
+NB 2071,Közlekedéstudományi Intézet,HUN,confirmed,3032,Közlekedéstudományi Intézet,IM,False,1.0,True,KTI Közlekedéstudományi Intézet Nonprofit Kft.
+NB 2637,BME ITS Közlekedési-és Járműrendszerek Nonprofit Zrt.,HUN,confirmed,SM13,BME ITS Közlekedési-és Járműrendszerek Nonprofit Zrt.,ECM-CB|NOBO,True,1.0,True,BME ITS Közlekedési-és Járműrendszerek Nonprofit Zrt.
+NB 2882,RailCert Hungary Korlátolt Felelősségű Társaság,HUN,confirmed,O36O,RailCert Hungary Kft.,ECM-CB|NOBO,True,1.0,True,RailCert Hungary Korlátolt Felelősségű Társaság
+NB 0474,RINA Services S.P.A.,ITA,none,,,,False,0.75,True,RINA Services S.p.A.
+NB 0475,IIS CERT Srl,ITA,none,,,,False,0.62,True,IIS CERT S.r.l.
+NB 1370,BUREAU VERITAS ITALIA S.P.A.,ITA,confirmed,JI3U,BUREAU VERITAS ITALIA S.P.A.,ECM-CB,False,1.0,True,Bureau Veritas Italia S.p.A | GRAMMER Koltuk Sistemleri San. ve Tic. A.Ş.
+NB 1960,ITALCERTIFER S.P.A.,ITA,confirmed,TRMM,ITALCERTIFER s.p.a - Gruppo Ferrovie Dello Stato Italiane,ECM-CB|NOBO,True,1.0,True,Italcertifer S.p.A.
+NB 2424,ISARail S.p.a.,ITA,confirmed,QFVT,ISARAIL,EC-DoV-IB|NOBO,True,1.0,True,ISARail S.p.A.
+NB 2840,CERTIFER ITALIA S.r.l.,ITA,confirmed,6ZWS,CERTIFER ITALIA S.R.L.U,ECM-CB,False,1.0,True,CERTIFER ITALIA S.r.l.
+NB 3093,ISALAB S.r.l.,ITA,none,,,,False,0.62,True,ISALAB S.r.l.
+NB 2411,TÜV Nord Luxembourg s.à.r.l.,LUX,none,,,,False,0.68,True,TÜV NORD LUXEMBOURG S.à r.l.
+NB 1325,AS Kiwa Latvia,LVA,none,,,,False,0.76,True,AS Inspecta Latvia | AS Kiwa Latvia
+NB 2147,BALTIC SERTIFICATION CENTRE Ltd.,LVA,confirmed,C16B,BALTIC CERTIFICATION CENTRE Ltd.,EC-DoV-IB|NOBO,True,0.96,True,BALTIC SERTIFICATION CENTRE Ltd.
+NB 0941,TÜV SÜD Nederland B.V.,NLD,none,,,,False,0.77,True,TÜV SÜD Nederland B.V. | TÜV SÜD Nederland BV (do not use it)
+NB 1010,TÜV Rheinland Rail Certification B.V.,NLD,none,,,,False,0.5,True,(do not use it) TÜV Rheinland Rail Certification B.V. | LUXCONTROL NEDERLAND BV (do not use it) | TÜV Rheinland Rail Certification B.V.
+NB 1869,CERTIFER HHC/DRS B.V.,NLD,none,,,,False,0.42,True,Certifer HHC/DRS B.V.
+NB 2191,CERTIFER Netherlands B.V.,NLD,none,,,,False,0.74,True,DEKRA Rail bv
+NB 2826,WSP Assurance B.V.,NLD,none,,,,False,0.5,True,Ricardo Certification B.V. | Ricardo Nederland B.V.
+NB 1278,SINTEF AS,NOR,none,,,,False,0.5,True,Sintef AS | Sintef0
+NB 3103,Certifer Nordics AS,NOR,none,,,,False,0.52,True,Certifer Nordics AS | Vysus Assurance AS
+NB 1467,Instytut Kolejnictwa,POL,none,,,,False,0.62,True,Instytut Kolejnictwa
+NB 1468,TRANSPORTOWY DOZOR TECHNICZNY,POL,none,,,,False,0.5,True,Transportowy Dozór Techniczny
+NB 1583,PIT CERTIFICATION SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ,POL,confirmed,7Q1F,PIT Certification Sp. z o.o.,ECM-CB|NOBO,True,1.0,False,
+NB 2365,Certyfikacja Infrastruktury Transportu Sp. z o. o,POL,none,,,,False,0.55,True,Certyfikacja Infrastruktury Transportu Sp. z o.o.
+NB 2527,TÜV SÜD Polska Sp. z o.o.,POL,none,,,,False,0.7,True,TÜV SÜD Polska Sp. z o.o.
+NB 2627,TUV Rheinland Polska Sp. z o.o.,POL,none,,,,False,0.65,True,TUV Rheinland Polska Sp. z o.o. (do not use it) | TÜV Rheinland Polska Sp. z o.o.
+NB 2683,CERTA JN SPOLKA Z OGRANICZONA ODPOWIEDZIALNOSCIA,POL,confirmed,6DVH,CERTA Sp. z o.o. sp.k.,ECM-CB,False,1.0,True,CERTA JN sp. z o.o. | CERTA sp. z o.o. sp. k.
+NB 2738,INFRACERT TSI sp. z o.o.,POL,confirmed,IGNA,INFRACERT TSI Sp. z o.o NB 2738,EC-DoV-IB|NOBO,True,0.76,True,INFRACERT TSI sp. z o.o.
+NB 2856,Politechnika Warszawska Osrodek Certyfikacji Transportu,POL,none,,,,False,0.47,True,Politechnika Warszawska Osrodek Certyfikacji Transportu
+NB 2896,Polski Instytut Interoperacyjności sp. z o.o.,POL,none,,,,False,0.47,True,Polski Instytut Interoperacyjności sp. z o.o.
+NB 3034,SIGNAL CERT sp. z o.o.,POL,none,,,,False,0.53,True,SIGNAL CERT sp. z o.o.
+NB 2101,Associação Portuguesa para a Normalização e Certificação Ferroviária,PRT,confirmed,8G6O,Associação Portuguesa para a Normalização e Certificação Ferroviária,ECM-CB|NOBO,True,1.0,True,APNCF – Associação Portuguesa de Normalização e Certificação Ferroviária
+NB 2269,Organismul Notificat Feroviar Roman - AFER (Romanian Railway Notified Body),ROU,uncertain,P0AL,Autoritatea Feroviara Romana - Organismul Notificat Feroviar Roman,NRE|ECM-CB,False,0.52,True,Organismul Notificat Feroviar Roman - AFER (Romanian Railway Notified Body)
+NB 1358,"VYSKUMNY USTAV DOPRAVNY, A.S.",SVK,none,,,,False,0.47,True,"Vyskumny Ustav Dopravny, A.S."
+NB 1304,SLOVENIAN INSTITUTE OF QUALITY AND METROLOGY - SIQ,SVN,none,,,,False,0.36,True,SIQ Ljubljana
+NB 2106,Q TECHNA D.O.O.,SVN,confirmed,MYU2,Q TECHNA D.O.O.,ECM-CB,False,1.0,True,Q Techna D.O.O.
+NB 2129,"BUREAU VERITAS, d.o.o.",SVN,none,,,,False,0.46,True,"BUREAU VERITAS, d.o.o."
+NB 2508,"DIS RAIL, verificiranje in nadzor železniške infrastrukture, d.o.o.",SVN,none,,,,False,0.46,True,"DIS RAIL, verificiranje in nadzor železniške infrastrukture, d.o.o."

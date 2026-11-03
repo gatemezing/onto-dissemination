@@ -1,0 +1,680 @@
+{
+ "as_of": "2026-11-03",
+ "pl": {
+  "crd_iris": 59155,
+  "crd_codes": 59155,
+  "crd_iris_without_code": 0,
+  "crd_codes_with_several_iris": 0,
+  "rinf_iris": 53679,
+  "rinf_codes": 50172,
+  "rinf_iris_without_code": 0,
+  "rinf_codes_with_several_iris": 167,
+  "rinf_codes_in_several_graphs": 3332,
+  "codes_in_both": 45733,
+  "codes_crd_only": 13422,
+  "codes_rinf_only": 4439,
+  "same_iri_in_both": 38105,
+  "crd_codes_bad_pattern": 0,
+  "rinf_codes_bad_pattern": 0,
+  "rinf_codes_bad_pattern_examples": [],
+  "crd_country_differs_from_code_prefix": 0,
+  "completeness": {
+   "zero_point": {
+    "crd": 7315,
+    "rinf": 1
+   },
+   "country": {
+    "crd": 59155,
+    "rinf": 49389
+   },
+   "im": {
+    "crd": 59155,
+    "rinf": 21707
+   },
+   "name_en": {
+    "crd": 59155,
+    "rinf": 25967
+   },
+   "names": {
+    "crd": 59155,
+    "rinf": 25967
+   },
+   "passenger": {
+    "crd": 59155,
+    "rinf": 21938
+   },
+   "freight": {
+    "crd": 59155,
+    "rinf": 21267
+   },
+   "container": {
+    "crd": 59155,
+    "rinf": 21260
+   },
+   "handover": {
+    "crd": 59155,
+    "rinf": 21264
+   },
+   "point": {
+    "crd": 51840,
+    "rinf": 41436
+   },
+   "has_validity": {
+    "crd": 59155,
+    "rinf": 25967
+   },
+   "begin": {
+    "crd": 59155,
+    "rinf": 22220
+   },
+   "end": {
+    "crd": 7517,
+    "rinf": 11547
+   },
+   "nuts3": {
+    "crd": 9425,
+    "rinf": 299
+   }
+  },
+  "shared_codes_by_group": {
+   "independent": 35783,
+   "derived": 9950
+  },
+  "agreement": {
+   "all": {
+    "country": {
+     "comparable": 44982,
+     "agree": 44982,
+     "agree_pct": 100.0
+    },
+    "im": {
+     "comparable": 21385,
+     "agree": 21385,
+     "agree_pct": 100.0
+    },
+    "passenger": {
+     "comparable": 21623,
+     "agree": 21502,
+     "agree_pct": 99.4
+    },
+    "freight": {
+     "comparable": 21201,
+     "agree": 21179,
+     "agree_pct": 99.9
+    },
+    "container": {
+     "comparable": 21196,
+     "agree": 21190,
+     "agree_pct": 100.0
+    },
+    "handover": {
+     "comparable": 21200,
+     "agree": 21192,
+     "agree_pct": 100.0
+    },
+    "nuts3": {
+     "comparable": 13,
+     "agree": 13,
+     "agree_pct": 100.0
+    },
+    "name": {
+     "comparable": 25610,
+     "agree": 25153,
+     "agree_pct": 98.2
+    },
+    "position within 1 km": {
+     "comparable": 38076,
+     "agree": 37274,
+     "agree_pct": 97.9
+    },
+    "validity begin": {
+     "comparable": 21891,
+     "agree": 14866,
+     "agree_pct": 67.9
+    }
+   },
+   "independent": {
+    "country": {
+     "comparable": 35032,
+     "agree": 35032,
+     "agree_pct": 100.0
+    },
+    "im": {
+     "comparable": 11439,
+     "agree": 11439,
+     "agree_pct": 100.0
+    },
+    "passenger": {
+     "comparable": 11677,
+     "agree": 11556,
+     "agree_pct": 99.0
+    },
+    "freight": {
+     "comparable": 11255,
+     "agree": 11233,
+     "agree_pct": 99.8
+    },
+    "container": {
+     "comparable": 11250,
+     "agree": 11244,
+     "agree_pct": 99.9
+    },
+    "handover": {
+     "comparable": 11254,
+     "agree": 11246,
+     "agree_pct": 99.9
+    },
+    "nuts3": {
+     "comparable": 13,
+     "agree": 13,
+     "agree_pct": 100.0
+    },
+    "name": {
+     "comparable": 15664,
+     "agree": 15207,
+     "agree_pct": 97.1
+    },
+    "position within 1 km": {
+     "comparable": 28127,
+     "agree": 27326,
+     "agree_pct": 97.2
+    },
+    "validity begin": {
+     "comparable": 11945,
+     "agree": 4920,
+     "agree_pct": 41.2
+    }
+   },
+   "derived": {
+    "country": {
+     "comparable": 9950,
+     "agree": 9950,
+     "agree_pct": 100.0
+    },
+    "im": {
+     "comparable": 9946,
+     "agree": 9946,
+     "agree_pct": 100.0
+    },
+    "passenger": {
+     "comparable": 9946,
+     "agree": 9946,
+     "agree_pct": 100.0
+    },
+    "freight": {
+     "comparable": 9946,
+     "agree": 9946,
+     "agree_pct": 100.0
+    },
+    "container": {
+     "comparable": 9946,
+     "agree": 9946,
+     "agree_pct": 100.0
+    },
+    "handover": {
+     "comparable": 9946,
+     "agree": 9946,
+     "agree_pct": 100.0
+    },
+    "nuts3": {
+     "comparable": 0,
+     "agree": 0,
+     "agree_pct": null
+    },
+    "name": {
+     "comparable": 9946,
+     "agree": 9946,
+     "agree_pct": 100.0
+    },
+    "position within 1 km": {
+     "comparable": 9949,
+     "agree": 9948,
+     "agree_pct": 100.0
+    },
+    "validity begin": {
+     "comparable": 9946,
+     "agree": 9946,
+     "agree_pct": 100.0
+    }
+   }
+  },
+  "distance_km": {
+   "comparable": 38076,
+   "median": 0.0,
+   "p90": 0.137,
+   "p99": 3.231,
+   "max": 5467.9,
+   "within_100m": 33505,
+   "within_1km": 37274,
+   "over_1km": 802,
+   "over_10km": 301,
+   "over_100km": 179
+  },
+  "difference_breakdown": {
+   "passenger": [
+    [
+     "true -> false",
+     73
+    ],
+    [
+     "false -> true",
+     48
+    ]
+   ],
+   "freight": [
+    [
+     "true -> false",
+     14
+    ],
+    [
+     "false -> true",
+     8
+    ]
+   ],
+   "handover": [
+    [
+     "false -> true",
+     7
+    ],
+    [
+     "true -> false",
+     1
+    ]
+   ],
+   "container": [
+    [
+     "false -> true",
+     4
+    ],
+    [
+     "true -> false",
+     2
+    ]
+   ]
+  }
+ },
+ "crd_quality": {
+  "pl_names_with_whitespace_runs": 236,
+  "pl_without_en_name": 0,
+  "pl_validity_ended_before_as_of": 0,
+  "pl_validity_begins_after_as_of": 0,
+  "pl_without_validity_begin": 0,
+  "pl_point_outside_europe_bbox": 4,
+  "pl_point_zero": 7315,
+  "pl_point_zero_by_prefix": [
+   [
+    "GB",
+    7312
+   ],
+   [
+    "DE",
+    1
+   ],
+   [
+    "FR",
+    1
+   ],
+   [
+    "CZ",
+    1
+   ]
+  ],
+  "rinf_pl_point_zero": 1,
+  "pl_all_flags_false_by_prefix": [
+   [
+    "FR",
+    9035
+   ],
+   [
+    "GB",
+    7089
+   ],
+   [
+    "AT",
+    2650
+   ],
+   [
+    "PL",
+    879
+   ],
+   [
+    "CZ",
+    812
+   ],
+   [
+    "CH",
+    711
+   ],
+   [
+    "RS",
+    681
+   ],
+   [
+    "HR",
+    572
+   ],
+   [
+    "IT",
+    490
+   ],
+   [
+    "RO",
+    342
+   ],
+   [
+    "HU",
+    329
+   ],
+   [
+    "DE",
+    299
+   ]
+  ],
+  "pl_all_flags_false": 25076,
+  "pl_validity_begin_year_hist": [
+   [
+    "2010s",
+    22743
+   ],
+   [
+    "2000s",
+    20930
+   ],
+   [
+    "1990s",
+    11047
+   ],
+   [
+    "2020s",
+    4134
+   ],
+   [
+    "1980s",
+    214
+   ],
+   [
+    "1890s",
+    30
+   ],
+   [
+    "1900s",
+    13
+   ],
+   [
+    "1880s",
+    12
+   ],
+   [
+    "1870s",
+    11
+   ],
+   [
+    "1970s",
+    7
+   ],
+   [
+    "1920s",
+    5
+   ],
+   [
+    "1930s",
+    4
+   ],
+   [
+    "1960s",
+    3
+   ],
+   [
+    "1940s",
+    1
+   ],
+   [
+    "1950s",
+    1
+   ]
+  ]
+ },
+ "rinf_op_link": {
+  "pl_iris_referenced_by_ops": 46899,
+  "referenced_iris_untyped_or_without_code": 0,
+  "referenced_codes": 46897,
+  "referenced_codes_in_crd": 42484,
+  "referenced_codes_missing_from_crd": 4413,
+  "crd_codes_referenced_by_a_rinf_op": 42484,
+  "pl_iris_referenced_by_more_than_one_op": 6844
+ },
+ "sl": {
+  "crd": 75917,
+  "rinf": 3899,
+  "crd_dangling_pl_link": 0,
+  "crd_without_pl_link": 0,
+  "crd_with_geometry": 12267,
+  "crd_pl_link_in_rinf": 72500,
+  "crd_type_distribution": [
+   [
+    "37",
+    20768
+   ],
+   [
+    "01",
+    19051
+   ],
+   [
+    "41",
+    18570
+   ],
+   [
+    "42",
+    12275
+   ],
+   [
+    "04",
+    1969
+   ],
+   [
+    "36",
+    1338
+   ],
+   [
+    "15",
+    598
+   ],
+   [
+    "57",
+    488
+   ],
+   [
+    "70",
+    414
+   ],
+   [
+    "03",
+    327
+   ],
+   [
+    "06",
+    83
+   ],
+   [
+    "10",
+    11
+   ],
+   [
+    "47",
+    6
+   ],
+   [
+    "60",
+    6
+   ],
+   [
+    "48",
+    3
+   ],
+   [
+    "54",
+    3
+   ],
+   [
+    "46",
+    3
+   ],
+   [
+    "27",
+    2
+   ],
+   [
+    "99",
+    1
+   ],
+   [
+    "02",
+    1
+   ]
+  ],
+  "crd_alloc_company_codes": 34,
+  "crd_alloc_differs_from_im": 35285,
+  "crd_names_with_whitespace_runs": 377,
+  "crd_code_length_over_10": 0,
+  "crd_by_country": [
+   [
+    "CZE",
+    19030
+   ],
+   [
+    "FRA",
+    16602
+   ],
+   [
+    "DEU",
+    14705
+   ],
+   [
+    "SVK",
+    6289
+   ],
+   [
+    "AUT",
+    5083
+   ],
+   [
+    "CHE",
+    3884
+   ],
+   [
+    "BEL",
+    2543
+   ],
+   [
+    "SWE",
+    2395
+   ],
+   [
+    "HRV",
+    1656
+   ],
+   [
+    "NLD",
+    1115
+   ],
+   [
+    "SVN",
+    655
+   ],
+   [
+    "HUN",
+    630
+   ],
+   [
+    "ITA",
+    417
+   ],
+   [
+    "BGR",
+    201
+   ],
+   [
+    "LTU",
+    145
+   ],
+   [
+    "GBR",
+    119
+   ],
+   [
+    "LUX",
+    107
+   ],
+   [
+    "LVA",
+    94
+   ],
+   [
+    "NOR",
+    76
+   ],
+   [
+    "DNK",
+    64
+   ],
+   [
+    "POL",
+    39
+   ],
+   [
+    "ESP",
+    31
+   ],
+   [
+    "ROU",
+    19
+   ],
+   [
+    "PRT",
+    6
+   ],
+   [
+    "FIN",
+    5
+   ],
+   [
+    "SRB",
+    4
+   ],
+   [
+    "GRC",
+    2
+   ],
+   [
+    "EST",
+    1
+   ]
+  ],
+  "rinf_by_graph": [
+   [
+    "0076",
+    3899
+   ]
+  ],
+  "rinf_with_type": 0,
+  "rinf_pl_link_resolves_to_typed_pl": 3899,
+  "nor_crd": 42,
+  "nor_rinf": 3899,
+  "nor_same_pl_and_code": 0,
+  "nor_rinf_pl_codes_in_crd": 448,
+  "nor_rinf_code_examples": [
+   "NO-S.1",
+   "NO-S.10",
+   "NO-S.100",
+   "NO-S.1000",
+   "NO-S.1001"
+  ],
+  "nor_crd_code_examples": [
+   "00756",
+   "00763",
+   "00767",
+   "0076700001",
+   "0076700002"
+  ]
+ }
+}

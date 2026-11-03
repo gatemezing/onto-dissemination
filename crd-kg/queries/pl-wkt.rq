@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Primary locations: geometry via netReference (preferred) and direct hasGeometry
+SELECT ?pl (SAMPLE(?w1) AS ?wkt_netref) (SAMPLE(?w2) AS ?wkt_direct) WHERE { ?pl a era:PrimaryLocation . OPTIONAL { ?pl era:netReference/geo:hasGeometry/geo:asWKT ?w1 } OPTIONAL { ?pl geo:hasGeometry/geo:asWKT ?w2 } FILTER(BOUND(?w1)||BOUND(?w2)) } GROUP BY ?pl

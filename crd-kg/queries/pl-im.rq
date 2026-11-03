@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Primary locations: infrastructure manager organisation code (code literal, else IRI suffix)
+SELECT ?pl (GROUP_CONCAT(DISTINCT ?imc;separator="|") AS ?im) WHERE { ?pl a era:PrimaryLocation ; era:infrastructureManager ?r . OPTIONAL { ?r era:organisationCode ?oc } OPTIONAL { ?r era:roleOf/era:organisationCode ?oc2 } BIND(COALESCE(?oc, ?oc2, REPLACE(STR(?r), "^.*/([^/_]+)(_[A-Z]+)?$", "$1")) AS ?imc) } GROUP BY ?pl

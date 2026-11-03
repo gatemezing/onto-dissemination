@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Primary locations: IRI, graph, code
+SELECT ?pl ?g ?code WHERE { GRAPH ?g { ?pl a era:PrimaryLocation } OPTIONAL { ?pl era:primaryLocationCode ?code } }

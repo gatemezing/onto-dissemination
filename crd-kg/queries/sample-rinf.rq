@@ -1,0 +1,13 @@
+PREFIX era: <http://data.europa.eu/949/>
+# Deterministic sample of 3,000 RINF primary locations + all 3,899 subsidiary locations (NOR), with nodes within three hops.
+CONSTRUCT { ?s ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . ?pl a era:PrimaryLocation }
+WHERE {
+  { { SELECT DISTINCT ?s WHERE { ?s a era:PrimaryLocation } ORDER BY MD5(STR(?s)) LIMIT 3000 } }
+  UNION
+  { { SELECT DISTINCT ?s WHERE { ?s a era:SubsidiaryLocation } } }
+  ?s ?p ?o .
+  OPTIONAL { ?s era:linkedToPrimaryLocation ?pl }
+  OPTIONAL { FILTER(isIRI(?o) && ?p NOT IN (era:inCountry, era:operatingLanguage, era:inNUTS3, era:subsidiaryLocationType, era:ofParameter, era:linkedToPrimaryLocation, era:primaryLocation))
+             ?o ?p2 ?o2 .
+             OPTIONAL { FILTER(isIRI(?o2) && ?p2 NOT IN (era:hasOrganisationRole, era:ofParameter, era:hasTopoCoordinate)) ?o2 ?p3 ?o3 } }
+}

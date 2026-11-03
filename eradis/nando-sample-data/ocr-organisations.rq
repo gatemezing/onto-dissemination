@@ -1,0 +1,23 @@
+# Every organisation in the Organisation Codes Register, with what is needed to
+# match it to a NANDO notified body: name, short names, country, roles, website.
+# Run against https://graph.data.era.europa.eu/repositories/OCR-KG
+# (5,631 rows, about 2 s, measured 2026-10-30).
+PREFIX era:  <http://data.europa.eu/949/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:  <http://www.w3.org/ns/org#>
+PREFIX locn: <http://www.w3.org/ns/locn#>
+
+SELECT ?org ?code (SAMPLE(?n) AS ?name)
+       (GROUP_CONCAT(DISTINCT ?k; SEPARATOR="|") AS ?nicks)
+       (SAMPLE(?c) AS ?country)
+       (GROUP_CONCAT(DISTINCT STRAFTER(STR(?rc), "organisation-roles/"); SEPARATOR="|") AS ?roles)
+       (SAMPLE(?pg) AS ?web)
+WHERE {
+	?org a era:Body ; era:organisationCode ?code ; foaf:name ?n .
+	# some organisations are only findable by their short name
+	OPTIONAL { ?org foaf:nick ?k }
+	OPTIONAL { ?org org:hasSite/org:siteAddress/locn:adminUnitL1 ?c }
+	OPTIONAL { [] era:roleOf ?org ; era:hasOrganisationRole ?rc }
+	OPTIONAL { ?org foaf:homepage/foaf:page ?pg }
+}
+GROUP BY ?org ?code

@@ -1,0 +1,6 @@
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+# Primary locations referenced by RINF operational points (era:primaryLocation)
+SELECT ?pl (COUNT(DISTINCT ?op) AS ?n_op) (COUNT(DISTINCT ?u) AS ?n_uopid) (SAMPLE(?u) AS ?uopid) WHERE { ?op a era:OperationalPoint ; era:primaryLocation ?pl . OPTIONAL { ?op era:uopid ?u } } GROUP BY ?pl
