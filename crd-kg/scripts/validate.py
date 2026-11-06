@@ -89,9 +89,16 @@ def short(x):
     for a, b in (("http://data.europa.eu/949/shapes/", "era-sh:"), ("http://data.europa.eu/949/", "era:"), (str(SH), "sh:")):
         s = s.replace(a, b)
     return s if not isinstance(x, rdflib.BNode) else "_:bnode"
+described = set(data.subjects())
+edge_dropped = 0
 for r in report.subjects(RDF.type, SH.ValidationResult):
     focus = report.value(r, SH.focusNode)
     if focus not in sample_nodes:      # ignore results on the ontology / SKOS scaffolding
+        continue
+    # sh:class on a value the sample does not describe (its rdf:type lies beyond the sample's hop
+    # limit) cannot be judged from the sample: drop it rather than report a false violation.
+    if report.value(r, SH.sourceConstraintComponent) == SH.ClassConstraintComponent and report.value(r, SH.value) not in described:
+        edge_dropped += 1
         continue
     ftypes = sorted(short(t) for t in data.objects(focus, RDF.type))
     shape = report.value(r, SH.sourceShape)
@@ -103,4 +110,4 @@ with open(out_f, "w", newline="") as fh:
     w = csv.writer(fh); w.writerow(["severity", "shape", "component", "path", "focus_types", "results", "focus_nodes", "example_focus", "example_value", "message"])
     for k, a in sorted(agg.items(), key=lambda kv: -kv[1]["n"]):
         w.writerow(list(k) + [a["n"], len(a["focus"]), a["example"], a["value"], a["message"]])
-print(f"{len(agg)} result groups -> {out_f}")
+print(f"{len(agg)} result groups -> {out_f}; dropped {edge_dropped} sh:class results on values outside the sample")

@@ -206,15 +206,29 @@ OCR-KG holds the sites, so either link to OCR-KG's body IRIs or omit the `era:Bo
 | PL with no geometry reachable via `netReference` (Warning) | 852 / 3,000 | 852 / 3,000 |
 | PL without `primaryLocationName` and `validity` (new UAT minimum) | — | 1,322 / 3,000 (44 %) |
 | `NetPointReference` with `wgs84:lat`/`long` (outside UAT closed shape) | — | 1,290 |
-| `NetPointReference` with no `hasTopoCoordinate`, or one of the wrong class | 280 | 1,577 |
-| NUTS3 not in scheme / wrong class | 18 PLs | 18 PLs |
-| Bane NOR `kmPost` of the wrong class | 95 | 95 |
-| Bodies: `role`/`roleOf`/`rdfs:label`/`hasSite` (results) | 10 | 29 |
+| `NetPointReference` without `hasTopoCoordinate` (new UAT minimum) | — | 1,297 |
+| NUTS3 not in the declared scheme (F10) | 18 PLs | 18 PLs |
+| Bodies: `roleOf`, `rdfs:label`, `hasSite` (results) | 3 | 22 |
 | RINF subsidiary locations (Bane NOR) | 0 | 0 |
 
 So, measured with ERA's own shapes, **CRD's location data is more conformant than RINF's PL data**.
-Under PROD it has 2 failing constraints, both vocabulary-alignment problems; RINF has 15 groups,
-including structural gaps.
+Under PROD it has 2 failing constraints, both vocabulary-alignment problems. RINF has 9 genuine
+result groups, including structural gaps.
+
+> **Correction (2026-11-06).** An earlier version of this table also listed `sh:class` violations in
+> RINF: Bane NOR `kmPost` values not typed `era:KilometricPost` (95), `hasTopoCoordinate` values not
+> typed `era:TopologicalCoordinate` (280) and `era:role` values not typed `era:OrganisationRole` (7).
+> They were artifacts of the sample. Those values sit three hops from the sampled PL, and
+> `queries/sample-rinf.rq` does not copy their `rdf:type`. Checked live over all of rinf-plus, **no
+> value of `era:kmPost`, `era:hasTopoCoordinate` or a body's `era:role` lacks its expected type**.
+> `scripts/validate.py` now drops `sh:class` results whose value is not described in the sample, and
+> reports how many it dropped. The CSVs in `data/shacl/` predate that filter and still contain these rows.
+>
+> What Bane NOR does differently with km posts is a modelling choice the shapes do not check. All 732
+> of its `era:KilometricPost`s hang on one nationwide LPS (`_lps02`, "Landsomfattende LPS", no
+> `era:lineId`) as an integer grid from km −2 to 729. None of its 35 line LPSs carries a post. Its
+> 24,045 coordinates reference the *nearest* post, with offsets from −500 to +500 m (49.7 % negative).
+> Every other large publisher references the preceding post on a line LPS.
 
 ### 3.4 Notes for ERA's shape maintainers (found while running the shapes)
 

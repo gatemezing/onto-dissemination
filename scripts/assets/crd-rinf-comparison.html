@@ -206,7 +206,7 @@
     <div class="tile"><div class="v">50,172</div><div class="l">PL codes in RINF, spread over 53,679 IRIs</div></div>
     <div class="tile"><div class="v">45,733</div><div class="l">codes in both sources</div></div>
     <div class="tile"><div class="v">100 %</div><div class="l">country and IM agreement on shared codes</div></div>
-    <div class="tile"><div class="v">2</div><div class="l">PROD SHACL constraints failing on CRD (RINF: 15 result groups)</div></div>
+    <div class="tile"><div class="v">2</div><div class="l">PROD SHACL constraints failing on CRD (RINF: 9 result groups)</div></div>
   </div>
 
   <h3>What needs fixing</h3>
@@ -350,13 +350,16 @@
       <tr><td>PL with no geometry via <code>netReference</code> (Warning)</td><td class="n">852 / 3,000</td><td class="n">852 / 3,000</td></tr>
       <tr><td>PL without <code>primaryLocationName</code> and <code>validity</code></td><td class="n">—</td><td class="n">1,322 / 3,000</td></tr>
       <tr><td><code>NetPointReference</code> with <code>wgs84:lat</code>/<code>long</code> (closed shape)</td><td class="n">—</td><td class="n">1,290</td></tr>
-      <tr><td><code>hasTopoCoordinate</code> missing or of the wrong class</td><td class="n">280</td><td class="n">1,577</td></tr>
-      <tr><td>NUTS3 not in scheme / wrong class</td><td class="n">18</td><td class="n">18</td></tr>
-      <tr><td>Bane NOR <code>kmPost</code> of the wrong class</td><td class="n">95</td><td class="n">95</td></tr>
-      <tr><td>Body <code>role</code>/<code>roleOf</code>/<code>rdfs:label</code>/<code>hasSite</code> (results)</td><td class="n">10</td><td class="n">29</td></tr>
+      <tr><td><code>NetPointReference</code> without <code>hasTopoCoordinate</code></td><td class="n">—</td><td class="n">1,297</td></tr>
+      <tr><td>NUTS3 not in the declared scheme</td><td class="n">18</td><td class="n">18</td></tr>
+      <tr><td>Body <code>roleOf</code>/<code>rdfs:label</code>/<code>hasSite</code> (results)</td><td class="n">3</td><td class="n">22</td></tr>
       <tr><td>RINF subsidiary locations</td><td class="n">0</td><td class="n">0</td></tr>
     </tbody>
   </table></div>
+  <div class="note warn">
+    <p><strong>Correction, 6 November 2026.</strong> An earlier version listed <code>sh:class</code> violations in RINF: Bane NOR <code>kmPost</code> values not typed <code>era:KilometricPost</code> (95), plus <code>hasTopoCoordinate</code> (280) and body <code>role</code> (7) values. They were artifacts of the sample, which did not copy the <code>rdf:type</code> of values three hops from the sampled PL. Checked live across rinf-plus, every such value carries its expected type.</p>
+    <p>Bane NOR does model km posts differently, but the shapes do not check it. All 732 posts hang on one nationwide LPS (<code>_lps02</code>, no <code>era:lineId</code>) as an integer grid from km −2 to 729, and none of its 35 line LPSs carries a post. Its 24,045 coordinates reference the <em>nearest</em> post, with offsets from −500 to +500 m. Every other large publisher references the preceding post on a line LPS.</p>
+  </div>
 
   <h3>3.4 Notes for ERA's shape maintainers</h3>
   <p class="lede">These problems in ERA's own shapes came to light while running them. They have nothing to do with CRD.</p>
