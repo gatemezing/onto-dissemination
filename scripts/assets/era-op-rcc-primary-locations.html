@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RCC at Primary Locations</title>
+<meta name="description" content="CSV extract of every RCC parameter (RINF 1.2) at the operational points of one national line that are linked to at least one TAF/TAP primary location, queried live from ERA's rinf-plus knowledge graph.">
+<style>
+  :root{
+    --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
+    --blue:#5b9bd5; --green:#7ac36a; --teal:#5fd0ae; --orange:#f0a83a;
+    --paper:#eef2ff; --panel:rgba(16,22,38,.92); --line:rgba(255,255,255,.14);
+    --muted:#aebbdd; --danger:#f26d6d; --dim:#7d8bb0;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--bg1);}
+  body{margin:0;padding:0;min-height:100vh;background-color:var(--bg1);
+    background-image:radial-gradient(1400px 900px at 50% 0%, var(--bg2), var(--bg1) 70%);
+    background-repeat:no-repeat;font-family:"Segoe UI",Arial,sans-serif;color:var(--paper);}
+  #app{max-width:1120px;margin:0 auto;padding:28px 20px 70px;}
+  header h1{font-size:23px;margin:0 0 6px;font-weight:700;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  header p{margin:0 0 22px;color:var(--muted);font-size:13.5px;line-height:1.55;max-width:80ch;}
+  code{font-family:"SF Mono",Consolas,monospace;font-size:.9em;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);margin-bottom:16px;}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+    margin:0 0 14px;font-weight:700;display:flex;align-items:center;gap:9px;}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;flex:none;
+    border-radius:50%;background:rgba(91,155,213,.18);border:1px solid rgba(91,155,213,.5);
+    color:var(--blue);font-size:11px;font-weight:700;}
+  label.fieldLabel{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px;}
+  input[type=text],select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--paper);
+    padding:10px 12px;border-radius:8px;font-size:13.5px;font-family:inherit;}
+  input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+  select option{background:#141d33;color:var(--paper);}
+  input:disabled,select:disabled{opacity:.45;cursor:not-allowed;}
+  .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;}
+  .hint{font-size:11.5px;color:var(--dim);margin-top:6px;min-height:15px;line-height:1.5;}
+  .hint.warn{color:var(--orange);}
+  .chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .chk input{flex:none;margin:0;}
+  .opts{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;}
+
+  .comboWrap{position:relative;}
+  #lineSearch{font-family:"SF Mono",Consolas,monospace;}
+  .comboList{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 5px);max-height:340px;overflow-y:auto;
+    background:#101830;border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 44px rgba(0,0,0,.6);padding:5px;}
+  .comboList[hidden]{display:none;}
+  .opt{display:flex;gap:10px;align-items:baseline;padding:7px 9px;border-radius:7px;cursor:pointer;}
+  .opt:hover{background:rgba(255,255,255,.05);}
+  .opt.active{background:rgba(91,155,213,.16);}
+  .opt .nm{flex:1;min-width:0;font-family:"SF Mono",Consolas,monospace;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;}
+  .opt .vc{flex:none;font-size:11px;color:var(--muted);white-space:nowrap;}
+  .noHits{padding:14px 10px;font-size:12.5px;color:var(--muted);text-align:center;}
+
+  button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
+    padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  button.btn:hover:not(:disabled){background:linear-gradient(180deg,#33456b,#22304d);}
+  button.btn:disabled{opacity:.45;cursor:not-allowed;}
+  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);width:100%;padding:13px;font-size:14.5px;margin-top:16px;}
+  button.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#4a89e0,#3568b3);}
+  button.btn.csv{background:linear-gradient(180deg,#2f6b52,#1f4a38);}
+  button.btn.csv:hover:not(:disabled){background:linear-gradient(180deg,#37805f,#255a43);}
+  button:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+
+  #statusArea{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-top:14px;min-height:20px;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);animation:spin .8s linear infinite;flex:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #statusArea.error{color:var(--danger);display:block;} #statusArea.success{color:var(--green);} #statusArea.warn{color:var(--orange);}
+  .fetchErr .h{font-weight:700;margin-bottom:2px;}
+  .fetchErr .b{line-height:1.5;}
+  .fetchErr .retryBtn{background:none;border:none;color:var(--blue);text-decoration:underline;cursor:pointer;font:inherit;padding:0;margin-left:4px;}
+  .fetchErr details{margin-top:5px;}
+  .fetchErr .tech{display:block;margin-top:4px;font-size:11px;font-family:"SF Mono",Consolas,monospace;color:var(--muted);
+    white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);padding:6px 8px;border-radius:6px;}
+
+  #resultPanel[hidden]{display:none;}
+  .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:10px;margin-bottom:14px;}
+  .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+  .statTile .n{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .statTile .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+  .notes{margin:0 0 14px;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;}
+  .notes li{font-size:12.5px;line-height:1.5;color:var(--muted);padding:8px 12px;border-radius:8px;
+    background:rgba(255,255,255,.03);border:1px solid var(--line);}
+  .notes li.warn{border-color:rgba(240,168,58,.45);background:rgba(240,168,58,.07);color:#f3d7a8;}
+  .notes li b{color:var(--paper);}
+
+  .tableWrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;max-height:460px;overflow-y:auto;}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  th,td{text-align:left;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap;vertical-align:top;}
+  th{position:sticky;top:0;background:#141d33;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);z-index:2;}
+  td.pos{font-family:"SF Mono",Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--teal);}
+  td.ix{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--dim);}
+  td.val{max-width:320px;overflow:hidden;text-overflow:ellipsis;}
+  td.nm{max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+  tbody tr:hover{background:rgba(255,255,255,.035);}
+  .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
+  .resultActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+  .resultActions .grow{flex:1;}
+  details{margin-top:14px;}
+  summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
+  summary:hover{color:var(--paper);}
+  pre.code{background:#050810;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:11px;
+    font-family:"SF Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word;max-height:320px;overflow:auto;margin:10px 0 0;color:#b9c6ea;}
+  pre.code + h3{margin-top:14px;}
+  .qTitle{font-size:11.5px;color:var(--muted);margin:14px 0 0;text-transform:uppercase;letter-spacing:.4px;}
+
+  footer{font-size:11.5px;color:var(--muted);margin-top:24px;line-height:1.65;}
+  footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11px;}
+  footer p{margin:0 0 9px;max-width:100ch;}
+  footer table{font-size:11.5px;width:auto;margin:4px 0 12px;}
+  footer th,footer td{padding:4px 10px;position:static;}
+  a{color:var(--blue);}
+  @media (max-width:640px){
+    #app{padding:20px 16px 44px;}
+    .grid2{grid-template-columns:1fr;}
+    .statGrid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>RCC Parameters at Primary Locations</h1>
+    <p>Pick a country and one of its national lines. The tool finds the line's operational points that are linked to at
+       least one TAF/TAP primary location (<code>era:primaryLocation</code>) and returns a CSV of every RINF parameter
+       flagged <code>era:usedInRCCCalculations</code> at those points (index&nbsp;1.2). That covers the point itself,
+       its running tracks and sidings, their contact-line, ETCS, train-detection and hot-axle-box sub-objects, and their
+       platform edges and tunnels. Each place keeps the validity window in force on the date you choose (today by default), and retired parameters are excluded.
+       Queries go live from your browser to
+       <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>;
+       nothing else is sent anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <h2><span class="step">1</span> Country and line</h2>
+    <div class="grid2">
+      <div>
+        <label class="fieldLabel" for="country">Country</label>
+        <select id="country"><option value="">Choose a country…</option></select>
+        <div class="hint" id="countryHint"></div>
+      </div>
+      <div>
+        <label class="fieldLabel" for="lineSearch">National line</label>
+        <div class="comboWrap">
+          <input id="lineSearch" type="text" spellcheck="false" autocomplete="off" role="combobox"
+                 aria-expanded="false" aria-controls="lineList" aria-autocomplete="list"
+                 placeholder="Choose a country first…" disabled>
+          <div id="lineList" class="comboList" role="listbox" aria-label="Matching national lines" hidden></div>
+        </div>
+        <div class="hint" id="lineHint"></div>
+      </div>
+    </div>
+    <div class="opts">
+      <label class="chk"><input type="checkbox" id="wantSidings" checked> Include sidings (RINF 1.2.2)</label>
+      <label class="chk">Valid on <input type="date" id="asOf" style="width:auto;padding:5px 8px"></label>
+    </div>
+    <div class="hint" id="asOfHint">Each point and track keeps the validity window in force on this date (today by default).</div>
+    <button class="btn primary" id="runBtn" disabled>Get RCC parameters</button>
+    <div id="statusArea" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="panel" id="resultPanel" hidden>
+    <h2><span class="step">2</span> Results</h2>
+    <div class="statGrid">
+      <div class="statTile"><div class="n" id="statOps">–</div><div class="l">Points with a PL</div></div>
+      <div class="statTile"><div class="n" id="statPls">–</div><div class="l">Primary locations</div></div>
+      <div class="statTile"><div class="n" id="statTracks">–</div><div class="l">Tracks &amp; sidings</div></div>
+      <div class="statTile"><div class="n" id="statParams">–</div><div class="l">Parameters</div></div>
+      <div class="statTile"><div class="n" id="statRows">–</div><div class="l">CSV rows</div></div>
+      <div class="statTile"><div class="n" id="statTime">–</div><div class="l">Query time</div></div>
+    </div>
+    <ul class="notes" id="notes"></ul>
+    <div class="tableWrap"><table id="resultTable"><thead></thead><tbody></tbody></table></div>
+    <div class="moreNote" id="moreNote"></div>
+    <div class="resultActions">
+      <button class="btn csv" id="csvLongBtn" title="One row per value: point, element, parameter">Download CSV — one row per value</button>
+      <button class="btn csv" id="csvWideBtn" title="One row per point, track or sub-element; one column per parameter">Download CSV — one column per parameter</button>
+      <span class="grow"></span>
+      <button class="btn" id="linkBtn" title="Copy a link that reopens this exact extract">Copy shareable link</button>
+    </div>
+    <details>
+      <summary>Show the SPARQL that produced this</summary>
+      <div id="sparqlOut"></div>
+    </details>
+  </div>
+
+  <footer>
+    <p><strong>Which operational points.</strong> A point qualifies when it is on the chosen line and carries at least
+      one <code>era:primaryLocation</code>. A point is on the line when it is positioned by a kilometric post on the
+      line's own linear positioning system (LPS), <em>or</em> when a section of the line names it as
+      <code>era:opStart</code>/<code>era:opEnd</code>. Both are needed: French line <code>830000-1</code> reaches 327
+      points one way and 603 the other way. Norway hangs every kilometric post on one nationwide LPS rather than on its
+      lines, so its points are found only through section endpoints, and Croatia publishes no LPS coordinate at all.
+      RINF links points to primary locations only in this direction; the inverse <code>era:isPrimaryLocationOf</code>
+      is not used (measured 8 November 2026).</p>
+    <p><strong>Where the parameters sit.</strong> The 1.2 RCC parameters are published on several kinds of resource.
+      Measured across rinf-plus on 8 November 2026:</p>
+    <table>
+      <thead><tr><th>Published on</th><th>Reached from the point by</th><th>Example parameters</th></tr></thead>
+      <tbody>
+        <tr><td>the operational point</td><td>—</td><td><code>opTypeGaugeChangeover</code>, geometry</td></tr>
+        <tr><td>running tracks and sidings</td><td><code>era:isPartOf</code> / <code>era:hasPart</code></td><td>gauge, gauging profile, siding length, gradient, GSM-R coverage</td></tr>
+        <tr><td>contact line, ETCS, train detection, hot-axle-box detector</td><td>the track's <code>era:contactLineSystem</code>, <code>era:etcs</code>, <code>era:trainDetectionSystem</code>, <code>era:tracksideHabd</code></td><td><code>maxCurrentStandstillPantograph</code>, ETCS M_version, train-detection type</td></tr>
+        <tr><td>platform edges and tunnels</td><td>parts of the track</td><td>platform length (48,510 values there, 559 on tracks), platform height, tunnel length, fire category</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Validity: the window in force on the chosen date, per place, never per line.</strong> Each point keeps
+      the resource whose validity window is in force on the &ldquo;Valid on&rdquo; date (today by default), chosen per
+      <code>era:uopid</code>. Each track and siding is chosen the same way, keyed by <code>era:trackId</code> or
+      <code>era:sidingId</code> within the point, never by the point's newest date: France dates each track by the day it
+      opened, and a per-point rule would drop older tracks that are still current. Simply taking the newest window is
+      wrong once a manager publishes ahead. DB InfraGO's points carry a 2026-01-01&nbsp;→&nbsp;2026-12-31 window and a
+      from-2027-01-01 window, and in the 2027 one about 3,150 primary-location links are missing (measured 8 November
+      2026). A place with no window in force uses its most recent window and is marked &ldquo;(ended)&rdquo;. A place
+      whose windows all lie in the future is left out and counted. Resources with no dated validity are always kept,
+      because ten countries publish none.</p>
+    <p><strong>The part-whole direction is probed once per run</strong>, because Croatia publishes only
+      <code>era:hasPart</code> and the train-detection parameters at points are reachable only that way. Asking for both
+      directions in one query is correct but makes the endpoint unusably slow.</p>
+    <p><strong>Values.</strong> Concepts are resolved to their English label where one exists. A code with no label
+      (for example a retired GSM-R version) is shown as its IRI, so a non-conformance stays visible. Geometries are given
+      as WKT. Several values for one parameter on one element are joined with &ldquo;&nbsp;|&nbsp;&rdquo;. A parameter
+      with several RINF numbers is given the number that matches where it was found: 1.2.0 on the point, 1.2.1 on a
+      running track and its parts, 1.2.2 on a siding and its parts. <code>position_km</code> is
+      <code>kilometer + offset/1000</code>; it is correct whether the publisher counts from the preceding kilometric post
+      or, like Norway, from the nearest one.</p>
+    <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./rcc.html">RCC Parameters</a> ·
+      <a href="./routebook.html">Route Book</a> · <a href="./values.html">RINF Parameter Values</a> ·
+      <a href="./crd-rinf.html">CRD versus RINF</a></p>
+  </footer>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * RCC parameters at operational points linked to a primary location
+ * ------------------------------------------------------------------ */
+const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString('en-GB');
+const localName = u => String(u).replace(/^.*[\/#]/, '') || u;
+
+const COUNTRIES = [
+  ['AUT','Austria'],['BEL','Belgium'],['BGR','Bulgaria'],['HRV','Croatia'],['CZE','Czechia'],
+  ['DNK','Denmark'],['EST','Estonia'],['FIN','Finland'],['FRA','France'],['DEU','Germany'],
+  ['GRC','Greece'],['HUN','Hungary'],['IRL','Ireland'],['ITA','Italy'],['LVA','Latvia'],
+  ['LTU','Lithuania'],['LUX','Luxembourg'],['NLD','Netherlands'],['NOR','Norway'],['POL','Poland'],
+  ['PRT','Portugal'],['ROU','Romania'],['SVK','Slovakia'],['SVN','Slovenia'],['ESP','Spain'],
+  ['SWE','Sweden'],['CHE','Switzerland'],
+];
+/* Measured 2026-11-08: these datasets link no operational point to a primary location,
+   so every line returns an empty extract. Said up front rather than discovered after a run. */
+const NO_PL_LINKS = new Set(['PRT','IRL','LTU','EST']);
+const COUNTRY_NOTES = {
+  DNK: 'Banedanmark’s RINF primary-location codes do not identify the same places as RNE’s CRD codes '
+     + '(e.g. RINF DK00010 is Høje Taastrup, CRD DK00005). The codes below are RINF’s; do not join them to CRD.',
+  NOR: 'Bane NOR hangs every kilometric post on one nationwide LPS, so points are found through section endpoints, '
+     + 'and offsets run from −500 to +500 m from the nearest post. Use position_km rather than post + offset.',
+  HRV: 'Croatia publishes no LPS coordinates for its points, so position is empty and those rows sort last.',
+};
+
+/* ------------------------------------------------------------------ *
+ * SPARQL
+ * ------------------------------------------------------------------ */
+async function sparql(query, signal){
+  const res = await fetch(ENDPOINT, {
+    method:'POST',
+    headers:{'Content-Type':'application/sparql-query','Accept':'application/sparql-results+json'},
+    body:query, signal,
+  });
+  if(!res.ok){
+    const body = await res.text().catch(() => '');
+    throw new Error('HTTP ' + res.status + (body ? ' — ' + body.slice(0, 200) : ''));
+  }
+  return (await res.json()).results.bindings.map(b => {
+    const o = {}; for(const k in b) o[k] = b[k].value; return o;
+  });
+}
+
+/* Browsers hide why a cross-origin request failed. A no-cors probe tells "the server
+   refused to share the response" (CORS) apart from "there was no server to ask". */
+async function describeFetchError(err){
+  if(err && err.name === 'AbortError')
+    return {title:'Cancelled', message:'The run was cancelled.', detail:String(err.message || err)};
+  const m = /^HTTP (\d+)/.exec((err && err.message) || '');
+  if(m){
+    const code = +m[1];
+    const KNOWN = {
+      400:['The endpoint rejected this query', 'This is almost always a bug in this tool’s query — worth reporting.'],
+      500:['The endpoint hit an internal error', 'This is on the server side — try again in a moment.'],
+      502:['The endpoint is temporarily unreachable', 'A gateway in front of it returned an error — try again shortly.'],
+      503:['The endpoint is overloaded or the query timed out', 'Try again in a moment.'],
+      504:['The endpoint took too long to respond', 'Try again in a moment.'],
+    };
+    const k = KNOWN[code] || ['The endpoint returned an error', 'HTTP ' + code + ' — see technical detail.'];
+    return {title:k[0], message:k[1], detail:err.message};
+  }
+  let reachable = false;
+  try{ await fetch(new URL(ENDPOINT).origin + '/', {mode:'no-cors', cache:'no-store'}); reachable = true; }catch{ reachable = false; }
+  return reachable
+    ? {title:'Blocked by your browser, not by you', message:'The server answered but did not grant this page permission to read the response (a missing CORS header on the endpoint).', detail:String((err && err.message) || err)}
+    : {title:'Could not reach the server', message:(navigator.onLine === false ? 'Your device appears to be offline.' : 'The endpoint did not respond, or something on your network blocked the request.'), detail:String((err && err.message) || err)};
+}
+
+const PREFIXES = [
+  'PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>',
+  'PREFIX era:  <http://data.europa.eu/949/>',
+  'PREFIX owl:  <http://www.w3.org/2002/07/owl#>',
+  'PREFIX time: <http://www.w3.org/2006/time#>',
+  'PREFIX eu:   <http://publications.europa.eu/resource/authority/country/>',
+  'PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>',
+  'PREFIX skos: <http://www.w3.org/2004/02/skos/core#>',
+  'PREFIX geo:  <http://www.opengis.net/ont/geosparql#>',
+].join('\n');
+
+function safeCountry(c){ if(!/^[A-Z]{3}$/.test(c)) throw new Error('Bad country code.'); return c; }
+function safeIri(u){ if(!/^https?:\/\/[^\s<>"{}|\\^`]+$/.test(u)) throw new Error('Unexpected IRI from the endpoint: ' + u); return u; }
+const iriValues = (v, xs) => `VALUES ?${v} { ${xs.map(u => '<' + safeIri(u) + '>').join(' ')} }`;
+
+/* National lines, keyed to their LPS resources: era:lineId for 9,543 of 9,642 LPS,
+   the English rdfs:label for Croatia's and Norway's. A line id is unique only within
+   a Member State, so the LPS IRIs are pinned in every later query. */
+function linesQuery(cc){
+  return `${PREFIXES}
+SELECT ?line ?src (COUNT(DISTINCT ?sol) AS ?sections) (GROUP_CONCAT(DISTINCT STR(?lps); separator=" ") AS ?lpsList)
+WHERE {
+  ?sol a era:SectionOfLine ; era:inCountry eu:${safeCountry(cc)} ; era:nationalLine ?lps .
+  OPTIONAL { ?lps era:lineId ?lid }
+  OPTIONAL { ?lps rdfs:label ?llabel FILTER(LANG(?llabel) = "en") }
+  BIND(COALESCE(?lid, STR(?llabel)) AS ?line)
+  FILTER(BOUND(?line))
+  BIND(IF(BOUND(?lid), "lineId", "label") AS ?src)
+}
+GROUP BY ?line ?src ORDER BY ?line`;
+}
+
+/* Phase 1 — the points on the line, by kilometric post on the line's LPS or as a section
+   endpoint. ?hasPl flags the ones linked to a primary location; the rest are counted and
+   reported, not exported. Validity is resolved per uopid in the page. */
+function opsQuery(lps){
+  return `${PREFIXES}
+SELECT DISTINCT ?op ?opid ?opName ?kp ?off ?via ?ob ?oe ?nkp ?noff ?hasPl
+WHERE {
+  ${iriValues('lps', lps)}
+  {
+    ?op a era:OperationalPoint ;
+        era:netReference/era:hasLrsCoordinate
+          [ era:kmPost [ era:kilometer ?kp ; era:hasLRS ?lps ] ; era:offsetFromKilometricPost ?off ] .
+    BIND("kilometric post" AS ?via)
+  } UNION {
+    ?sol a era:SectionOfLine ; era:nationalLine ?lps .
+    { ?sol era:opStart ?op .
+      OPTIONAL { ?sol era:netReference/era:startsAt/era:hasLrsCoordinate
+                   [ era:kmPost/era:kilometer ?kp ; era:offsetFromKilometricPost ?off ] } }
+    UNION
+    { ?sol era:opEnd ?op .
+      OPTIONAL { ?sol era:netReference/era:endsAt/era:hasLrsCoordinate
+                   [ era:kmPost/era:kilometer ?kp ; era:offsetFromKilometricPost ?off ] } }
+    ?op a era:OperationalPoint .
+    FILTER NOT EXISTS { ?op era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS ?lps }
+    BIND("section endpoint" AS ?via)
+  }
+  ?op era:uopid ?opid .
+  OPTIONAL { ?op era:opName ?opName }
+  OPTIONAL { ?op era:validity ?ov . ?ov time:hasBeginning/time:inXSDDate ?ob .
+             OPTIONAL { ?ov time:hasEnd/time:inXSDDate ?oe } }
+  # Bane NOR positions its points only on one nationwide LPS that carries no era:lineId, and its
+  # sections have no start/end coordinate. Use that national chainage when nothing on the line binds;
+  # a coordinate on another line's LPS (one with a line id) is never used for this line.
+  OPTIONAL { FILTER(!BOUND(?kp))
+             ?op era:netReference/era:hasLrsCoordinate
+               [ era:kmPost [ era:kilometer ?nkp ; era:hasLRS ?nlps ] ; era:offsetFromKilometricPost ?noff ] .
+             FILTER NOT EXISTS { ?nlps era:lineId ?anyLineId } }
+  BIND(EXISTS { ?op era:primaryLocation ?anyPl } AS ?hasPl)
+}`;
+}
+
+function plQuery(ops){
+  return `${PREFIXES}
+SELECT ?op ?pl ?code ?name WHERE {
+  ${iriValues('op', ops)}
+  ?op era:primaryLocation ?pl .
+  OPTIONAL { ?pl era:primaryLocationCode ?code }
+  OPTIONAL { ?pl era:primaryLocationName ?name FILTER(LANG(?name) = "" || LANGMATCHES(LANG(?name), "en")) }
+}`;
+}
+
+/* Every dataset publishes era:isPartOf except Croatia's (era:hasPart only). Asking for both
+   in one query is correct and ruinous for the optimiser, so the direction is probed once. */
+function partProbeQuery(ops){
+  return `${PREFIXES}
+SELECT ?t WHERE { ${iriValues('w', ops.slice(0, 50))} ?t era:isPartOf ?w } LIMIT 1`;
+}
+const part = (whole, p, dir) => dir === 'isPartOf' ? `?${p} era:isPartOf ?${whole} .` : `?${whole} era:hasPart ?${p} .`;
+
+function tracksQuery(ops, dir, sidings){
+  return `${PREFIXES}
+SELECT ?op ?track ?type ?label ?tid ?tb ?te WHERE {
+  ${iriValues('op', ops)}
+  VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }
+  ${part('op', 'track', dir)}
+  ?track a ?type .
+  OPTIONAL { ?track rdfs:label ?label }
+  OPTIONAL { ?track era:trackId ?t1 }
+  OPTIONAL { ?track era:sidingId ?t2 }
+  BIND(COALESCE(?t1, ?t2) AS ?tid)
+  OPTIONAL { ?track era:validity ?tv . ?tv time:hasBeginning/time:inXSDDate ?tb .
+             OPTIONAL { ?tv time:hasEnd/time:inXSDDate ?te } }
+}`;
+}
+
+function catalogueQuery(){
+  return `${PREFIXES}
+SELECT ?parameter ?rinfIndex ?label WHERE {
+  ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ; era:rinfIndex ?rinfIndex .
+  FILTER(STRSTARTS(?rinfIndex, "1.2"))
+  FILTER NOT EXISTS { ?parameter owl:deprecated true }
+  OPTIONAL { ?parameter rdfs:label ?label0 FILTER(LANG(?label0) = "" || LANGMATCHES(LANG(?label0), "en")) }
+  BIND(COALESCE(?label0, "") AS ?label)
+}`;
+}
+
+/* The RCC predicate set is bound in a subquery before the data is touched. */
+const PARAMS = `{ SELECT DISTINCT ?parameter WHERE {
+      ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ; era:rinfIndex ?ri .
+      FILTER(STRSTARTS(?ri, "1.2"))
+      FILTER NOT EXISTS { ?parameter owl:deprecated true } } }`;
+const HOPS = ['contactLineSystem', 'etcs', 'trainDetectionSystem', 'tracksideHabd'];
+const HOP_KIND = {contactLineSystem:'Contact line system', etcs:'ETCS', trainDetectionSystem:'Train detection system', tracksideHabd:'Trackside hot axle box detector'};
+
+function directParamsQuery(subjects){
+  return `${PREFIXES}
+SELECT ?subject ?parameter ?value WHERE {
+  ${PARAMS}
+  ${iriValues('subject', subjects)}
+  ?subject ?parameter ?value .
+}`;
+}
+function hopParamsQuery(tracks){
+  return `${PREFIXES}
+SELECT ?subject ?hop ?element ?parameter ?value WHERE {
+  ${PARAMS}
+  ${iriValues('subject', tracks)}
+  VALUES ?hop { ${HOPS.map(h => 'era:' + h).join(' ')} }
+  ?subject ?hop ?element .
+  ?element ?parameter ?value .
+}`;
+}
+function partParamsQuery(tracks, dir){
+  return `${PREFIXES}
+SELECT ?subject ?element ?etype ?elabel ?parameter ?value WHERE {
+  ${PARAMS}
+  ${iriValues('subject', tracks)}
+  ${part('subject', 'element', dir)}
+  ?element ?parameter ?value .
+  OPTIONAL { ?element a ?etype FILTER(?etype IN (era:PlatformEdge, era:Tunnel)) }
+  OPTIONAL { ?element rdfs:label ?elabel }
+}`;
+}
+/* Labels in their own VALUES-bounded query: inline OPTIONAL labels cost ~5x. */
+function labelsQuery(iris){
+  return `${PREFIXES}
+SELECT ?v ?l ?wkt WHERE {
+  ${iriValues('v', iris)}
+  OPTIONAL { ?v skos:prefLabel ?s0 FILTER(LANG(?s0) = "" || LANGMATCHES(LANG(?s0), "en")) }
+  OPTIONAL { ?v rdfs:label ?l0 FILTER(LANG(?l0) = "" || LANGMATCHES(LANG(?l0), "en")) }
+  OPTIONAL { ?v geo:asWKT ?wkt }
+  BIND(COALESCE(?s0, ?l0) AS ?l)
+}`;
+}
+
+const CHUNK = 250, POOL = 6;
+const chunk = (xs, n) => { const out = []; for(let i = 0; i < xs.length; i += n) out.push(xs.slice(i, i + n)); return out; };
+async function pooled(jobs, signal){
+  const out = new Array(jobs.length); let next = 0;
+  await Promise.all(Array.from({length:Math.min(POOL, jobs.length)}, async () => {
+    while(next < jobs.length){
+      const i = next++;
+      if(signal.aborted) throw new DOMException('aborted', 'AbortError');
+      out[i] = await jobs[i]();
+    }
+  }));
+  return out;
+}
+async function chunked(build, xs, signal, log, title){
+  if(!xs.length) return [];
+  const parts = chunk(xs, CHUNK);
+  log.push({title: title + (parts.length > 1 ? ` (1 of ${parts.length} chunks shown)` : ''), query: build(parts[0])});
+  const res = await pooled(parts.map(p => () => sparql(build(p), signal)), signal);
+  return res.flat();
+}
+
+/* ------------------------------------------------------------------ *
+ * State and UI
+ * ------------------------------------------------------------------ */
+const lineCache = new Map();   // cc -> [{line, src, sections, lps:[...]}]
+let lines = [], picked = null, lastRun = null, controller = null, activeIdx = -1;
+
+function setStatus(msg, kind){
+  const el = $('statusArea');
+  el.className = kind || '';
+  el.innerHTML = kind === 'busy' ? '<span class="spinner"></span><span>' + esc(msg) + '</span>' : esc(msg);
+}
+async function setError(err, retry){
+  const d = await describeFetchError(err);
+  const el = $('statusArea'); el.className = 'error';
+  el.innerHTML = '<div class="fetchErr"><div class="h">' + esc(d.title) + '</div><div class="b">' + esc(d.message) +
+    (retry ? ' <button type="button" class="retryBtn">Try again</button>' : '') +
+    '</div><details><summary>Technical detail</summary><code class="tech">' + esc(d.detail) + '</code></details></div>';
+  if(retry) el.querySelector('.retryBtn').addEventListener('click', retry);
+}
+function updateRun(){ $('runBtn').disabled = !($('country').value && picked); }
+
+COUNTRIES.forEach(([c, n]) => {
+  const o = document.createElement('option'); o.value = c; o.textContent = n + ' (' + c + ')'; $('country').appendChild(o);
+});
+
+async function loadLines(cc){
+  if(lineCache.has(cc)) return lineCache.get(cc);
+  const rows = await sparql(linesQuery(cc));
+  const ls = rows.map(r => ({line:r.line, src:r.src, sections:+r.sections, lps:r.lpsList.split(' ').filter(Boolean)}));
+  lineCache.set(cc, ls);
+  return ls;
+}
+async function onCountry(){
+  const cc = $('country').value;
+  picked = null; lines = []; $('lineSearch').value = ''; closeList(); updateRun();
+  $('countryHint').className = 'hint'; $('countryHint').textContent = '';
+  if(!cc){ $('lineSearch').disabled = true; $('lineSearch').placeholder = 'Choose a country first…'; $('lineHint').textContent = ''; return; }
+  if(NO_PL_LINKS.has(cc)){
+    $('countryHint').className = 'hint warn';
+    $('countryHint').textContent = 'This dataset links no operational point to a primary location (measured 8 Nov 2026), so every extract will be empty.';
+  }else if(COUNTRY_NOTES[cc]){
+    $('countryHint').textContent = COUNTRY_NOTES[cc];
+  }
+  $('lineSearch').disabled = true; $('lineSearch').placeholder = 'Loading lines…';
+  setStatus('Loading the national lines…', 'busy');
+  try{
+    lines = await loadLines(cc);
+    if($('country').value !== cc) return;
+    $('lineSearch').disabled = false;
+    $('lineSearch').placeholder = 'Search ' + fmt(lines.length) + ' lines by identifier…';
+    $('lineHint').textContent = fmt(lines.length) + ' national lines' +
+      (lines.some(l => l.src === 'label') ? ' — some are identified by their LPS label, as this manager publishes no era:lineId' : '');
+    setStatus('');
+  }catch(err){ setError(err, onCountry); $('lineSearch').placeholder = 'Lines could not be loaded'; }
+}
+$('country').addEventListener('change', onCountry);
+
+function matches(q){
+  q = q.trim().toLowerCase();
+  const xs = q ? lines.filter(l => l.line.toLowerCase().includes(q)) : lines.slice();
+  xs.sort((a, b) => (q && a.line.toLowerCase().startsWith(q) ? 0 : 1) - (q && b.line.toLowerCase().startsWith(q) ? 0 : 1) || a.line.localeCompare(b.line, 'en', {numeric:true}));
+  return xs;
+}
+function renderList(){
+  const xs = matches($('lineSearch').value), list = $('lineList');
+  const shown = xs.slice(0, 200);
+  list.innerHTML = shown.length
+    ? shown.map((l, i) => `<div class="opt${i === activeIdx ? ' active' : ''}" role="option" id="opt${i}" aria-selected="${i === activeIdx}" data-i="${i}"><span class="nm">${esc(l.line)}</span><span class="vc">${fmt(l.sections)} sections</span></div>`).join('')
+      + (xs.length > 200 ? `<div class="noHits">${fmt(xs.length - 200)} more — keep typing to narrow</div>` : '')
+    : '<div class="noHits">No line matches</div>';
+  list.hidden = false; $('lineSearch').setAttribute('aria-expanded', 'true');
+  if(activeIdx >= 0) $('lineSearch').setAttribute('aria-activedescendant', 'opt' + activeIdx); else $('lineSearch').removeAttribute('aria-activedescendant');
+  list._shown = shown;
+}
+function closeList(){ $('lineList').hidden = true; $('lineSearch').setAttribute('aria-expanded', 'false'); activeIdx = -1; }
+function pick(l){
+  picked = l; $('lineSearch').value = l.line; closeList(); updateRun();
+  $('lineHint').textContent = 'Line ' + l.line + ' — ' + fmt(l.sections) + ' sections, ' + l.lps.length + ' LPS resource' + (l.lps.length > 1 ? 's' : '');
+}
+$('lineSearch').addEventListener('input', () => { picked = null; activeIdx = -1; updateRun(); renderList(); });
+$('lineSearch').addEventListener('focus', () => { if(lines.length) renderList(); });
+$('lineSearch').addEventListener('keydown', e => {
+  const shown = $('lineList')._shown || [];
+  if(e.key === 'ArrowDown'){ e.preventDefault(); if($('lineList').hidden) renderList(); activeIdx = Math.min(shown.length - 1, activeIdx + 1); renderList(); scrollActive(); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); activeIdx = Math.max(0, activeIdx - 1); renderList(); scrollActive(); }
+  else if(e.key === 'Enter'){ if(!$('lineList').hidden && shown[Math.max(0, activeIdx)]){ e.preventDefault(); pick(shown[Math.max(0, activeIdx)]); } }
+  else if(e.key === 'Escape'){ closeList(); }
+});
+function scrollActive(){ const el = $('opt' + activeIdx); if(el) el.scrollIntoView({block:'nearest'}); }
+$('lineList').addEventListener('mousedown', e => { const o = e.target.closest('.opt'); if(o){ e.preventDefault(); pick($('lineList')._shown[+o.dataset.i]); } });
+document.addEventListener('click', e => { if(!e.target.closest('.comboWrap')) closeList(); });
+
+/* ------------------------------------------------------------------ *
+ * Run
+ * ------------------------------------------------------------------ */
+const numOrNull = x => (x === undefined || x === null || x === '' || isNaN(+x)) ? null : +x;
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+/* Validity on a reference date, per place (a uopid for points; a track or siding id within the
+   point for tracks). Never per line or per point: France dates each track by the day it opened.
+   - windows in force on the date win, the latest beginning among them;
+   - otherwise the most recent window that has begun (kept, but flagged as ended);
+   - a place whose every dated window lies in the future is not yet valid and is dropped;
+   - resources with no dated validity are always kept (ten countries publish none).
+   "Newest window" alone is wrong as soon as a manager publishes ahead: DB InfraGO's points carry
+   2026-01-01→2026-12-31 and from-2027-01-01 windows, and the 2027 one has lost ~3,150 PL links. */
+function pickValid(items, keyOf, asOf){
+  const maxStr = xs => xs.reduce((m, x) => (x > m ? x : m), '');
+  const inForceFrom = x => maxStr(x.windows.filter(w => w.b <= asOf && (!w.e || w.e >= asOf)).map(w => w.b));
+  const begunFrom   = x => maxStr(x.windows.filter(w => w.b <= asOf).map(w => w.b));
+  const groups = new Map();
+  for(const it of items){ const k = keyOf(it); if(!groups.has(k)) groups.set(k, []); groups.get(k).push(it); }
+  const kept = [], dropped = {superseded:0, future:0}, expired = new Set();
+  for(const g of groups.values()){
+    const dated = g.filter(x => x.windows.length);
+    kept.push(...g.filter(x => !x.windows.length));
+    if(!dated.length) continue;
+    let chosen;
+    const inForce = dated.filter(x => inForceFrom(x));
+    if(inForce.length){
+      const best = maxStr(inForce.map(inForceFrom));
+      chosen = inForce.filter(x => inForceFrom(x) === best);
+    }else{
+      const begun = dated.filter(x => begunFrom(x));
+      if(!begun.length){ dropped.future += dated.length; continue; }
+      const best = maxStr(begun.map(begunFrom));
+      chosen = begun.filter(x => begunFrom(x) === best);
+      chosen.forEach(x => expired.add(x));
+    }
+    kept.push(...chosen);
+    dropped.superseded += dated.length - chosen.length;
+  }
+  return {kept, dropped, expired};
+}
+const windowText = x => x.windows.length ? x.windows.map(w => w.b + ' → ' + (w.e || '…')).join(' | ') : '';
+
+async function run(){
+  const cc = $('country').value, line = picked;
+  if(!cc || !line) return;
+  if(controller) controller.abort();
+  controller = new AbortController();
+  const signal = controller.signal, t0 = performance.now(), log = [];
+  const sidings = $('wantSidings').checked;
+  const asOf = /^\d{4}-\d{2}-\d{2}$/.test($('asOf').value) ? $('asOf').value : todayIso();
+  $('runBtn').disabled = true; $('resultPanel').hidden = true;
+  try{
+    setStatus('Finding the operational points on line ' + line.line + '…', 'busy');
+    const q1 = opsQuery(line.lps); log.push({title:'1. Operational points on the line', query:q1});
+    const opRows = await sparql(q1, signal);
+
+    /* One record per OP resource. */
+    const byOp = new Map();
+    for(const r of opRows){
+      let o = byOp.get(r.op);
+      if(!o) byOp.set(r.op, o = {op:r.op, opid:r.opid, name:'', positions:new Map(), natPositions:new Map(), via:new Set(), windows:[], hasPl:false});
+      if(r.opName && !o.name) o.name = r.opName;
+      o.via.add(r.via);
+      const ob = (r.ob || '').slice(0, 10), oe = (r.oe || '').slice(0, 10);
+      if(ob && !o.windows.some(w => w.b === ob && w.e === oe)) o.windows.push({b:ob, e:oe});
+      if(r.hasPl === 'true' || r.hasPl === '1') o.hasPl = true;
+      const kp = numOrNull(r.kp), off = numOrNull(r.off), nkp = numOrNull(r.nkp), noff = numOrNull(r.noff);
+      if(kp !== null) o.positions.set(kp + '|' + (off ?? ''), {kp, off});
+      if(nkp !== null) o.natPositions.set(nkp + '|' + (noff ?? ''), {kp:nkp, off:noff});
+    }
+    const opPick = pickValid([...byOp.values()], o => o.opid, asOf);
+    const current = opPick.kept;
+    const withPl = current.filter(o => o.hasPl);
+    const opIndex = new Map(withPl.map(o => [o.op, o]));
+
+    let pls = [], trackRows = [], dir = 'isPartOf', cat = [], A = [], B = [], C = [], D = [], labels = [];
+    if(withPl.length){
+      const opIris = withPl.map(o => o.op);
+      setStatus(`Reading the primary locations of ${fmt(withPl.length)} points…`, 'busy');
+      [pls, cat] = await Promise.all([
+        chunked(plQuery, opIris, signal, log, '2. Primary locations of those points'),
+        sparql(catalogueQuery(), signal),
+      ]);
+      log.push({title:'3. RCC parameter catalogue (RINF 1.2)', query:catalogueQuery()});
+      const probe = await sparql(partProbeQuery(opIris), signal);
+      dir = probe.length ? 'isPartOf' : 'hasPart';
+      log.push({title:'4. Part-whole direction probe → ' + dir, query:partProbeQuery(opIris)});
+      setStatus('Reading their tracks' + (sidings ? ' and sidings' : '') + '…', 'busy');
+      trackRows = await chunked(ops => tracksQuery(ops, dir, sidings), opIris, signal, log, '5. Tracks' + (sidings ? ' and sidings' : '') + ' of those points');
+    }
+
+    const tracks = new Map();
+    for(const r of trackRows){
+      let t = tracks.get(r.track);
+      if(!t) tracks.set(r.track, t = {track:r.track, op:r.op, kind:localName(r.type), label:'', tid:'', windows:[]});
+      if(r.label && !t.label) t.label = r.label;
+      if(r.tid && !t.tid) t.tid = r.tid;
+      const tb = (r.tb || '').slice(0, 10), te = (r.te || '').slice(0, 10);
+      if(tb && !t.windows.some(w => w.b === tb && w.e === te)) t.windows.push({b:tb, e:te});
+    }
+    const trPick = pickValid([...tracks.values()], t => opIndex.get(t.op).opid + '|' + t.kind + '|' + (t.tid || t.label || t.track), asOf);
+    const keptTracks = trPick.kept;
+    const trackIndex = new Map(keptTracks.map(t => [t.track, t]));
+
+    if(withPl.length){
+      setStatus(`Reading RCC parameters on ${fmt(withPl.length)} points and ${fmt(keptTracks.length)} tracks…`, 'busy');
+      const tIris = keptTracks.map(t => t.track);
+      [A, B, C, D] = await Promise.all([
+        chunked(directParamsQuery, withPl.map(o => o.op), signal, log, '6a. Parameters on the points themselves'),
+        chunked(directParamsQuery, tIris, signal, log, '6b. Parameters on tracks and sidings'),
+        chunked(hopParamsQuery, tIris, signal, log, '6c. Parameters on contact-line, ETCS, train-detection and HABD sub-objects'),
+        chunked(ts => partParamsQuery(ts, dir), tIris, signal, log, '6d. Parameters on platform edges and tunnels (parts of tracks)'),
+      ]);
+      const iris = [...new Set([...A, ...B, ...C, ...D].map(r => r.value).filter(v => /^https?:\/\//.test(v)))];
+      setStatus(`Resolving ${fmt(iris.length)} coded values…`, 'busy');
+      labels = await chunked(labelsQuery, iris, signal, log, '7. Labels and WKT for coded values');
+    }
+
+    /* ---- assemble ---- */
+    const catalogue = new Map();
+    for(const r of cat){
+      let p = catalogue.get(r.parameter);
+      if(!p) catalogue.set(r.parameter, p = {indices:new Set(), label:''});
+      p.indices.add(r.rinfIndex); if(r.label && !p.label) p.label = r.label;
+    }
+    const labelOf = new Map();
+    for(const r of labels){ const v = r.wkt || r.l; if(v && !labelOf.has(r.v)) labelOf.set(r.v, v); }
+    const plByOp = new Map();
+    for(const r of pls){
+      if(!plByOp.has(r.op)) plByOp.set(r.op, new Map());
+      const m = plByOp.get(r.op); if(!m.has(r.pl)) m.set(r.pl, {code:r.code || '', name:r.name || ''});
+      else { const x = m.get(r.pl); if(!x.code && r.code) x.code = r.code; if(!x.name && r.name) x.name = r.name; }
+    }
+
+    /* A value is exported only under a RINF index of the element it sits on: 1.2.0 for the point,
+       1.2.1 for a running track and its sub-objects, 1.2.2 for a siding and its sub-objects.
+       geo:hasGeometry, for one, is a 1.2 RCC parameter for points and running tracks but has no
+       siding index; such values are counted, not exported. */
+    const cells = new Map(), offIndex = new Map();
+    function add(op, elementIri, kind, track, elementName, ctx, parameter, value){
+      const p = catalogue.get(parameter);
+      const idx = p ? [...p.indices].filter(i => i.startsWith(ctx)) : [];
+      if(!idx.length){ const k = (p && p.label || localName(parameter)) + ' on ' + kind.toLowerCase(); offIndex.set(k, (offIndex.get(k) || 0) + 1); return; }
+      // The track is part of the key: one sub-object (e.g. a contact-line system) is often shared by
+      // every track at a point, and each track must get its own row.
+      const k = op.op + '\u0001' + (track ? track.track : '') + '\u0001' + elementIri + '\u0001' + parameter;
+      let c = cells.get(k);
+      if(!c) cells.set(k, c = {op, elementIri, kind, track, elementName, idx, parameter, values:new Set(), raws:new Set()});
+      c.values.add(/^https?:\/\//.test(value) ? (labelOf.get(value) || value) : value);
+      c.raws.add(value);
+    }
+    const ctxOf = t => t.kind === 'Siding' ? '1.2.2' : '1.2.1';
+    const trackKind = t => t.kind === 'Siding' ? 'Siding' : 'Running track';
+    for(const r of A){ const o = opIndex.get(r.subject); if(o) add(o, o.op, 'Operational point', null, o.name, '1.2.0', r.parameter, r.value); }
+    for(const r of B){ const t = trackIndex.get(r.subject); if(t) add(opIndex.get(t.op), t.track, trackKind(t), t, t.label, ctxOf(t), r.parameter, r.value); }
+    for(const r of C){ const t = trackIndex.get(r.subject); if(t) add(opIndex.get(t.op), r.element, HOP_KIND[localName(r.hop)] || localName(r.hop), t, '', ctxOf(t), r.parameter, r.value); }
+    for(const r of D){ const t = trackIndex.get(r.subject); if(t) add(opIndex.get(t.op), r.element, r.etype ? (localName(r.etype) === 'PlatformEdge' ? 'Platform edge' : 'Tunnel') : 'Part of track', t, r.elabel || '', ctxOf(t), r.parameter, r.value); }
+
+    /* Points linked to a primary location but carrying no RCC parameter still get one row, so the
+       CSV lists every qualifying point rather than silently dropping the bare ones. */
+    const withRows = new Set([...cells.values()].map(c => c.op.op));
+    const bare = withPl.filter(o => !withRows.has(o.op));
+
+    function position(o){
+      const line = [...o.positions.values()], nat = [...o.natPositions.values()];
+      const src = line.length ? line : nat;
+      const p = src.sort((a, b) => a.kp - b.kp || (a.off ?? 0) - (b.off ?? 0))[0];
+      if(!p) return {km:null, post:'', ref:''};
+      return {
+        km: +(p.kp + (p.off ?? 0) / 1000).toFixed(3),
+        post: p.kp + (p.off !== null && p.off !== undefined ? (p.off >= 0 ? ' + ' : ' − ') + Math.abs(p.off) + ' m' : ''),
+        ref: line.length ? 'this line' : 'national LPS (no line id)',
+      };
+    }
+    function opFields(o){
+      const pos = position(o), plm = plByOp.get(o.op) || new Map();
+      return {
+        country: cc, line: line.line, uopid: o.opid, opName: o.name,
+        positionKm: pos.km, kmPost: pos.post, kmReference: pos.ref, via: [...o.via].join(' | '),
+        opValidity: windowText(o) + (opPick.expired.has(o) ? ' (ended)' : ''),
+        plCodes: [...plm.values()].map(x => x.code).filter(Boolean).sort().join(' | '),
+        plNames: [...new Set([...plm.values()].map(x => x.name).filter(Boolean))].join(' | '),
+        opIri: o.op,
+      };
+    }
+    const out = [...cells.values()].map(c => ({
+      ...opFields(c.op),
+      kind: c.kind,
+      trackKind: c.track ? trackKind(c.track) : '',
+      trackId: c.track ? c.track.tid : '',
+      trackName: c.track ? c.track.label : '',
+      trackValidity: c.track ? windowText(c.track) + (trPick.expired.has(c.track) ? ' (ended)' : '') : '',
+      elementName: c.track && c.elementIri === c.track.track ? '' : c.elementName,
+      rinfIndex: c.idx.sort(natural).join(' / '),
+      parameter: (catalogue.get(c.parameter) || {}).label || localName(c.parameter),
+      parameterIri: c.parameter,
+      value: [...c.values].join(' | '),
+      valueRaw: [...c.raws].join(' | '),
+      elementIri: c.elementIri,
+      trackKey: c.track ? c.track.track : '',
+      _sub: c.track && c.elementIri !== c.track.track ? 1 : 0,
+      _op: c.kind === 'Operational point' ? 0 : 1,
+    })).concat(bare.map(o => ({
+      ...opFields(o), kind:'Operational point', trackKind:'', trackId:'', trackName:'', trackValidity:'',
+      elementName:'', rinfIndex:'', parameter:'(no RCC parameter published at this point)', parameterIri:'',
+      value:'', valueRaw:'', elementIri:o.op, trackKey:'', _sub:0, _op:0,
+    })));
+    out.sort((a, b) =>
+      (a.positionKm === null) - (b.positionKm === null) || (a.positionKm ?? 0) - (b.positionKm ?? 0) ||
+      a.uopid.localeCompare(b.uopid) || a.opIri.localeCompare(b.opIri) || a._op - b._op ||
+      natural(a.trackKind + ' ' + a.trackId + ' ' + a.trackName, b.trackKind + ' ' + b.trackId + ' ' + b.trackName) ||
+      a._sub - b._sub || a.elementIri.localeCompare(b.elementIri) || natural(a.rinfIndex, b.rinfIndex));
+
+    lastRun = {
+      cc, line: line.line, sidings, asOf, rows: out, log, dir,
+      stats: {
+        onLine: current.length, withPl: withPl.length, bare: bare.length,
+        opSuperseded: opPick.dropped.superseded, opFuture: opPick.dropped.future, opExpired: opPick.expired.size,
+        pls: new Set(pls.map(r => r.pl)).size,
+        tracks: keptTracks.length, trSuperseded: trPick.dropped.superseded, trFuture: trPick.dropped.future, trExpired: trPick.expired.size,
+        params: new Set(out.map(r => r.parameterIri).filter(Boolean)).size,
+        offIndex: [...offIndex.entries()].sort((a, b) => b[1] - a[1]),
+        national: withPl.filter(o => !o.positions.size && o.natPositions.size).length,
+        seconds: (performance.now() - t0) / 1000,
+        unresolved: out.filter(r => /^https?:\/\//.test(r.value)).length,
+      },
+      fetched: new Date().toISOString(),
+    };
+    render();
+    setStatus(out.length ? `Done — ${fmt(out.length)} rows in ${lastRun.stats.seconds.toFixed(1)} s.` :
+      'Done — nothing to export for this line.', out.length ? 'success' : 'warn');
+    const h = {c:cc, l:line.line}; if(!sidings) h.sid = '0'; if($('asOf').value && $('asOf').value !== todayIso()) h.d = asOf;
+    history.replaceState(null, '', '#' + new URLSearchParams(h).toString());
+  }catch(err){
+    if(err && err.name === 'AbortError') return;
+    setError(err, run);
+  }finally{
+    updateRun();
+  }
+}
+$('runBtn').addEventListener('click', run);
+
+function natural(a, b){ return String(a).localeCompare(String(b), 'en', {numeric:true}); }
+
+/* ------------------------------------------------------------------ *
+ * Render and export
+ * ------------------------------------------------------------------ */
+const LONG_COLS = [
+  ['country','country'],['line','line'],['uopid','op_uopid'],['opName','op_name'],
+  ['positionKm','position_km'],['kmPost','km_post_offset'],['kmReference','km_reference'],['via','reached_via'],
+  ['opValidity','op_validity'],['plCodes','primary_location_codes'],['plNames','primary_location_names'],
+  ['kind','element_kind'],['trackKind','track_kind'],['trackId','track_id'],['trackName','track_name'],
+  ['trackValidity','track_validity'],['elementName','element_name'],
+  ['rinfIndex','rinf_index'],['parameter','parameter'],['value','value'],['valueRaw','value_raw'],
+  ['parameterIri','parameter_iri'],['opIri','op_iri'],['elementIri','element_iri'],
+];
+function render(){
+  const r = lastRun, s = r.stats;
+  $('statOps').textContent = fmt(s.withPl) + ' / ' + fmt(s.onLine);
+  $('statPls').textContent = fmt(s.pls);
+  $('statTracks').textContent = fmt(s.tracks);
+  $('statParams').textContent = fmt(s.params);
+  $('statRows').textContent = fmt(r.rows.length);
+  $('statTime').textContent = s.seconds.toFixed(1) + ' s';
+
+  const warn = [], notes = [];
+  if(NO_PL_LINKS.has(r.cc)) warn.push('This dataset links no operational point to a primary location, so there is nothing to export.');
+  if(COUNTRY_NOTES[r.cc]) warn.push(esc(COUNTRY_NOTES[r.cc]));
+  notes.push(`<b>${fmt(s.withPl)} of ${fmt(s.onLine)}</b> operational points on line <code>${esc(r.line)}</code> valid on ${esc(r.asOf)} ` +
+    `are linked to a primary location; the other ${fmt(s.onLine - s.withPl)} are not exported.` +
+    (s.bare ? ` ${fmt(s.bare)} of the linked points publish no RCC parameter; each appears once with empty parameter columns.` : ''));
+  const v = [];
+  if(s.opSuperseded) v.push(`${fmt(s.opSuperseded)} point resources describing another window of the same uopid`);
+  if(s.opFuture) v.push(`${fmt(s.opFuture)} point resources valid only after ${esc(r.asOf)}`);
+  if(s.trSuperseded) v.push(`${fmt(s.trSuperseded)} track or siding resources describing another window`);
+  if(s.trFuture) v.push(`${fmt(s.trFuture)} track or siding resources valid only after ${esc(r.asOf)}`);
+  if(v.length) notes.push('Dropped by the validity rule (window in force on ' + esc(r.asOf) + ', per place): ' + v.join('; ') + '.');
+  if(s.opExpired || s.trExpired) notes.push(`${fmt(s.opExpired)} points and ${fmt(s.trExpired)} tracks have no window in force on ${esc(r.asOf)}; their most recent window is used and marked “(ended)”.`);
+  if(s.national) notes.push(`${fmt(s.national)} points are positioned on a national LPS rather than on this line (km_reference = national LPS).`);
+  if(r.dir === 'hasPart') notes.push('This dataset publishes the part-whole link only as <code>era:hasPart</code>; it was used for tracks and their parts.');
+  if(s.offIndex.length) notes.push('Not exported because the parameter has no RINF 1.2 index for that kind of element: ' +
+    s.offIndex.map(([k, n]) => esc(k) + ' (' + fmt(n) + ')').join('; ') + '.');
+  if(s.unresolved) notes.push(`${fmt(s.unresolved)} values are coded IRIs with no label anywhere (for example retired codes); they are exported as the IRI.`);
+  $('notes').innerHTML = warn.map(w => '<li class="warn">' + w + '</li>').join('') + notes.map(n => '<li>' + n + '</li>').join('');
+
+  const SHOW = 300;
+  const head = ['Position (km)','uopid','Operational point','Primary location','Element','Track','RINF','Parameter','Value'];
+  $('resultTable').tHead.innerHTML = '<tr>' + head.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr>';
+  $('resultTable').tBodies[0].innerHTML = r.rows.slice(0, SHOW).map(x => '<tr>' +
+    `<td class="pos">${x.positionKm === null ? '—' : x.positionKm.toFixed(3)}</td>` +
+    `<td class="ix">${esc(x.uopid)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
+    `<td class="ix">${esc(x.plCodes)}</td><td>${esc(x.kind)}${x.elementName ? ' — ' + esc(x.elementName) : ''}</td>` +
+    `<td class="nm" title="${esc(x.trackName)}">${esc(x.trackId || x.trackName)}</td>` +
+    `<td class="ix">${esc(x.rinfIndex)}</td><td class="nm" title="${esc(x.parameter)}">${esc(x.parameter)}</td>` +
+    `<td class="val" title="${esc(x.value.length > 600 ? x.value.slice(0, 600) + '…' : x.value)}">${esc(x.value.length > 120 ? x.value.slice(0, 120) + '…' : x.value)}</td></tr>`).join('');
+  $('moreNote').textContent = r.rows.length > SHOW ? `Showing the first ${fmt(SHOW)} of ${fmt(r.rows.length)} rows — the CSV has them all.` : '';
+  $('csvLongBtn').disabled = $('csvWideBtn').disabled = !r.rows.length;
+  $('sparqlOut').innerHTML = r.log.map(q => '<div class="qTitle">' + esc(q.title) + '</div><pre class="code">' + esc(q.query) + '</pre>').join('');
+  $('resultPanel').hidden = false;
+}
+
+function csvCell(v){
+  const s = v === null || v === undefined ? '' : String(v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+const toCsv = rows => '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+function fileBase(kind){
+  const r = lastRun;
+  return ('RINF_RCC_at_PL_' + r.cc + '_' + r.line + '_' + kind + '_' + r.fetched.slice(0, 10)).replace(/[^A-Za-z0-9._-]/g, '_');
+}
+function download(text, name){
+  const url = URL.createObjectURL(new Blob([text], {type:'text/csv;charset=utf-8'}));
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function longCsv(){
+  return toCsv([LONG_COLS.map(c => c[1]), ...lastRun.rows.map(x => LONG_COLS.map(c => x[c[0]]))]);
+}
+/* One row per point, track or sub-element; one column per "RINF index parameter". */
+function wideCsv(){
+  const baseCols = LONG_COLS.filter(c => !['rinfIndex','parameter','value','valueRaw','parameterIri'].includes(c[0]));
+  const base = baseCols.map(c => c[0]), baseHead = baseCols.map(c => c[1]);
+  const colKey = x => (x.rinfIndex ? x.rinfIndex + ' ' : '') + x.parameter;
+  const cols = [...new Set(lastRun.rows.filter(x => x.parameterIri).map(colKey))].sort(natural);
+  const rows = new Map();
+  for(const x of lastRun.rows){
+    const k = x.opIri + '\u0001' + x.trackKey + '\u0001' + x.elementIri;
+    if(!rows.has(k)) rows.set(k, {base:base.map(b => x[b]), vals:new Map()});
+    if(x.parameterIri) rows.get(k).vals.set(colKey(x), x.value);
+  }
+  return toCsv([[...baseHead, ...cols], ...[...rows.values()].map(r => [...r.base, ...cols.map(c => r.vals.get(c) ?? '')])]);
+}
+$('csvLongBtn').addEventListener('click', () => lastRun && download(longCsv(), fileBase('long') + '.csv'));
+$('csvWideBtn').addEventListener('click', () => lastRun && download(wideCsv(), fileBase('wide') + '.csv'));
+$('linkBtn').addEventListener('click', async () => {
+  try{ await navigator.clipboard.writeText(location.href); $('linkBtn').textContent = 'Link copied'; }
+  catch{ $('linkBtn').textContent = 'Copy the address bar'; }
+  setTimeout(() => { $('linkBtn').textContent = 'Copy shareable link'; }, 2000);
+});
+
+/* ------------------------------------------------------------------ *
+ * Shareable link: #c=FRA&l=830000-1[&sid=0][&run=1]
+ * ------------------------------------------------------------------ */
+async function applyHash(){
+  const p = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const cc = p.get('c');
+  if(!cc || !COUNTRIES.some(c => c[0] === cc)) return;
+  $('country').value = cc;
+  await onCountry();
+  const l = lines.find(x => x.line === p.get('l'));
+  if(l) pick(l);
+  $('wantSidings').checked = p.get('sid') !== '0';
+  $('asOf').value = /^\d{4}-\d{2}-\d{2}$/.test(p.get('d') || '') ? p.get('d') : todayIso();
+  updateRun();
+  if(l && p.get('run') === '1') run();
+}
+/* Pasting another shared link on an open page is a same-document navigation: reapply the form. */
+window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; applyHash(); });
+$('asOf').value = todayIso();
+applyHash();
+</script>
+</body>
+</html>
