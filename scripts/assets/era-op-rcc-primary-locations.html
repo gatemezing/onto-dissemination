@@ -55,6 +55,21 @@
   .opt .nm{flex:1;min-width:0;font-family:"SF Mono",Consolas,monospace;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;}
   .opt .vc{flex:none;font-size:11px;color:var(--muted);white-space:nowrap;}
   .noHits{padding:14px 10px;font-size:12.5px;color:var(--muted);text-align:center;}
+  .fieldHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .fieldHead .fieldLabel{margin-bottom:7px;}
+  .quickActions{display:flex;gap:6px;}
+  button.mini{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);
+    padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;font-family:inherit;}
+  button.mini:hover:not(:disabled){background:rgba(255,255,255,.1);color:var(--paper);}
+  button.mini:disabled{opacity:.4;cursor:not-allowed;}
+  #lineChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;max-height:160px;overflow-y:auto;}
+  #lineChips:empty{display:none;}
+  .lchip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(95,208,174,.4);background:rgba(95,208,174,.09);
+    border-radius:20px;padding:3px 5px 3px 11px;font-size:12px;max-width:100%;}
+  .lchip .nm{font-family:"SF Mono",Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lchip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;
+    padding:2px 5px;border-radius:50%;flex:none;font-family:inherit;}
+  .lchip button:hover{background:rgba(255,255,255,.14);color:var(--paper);}
 
   button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
     padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
@@ -125,8 +140,8 @@
 <div id="app">
   <header>
     <h1>RCC Parameters at Primary Locations</h1>
-    <p>Pick a country and one of its national lines. The tool finds the line's operational points that are linked to at
-       least one TAF/TAP primary location (<code>era:primaryLocation</code>) and returns a CSV of every RINF parameter
+    <p>Pick a country and one or more of its national lines. The tool finds the operational points on those lines that are
+       linked to at least one TAF/TAP primary location (<code>era:primaryLocation</code>) and returns a CSV of every RINF parameter
        flagged <code>era:usedInRCCCalculations</code> at those points (index&nbsp;1.2). That covers the point itself,
        its running tracks and sidings, their contact-line, ETCS, train-detection and hot-axle-box sub-objects, and their
        platform edges and tunnels. Each place keeps the validity window in force on the date you choose (today by default), and retired parameters are excluded.
@@ -136,7 +151,7 @@
   </header>
 
   <div class="panel">
-    <h2><span class="step">1</span> Country and line</h2>
+    <h2><span class="step">1</span> Country and lines</h2>
     <div class="grid2">
       <div>
         <label class="fieldLabel" for="country">Country</label>
@@ -144,13 +159,20 @@
         <div class="hint" id="countryHint"></div>
       </div>
       <div>
-        <label class="fieldLabel" for="lineSearch">National line</label>
+        <div class="fieldHead">
+          <label class="fieldLabel" for="lineSearch" id="lineSummary">National lines</label>
+          <span class="quickActions">
+            <button type="button" class="mini" id="lineAll" disabled>Select all</button>
+            <button type="button" class="mini" id="lineNone" disabled>Clear</button>
+          </span>
+        </div>
         <div class="comboWrap">
           <input id="lineSearch" type="text" spellcheck="false" autocomplete="off" role="combobox"
                  aria-expanded="false" aria-controls="lineList" aria-autocomplete="list"
                  placeholder="Choose a country first…" disabled>
           <div id="lineList" class="comboList" role="listbox" aria-label="Matching national lines" hidden></div>
         </div>
+        <div id="lineChips" role="list" aria-label="Selected national lines"></div>
         <div class="hint" id="lineHint"></div>
       </div>
     </div>
@@ -189,14 +211,22 @@
   </div>
 
   <footer>
-    <p><strong>Which operational points.</strong> A point qualifies when it is on the chosen line and carries at least
+    <p><strong>Which operational points.</strong> A point qualifies when it is on a chosen line and carries at least
       one <code>era:primaryLocation</code>. A point is on the line when it is positioned by a kilometric post on the
       line's own linear positioning system (LPS), <em>or</em> when a section of the line names it as
       <code>era:opStart</code>/<code>era:opEnd</code>. Both are needed: French line <code>830000-1</code> reaches 327
-      points one way and 603 the other way. Norway hangs every kilometric post on one nationwide LPS rather than on its
+      points one way and 603 the other way. A post counts when it belongs to the line's LPS, whether or not it gives
+      its kilometre: Luxembourg's posts carry <code>era:measuredDistance</code> instead of <code>era:kilometer</code>,
+      and requiring the latter used to lose every Luxembourg point. Norway hangs every kilometric post on one nationwide LPS rather than on its
       lines, so its points are found only through section endpoints, and Croatia publishes no LPS coordinate at all.
       RINF links points to primary locations only in this direction; the inverse <code>era:isPrimaryLocationOf</code>
       is not used (measured 8 November 2026).</p>
+    <p><strong>Several lines at once.</strong> Pick as many lines as you need, or &ldquo;Select all&rdquo;. Each line is
+      resolved by its own query, six at a time. A point on more than one selected line, such as a junction station, is
+      looked up once, but its rows appear once per line, each with that line's kilometre position, so each line's slice of
+      the CSV is complete and can be filtered on the <code>line</code> column. Its validity window is chosen once across all
+      the selected lines, so a junction never mixes two descriptions. A shareable link lists every line as a repeated
+      <code>l=</code> parameter.</p>
     <p><strong>Where the parameters sit.</strong> The 1.2 RCC parameters are published on several kinds of resource.
       Measured across rinf-plus on 8 November 2026:</p>
     <table>
@@ -261,6 +291,7 @@ const COUNTRY_NOTES = {
   NOR: 'Bane NOR hangs every kilometric post on one nationwide LPS, so points are found through section endpoints, '
      + 'and offsets run from −500 to +500 m from the nearest post. Use position_km rather than post + offset.',
   HRV: 'Croatia publishes no LPS coordinates for its points, so position is empty and those rows sort last.',
+  LUX: 'CFL’s kilometric posts carry era:measuredDistance instead of era:kilometer, in kilometres although ERA declares it in metres; positions are read as kilometres.',
 };
 
 /* ------------------------------------------------------------------ *
@@ -343,13 +374,21 @@ GROUP BY ?line ?src ORDER BY ?line`;
    reported, not exported. Validity is resolved per uopid in the page. */
 function opsQuery(lps){
   return `${PREFIXES}
-SELECT DISTINCT ?op ?opid ?opName ?kp ?off ?via ?ob ?oe ?nkp ?noff ?hasPl
+SELECT DISTINCT ?op ?opid ?opName ?kp ?kpSrc ?off ?via ?ob ?oe ?nkp ?noff ?hasPl
 WHERE {
   ${iriValues('lps', lps)}
   {
-    ?op a era:OperationalPoint ;
-        era:netReference/era:hasLrsCoordinate
-          [ era:kmPost [ era:kilometer ?kp ; era:hasLRS ?lps ] ; era:offsetFromKilometricPost ?off ] .
+    # On the line when its kilometric post belongs to the line's LPS. The kilometre and offset are
+    # optional: Luxembourg's 2,644 posts carry no era:kilometer, only era:measuredDistance (declared in
+    # metres, published in kilometres: 4.0 for "KP 4"), and requiring era:kilometer here used to drop
+    # every Luxembourg point, because the section-endpoint branch skips points with a post on the LPS.
+    ?op a era:OperationalPoint ; era:netReference/era:hasLrsCoordinate ?c .
+    ?c era:kmPost ?post . ?post era:hasLRS ?lps .
+    OPTIONAL { ?post era:kilometer ?k1 }
+    OPTIONAL { ?post era:measuredDistance ?k2 }
+    OPTIONAL { ?c era:offsetFromKilometricPost ?off }
+    BIND(COALESCE(?k1, ?k2) AS ?kp)
+    BIND(IF(!BOUND(?k1) && BOUND(?k2), "measuredDistance", "kilometer") AS ?kpSrc)
     BIND("kilometric post" AS ?via)
   } UNION {
     ?sol a era:SectionOfLine ; era:nationalLine ?lps .
@@ -498,7 +537,8 @@ async function chunked(build, xs, signal, log, title){
  * State and UI
  * ------------------------------------------------------------------ */
 const lineCache = new Map();   // cc -> [{line, src, sections, lps:[...]}]
-let lines = [], picked = null, lastRun = null, controller = null, activeIdx = -1;
+let lines = [], pickedLines = [], lastRun = null, controller = null, activeIdx = -1;
+const BIG_SELECTION = 40;   // lines; above this a run is announced as long
 
 function setStatus(msg, kind){
   const el = $('statusArea');
@@ -513,7 +553,7 @@ async function setError(err, retry){
     '</div><details><summary>Technical detail</summary><code class="tech">' + esc(d.detail) + '</code></details></div>';
   if(retry) el.querySelector('.retryBtn').addEventListener('click', retry);
 }
-function updateRun(){ $('runBtn').disabled = !($('country').value && picked); }
+function updateRun(){ $('runBtn').disabled = !($('country').value && pickedLines.length); }
 
 COUNTRIES.forEach(([c, n]) => {
   const o = document.createElement('option'); o.value = c; o.textContent = n + ' (' + c + ')'; $('country').appendChild(o);
@@ -528,9 +568,9 @@ async function loadLines(cc){
 }
 async function onCountry(){
   const cc = $('country').value;
-  picked = null; lines = []; $('lineSearch').value = ''; closeList(); updateRun();
+  pickedLines = []; lines = []; $('lineSearch').value = ''; closeList(); renderChips(); updateRun();
   $('countryHint').className = 'hint'; $('countryHint').textContent = '';
-  if(!cc){ $('lineSearch').disabled = true; $('lineSearch').placeholder = 'Choose a country first…'; $('lineHint').textContent = ''; return; }
+  if(!cc){ $('lineSearch').disabled = true; $('lineSearch').placeholder = 'Choose a country first…'; renderChips(); return; }
   if(NO_PL_LINKS.has(cc)){
     $('countryHint').className = 'hint warn';
     $('countryHint').textContent = 'This dataset links no operational point to a primary location (measured 8 Nov 2026), so every extract will be empty.';
@@ -544,47 +584,86 @@ async function onCountry(){
     if($('country').value !== cc) return;
     $('lineSearch').disabled = false;
     $('lineSearch').placeholder = 'Search ' + fmt(lines.length) + ' lines by identifier…';
-    $('lineHint').textContent = fmt(lines.length) + ' national lines' +
-      (lines.some(l => l.src === 'label') ? ' — some are identified by their LPS label, as this manager publishes no era:lineId' : '');
+    renderChips();
     setStatus('');
   }catch(err){ setError(err, onCountry); $('lineSearch').placeholder = 'Lines could not be loaded'; }
 }
 $('country').addEventListener('change', onCountry);
 
+const isPicked = l => pickedLines.some(x => x.line === l.line);
 function matches(q){
   q = q.trim().toLowerCase();
-  const xs = q ? lines.filter(l => l.line.toLowerCase().includes(q)) : lines.slice();
+  const xs = lines.filter(l => !isPicked(l) && (!q || l.line.toLowerCase().includes(q)));
   xs.sort((a, b) => (q && a.line.toLowerCase().startsWith(q) ? 0 : 1) - (q && b.line.toLowerCase().startsWith(q) ? 0 : 1) || a.line.localeCompare(b.line, 'en', {numeric:true}));
   return xs;
 }
 function renderList(){
   const xs = matches($('lineSearch').value), list = $('lineList');
   const shown = xs.slice(0, 200);
+  if(activeIdx >= shown.length) activeIdx = shown.length - 1;
   list.innerHTML = shown.length
     ? shown.map((l, i) => `<div class="opt${i === activeIdx ? ' active' : ''}" role="option" id="opt${i}" aria-selected="${i === activeIdx}" data-i="${i}"><span class="nm">${esc(l.line)}</span><span class="vc">${fmt(l.sections)} sections</span></div>`).join('')
       + (xs.length > 200 ? `<div class="noHits">${fmt(xs.length - 200)} more — keep typing to narrow</div>` : '')
-    : '<div class="noHits">No line matches</div>';
+    : `<div class="noHits">${lines.length && pickedLines.length === lines.length ? 'Every line is already selected' : 'No line matches'}</div>`;
   list.hidden = false; $('lineSearch').setAttribute('aria-expanded', 'true');
   if(activeIdx >= 0) $('lineSearch').setAttribute('aria-activedescendant', 'opt' + activeIdx); else $('lineSearch').removeAttribute('aria-activedescendant');
   list._shown = shown;
 }
-function closeList(){ $('lineList').hidden = true; $('lineSearch').setAttribute('aria-expanded', 'false'); activeIdx = -1; }
-function pick(l){
-  picked = l; $('lineSearch').value = l.line; closeList(); updateRun();
-  $('lineHint').textContent = 'Line ' + l.line + ' — ' + fmt(l.sections) + ' sections, ' + l.lps.length + ' LPS resource' + (l.lps.length > 1 ? 's' : '');
+function closeList(){ $('lineList').hidden = true; $('lineSearch').setAttribute('aria-expanded', 'false'); $('lineSearch').removeAttribute('aria-activedescendant'); activeIdx = -1; }
+/* Picking adds a chip and keeps the list open, so several lines can be added in a row. */
+function pick(l, keepOpen){
+  if(!l || isPicked(l)) return;
+  pickedLines.push(l);
+  pickedLines.sort((a, b) => a.line.localeCompare(b.line, 'en', {numeric:true}));
+  $('lineSearch').value = ''; activeIdx = -1;
+  renderChips(); updateRun();
+  if(keepOpen) renderList(); else closeList();
 }
-$('lineSearch').addEventListener('input', () => { picked = null; activeIdx = -1; updateRun(); renderList(); });
+function removeLine(line){
+  pickedLines = pickedLines.filter(x => x.line !== line);
+  renderChips(); updateRun();
+  if(!$('lineList').hidden) renderList();
+}
+function renderChips(){
+  $('lineChips').innerHTML = pickedLines.map(l =>
+    `<span class="lchip" role="listitem"><span class="nm" title="${esc(l.line)}">${esc(l.line)}</span>` +
+    `<button type="button" aria-label="Remove line ${esc(l.line)}" data-line="${esc(l.line)}">×</button></span>`).join('');
+  const n = pickedLines.length, total = lines.length;
+  $('lineSummary').textContent = n ? `National lines — ${fmt(n)} selected` : 'National lines';
+  $('lineAll').disabled = !total || n === total;
+  $('lineNone').disabled = !n;
+  const hint = $('lineHint');
+  hint.className = 'hint';
+  if(!total){ hint.textContent = ''; return; }
+  if(!n){
+    hint.textContent = fmt(total) + ' national lines — search and pick one or more' +
+      (lines.some(l => l.src === 'label') ? '. Some are identified by their LPS label, as this manager publishes no era:lineId' : '');
+  }else{
+    const sections = pickedLines.reduce((t, l) => t + l.sections, 0);
+    hint.textContent = `${fmt(n)} of ${fmt(total)} lines, ${fmt(sections)} sections` +
+      (n > BIG_SELECTION ? ' — a large selection: one query per line, six at a time. For scale, all 1,496 German lines take about 50 s and give a 240,000-row (~110 MB) CSV.' : '');
+    if(n > BIG_SELECTION) hint.className = 'hint warn';
+  }
+}
+$('lineChips').addEventListener('click', e => { const b = e.target.closest('button[data-line]'); if(b){ removeLine(b.dataset.line); $('lineSearch').focus(); } });
+$('lineAll').addEventListener('click', () => {
+  pickedLines = lines.slice().sort((a, b) => a.line.localeCompare(b.line, 'en', {numeric:true}));
+  closeList(); renderChips(); updateRun();
+});
+$('lineNone').addEventListener('click', () => { pickedLines = []; renderChips(); updateRun(); $('lineSearch').focus(); });
+$('lineSearch').addEventListener('input', () => { activeIdx = -1; renderList(); });
 $('lineSearch').addEventListener('focus', () => { if(lines.length) renderList(); });
 $('lineSearch').addEventListener('keydown', e => {
   const shown = $('lineList')._shown || [];
   if(e.key === 'ArrowDown'){ e.preventDefault(); if($('lineList').hidden) renderList(); activeIdx = Math.min(shown.length - 1, activeIdx + 1); renderList(); scrollActive(); }
   else if(e.key === 'ArrowUp'){ e.preventDefault(); activeIdx = Math.max(0, activeIdx - 1); renderList(); scrollActive(); }
-  else if(e.key === 'Enter'){ if(!$('lineList').hidden && shown[Math.max(0, activeIdx)]){ e.preventDefault(); pick(shown[Math.max(0, activeIdx)]); } }
+  else if(e.key === 'Enter'){ if(!$('lineList').hidden && shown[Math.max(0, activeIdx)]){ e.preventDefault(); pick(shown[Math.max(0, activeIdx)], true); } }
   else if(e.key === 'Escape'){ closeList(); }
+  else if(e.key === 'Backspace' && !$('lineSearch').value && pickedLines.length){ removeLine(pickedLines[pickedLines.length - 1].line); }
 });
 function scrollActive(){ const el = $('opt' + activeIdx); if(el) el.scrollIntoView({block:'nearest'}); }
-$('lineList').addEventListener('mousedown', e => { const o = e.target.closest('.opt'); if(o){ e.preventDefault(); pick($('lineList')._shown[+o.dataset.i]); } });
-document.addEventListener('click', e => { if(!e.target.closest('.comboWrap')) closeList(); });
+$('lineList').addEventListener('mousedown', e => { const o = e.target.closest('.opt'); if(o){ e.preventDefault(); pick($('lineList')._shown[+o.dataset.i], true); } });
+document.addEventListener('click', e => { if(!e.target.closest('.comboWrap') && !e.target.closest('#lineChips')) closeList(); });
 
 /* ------------------------------------------------------------------ *
  * Run
@@ -631,8 +710,8 @@ function pickValid(items, keyOf, asOf){
 const windowText = x => x.windows.length ? x.windows.map(w => w.b + ' → ' + (w.e || '…')).join(' | ') : '';
 
 async function run(){
-  const cc = $('country').value, line = picked;
-  if(!cc || !line) return;
+  const cc = $('country').value, sel = pickedLines.slice();
+  if(!cc || !sel.length) return;
   if(controller) controller.abort();
   controller = new AbortController();
   const signal = controller.signal, t0 = performance.now(), log = [];
@@ -640,23 +719,35 @@ async function run(){
   const asOf = /^\d{4}-\d{2}-\d{2}$/.test($('asOf').value) ? $('asOf').value : todayIso();
   $('runBtn').disabled = true; $('resultPanel').hidden = true;
   try{
-    setStatus('Finding the operational points on line ' + line.line + '…', 'busy');
-    const q1 = opsQuery(line.lps); log.push({title:'1. Operational points on the line', query:q1});
-    const opRows = await sparql(q1, signal);
+    /* Phase 1 runs once per line: each line's LPS resources are pinned separately, and the
+       rows keep their line, because a point's position and how it was reached are per line. */
+    let done = 0;
+    const label = sel.length === 1 ? 'line ' + sel[0].line : fmt(sel.length) + ' lines';
+    setStatus('Finding the operational points on ' + label + '…', 'busy');
+    log.push({title:'1. Operational points on the line' + (sel.length > 1 ? ` (1 of ${sel.length} lines shown: ${sel[0].line})` : ''), query:opsQuery(sel[0].lps)});
+    const perLine = await pooled(sel.map(l => async () => {
+      const rows = await sparql(opsQuery(l.lps), signal);
+      done++; if(sel.length > 1) setStatus(`Finding the operational points — ${fmt(done)} of ${fmt(sel.length)} lines…`, 'busy');
+      return rows.map(r => Object.assign(r, {line:l.line}));
+    }), signal);
+    const opRows = perLine.flat();
 
-    /* One record per OP resource. */
+    /* One record per OP resource, with per-line position and route of discovery. Validity is
+       resolved per uopid across all the selected lines, so a junction gets one consistent window. */
     const byOp = new Map();
     for(const r of opRows){
       let o = byOp.get(r.op);
-      if(!o) byOp.set(r.op, o = {op:r.op, opid:r.opid, name:'', positions:new Map(), natPositions:new Map(), via:new Set(), windows:[], hasPl:false});
+      if(!o) byOp.set(r.op, o = {op:r.op, opid:r.opid, name:'', perLine:new Map(), windows:[], hasPl:false});
       if(r.opName && !o.name) o.name = r.opName;
-      o.via.add(r.via);
+      let pl = o.perLine.get(r.line);
+      if(!pl) o.perLine.set(r.line, pl = {positions:new Map(), natPositions:new Map(), via:new Set()});
+      pl.via.add(r.via);
       const ob = (r.ob || '').slice(0, 10), oe = (r.oe || '').slice(0, 10);
       if(ob && !o.windows.some(w => w.b === ob && w.e === oe)) o.windows.push({b:ob, e:oe});
       if(r.hasPl === 'true' || r.hasPl === '1') o.hasPl = true;
       const kp = numOrNull(r.kp), off = numOrNull(r.off), nkp = numOrNull(r.nkp), noff = numOrNull(r.noff);
-      if(kp !== null) o.positions.set(kp + '|' + (off ?? ''), {kp, off});
-      if(nkp !== null) o.natPositions.set(nkp + '|' + (noff ?? ''), {kp:nkp, off:noff});
+      if(kp !== null) pl.positions.set(kp + '|' + (off ?? ''), {kp, off, md: r.kpSrc === 'measuredDistance'});
+      if(nkp !== null) pl.natPositions.set(nkp + '|' + (noff ?? ''), {kp:nkp, off:noff});
     }
     const opPick = pickValid([...byOp.values()], o => o.opid, asOf);
     const current = opPick.kept;
@@ -751,30 +842,32 @@ async function run(){
     const withRows = new Set([...cells.values()].map(c => c.op.op));
     const bare = withPl.filter(o => !withRows.has(o.op));
 
-    function position(o){
-      const line = [...o.positions.values()], nat = [...o.natPositions.values()];
+    function position(pl){
+      const line = [...pl.positions.values()], nat = [...pl.natPositions.values()];
       const src = line.length ? line : nat;
       const p = src.sort((a, b) => a.kp - b.kp || (a.off ?? 0) - (b.off ?? 0))[0];
       if(!p) return {km:null, post:'', ref:''};
       return {
         km: +(p.kp + (p.off ?? 0) / 1000).toFixed(3),
         post: p.kp + (p.off !== null && p.off !== undefined ? (p.off >= 0 ? ' + ' : ' − ') + Math.abs(p.off) + ' m' : ''),
-        ref: line.length ? 'this line' : 'national LPS (no line id)',
+        ref: line.length ? (p.md ? 'this line (era:measuredDistance read as km)' : 'this line') : 'national LPS (no line id)',
       };
     }
-    function opFields(o){
-      const pos = position(o), plm = plByOp.get(o.op) || new Map();
+    const lineOrder = new Map(sel.map((l, i) => [l.line, i]));
+    function opFields(o, lineName){
+      const pl = o.perLine.get(lineName), pos = position(pl), plm = plByOp.get(o.op) || new Map();
       return {
-        country: cc, line: line.line, uopid: o.opid, opName: o.name,
-        positionKm: pos.km, kmPost: pos.post, kmReference: pos.ref, via: [...o.via].join(' | '),
+        country: cc, line: lineName, _line: lineOrder.get(lineName), uopid: o.opid, opName: o.name,
+        positionKm: pos.km, kmPost: pos.post, kmReference: pos.ref, via: [...pl.via].join(' | '),
         opValidity: windowText(o) + (opPick.expired.has(o) ? ' (ended)' : ''),
         plCodes: [...plm.values()].map(x => x.code).filter(Boolean).sort().join(' | '),
         plNames: [...new Set([...plm.values()].map(x => x.name).filter(Boolean))].join(' | '),
         opIri: o.op,
       };
     }
-    const out = [...cells.values()].map(c => ({
-      ...opFields(c.op),
+    const linesOf = o => [...o.perLine.keys()].sort((a, b) => lineOrder.get(a) - lineOrder.get(b));
+    const out = [...cells.values()].flatMap(c => linesOf(c.op).map(lineName => ({
+      ...opFields(c.op, lineName),
       kind: c.kind,
       trackKind: c.track ? trackKind(c.track) : '',
       trackId: c.track ? c.track.tid : '',
@@ -790,19 +883,20 @@ async function run(){
       trackKey: c.track ? c.track.track : '',
       _sub: c.track && c.elementIri !== c.track.track ? 1 : 0,
       _op: c.kind === 'Operational point' ? 0 : 1,
-    })).concat(bare.map(o => ({
-      ...opFields(o), kind:'Operational point', trackKind:'', trackId:'', trackName:'', trackValidity:'',
+    }))).concat(bare.flatMap(o => linesOf(o).map(lineName => ({
+      ...opFields(o, lineName), kind:'Operational point', trackKind:'', trackId:'', trackName:'', trackValidity:'',
       elementName:'', rinfIndex:'', parameter:'(no RCC parameter published at this point)', parameterIri:'',
       value:'', valueRaw:'', elementIri:o.op, trackKey:'', _sub:0, _op:0,
-    })));
+    }))));
     out.sort((a, b) =>
+      a._line - b._line ||
       (a.positionKm === null) - (b.positionKm === null) || (a.positionKm ?? 0) - (b.positionKm ?? 0) ||
       a.uopid.localeCompare(b.uopid) || a.opIri.localeCompare(b.opIri) || a._op - b._op ||
       natural(a.trackKind + ' ' + a.trackId + ' ' + a.trackName, b.trackKind + ' ' + b.trackId + ' ' + b.trackName) ||
       a._sub - b._sub || a.elementIri.localeCompare(b.elementIri) || natural(a.rinfIndex, b.rinfIndex));
 
     lastRun = {
-      cc, line: line.line, sidings, asOf, rows: out, log, dir,
+      cc, lines: sel.map(l => l.line), sidings, asOf, rows: out, log, dir,
       stats: {
         onLine: current.length, withPl: withPl.length, bare: bare.length,
         opSuperseded: opPick.dropped.superseded, opFuture: opPick.dropped.future, opExpired: opPick.expired.size,
@@ -810,7 +904,9 @@ async function run(){
         tracks: keptTracks.length, trSuperseded: trPick.dropped.superseded, trFuture: trPick.dropped.future, trExpired: trPick.expired.size,
         params: new Set(out.map(r => r.parameterIri).filter(Boolean)).size,
         offIndex: [...offIndex.entries()].sort((a, b) => b[1] - a[1]),
-        national: withPl.filter(o => !o.positions.size && o.natPositions.size).length,
+        national: withPl.filter(o => [...o.perLine.values()].some(pl => !pl.positions.size && pl.natPositions.size)).length,
+        multiLine: withPl.filter(o => o.perLine.size > 1).length,
+        measured: withPl.filter(o => [...o.perLine.values()].some(pl => [...pl.positions.values()].some(x => x.md))).length,
         seconds: (performance.now() - t0) / 1000,
         unresolved: out.filter(r => /^https?:\/\//.test(r.value)).length,
       },
@@ -818,9 +914,10 @@ async function run(){
     };
     render();
     setStatus(out.length ? `Done — ${fmt(out.length)} rows in ${lastRun.stats.seconds.toFixed(1)} s.` :
-      'Done — nothing to export for this line.', out.length ? 'success' : 'warn');
-    const h = {c:cc, l:line.line}; if(!sidings) h.sid = '0'; if($('asOf').value && $('asOf').value !== todayIso()) h.d = asOf;
-    history.replaceState(null, '', '#' + new URLSearchParams(h).toString());
+      'Done — nothing to export for this selection.', out.length ? 'success' : 'warn');
+    const h = new URLSearchParams({c:cc}); sel.forEach(l => h.append('l', l.line));
+    if(!sidings) h.set('sid', '0'); if($('asOf').value && $('asOf').value !== todayIso()) h.set('d', asOf);
+    history.replaceState(null, '', '#' + h.toString());
   }catch(err){
     if(err && err.name === 'AbortError') return;
     setError(err, run);
@@ -856,7 +953,8 @@ function render(){
   const warn = [], notes = [];
   if(NO_PL_LINKS.has(r.cc)) warn.push('This dataset links no operational point to a primary location, so there is nothing to export.');
   if(COUNTRY_NOTES[r.cc]) warn.push(esc(COUNTRY_NOTES[r.cc]));
-  notes.push(`<b>${fmt(s.withPl)} of ${fmt(s.onLine)}</b> operational points on line <code>${esc(r.line)}</code> valid on ${esc(r.asOf)} ` +
+  const where = r.lines.length === 1 ? 'line <code>' + esc(r.lines[0]) + '</code>' : 'the ' + fmt(r.lines.length) + ' selected lines';
+  notes.push(`<b>${fmt(s.withPl)} of ${fmt(s.onLine)}</b> operational points on ${where} valid on ${esc(r.asOf)} ` +
     `are linked to a primary location; the other ${fmt(s.onLine - s.withPl)} are not exported.` +
     (s.bare ? ` ${fmt(s.bare)} of the linked points publish no RCC parameter; each appears once with empty parameter columns.` : ''));
   const v = [];
@@ -866,6 +964,8 @@ function render(){
   if(s.trFuture) v.push(`${fmt(s.trFuture)} track or siding resources valid only after ${esc(r.asOf)}`);
   if(v.length) notes.push('Dropped by the validity rule (window in force on ' + esc(r.asOf) + ', per place): ' + v.join('; ') + '.');
   if(s.opExpired || s.trExpired) notes.push(`${fmt(s.opExpired)} points and ${fmt(s.trExpired)} tracks have no window in force on ${esc(r.asOf)}; their most recent window is used and marked “(ended)”.`);
+  if(s.measured) notes.push(`${fmt(s.measured)} points are positioned from <code>era:measuredDistance</code>, because their kilometric post has no <code>era:kilometer</code>. ERA declares that property in metres, but the values are kilometres (4.0 for &ldquo;KP 4&rdquo;), so they are read as kilometres (km_reference says so).`);
+  if(s.multiLine) notes.push(`${fmt(s.multiLine)} points lie on more than one selected line; their rows appear once per line, each with that line's position.`);
   if(s.national) notes.push(`${fmt(s.national)} points are positioned on a national LPS rather than on this line (km_reference = national LPS).`);
   if(r.dir === 'hasPart') notes.push('This dataset publishes the part-whole link only as <code>era:hasPart</code>; it was used for tracks and their parts.');
   if(s.offIndex.length) notes.push('Not exported because the parameter has no RINF 1.2 index for that kind of element: ' +
@@ -874,9 +974,10 @@ function render(){
   $('notes').innerHTML = warn.map(w => '<li class="warn">' + w + '</li>').join('') + notes.map(n => '<li>' + n + '</li>').join('');
 
   const SHOW = 300;
-  const head = ['Position (km)','uopid','Operational point','Primary location','Element','Track','RINF','Parameter','Value'];
+  const multi = r.lines.length > 1;
+  const head = [...(multi ? ['Line'] : []), 'Position (km)','uopid','Operational point','Primary location','Element','Track','RINF','Parameter','Value'];
   $('resultTable').tHead.innerHTML = '<tr>' + head.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr>';
-  $('resultTable').tBodies[0].innerHTML = r.rows.slice(0, SHOW).map(x => '<tr>' +
+  $('resultTable').tBodies[0].innerHTML = r.rows.slice(0, SHOW).map(x => '<tr>' + (multi ? `<td class="ix">${esc(x.line)}</td>` : '') +
     `<td class="pos">${x.positionKm === null ? '—' : x.positionKm.toFixed(3)}</td>` +
     `<td class="ix">${esc(x.uopid)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
     `<td class="ix">${esc(x.plCodes)}</td><td>${esc(x.kind)}${x.elementName ? ' — ' + esc(x.elementName) : ''}</td>` +
@@ -896,7 +997,8 @@ function csvCell(v){
 const toCsv = rows => '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
 function fileBase(kind){
   const r = lastRun;
-  return ('RINF_RCC_at_PL_' + r.cc + '_' + r.line + '_' + kind + '_' + r.fetched.slice(0, 10)).replace(/[^A-Za-z0-9._-]/g, '_');
+  const linePart = r.lines.length === 1 ? r.lines[0] : r.lines.length + 'lines';
+  return ('RINF_RCC_at_PL_' + r.cc + '_' + linePart + '_' + kind + '_' + r.fetched.slice(0, 10)).replace(/[^A-Za-z0-9._-]/g, '_');
 }
 function download(text, name){
   const url = URL.createObjectURL(new Blob([text], {type:'text/csv;charset=utf-8'}));
@@ -915,7 +1017,7 @@ function wideCsv(){
   const cols = [...new Set(lastRun.rows.filter(x => x.parameterIri).map(colKey))].sort(natural);
   const rows = new Map();
   for(const x of lastRun.rows){
-    const k = x.opIri + '\u0001' + x.trackKey + '\u0001' + x.elementIri;
+    const k = x.line + '\u0001' + x.opIri + '\u0001' + x.trackKey + '\u0001' + x.elementIri;
     if(!rows.has(k)) rows.set(k, {base:base.map(b => x[b]), vals:new Map()});
     if(x.parameterIri) rows.get(k).vals.set(colKey(x), x.value);
   }
@@ -938,12 +1040,16 @@ async function applyHash(){
   if(!cc || !COUNTRIES.some(c => c[0] === cc)) return;
   $('country').value = cc;
   await onCountry();
-  const l = lines.find(x => x.line === p.get('l'));
-  if(l) pick(l);
+  /* Several lines are repeated l= parameters (#c=FRA&l=830000-1&l=752000-1), which survives line
+     identifiers containing commas or spaces. Unknown identifiers are reported, not silently dropped. */
+  const wanted = p.getAll('l');
+  const missing = [];
+  for(const id of wanted){ const l = lines.find(x => x.line === id); if(l) pick(l); else missing.push(id); }
+  if(missing.length){ $('lineHint').className = 'hint warn'; $('lineHint').textContent = 'Not a national line of ' + cc + ' in the endpoint: ' + missing.join(', '); }
   $('wantSidings').checked = p.get('sid') !== '0';
   $('asOf').value = /^\d{4}-\d{2}-\d{2}$/.test(p.get('d') || '') ? p.get('d') : todayIso();
   updateRun();
-  if(l && p.get('run') === '1') run();
+  if(pickedLines.length && p.get('run') === '1') run();
 }
 /* Pasting another shared link on an open page is a same-document navigation: reapply the form. */
 window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; applyHash(); });
