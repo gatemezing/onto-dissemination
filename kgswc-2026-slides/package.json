@@ -1,0 +1,20 @@
+{
+  "name": "kgswc-2026-era-telematics",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A Semantic Backbone for European Rail Data Exchange: automating the telematics extension of the ERA Ontology (KGSWC 2026) - Slidev presentation",
+  "scripts": {
+    "dev": "slidev slides.md --open",
+    "build": "slidev build slides.md",
+    "export": "slidev export slides.md --output dist/kgswc-2026-era-telematics.pdf"
+  },
+  "dependencies": {
+    "@slidev/cli": "52.14.2",
+    "@slidev/theme-default": "0.25.0",
+    "vue": "3.5.13"
+  },
+  "devDependencies": {
+    "playwright-chromium": "1.49.1"
+  },
+  "license": "EUPL-1.2"
+}
