@@ -1,0 +1,1810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Synthetic RINF Data</title>
+<meta name="description" content="Generate realistic synthetic RINF data in Turtle from ERA's SHACL shapes with RDFGraphGen: pick a class, a country and the properties, see the result on a map, check it against the shapes and export it.">
+<!-- Third-party code, pinned and integrity-checked: Leaflet (map), N3.js (Turtle), Pyodide (runs RDFGraphGen). -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/n3@1.17.2/browser/n3.min.js"
+        integrity="sha384-ruUAAJQGxq8irl0TkwhEuF5e+mMmG94W+xdYXeVe0PUvicJ2aW/oJZTBSZr2qH1o"
+        crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
+    --blue:#5b9bd5; --green:#7ac36a; --teal:#5fd0ae; --orange:#f0a83a; --violet:#b39ddb;
+    --paper:#eef2ff; --panel:rgba(16,22,38,.92); --line:rgba(255,255,255,.14);
+    --muted:#aebbdd; --danger:#f26d6d; --dim:#7d8bb0;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--bg1);}
+  body{margin:0;min-height:100vh;background-color:var(--bg1);
+    background-image:radial-gradient(1400px 900px at 50% 0%, var(--bg2), var(--bg1) 70%);background-repeat:no-repeat;
+    font-family:"Segoe UI",Arial,sans-serif;color:var(--paper);}
+  #app{max-width:1440px;margin:0 auto;padding:26px 20px 70px;}
+  header h1{font-size:23px;margin:0 0 6px;font-weight:700;
+    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  header p{margin:0 0 18px;color:var(--muted);font-size:13.5px;line-height:1.55;max-width:100ch;}
+  code{font-family:"SF Mono",Consolas,monospace;font-size:.9em;}
+  a{color:#8fb3ff;}
+
+  .layout{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px;align-items:start;}
+  @media (max-width:1020px){ .layout{grid-template-columns:minmax(0,1fr);} }
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);margin-bottom:14px;}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);
+    margin:0 0 12px;font-weight:700;display:flex;align-items:center;gap:9px;}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;flex:none;border-radius:50%;
+    background:rgba(91,155,213,.18);border:1px solid rgba(91,155,213,.5);color:var(--blue);font-size:11px;font-weight:700;}
+  label.fl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 6px;}
+  input[type=text],input[type=number],select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--paper);
+    padding:9px 11px;border-radius:8px;font-size:13.5px;font-family:inherit;}
+  input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+  select option{background:#141d33;color:var(--paper);}
+  .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+  .row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
+  .hint{font-size:11.5px;color:var(--dim);margin-top:6px;line-height:1.5;}
+  .hint.warn{color:var(--orange);}
+  .chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .chk input{flex:none;margin:0;}
+  button{font-family:inherit;}
+  .btn{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--paper);padding:7px 12px;border-radius:8px;
+    font-size:12.5px;cursor:pointer;white-space:nowrap;}
+  .btn:hover:not(:disabled){background:rgba(255,255,255,.12);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn.on{background:rgba(91,155,213,.2);border-color:rgba(91,155,213,.6);color:#cfe0ff;}
+  .primary{width:100%;background:linear-gradient(90deg,#3c6fb0,#5b9bd5);border:0;color:#fff;font-weight:700;font-size:14.5px;
+    padding:12px 14px;border-radius:10px;cursor:pointer;margin-top:12px;}
+  .primary:disabled{opacity:.5;cursor:wait;}
+
+  /* class picker */
+  .classList{max-height:236px;overflow-y:auto;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:4px;background:rgba(0,0,0,.18);}
+  .cls{display:flex;gap:9px;align-items:center;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12.8px;}
+  .cls:hover{background:rgba(255,255,255,.05);}
+  .cls.active{background:rgba(91,155,213,.18);}
+  .cls .ic{flex:none;width:18px;text-align:center;color:var(--dim);}
+  .cls .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cls .ct{flex:none;font-size:11px;color:var(--dim);}
+  .grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);padding:8px 8px 3px;}
+  .clsInfo{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px;}
+  .clsInfo b{color:var(--paper);}
+
+  /* property table */
+  .presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .props{max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;}
+  .pr{display:grid;grid-template-columns:22px minmax(0,1fr);gap:4px 8px;padding:7px 9px;border-bottom:1px solid rgba(255,255,255,.06);}
+  .pr:last-child{border-bottom:0;}
+  .pr input{margin:2px 0 0;}
+  .pr .t{font-size:12.6px;line-height:1.35;}
+  .pr .t .c{font-family:"SF Mono",Consolas,monospace;font-size:10.8px;color:var(--dim);}
+  .pr .r{grid-column:2;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .sect{position:sticky;top:0;z-index:1;background:#16203a;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:6px 9px;border-bottom:1px solid var(--line);}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:9px;background:rgba(255,255,255,.07);color:var(--muted);white-space:nowrap;}
+  .tag.k-skos,.tag.k-shape-in{background:rgba(122,195,106,.16);color:#bfe8b3;}
+  .tag.k-layout,.tag.k-geometry,.tag.k-length,.tag.k-own,.tag.k-shared{background:rgba(232,96,79,.16);color:#f5b3a9;}
+  .tag.k-name,.tag.k-label,.tag.k-uopid,.tag.k-id,.tag.k-country,.tag.k-im,.tag.k-language,.tag.k-self{background:rgba(143,179,255,.16);color:#cddcff;}
+  .tag.k-number,.tag.k-boolean,.tag.k-date,.tag.k-text,.tag.k-pattern,.tag.k-iri,.tag.k-random,.tag.k-wkt,.tag.k-uri{background:rgba(240,168,58,.14);color:#f5d29a;}
+  .tag.card{background:transparent;border:1px solid var(--line);}
+  .tag.req{background:rgba(242,109,109,.15);color:#ffb4b4;}
+  .excluded{font-size:11.5px;color:var(--dim);margin-top:8px;line-height:1.5;}
+  .excluded summary{cursor:pointer;}
+
+  /* engine + status */
+  .engine{display:flex;align-items:center;gap:8px;font-size:11.8px;color:var(--muted);margin-top:10px;}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:none;}
+  .dot.busy{background:var(--orange);animation:pulse 1s infinite alternate;}
+  .dot.ok{background:var(--green);}
+  .dot.err{background:var(--danger);}
+  @keyframes pulse{from{opacity:.4}to{opacity:1}}
+  .msg{border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.5;margin-top:10px;}
+  .msg.err{background:rgba(242,109,109,.12);border:1px solid rgba(242,109,109,.4);}
+  .msg details{margin-top:6px;color:var(--dim);font-size:11.5px;}
+
+  /* results */
+  .sources{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--dim);margin-bottom:10px;}
+  .sources span{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:3px 9px;}
+  .summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+  .stats{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);}
+  .stats b{color:var(--paper);font-size:15px;margin-right:3px;}
+  .exports{display:flex;gap:6px;flex-wrap:wrap;}
+  .tabs{display:flex;gap:4px;margin:14px 0 0;border-bottom:1px solid var(--line);}
+  .tab{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:8px 12px;font-size:13px;cursor:pointer;}
+  .tab.on{color:var(--paper);border-bottom-color:var(--accent);}
+  .pane{display:none;padding-top:12px;}
+  .pane.on{display:block;}
+  #map{height:600px;border-radius:12px;border:1px solid var(--line);background:#1a2238;}
+  .empty{border:1px dashed var(--line);border-radius:12px;padding:40px 20px;text-align:center;color:var(--dim);font-size:13px;line-height:1.6;}
+  pre.ttl{margin:0;max-height:640px;overflow:auto;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:12px;padding:14px;
+    font-family:"SF Mono",Consolas,monospace;font-size:12px;line-height:1.55;white-space:pre;tab-size:4;}
+  .ttl .cm{color:#7d8bb0;font-style:italic;} .ttl .iri{color:#8fb3ff;} .ttl .pn{color:#8fe3c7;} .ttl .lit{color:#f5d29a;} .ttl .kw{color:#e8604f;}
+  table.chkt{width:100%;border-collapse:collapse;font-size:12.2px;}
+  table.chkt th,table.chkt td{text-align:left;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top;}
+  table.chkt th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
+  .ok{color:var(--green);} .bad{color:var(--danger);} .warnc{color:var(--orange);}
+  .verdict{font-size:14px;margin:0 0 10px;}
+  .howto p,.howto li{font-size:12.8px;color:var(--muted);line-height:1.6;}
+  .howto h3{font-size:13px;color:var(--paper);margin:16px 0 4px;}
+  .howto ol{padding-left:20px;}
+  .gbar{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .gbar select{width:auto;flex:1;min-width:220px;}
+  #graph{height:600px;border-radius:12px;border:1px solid var(--line);background:#f4f6fb;}
+  .pp a.gl{display:inline-block;margin-top:6px;font-size:11.5px;color:#2f5fa8;cursor:pointer;}
+  .leaflet-popup-content{font-size:12px;line-height:1.45;min-width:260px;max-width:380px;}
+  .pp h4{margin:0 0 2px;font-size:13.5px;}
+  .pp .cl{color:#5a6a8f;font-size:11px;margin-bottom:6px;}
+  .pp table{border-collapse:collapse;width:100%;}
+  .pp td{padding:2px 4px;border-bottom:1px solid #e3e8f4;vertical-align:top;font-size:11.5px;}
+  .pp td:first-child{color:#5a6a8f;white-space:nowrap;}
+  .pp code{font-size:10.5px;word-break:break-all;}
+  .legend{background:rgba(16,22,38,.9);color:var(--paper);padding:8px 10px;border-radius:8px;font-size:11.5px;line-height:1.7;border:1px solid var(--line);}
+  .legend i{display:inline-block;width:14px;height:4px;margin-right:6px;vertical-align:middle;border-radius:2px;}
+  .legend i.pt{width:10px;height:10px;border-radius:50%;}
+  footer{font-size:11.5px;color:var(--muted);margin-top:24px;line-height:1.65;}
+  footer p{margin:0 0 9px;max-width:110ch;}
+  footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Synthetic RINF Data</h1>
+    <p>Generate realistic, clearly synthetic RINF data from ERA's SHACL shapes with
+      <a href="https://github.com/etnc/RDFGraphGen" target="_blank" rel="noopener">RDFGraphGen</a>. Pick a class and a country,
+      choose the properties, and get Turtle you can map, check against the shapes and download. Real ERA vocabularies,
+      a layout on the real network, invented names and identifiers.</p>
+  </header>
+
+  <div class="layout">
+    <div>
+      <section class="panel">
+        <h2><span class="step">1</span> Class</h2>
+        <input type="text" id="clsSearch" placeholder="Search a class, e.g. section, track, tunnel…" aria-label="Search a class" autocomplete="off">
+        <div class="classList" id="classList" role="listbox" aria-label="Classes with a SHACL shape"><div class="hint" style="padding:8px">Loading the shapes…</div></div>
+        <div class="clsInfo" id="clsInfo"></div>
+      </section>
+
+      <section class="panel">
+        <h2><span class="step">2</span> How many, where</h2>
+        <div class="row">
+          <div><label class="fl" for="count">Instances</label><input type="number" id="count" min="1" max="200" value="10"></div>
+          <div style="grid-column:span 2"><label class="fl" for="country">Country</label><select id="country"></select></div>
+        </div>
+        <div id="layoutRow" style="margin-top:10px">
+          <label class="fl">Layout</label>
+          <div class="presets" style="margin:0">
+            <button class="btn on" data-layout="connected" type="button">Connected line</button>
+            <button class="btn" data-layout="scattered" type="button">Scattered sections</button>
+          </div>
+          <div class="hint">Connected: each section starts where the previous one ends, like a real line.</div>
+        </div>
+        <details style="margin-top:10px">
+          <summary class="hint" style="cursor:pointer;display:inline">Advanced: seed, IRIs, linked resources</summary>
+          <div class="row2" style="margin-top:8px">
+            <div><label class="fl" for="seed">Seed</label>
+              <div style="display:flex;gap:6px"><input type="number" id="seed" value="42"><button class="btn" id="dice" type="button" title="New random seed" aria-label="New random seed">🎲</button></div></div>
+            <div><label class="fl" for="base">IRI base</label><input type="text" id="base" value="https://example.org/rinf-synthetic/"></div>
+          </div>
+          <label class="chk" style="margin-top:10px"><input type="checkbox" id="linked" checked> Also generate the resources they point to (one level, mandatory properties)</label>
+          <div class="hint">Same seed, same settings, same data. The IRI base keeps synthetic data apart from the real <code>data.europa.eu/949</code> namespace.</div>
+        </details>
+      </section>
+
+      <section class="panel">
+        <h2><span class="step">3</span> Properties</h2>
+        <div class="presets" id="presets">
+          <button class="btn" data-preset="mandatory" type="button" title="Only what the shapes require">Required</button>
+          <button class="btn on" data-preset="core" type="button" title="Required + every RINF parameter">RINF core</button>
+          <button class="btn" data-preset="all" type="button" title="Every property the shapes allow">Everything</button>
+        </div>
+        <div class="props" id="props"><div class="hint" style="padding:10px">Choose a class.</div></div>
+        <details class="excluded" id="excluded" hidden><summary></summary><div></div></details>
+        <div class="hint">Each tag says where the values come from. Hover a tag for details.</div>
+      </section>
+
+      <section class="panel">
+        <button class="primary" id="go" type="button">Generate</button>
+        <div class="engine"><span class="dot" id="engDot"></span><span id="engTxt">Waiting for the shapes…</span></div>
+        <div id="err"></div>
+      </section>
+    </div>
+
+    <div>
+      <section class="panel">
+        <div class="sources" id="sources"></div>
+        <div class="summary">
+          <div class="stats" id="stats"><span>Nothing generated yet.</span></div>
+          <div class="exports">
+            <button class="btn" id="dlTtl" type="button" disabled>⬇ Turtle</button>
+            <button class="btn" id="dlNt" type="button" disabled>⬇ N-Triples</button>
+            <button class="btn" id="dlJsonld" type="button" disabled>⬇ JSON-LD</button>
+            <button class="btn" id="dlGeo" type="button" disabled>⬇ GeoJSON</button>
+            <button class="btn" id="copyTtl" type="button" disabled>Copy Turtle</button>
+            <button class="btn" id="copyLink" type="button">Copy link</button>
+          </div>
+        </div>
+        <div class="tabs" role="tablist">
+          <button class="tab on" data-tab="map" role="tab" type="button">Map</button>
+          <button class="tab" data-tab="graph" role="tab" type="button">Graph</button>
+          <button class="tab" data-tab="ttl" role="tab" type="button">Turtle</button>
+          <button class="tab" data-tab="checks" role="tab" type="button">Checks</button>
+          <button class="tab" data-tab="how" role="tab" type="button">How it works</button>
+        </div>
+        <div class="pane on" id="pane-map"><div id="map"></div><div class="hint" id="mapHint">Generate to see the data on the map. Click a feature for its properties.</div></div>
+        <div class="pane" id="pane-graph">
+          <div class="empty" id="graphEmpty">Generate, then explore the resources as a graph here.</div>
+          <div id="graphUi" hidden>
+            <div class="gbar"><label class="fl" for="gFocus" style="margin:0">Resource</label><select id="gFocus"></select>
+              <button class="btn" id="gReset" type="button">Reset</button><button class="btn" id="gFit" type="button">Fit</button></div>
+            <div id="graph"></div>
+            <div class="hint" id="graphHint">Double-click a node to expand it. Drag to rearrange. Boxes are literal values.</div>
+          </div>
+        </div>
+        <div class="pane" id="pane-ttl"><div class="empty" id="ttlEmpty">The Turtle appears here.</div><pre class="ttl" id="ttl" hidden></pre><div class="hint" id="ttlHint"></div></div>
+        <div class="pane" id="pane-checks"><div class="empty" id="checksEmpty">After generating, the data is checked against the class's shapes here.</div><div id="checks"></div></div>
+        <div class="pane howto" id="pane-how"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <p><strong>What is real and what is not.</strong> Classes, properties, constraints and cardinalities come from ERA's
+      UAT shapes (<code>rinf-appGuide/shapes.ttl</code>). Coded values are real concepts from the ERA SKOS schemes, countries
+      and languages from the EU authority lists, and the infrastructure manager is the country's main IM role as published in RINF.
+      Positions follow the real network: sections and points are drawn near operational points sampled live from RINF, then
+      shifted by a few tens of metres. Names, identifiers (<code>FRS…</code>, the <code>S</code> marks them synthetic) and
+      IRIs are invented. Never mix this data with real RINF data.</p>
+    <p><strong>Engine.</strong> RDFGraphGen 1.2.0 (MIT, Jovanovik et al.) runs unmodified in your browser through Pyodide
+      0.28.3, with rdflib 7.6.0. The shapes are first stripped of what RDFGraphGen cannot read or does not use
+      (<code>sh:not</code>, SHACL-SPARQL); see the How it works tab. The Pyodide loader is integrity-checked; the Python
+      packages come from PyPI at pinned versions.</p>
+    <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./shapes.html">SHACL Shape Viewer</a> ·
+      <a href="./skos.html">SKOS Explorer</a> · <a href="./values.html">RINF Parameter Values</a> · <a href="./rcc.html">RCC Parameters</a></p>
+  </footer>
+</div>
+
+<script type="text/x-python" id="pySynth">
+# Synthetic RINF data: RDFGraphGen (rdf-graph-gen 1.2.0) run on ERA's SHACL shapes.
+# The page's planner turns every selected property into a rule; this module applies the rules in two layers:
+#  1. RDFGraphGen: instances, cardinalities, sh:in pools, numeric ranges, booleans, dates (its own generator).
+#  2. Realism layer: network layout and geometry, lengths from geometry, names, identifiers, weighted
+#     categories, the instance's own sub-resources (net references, tracks) and linked resources.
+import json, math, random
+from copy import deepcopy
+from rdflib import Graph, URIRef, Literal, Namespace, RDF, RDFS, XSD
+from rdflib.namespace import SH
+import rdf_graph_gen.rdf_graph_generator as rgg
+from rdf_graph_gen.shacl_mapping_generator import generate_dictionary_from_shapes_graph, update_dictionary
+
+ERA = Namespace('http://data.europa.eu/949/')
+GEO = Namespace('http://www.opengis.net/ont/geosparql#')
+SH_IN, SH_OR, SH_AND, SH_XONE, SH_NOT = (URIRef(SH + k) for k in ('in', 'or', 'and', 'xone', 'not'))
+SH_CLASS = URIRef(SH + 'class')
+BORDER_POINT = URIRef('http://data.europa.eu/949/concepts/op-types/90')
+DROP_KEYS = (SH_OR, SH_AND, SH_XONE, SH_NOT, SH.node, SH.equals, SH.disjoint, SH.lessThan, SH.lessThanOrEquals,
+             SH.qualifiedValueShape, SH.qualifiedMinCount, SH.qualifiedMaxCount, SH.hasValue)
+STATE = {'shapes': None, 'dict': None}
+
+
+def _sanitise(g):
+    """Removes what RDFGraphGen 1.2.0 cannot read and generation does not need.
+    sh:not   RDFGraphGen reads it as an RDF list, like sh:or; SHACL gives it one shape -> StopIteration.
+    sh:sparql  SHACL-SPARQL constraints validate data; RDFGraphGen ignores them."""
+    removed = {'sh:not': 0, 'sh:sparql': 0, 'malformed lists': 0}
+    for s, o in list(g.subject_objects(SH_NOT)):
+        g.remove((s, SH_NOT, o)); removed['sh:not'] += 1
+    for s, o in list(g.subject_objects(SH.sparql)):
+        g.remove((s, SH.sparql, o)); removed['sh:sparql'] += 1
+    for key in (SH_OR, SH_AND, SH_XONE, SH_IN):
+        for s, o in list(g.subject_objects(key)):
+            if (o, RDF.first, None) not in g and o != RDF.nil:
+                g.remove((s, key, o)); removed['malformed lists'] += 1
+    return removed
+
+
+def load_shapes(ttl):
+    g = Graph()
+    g.parse(data=ttl, format='turtle')
+    triples = len(g)
+    removed = _sanitise(g)
+    STATE['shapes'] = g
+    STATE['dict'] = generate_dictionary_from_shapes_graph(g)
+    return json.dumps({'triples': triples, 'nodeShapes': len(STATE['dict']), 'removed': removed})
+
+
+def _term(j):
+    if 'iri' in j:
+        return URIRef(j['iri'])
+    if 'lang' in j:
+        return Literal(j['v'], lang=j['lang'])
+    if j.get('dt'):
+        return Literal(j['v'], datatype=URIRef(j['dt']))
+    return Literal(j['v'])
+
+
+# ---------- geometry (lon, lat in degrees, distances in km) ----------
+def _dist(a, b):
+    la1, la2 = math.radians(a[1]), math.radians(b[1])
+    h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin(math.radians(b[0] - a[0]) / 2) ** 2
+    return 2 * 6371.0088 * math.asin(math.sqrt(h))
+
+
+def _bearing(a, b):
+    la1, la2, dlo = math.radians(a[1]), math.radians(b[1]), math.radians(b[0] - a[0])
+    return math.degrees(math.atan2(math.sin(dlo) * math.cos(la2), math.cos(la1) * math.sin(la2) - math.sin(la1) * math.cos(la2) * math.cos(dlo))) % 360
+
+
+def _move(p, bearing_deg, km):
+    br, d = math.radians(bearing_deg), km / 6371.0088
+    la1, lo1 = math.radians(p[1]), math.radians(p[0])
+    la2 = math.asin(math.sin(la1) * math.cos(d) + math.cos(la1) * math.sin(d) * math.cos(br))
+    lo2 = lo1 + math.atan2(math.sin(br) * math.sin(d) * math.cos(la1), math.cos(d) - math.sin(la1) * math.sin(la2))
+    return [math.degrees(lo2), math.degrees(la2)]
+
+
+def _jitter(rnd, p, min_m, max_m):
+    return _move(p, rnd.uniform(0, 360), rnd.uniform(min_m, max_m) / 1000)
+
+
+def _curve(rnd, a, b):
+    """A gently curved polyline from a to b, the way a railway is drawn."""
+    d, br = _dist(a, b), _bearing(a, b)
+    amp = d * rnd.uniform(0.02, 0.06) * rnd.choice((-1, 1))
+    pts = [a]
+    for t in (0.2, 0.4, 0.6, 0.8):
+        pts.append(_move(_move(a, br, d * t), br + 90, amp * math.sin(math.pi * t)))
+    return pts + [b]
+
+
+def _length(pts):
+    return sum(_dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
+
+
+def _wkt(pts):
+    if len(pts) == 1:
+        return 'POINT(%.7f %.7f)' % tuple(pts[0])
+    return 'LINESTRING(' + ', '.join('%.7f %.7f' % tuple(p) for p in pts) + ')'
+
+
+def _next_anchor(rnd, cur, anchors, used, heading):
+    cands = []
+    for i, a in enumerate(anchors):
+        if i in used:
+            continue
+        d = _dist(cur, a)
+        if 2 <= d <= 25 and (heading is None or abs((_bearing(cur, a) - heading + 180) % 360 - 180) <= 75):
+            cands.append((d, i))
+    if not cands:
+        cands = [(_dist(cur, a), i) for i, a in enumerate(anchors) if i not in used and 1 <= _dist(cur, a) <= 60]
+    if not cands:
+        return None
+    cands.sort()
+    return rnd.choice(cands[:4])[1]
+
+
+# ---------- RDFGraphGen with the planner's rules ----------
+def _class_dict(cplan):
+    merged = {SH.targetClass: URIRef(cplan['class']), 'properties': {}}
+    wanted = {p: o for p, o in cplan['props'].items() if not o.get('layout')}
+    for s in cplan['shapes']:
+        sd = STATE['dict'].get(URIRef(s))
+        for path, pd in (sd or {}).get('properties', {}).items():
+            if isinstance(path, URIRef) and str(path) in wanted:
+                update_dictionary(merged['properties'].setdefault(path, {}), deepcopy(pd))
+    for p, o in wanted.items():
+        path = URIRef(p)
+        pd = merged['properties'].setdefault(path, {})
+        pd[SH.path] = path
+        for k in DROP_KEYS:
+            pd.pop(k, None)
+        if 'in' in o:
+            for k in (SH.datatype, SH_CLASS, SH.pattern, SH.minInclusive, SH.maxInclusive, SH.minExclusive,
+                      SH.maxExclusive, SH.minLength, SH.maxLength, SH.nodeKind):
+                pd.pop(k, None)
+            pd[SH_IN] = [_term(t) for t in o['in']]
+        if 'dt' in o:
+            pd[SH.datatype] = URIRef(o['dt'])
+        if 'pattern' in o:
+            pd[SH.pattern] = Literal(o['pattern'])
+        for key, sh in (('min', SH.minInclusive), ('max', SH.maxInclusive)):
+            if key in o:
+                pd[sh] = Literal(o[key])
+        pd[SH.minCount] = Literal(o.get('minCount', 1))
+        pd[SH.maxCount] = Literal(o.get('maxCount', 1))
+    return merged
+
+
+def _rdfgraphgen(cplan, n, batch):
+    """RDFGraphGen's own generator on the merged, enriched shape. Returns (graph, nodes)."""
+    shape_dict = _class_dict(cplan)
+    g = Graph()
+    if not shape_dict['properties']:
+        # Nothing for RDFGraphGen to draw (every selected property is set by the layout, or there is none):
+        # with an empty shape it would return a value instead of a node, so the instances are only typed here.
+        nodes = [URIRef('urn:rdfgraphgen:%s:%d' % (batch, i)) for i in range(n)]
+        for node in nodes:
+            g.add((node, RDF.type, URIRef(cplan['class'])))
+        return g, nodes
+    rgg.COUNTER = 100
+    nodes = [rgg.dictionary_to_rdf_graph(shape_dict, URIRef(cplan['shapes'][0]), g, None, STATE['dict'], [], None, batch)
+             for _ in range(n)]
+    for s, o in list(g.subject_objects(SH.description)):  # RDFGraphGen notes the shape on each node
+        g.remove((s, SH.description, o))
+    bad = [x for x in nodes if not isinstance(x, URIRef)]
+    if bad:
+        raise ValueError('RDFGraphGen returned %d value(s) instead of nodes for %s' % (len(bad), cplan['class']))
+    return g, nodes
+
+
+def _rename(g, mapping):
+    out = Graph()
+    for s, p, o in g:
+        out.add((mapping.get(s, s), p, mapping.get(o, o)))
+    return out
+
+
+def _tidy_numbers(g):
+    """RDFGraphGen draws decimals with full float precision; keep two decimals."""
+    for s, p, o in list(g):
+        if isinstance(o, Literal) and o.datatype in (XSD.decimal, XSD.double, XSD.float) and isinstance(o.toPython(), float):
+            g.remove((s, p, o))
+            g.add((s, p, Literal(round(o.toPython(), 2), datatype=o.datatype)))
+
+
+class Run:
+    def __init__(self, plan):
+        self.plan = plan
+        self.rnd = random.Random(plan['seed'])
+        random.seed(plan['seed'])  # RDFGraphGen draws from the module-level generator
+        self.base = plan['base']
+        self.lang = plan.get('lang') or 'en'
+        self.iso2 = plan.get('iso2', 'XX')
+        self.names = list(plan.get('names') or [])
+        self.rnd.shuffle(self.names)
+        self.out = Graph()
+        self.counters = {}
+        self.uopid_seq = self.rnd.randint(1000, 8000) * 10000
+        self.name_of = {}
+        self.layers = []
+
+    def slug(self, cls):
+        local = cls.rstrip('/').split('/')[-1].split('#')[-1]
+        return local[0].lower() + local[1:]
+
+    def mint(self, cls):
+        self.counters[cls] = self.counters.get(cls, 0) + 1
+        return URIRef('%s%s-%04d' % (self.base, self.slug(cls), self.counters[cls]))
+
+    def next_name(self):
+        return self.names.pop() if self.names else 'Place %d' % self.rnd.randint(100, 999)
+
+    def uopid(self, s):
+        self.uopid_seq += self.rnd.randint(3, 40)
+        border = (s, ERA.opType, BORDER_POINT) in self.out  # SHACL-SPARQL rule: border points start with "EU"
+        return ('EU' if border else self.iso2) + 'S%09d' % self.uopid_seq
+
+    def add_geometry(self, s, pts, slug_hint):
+        gnode = URIRef('%sgeometry-%s' % (self.base, str(s)[len(self.base):] if str(s).startswith(self.base) else slug_hint))
+        self.out.add((s, GEO.hasGeometry, gnode))
+        self.out.add((gnode, RDF.type, GEO.Geometry))
+        self.out.add((gnode, GEO.asWKT, Literal(_wkt(pts), datatype=GEO.wktLiteral)))
+        return _wkt(pts)
+
+    def apply(self, subjects, cplan, depth):
+        """Non-spatial layout rules, weighted re-draws, labels; returns the instance's own children by class."""
+        rnd, out, children = self.rnd, self.out, {}
+        props = cplan['props']
+        for s in subjects:
+            for p, o in props.items():
+                lay, P = o.get('layout'), URIRef(p)
+                if lay == 'name':
+                    nm = self.name_of.setdefault(s, self.next_name())
+                    out.add((s, P, Literal(nm, lang=self.lang)))
+                elif lay == 'uopid':
+                    out.add((s, P, Literal(self.uopid(s), datatype=XSD.string)))
+                elif lay == 'self':
+                    out.add((s, P, s))
+                elif lay == 'own':
+                    k = rnd.randint(max(1, o.get('minCount', 1)), max(1, o.get('maxCount', 1)))
+                    for _ in range(k):
+                        c = self.mint(o['linkClass'])
+                        out.add((s, P, c))
+                        children.setdefault(o['linkClass'], []).append(c)
+            if cplan.get('label') and (s, RDFS.label, None) not in out:
+                nm = self.name_of.get(s)
+                ident = out.value(s, URIRef(cplan['labelFrom'])) if cplan.get('labelFrom') else None
+                if nm:
+                    lbl = nm
+                elif ident is not None:
+                    lbl = '%s %s' % (cplan.get('classLabel', self.slug(cplan['class'])), ident)
+                else:
+                    lbl = '%s %s' % (cplan.get('classLabel', self.slug(cplan['class'])), self.next_name())
+                out.add((s, RDFS.label, Literal(lbl, lang=self.lang)))
+        for p, o in props.items():  # categories with realistic frequencies (RDFGraphGen draws sh:in uniformly)
+            if o.get('weights') and o.get('in'):
+                P, terms = URIRef(p), [_term(t) for t in o['in']]
+                for s in subjects:
+                    olds = list(out.objects(s, P))
+                    for old in olds:
+                        out.remove((s, P, old))
+                    for _ in olds:
+                        out.add((s, P, rnd.choices(terms, o['weights'])[0]))
+        for p, o in props.items():  # a geometry-valued property mirrors the instance's own geometry
+            if o.get('layout') == 'wkt':
+                for s in subjects:
+                    g = out.value(s, GEO.hasGeometry)
+                    w = out.value(g, GEO.asWKT) if g is not None else None
+                    if w is not None:
+                        out.add((s, URIRef(p), w))
+        return children
+
+    def materialise(self, cls, iris, depth, layer_name):
+        """Generates linked resources with RDFGraphGen (mandatory properties) or leaves typed stubs."""
+        if not iris:
+            return
+        tmpl = self.plan.get('linked', {}).get(cls)
+        if tmpl and depth <= self.plan.get('maxDepth', 3) and self.plan.get('generateLinked', True):
+            g, nodes = _rdfgraphgen(tmpl, len(iris), 'L')
+            self.out += _rename(g, dict(zip(nodes, iris)))
+            if tmpl.get('geometry') == 'referrer':  # a mandatory geometry: the position of whatever points to it
+                for r in iris:
+                    for s in self.out.subjects(None, r):
+                        gn = self.out.value(s, GEO.hasGeometry)
+                        w = self.out.value(gn, GEO.asWKT) if gn is not None else None
+                        if w is not None:
+                            first = str(w).split('(', 1)[1].split(',')[0].strip(' )')
+                            self.add_geometry(r, [[float(x) for x in first.split()[:2]]], 'ref')
+                            break
+            kids = self.apply(iris, tmpl, depth)
+            for kcls, kiris in kids.items():
+                self.materialise(kcls, kiris, depth + 1, 'stub')
+            self.layers.append({'layer': layer_name, 'how': 'RDFGraphGen, mandatory properties', 'class': cls, 'instances': len(iris)})
+        else:
+            for r in iris:
+                self.out.add((r, RDF.type, URIRef(cls)))
+                self.out.add((r, RDFS.label, Literal('Synthetic %s %s' % (self.slug(cls), str(r).rsplit('-', 1)[-1]), lang='en')))
+            self.layers.append({'layer': layer_name, 'how': 'typed stub', 'class': cls, 'instances': len(iris)})
+
+    def run(self):
+        plan, rnd, out = self.plan, self.rnd, self.out
+        main, n = plan['main'], plan['count']
+        anchors = plan.get('anchors') or [[4.35, 50.85]]
+        g, nodes = _rdfgraphgen(main, n, 'M')
+        iris = [self.mint(main['class']) for _ in nodes]
+        out += _rename(g, dict(zip(nodes, iris)))
+        self.layers.append({'layer': 'main', 'how': 'RDFGraphGen', 'class': main['class'], 'instances': n, 'triples': len(g)})
+        props = main['props']
+        layout = {p: o['layout'] for p, o in props.items() if o.get('layout')}
+        kind = plan.get('geometry')
+        op_iris, op_pts = [], []
+        if kind == 'sol':
+            connected = plan.get('layoutMode', 'connected') == 'connected'
+            used, lines = set(), []
+            if connected:
+                i0 = rnd.randrange(len(anchors)); used.add(i0)
+                pts, cur, heading = [anchors[i0]], anchors[i0], None
+                for _ in range(n):
+                    j = _next_anchor(rnd, cur, anchors, used, heading)
+                    nxt = anchors[j] if j is not None else _move(cur, (heading if heading is not None else rnd.uniform(0, 360)) + rnd.uniform(-30, 30), rnd.uniform(5, 15))
+                    if j is not None:
+                        used.add(j)
+                    heading, cur = _bearing(cur, nxt), nxt
+                    pts.append(nxt)
+                op_pts = [_jitter(rnd, p, 20, 70) for p in pts]
+                lines = [(i, i + 1) for i in range(n)]
+            else:
+                for _ in range(n):
+                    a = rnd.randrange(len(anchors)); used.add(a)
+                    b = _next_anchor(rnd, anchors[a], anchors, used, None)
+                    pb = anchors[b] if b is not None else _move(anchors[a], rnd.uniform(0, 360), rnd.uniform(5, 15))
+                    if b is not None:
+                        used.add(b)
+                    op_pts += [_jitter(rnd, anchors[a], 20, 70), _jitter(rnd, pb, 20, 70)]
+                    lines.append((len(op_pts) - 2, len(op_pts) - 1))
+            op_iris = [self.mint(str(ERA.OperationalPoint)) for _ in op_pts]
+            for r in op_iris:
+                self.name_of[r] = self.next_name()
+            n_lines = 1 if connected else max(1, n // 3)
+            lps = [self.mint(str(ERA.LinearPositioningSystem)) for _ in range(n_lines)]
+            total = 0
+            for k, (ia, ib) in enumerate(lines):
+                s, poly = iris[k], _curve(rnd, op_pts[ia], op_pts[ib])
+                km = _length(poly); total += km
+                self.add_geometry(s, poly, 'sol')
+                for p, what in layout.items():
+                    P = URIRef(p)
+                    if what == 'opStart':
+                        out.add((s, P, op_iris[ia]))
+                    elif what == 'opEnd':
+                        out.add((s, P, op_iris[ib]))
+                    elif what == 'nationalLine':
+                        out.add((s, P, lps[0 if connected else k % n_lines]))
+                    elif what == 'length':
+                        self._length_value(s, P, props[p], km)
+                if plan.get('label'):
+                    out.add((s, RDFS.label, Literal('%s – %s' % (self.name_of[op_iris[ia]], self.name_of[op_iris[ib]]), lang=self.lang)))
+            for i, l in enumerate(lps):
+                out.add((l, RDF.type, ERA.LinearPositioningSystem))
+                out.add((l, RDFS.label, Literal('Synthetic national line S%d' % (2600 + 7 * i + rnd.randint(0, 6)), lang='en')))
+            self.layers.append({'layer': 'network layout', 'how': 'connected line' if connected else 'scattered sections',
+                                'class': main['class'], 'instances': n, 'operationalPoints': len(op_iris), 'lines': n_lines, 'km': round(total, 1)})
+        elif kind in ('line', 'point'):
+            lo, hi = plan.get('lineKm', [0.5, 5])
+            for k, s in enumerate(iris):
+                a = anchors[rnd.randrange(len(anchors))]
+                if kind == 'point':
+                    poly = [_jitter(rnd, a, 20, 250)]
+                else:
+                    p0 = _jitter(rnd, a, 50, 400)
+                    poly = _curve(rnd, p0, _move(p0, rnd.uniform(0, 360), rnd.uniform(lo, hi)))
+                self.add_geometry(s, poly, 'f')
+                if len(poly) > 1:
+                    for p, what in layout.items():
+                        if what == 'length':
+                            self._length_value(s, URIRef(p), props[p], _length(poly))
+            self.layers.append({'layer': 'geometry', 'how': 'points near the real network' if kind == 'point' else 'short lines near the real network',
+                                'class': main['class'], 'instances': n})
+        kids = self.apply(iris, main, 0)
+        # end points of the sections: generated like any linked resource, then placed by the layout
+        if op_iris:
+            self.materialise(str(ERA.OperationalPoint), op_iris, 1, 'section end points')
+            for r, pt in zip(op_iris, op_pts):
+                if (r, GEO.hasGeometry, None) not in out:
+                    self.add_geometry(r, [pt], 'op')
+                if (r, RDFS.label, None) in out and str(out.value(r, RDFS.label)).startswith('Synthetic'):
+                    out.set((r, RDFS.label, Literal(self.name_of[r], lang=self.lang)))
+        for cls, ciris in kids.items():
+            self.materialise(cls, ciris, 1, 'own sub-resources')
+        for cls, pool in plan.get('pools', {}).items():
+            used = [URIRef(r) for r in pool if (None, None, URIRef(r)) in out]
+            self.materialise(cls, used, 1, 'shared linked resources')
+        typed = set(out.subjects(RDF.type, None))
+        for s, p, o in list(out):  # anything still referenced but undescribed becomes a typed stub
+            if isinstance(o, URIRef) and str(o).startswith(self.base) and o not in typed and p != RDF.type:
+                cls = plan.get('stubTypes', {}).get(str(p))
+                if cls:
+                    out.add((o, RDF.type, URIRef(cls))); typed.add(o)
+        if plan.get('refNt'):  # reference data copied from RINF (the IM role), so sh:class and its own shape hold
+            ref = Graph(); ref.parse(data=plan['refNt'], format='nt')
+            if any((None, None, s) in out for s in set(ref.subjects())):
+                out += ref
+        _tidy_numbers(out)
+        return iris
+
+    def _length_value(self, s, P, rule, km):
+        unit = rule.get('unit', 'km')
+        val = km if unit == 'km' else km * 1000
+        dt = URIRef(rule.get('dt', str(XSD.double)))
+        lex = round(val, 3) if unit == 'km' else int(round(val))
+        self.out.add((s, P, Literal(lex, datatype=dt)))
+
+
+def generate(plan_json):
+    plan = json.loads(plan_json)
+    r = Run(plan)
+    iris = r.run()
+    return json.dumps({'nt': r.out.serialize(format='nt'), 'main': [str(i) for i in iris],
+                       'layers': r.layers, 'triples': len(r.out)})
+
+
+def convert(nt, fmt):
+    g = Graph()
+    g.parse(data=nt, format='nt')
+    return g.serialize(format=fmt)
+</script>
+
+<script>
+'use strict';
+/* ====================================================================== constants */
+const SHAPES_URL = 'https://rinf.uat.data.test-era.europa.eu/era-vocabulary/rinf-appGuide/shapes.ttl';
+const ONTO_EP = 'https://graph.uat.data.test-era.europa.eu/repositories/ERA-Onto';
+const RINF_EP = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
+const PYODIDE_VERSION = '0.28.3';
+const PYODIDE_BASE = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
+const PYODIDE_SRI = 'sha384-4X7gSPzQ4pHfjTE5aBEPJAQcHu55sciq+NWO3OUOZ3zHSJhn4te9CBjUyRSr+nei';
+const PY_PACKAGES = ['rdflib==7.6.0', 'exrex==0.12.0', 'rdf-graph-gen==1.2.0'];
+const VIS_URL = 'https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js';  // the graph library RINF Atlas uses
+const VIS_SRI = 'sha384-yxKDWWf0wwdUj/gPeuL11czrnKFQROnLgY8ll7En9NYoXibgg3C6NK/UDHNtUgWJ';
+const ERA = 'http://data.europa.eu/949/', SH = 'http://www.w3.org/ns/shacl#', RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+      RDFS = 'http://www.w3.org/2000/01/rdf-schema#', XSD = 'http://www.w3.org/2001/XMLSchema#', GEO = 'http://www.opengis.net/ont/geosparql#',
+      SKOS = 'http://www.w3.org/2004/02/skos/core#', OWL = 'http://www.w3.org/2002/07/owl#', QUDT = 'http://qudt.org/vocab/unit/',
+      EU_COUNTRY = 'http://publications.europa.eu/resource/authority/country/', EU_LANG = 'http://publications.europa.eu/resource/authority/language/',
+      IM_ROLE = ERA + 'body/organisation/organisationRole/';
+const PREFIXES = { era: ERA, rdf: RDF, rdfs: RDFS, xsd: XSD, geo: GEO, skos: SKOS, owl: OWL, sh: SH, country: EU_COUNTRY, language: EU_LANG,
+  imrole: IM_ROLE, 'era-sh': ERA + 'shapes/', qudt: QUDT };
+
+/* Main infrastructure manager per country: the role with the most sections of line in RINF (measured 11 Nov 2026). */
+const COUNTRIES = [
+  ['AUT','AT','Austria','0081','de','DEU',[14.5,47.5]], ['BEL','BE','Belgium','0088','nl','NLD',[4.5,50.6]], ['BGR','BG','Bulgaria','0052','bg','BUL',[25.3,42.7]],
+  ['HRV','HR','Croatia','0078','hr','HRV',[16.4,45.4]], ['CZE','CZ','Czechia','0054','cs','CES',[15.5,49.8]], ['DNK','DK','Denmark','8601','da','DAN',[9.5,56.0]],
+  ['EST','EE','Estonia','0001','et','EST',[25.0,58.7]], ['FIN','FI','Finland','3109','fi','FIN',[25.5,62.0]], ['FRA','FR','France','0087','fr','FRA',[2.4,46.6]],
+  ['DEU','DE','Germany','0080','de','DEU',[10.4,51.1]], ['GRC','GR','Greece','0073','el','ELL',[22.5,39.5]], ['HUN','HU','Hungary','HU55','hu','HUN',[19.4,47.2]],
+  ['IRL','IE','Ireland','1104','en','ENG',[-7.7,53.3]], ['ITA','IT','Italy','0083','it','ITA',[12.5,42.9]], ['LVA','LV','Latvia','0025','lv','LAV',[24.6,56.9]],
+  ['LIE','LI','Liechtenstein','0081','de','DEU',[9.55,47.15]], ['LTU','LT','Lithuania','1224','lt','LIT',[23.9,55.3]], ['LUX','LU','Luxembourg','0082','fr','FRA',[6.13,49.7]],
+  ['NLD','NL','Netherlands','0084','nl','NLD',[5.5,52.2]], ['NOR','NO','Norway','0076','no','NOR',[10.7,60.5]], ['POL','PL','Poland','0051','pl','POL',[19.4,52.1]],
+  ['PRT','PT','Portugal','0094','pt','POR',[-8.2,39.7]], ['ROU','RO','Romania','0053','ro','RON',[25.0,45.9]], ['SVK','SK','Slovakia','0056','sk','SLK',[19.5,48.7]],
+  ['SVN','SI','Slovenia','0079','sl','SLV',[14.8,46.1]], ['ESP','ES','Spain','0071','es','SPA',[-3.7,40.3]], ['SWE','SE','Sweden','0074','sv','SWE',[15.5,59.5]],
+  ['CHE','CH','Switzerland','0085','de','DEU',[8.2,46.8]],
+].map(([iso3, iso2, name, im, lang, langCode, center]) => ({ iso3, iso2, name, im, lang, langCode, center, iri: EU_COUNTRY + iso3 }));
+const LANG_TAG = { bg: 'bg-Latn', el: 'el-Latn' };
+
+/* Invented place names, by language: a start, an ending, sometimes a suffix. */
+const NAME_BANKS = {
+  fr: [['Val','Mont','Beau','Bel','Font','Mar','Cour','Roche','Bois','Champ','Haut','Lor','Vern','Chaum','Brév','Gerv','Aub','Sénar'], ['mont','val','court','ville','bois','fort','lieu','ières','ay','ac','ange','oy','enne','ard','igny','ain','eux'], ['','','','-sur-Ytre','-en-Vallée','-le-Haut','-la-Forêt']],
+  de: [['Berg','Wald','Lind','Eich','Hohen','Neu','Alt','Ober','Unter','Rosen','Stein','Kirch','Mühl','Hasel','Brunn','Falk','Wies','Roth'], ['heim','dorf','feld','hausen','bach','berg','burg','au','ingen','stadt','tal','hagen','rode','stedt','wald','kirchen'], ['','','','',' Nord',' Süd',' (Ost)']],
+  nl: [['Ooster','Wester','Hoog','Laag','Nieuw','Oud','Zand','Berg','Kerk','Dijk','Veen','Hoef','Brug','Linde','Molen'], ['dam','dijk','veen','hoven','wijk','broek','horst','dorp','berg','meer','sluis','lo','zele','beek','kerke'], ['','','',' aan Zee','-Centrum']],
+  it: [['San ','Monte','Castel','Villa','Borgo','Rocca','Ponte','Valle','Torre','Fonte','Pieve','Colle','Prato','Serra'], ['vecchio','nuovo','rotondo','alto','basso','fiore','lungo','verde','chiaro','franco','marino','reale','bello'], ['','','',' Scalo',' Terme']],
+  es: [['San ','Villa','Torre','Puebla','Monte','Valde','Castil','Fuente','Navas','Peña','Campo','Arroyo','Sierra','Alcal'], ['nueva','real','blanca','alta','verde','seca','hermosa','llana','mayor','fría','rubia','dorada','vieja'], ['','','',' del Río',' de la Sierra']],
+  pt: [['Vila ','São ','Torre','Monte','Porto','Ponte','Santa ','Castelo','Vale','Fonte','Serra','Ribeira'], ['nova','velha','branca','alta','verde','longa','real','do Sal','de Cima','de Baixo'], ['','']],
+  pl: [['Nowa ','Stara ','Biał','Zielon','Kamien','Wysok','Brzez','Lip','Dąbr','Grab','Sosn','Mił','Wol','Krzyż'], ['ów','owo','ice','ki','no','in','owice','ka','ny','ec'], ['','','',' Górna',' Dolna']],
+  cs: [['Nov','Star','Kamen','Lip','Dub','Hor','Bystř','Lhot','Bílá ','Ves','Ralsk','Hrad'], ['ice','ov','ín','any','ná','ec','ovice','ka','ště'], ['','','',' nad Ohří',' u Brna']],
+  hr: [['Gor','Dol','Nov','Star','Bel','Zagor','Lip','Rib','Sel','Brez','Kamen','Sv. '], ['ica','je','ovo','ec','nik','ina','ani','ište','ovci','ane'], ['','']],
+  sv: [['Ny','Gam','Berg','Sjö','Ljung','Björk','Ek','Hög','Lind','Sand','Norr','Söder','Öst'], ['by','berg','holm','köping','sund','vik','dal','torp','lund','hamn','ås','näs','fors'], ['','']],
+  da: [['Ny','Lille ','Store ','Skov','Hol','Rød','Vest','Øster','Lyng','Bøg'], ['by','rup','lev','sted','bjerg','høj','strup','ved','torp','holm'], ['','']],
+  no: [['Ny','Lille','Stor','Fjell','Vik','Berg','Sol','Nord','Øst','Lia','Dal'], ['by','vik','dal','berg','heim','stad','land','sund','fjord','moen','haug'], ['','']],
+  fi: [['Kuusi','Koivu','Mänty','Järvi','Lahti','Joki','Vaara','Mäki','Salo','Kallio','Ranta','Pelto','Harju'], ['niemi','järvi','lahti','koski','mäki','salo','vaara','joki','la','lä','ranta'], ['','']],
+  et: [['Kuu','Kase','Männi','Järve','Jõe','Mäe','Saare','Kalju','Ranna','Põllu','Metsa'], ['küla','järve','metsa','mäe','oja','saare','vere','pere','nurme'], ['','']],
+  hu: [['Kis','Nagy','Új','Felső','Alsó','Szent','Tisza','Duna','Kő','Fehér','Sár','Hegy'], ['falu','vár','háza','telek','szeg','hegy','völgy','füred','kút','laka','berény'], ['','']],
+  ro: [['Valea ','Dealu ','Satu ','Câmpu','Izvor','Măgur','Brad','Ples','Tei','Cetăț','Rădu'], ['ești','eni','ani','ului','ița','oaia','ele','eanca','ova'], ['','',' Mare',' Mică']],
+  lt: [['Nauj','Sen','Kalv','Ąžuol','Beržt','Lauk','Pušal','Upyt','Akmen','Rūd'], ['oji','ai','ėnai','iškis','aliai','ynė','onys','ava','uva'], ['','']],
+  lv: [['Jaun','Vec','Liel','Maz','Bērz','Ozol','Kalna','Upes','Priež','Lauk'], ['pils','ciems','muiža','ieši','ene','kalns','zeme','sala'], ['','']],
+  el: [['Ano ','Kato ','Neo ','Agios ','Palaio','Kalo','Mega','Petro','Kastro','Lefko'], ['chori','kastro','polis','vrysi','neri','petra','kampos','limni','vouno'], ['','']],
+  bg: [['Gorna ','Dolna ','Novo ','Staro ','Bel','Kamen','Lyas','Brez','Zlat','Rad'], ['ovo','evo','ets','itsa','nik','ograd','ovets','ishte'], ['','']],
+  en: [['Bally','Kil','Clon','Drum','Inish','Carrick','Glen','Lis','Rath','Tully','Kin'], ['more','beg','mor','duff','glass','na','ross','keel','lough','ard','vale'], ['','']],
+};
+const NAME_BANK_OF = { sk: 'cs', sl: 'hr' };
+
+/* Classes drawn as lines (the others with a geometry are points), and their typical length in km. */
+const LINE_KM = { SectionOfLine: [2, 25], RunningTrack: [2, 15], Track: [2, 15], Siding: [0.2, 1.2], Tunnel: [0.3, 6], Bridge: [0.05, 1.2],
+  PlatformEdge: [0.15, 0.42], SpecialArea: [0.2, 3], SpecialTunnelArea: [0.2, 3], LinearElement: [1, 10], LevelCrossing: null };
+/* Linked classes that belong to one instance (minted per instance) rather than being shared between instances. */
+const OWN_LINK = new Set(['NetBasicReference','NetPointReference','NetLinearReference','NetAreaReference','TopologicalCoordinate',
+  'LinearPositioningSystemCoordinate','TemporalFeature','ParameterApplicability','LoadCapability','ContactLineSystem','ETCS',
+  'TrainDetectionSystem','PhaseInfo','SystemSeparationInfo','RaisedPantographsDistanceAndSpeed','MinVehicleImpedance',
+  'MaximumMagneticField','MinimumVerticalRadius','FrenchTrainDetectionSystemLimitation','Orientation','LinesideDistanceIndication','HABD',
+  'Geometry','KilometricPost','Point','Instant','TemporalEntity','TemporalDuration']);
+/* Bookkeeping properties: allowed by the shapes, rarely useful in synthetic data; left out of the presets. */
+const META = new Set(['notApplicable','notYetAvailable','hashSource','belongsTo','parameterApplicability','exemptSpecialVehiclesFromATO',
+  'exemptSpecialVehiclesFromETCS','exemptSpecialVehiclesFromRMR','isPartOf','primaryLocation','validity']);
+/* Realistic frequencies for some code lists (RDFGraphGen draws sh:in uniformly). Key: last segment of the concept IRI. */
+const WEIGHTS = {
+  [ERA + 'solNature']: { '10': 95, '20': 5 },
+  [ERA + 'opType']: { '10': 22, '20': 15, '70': 30, '80': 12, '40': 4, '100': 2, '120': 6, '50': 2, '90': 1, '30': 2, '60': 1, '110': 1, '130': 1, '140': 1, '150': 1 },
+  [ERA + 'operationalRegimeType']: { '40': 55, '20': 30, '30': 10, '10': 5 },
+};
+const TRUE_PCT = 20;
+/* Numeric realism: by property name first, then by unit (QUDT local name). values = a pool, otherwise a range. */
+const NUM_BY_NAME = [
+  [/TrainLength/i, { values: [400, 500, 600, 650, 700, 740, 750] }],
+  [/AxleLoad/i, { values: [16, 18, 20, 21, 22.5, 25] }],
+  [/MeterLoad|MetreLoad/i, { values: [5, 6.4, 7.2, 8, 8.8] }],
+  [/Speed/i, { values: [40, 60, 80, 100, 120, 140, 160, 200, 230, 250, 300] }],
+  [/Noise/i, { min: 70, max: 95 }],
+  [/Gradient/i, { min: 0, max: 35 }],
+  [/Radius/i, { min: 150, max: 5000, step: 50 }],
+  [/Voltage|umax|umin/i, { values: [750, 1500, 3000, 15000, 25000] }],
+  [/Current/i, { min: 200, max: 2000, step: 50 }],
+  [/lengthOfPlatform|PlatformLength/i, { min: 120, max: 420, step: 10 }],
+  [/Temperature/i, { min: -40, max: 50 }],
+  [/Year/i, { min: 1950, max: 2025 }],
+];
+const NUM_BY_UNIT = {
+  'KiloM-PER-HR': { values: [40, 60, 80, 100, 120, 140, 160, 200, 250] }, M: { min: 10, max: 1500, step: 10 }, MilliM: { min: 0, max: 1500, step: 5 },
+  KiloM: { min: 0.5, max: 60, decimals: 3 }, TONNE: { min: 12, max: 25, decimals: 1 }, KiloGM: { min: 500, max: 30000, step: 100 },
+  A: { min: 100, max: 3000, step: 50 }, V: { values: [750, 1500, 3000, 15000, 25000] }, DeciB: { min: 60, max: 100 }, DeciB_A: { min: 60, max: 100 },
+  SEC: { min: 1, max: 120 }, MIN: { min: 1, max: 60 }, OHM: { min: 0.1, max: 10, decimals: 2 }, N: { min: 100, max: 5000, step: 50 },
+  KiloN: { min: 50, max: 400, step: 5 }, HZ: { values: [16.7, 50] }, 'MilliM-PER-M': { min: 0, max: 40 }, 'M-PER-SEC2': { min: 0.1, max: 1.5, decimals: 2 },
+  KiloW: { min: 100, max: 10000, step: 100 }, M2: { min: 1, max: 500 }, MilliH: { min: 1, max: 50 }, 'A-PER-M': { min: 1, max: 100 },
+  NanoFARAD: { min: 10, max: 1000 }, KiloJ: { min: 1, max: 500 }, 'GM-PER-SEC': { min: 1, max: 100 },
+};
+const UNIT_LABEL = { 'KiloM-PER-HR': 'km/h', M: 'm', MilliM: 'mm', KiloM: 'km', TONNE: 't', KiloGM: 'kg', A: 'A', V: 'V', DeciB: 'dB', DeciB_A: 'dB(A)',
+  SEC: 's', MIN: 'min', OHM: 'Ω', N: 'N', KiloN: 'kN', HZ: 'Hz', 'MilliM-PER-M': 'mm/m', 'M-PER-SEC2': 'm/s²', KiloW: 'kW', M2: 'm²' };
+/* Free-text values that read like the real thing, for the few string parameters people look at. */
+const TEXTS = {
+  openingHoursLimitation: ['Mon–Fri 05:00–23:00, closed at weekends', 'Daily 06:00–22:00'],
+  restrictedDangerousGood: ['RID class 1 (explosives) not permitted', 'RID class 7 only with prior notice to the IM'],
+  restrictedPeriodOfTimeDangerousGood: ['No dangerous goods 06:00–09:00 and 16:00–19:00 on working days'],
+  specializedInfrastructure: ['High-speed line', 'Mountain line with rack sections', 'Port access line'],
+};
+
+/* ====================================================================== state */
+const S = {
+  shapesTtl: null, shapesInfo: null, shapesModified: null,
+  nodeShapes: new Map(), byTarget: new Map(), propShapes: new Map(),
+  ontoProps: {}, ontoClasses: {}, schemeCounts: {}, concepts: {}, conceptLabel: {}, anchors: {},
+  cls: null, model: null, selected: new Set(), preset: 'core', layoutMode: 'connected',
+  py: null, engine: null, engineInfo: null, result: null,
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const localName = iri => String(iri).replace(/[#/]$/, '').split(/[#/]/).pop();
+function curie(iri) {
+  if (!iri) return '';
+  let best = null;
+  for (const [p, ns] of Object.entries(PREFIXES)) if (iri.startsWith(ns) && (!best || ns.length > best[1].length)) best = [p, ns];
+  return best ? best[0] + ':' + iri.slice(best[1].length) : iri;
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* ====================================================================== network helpers */
+async function sparql(endpoint, query) {
+  const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/sparql-results+json' },
+    body: new URLSearchParams({ query }) });
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' from ' + new URL(endpoint).host);
+  return (await res.json()).results.bindings;
+}
+async function describeFetchError(err, url) {
+  const m = /^HTTP (\d+)/.exec((err && err.message) || '');
+  if (m) return { title: 'The server returned an error (HTTP ' + m[1] + ')', message: +m[1] >= 500 ? 'This is on the server side; try again in a moment.' : 'The request was rejected.', detail: err.message };
+  let reachable = false;
+  try { await fetch(new URL(url).origin + '/', { mode: 'no-cors', cache: 'no-store' }); reachable = true; } catch { reachable = false; }
+  return reachable
+    ? { title: 'Blocked by your browser, not by you', message: 'The server answered but did not let this page read the response (a missing CORS header).', detail: String((err && err.message) || err) }
+    : { title: 'Could not reach ' + new URL(url).host, message: navigator.onLine === false ? 'Your device appears to be offline.' : 'The server did not respond, or something on your network blocked the request.', detail: String((err && err.message) || err) };
+}
+function showError(e) {
+  $('err').innerHTML = `<div class="msg err"><b>${esc(e.title)}</b><br>${esc(e.message)}${e.detail ? `<details><summary>Technical detail</summary><code>${esc(e.detail)}</code></details>` : ''}</div>`;
+}
+
+/* ====================================================================== shapes */
+function indexShapes(ttl) {
+  const store = new N3.Store(new N3.Parser().parse(ttl));
+  const objs = (s, p) => store.getObjects(s, p, null);
+  const one = (s, p) => objs(s, p)[0];
+  const list = head => { const out = []; let n = head, guard = 0; while (n && n.value !== RDF + 'nil' && guard++ < 1000) { const f = one(n, RDF + 'first'); if (f) out.push(f); n = one(n, RDF + 'rest'); } return out; };
+  const lit = t => t ? t.value : undefined;
+  const num = t => t !== undefined ? Number(t.value) : undefined;
+  const readProp = ps => {
+    const path = one(ps, SH + 'path');
+    const sparqlMsgs = objs(ps, SH + 'sparql').map(c => lit(one(c, SH + 'message'))).filter(Boolean);
+    return {
+      id: ps.value, path: path && path.termType === 'NamedNode' ? path.value : null,
+      pathDesc: path && path.termType !== 'NamedNode' ? describePath(store, path) : null,
+      minCount: num(one(ps, SH + 'minCount')), maxCount: num(one(ps, SH + 'maxCount')),
+      datatype: lit(one(ps, SH + 'datatype')), classes: objs(ps, SH + 'class').map(t => t.value), nodeKind: lit(one(ps, SH + 'nodeKind')),
+      in: one(ps, SH + 'in') ? list(one(ps, SH + 'in')) : null, patterns: objs(ps, SH + 'pattern').map(t => t.value),
+      minIncl: num(one(ps, SH + 'minInclusive')), maxIncl: num(one(ps, SH + 'maxInclusive')),
+      minExcl: num(one(ps, SH + 'minExclusive')), maxExcl: num(one(ps, SH + 'maxExclusive')),
+      severity: lit(one(ps, SH + 'severity')) || SH + 'Violation', message: lit(one(ps, SH + 'message')),
+      rinf: lit(one(ps, ERA + 'rinfIndex')), sparql: sparqlMsgs,
+      // a qualified value shape on an alternative path, e.g. SoL: (era:hasPart | ^…) with ≥ 1 value of class era:Track
+      altPaths: path && path.termType !== 'NamedNode' && one(path, SH + 'alternativePath') ? list(one(path, SH + 'alternativePath')).filter(t => t.termType === 'NamedNode').map(t => t.value) : [],
+      qMin: num(one(ps, SH + 'qualifiedMinCount')),
+      qClass: one(ps, SH + 'qualifiedValueShape') ? lit(one(one(ps, SH + 'qualifiedValueShape'), SH + 'class')) : undefined,
+    };
+  };
+  for (const ns of store.getSubjects(RDF + 'type', SH + 'NodeShape', null)) {
+    const shape = {
+      iri: ns.value, targets: objs(ns, SH + 'targetClass').map(t => t.value), closed: lit(one(ns, SH + 'closed')) === 'true',
+      iriPatterns: objs(ns, SH + 'pattern').map(t => t.value),
+      ignored: one(ns, SH + 'ignoredProperties') ? list(one(ns, SH + 'ignoredProperties')).map(t => t.value) : [],
+      props: objs(ns, SH + 'property').map(readProp),
+      sparql: objs(ns, SH + 'sparql').map(c => ({ message: lit(one(c, SH + 'message')), severity: lit(one(ns, SH + 'severity')) })),
+    };
+    S.nodeShapes.set(shape.iri, shape);
+    for (const t of shape.targets) { if (!S.byTarget.has(t)) S.byTarget.set(t, []); S.byTarget.get(t).push(shape); }
+  }
+}
+function describePath(store, node) {
+  const alt = store.getObjects(node, SH + 'alternativePath', null)[0];
+  if (alt) return 'alternative path';
+  if (store.getObjects(node, SH + 'inversePath', null)[0]) return 'inverse path';
+  return 'complex path';
+}
+
+/* ====================================================================== ontology + SKOS (UAT ERA-Onto) */
+async function loadOntology() {
+  const props = new Set(), classes = [...S.byTarget.keys()];
+  for (const s of S.nodeShapes.values()) for (const p of s.props) if (p.path) props.add(p.path);
+  const vals = [...props].map(p => `<${p}>`).join(' ');
+  const qp = `PREFIX era: <${ERA}> PREFIX rdfs: <${RDFS}> PREFIX owl: <${OWL}> PREFIX skos: <${SKOS}>
+SELECT ?p (SAMPLE(?l) AS ?label) (SAMPLE(?c) AS ?comment) (SAMPLE(?r) AS ?range) (SAMPLE(?s) AS ?scheme) (SAMPLE(?u) AS ?unit) (SAMPLE(?d) AS ?dep) WHERE {
+  VALUES ?p { ${vals} }
+  GRAPH <${ERA}graph/ontology> {
+    OPTIONAL { ?p rdfs:label ?l FILTER(LANG(?l) = "en") } OPTIONAL { ?p rdfs:comment ?c FILTER(LANG(?c) = "en") }
+    OPTIONAL { ?p rdfs:range ?r } OPTIONAL { ?p era:inSkosConceptScheme ?s } OPTIONAL { ?p era:unitOfMeasure ?u } OPTIONAL { ?p owl:deprecated ?d } }
+} GROUP BY ?p`;
+  const qc = `PREFIX rdfs: <${RDFS}>
+SELECT ?c (SAMPLE(?l) AS ?label) (SAMPLE(?cm) AS ?comment) (GROUP_CONCAT(DISTINCT STR(?sup); separator=" ") AS ?supers) WHERE {
+  VALUES ?c { ${classes.map(c => `<${c}>`).join(' ')} }
+  GRAPH <${ERA}graph/ontology> {
+    OPTIONAL { ?c rdfs:label ?l FILTER(LANG(?l) = "en") } OPTIONAL { ?c rdfs:comment ?cm FILTER(LANG(?cm) = "en") }
+    OPTIONAL { ?c rdfs:subClassOf+ ?sup FILTER(isIRI(?sup)) } }
+} GROUP BY ?c`;
+  const [bp, bc] = await Promise.all([sparql(ONTO_EP, qp), sparql(ONTO_EP, qc)]);
+  for (const b of bp) S.ontoProps[b.p.value] = { label: b.label && b.label.value, comment: b.comment && b.comment.value, range: b.range && b.range.value,
+    scheme: b.scheme && b.scheme.value, unit: b.unit && b.unit.value, deprecated: b.dep && b.dep.value === 'true' };
+  for (const b of bc) S.ontoClasses[b.c.value] = { label: b.label && b.label.value, comment: b.comment && b.comment.value,
+    supers: b.supers && b.supers.value ? b.supers.value.split(' ') : [] };
+}
+async function loadSchemeCounts(schemes) {
+  const todo = schemes.filter(s => !(s in S.schemeCounts));
+  if (!todo.length) return;
+  const rows = await sparql(ONTO_EP, `PREFIX skos: <${SKOS}> PREFIX owl: <${OWL}>
+SELECT ?s (COUNT(DISTINCT ?c) AS ?n) WHERE { VALUES ?s { ${todo.map(s => `<${s}>`).join(' ')} } ?c skos:inScheme ?s FILTER NOT EXISTS { ?c owl:deprecated true } } GROUP BY ?s`);
+  for (const s of todo) S.schemeCounts[s] = 0;
+  for (const b of rows) S.schemeCounts[b.s.value] = +b.n.value;
+}
+async function loadConcepts(schemes) {
+  const todo = schemes.filter(s => !S.concepts[s]);
+  if (!todo.length) return;
+  const rows = await sparql(ONTO_EP, `PREFIX skos: <${SKOS}> PREFIX owl: <${OWL}>
+SELECT ?s ?c (SAMPLE(?l) AS ?label) WHERE { VALUES ?s { ${todo.map(s => `<${s}>`).join(' ')} } ?c skos:inScheme ?s
+  FILTER NOT EXISTS { ?c owl:deprecated true } OPTIONAL { ?c skos:prefLabel ?l FILTER(LANG(?l) = "en") } } GROUP BY ?s ?c ORDER BY ?s ?c`);
+  for (const s of todo) S.concepts[s] = [];
+  for (const b of rows) {
+    S.concepts[b.s.value].push({ iri: b.c.value, local: localName(b.c.value), label: b.label && b.label.value });
+    if (b.label) S.conceptLabel[b.c.value] = b.label.value;
+  }
+}
+/* The IM role as RINF describes it (type, label, role concept, body), copied so that sh:class era:OrganisationRole
+   and the role's own shape hold in the downloaded file. Falls back to the bare type if RINF is unreachable. */
+const ntTerm = b => b.type === 'uri' ? `<${b.value}>` : JSON.stringify(b.value) + (b['xml:lang'] ? '@' + b['xml:lang'] : b.datatype ? `^^<${b.datatype}>` : '');
+async function loadImRole(country) {
+  const role = IM_ROLE + country.im + '_IM';
+  S.imRoles = S.imRoles || {};
+  if (S.imRoles[role] !== undefined) return S.imRoles[role];
+  try {
+    const rows = await sparql(RINF_EP, `SELECT ?s ?p ?o WHERE { { BIND(<${role}> AS ?s) ?s ?p ?o }
+      UNION { <${role}> <${ERA}roleOf> ?s . ?s ?p ?o FILTER(?p IN (<${RDF}type>, <${RDFS}label>)) } }`);
+    // RINF gives six IM roles a second, publisher-minted roleOf (e.g. …/0078_ORG), against the role shape's maxCount 1: keep the canonical body
+    const body = ERA + 'body/organisation/' + country.im;
+    S.imRoles[role] = rows.filter(b => (b.p.value !== ERA + 'roleOf' || b.o.value === body) && (b.s.value === role || b.s.value === body))
+      .map(b => `<${b.s.value}> <${b.p.value}> ${ntTerm(b.o)} .`).join('\n');
+  } catch (e) { console.warn('IM role', e); S.imRoles[role] = ''; }
+  if (!S.imRoles[role]) S.imRoles[role] = `<${role}> <${RDF}type> <${ERA}OrganisationRole> .`;
+  return S.imRoles[role];
+}
+async function loadAnchors(country) {
+  if (S.anchors[country.iso3]) return S.anchors[country.iso3];
+  let pts = [];
+  try {
+    const rows = await sparql(RINF_EP, `PREFIX era: <${ERA}> PREFIX geo: <${GEO}>
+SELECT DISTINCT ?wkt WHERE { ?op a era:OperationalPoint ; era:inCountry <${country.iri}> .
+  { ?op era:netReference/geo:hasGeometry/geo:asWKT ?wkt } UNION { ?op geo:hasGeometry/geo:asWKT ?wkt } } LIMIT 4000`);
+    for (const b of rows) { const m = /POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)/i.exec(b.wkt.value); if (m) pts.push([+m[1], +m[2]]); }
+  } catch (e) { console.warn('anchors', e); }
+  const real = pts.length >= 20;
+  if (!real) {  // offline fallback: points around the country's centre, flagged in the summary
+    const r = mulberry32(7);
+    pts = Array.from({ length: 300 }, () => [country.center[0] + (r() - .5) * 3, country.center[1] + (r() - .5) * 2]);
+  }
+  S.anchors[country.iso3] = { pts, real };
+  return S.anchors[country.iso3];
+}
+
+/* ====================================================================== class model */
+function classModel(cls) {
+  const supers = (S.ontoClasses[cls] || {}).supers || [];
+  const own = S.byTarget.get(cls) || [];
+  const inherited = supers.flatMap(sc => S.byTarget.get(sc) || []).filter(s => !own.includes(s));
+  const closed = own.some(s => s.closed);
+  const allowed = new Set([RDF + 'type', ...own.flatMap(s => s.props.map(p => p.path).filter(Boolean)), ...own.flatMap(s => s.ignored)]);
+  const props = new Map(), excluded = [], qualified = [];
+  for (const s of [...own, ...inherited]) {
+    for (const p of s.props) {
+      if (!p.path) {
+        const via = p.qMin && p.altPaths.find(a => allowed.has(a) || !closed);
+        if (via) { qualified.push({ path: via, min: p.qMin, cls: p.qClass, required: p.severity.endsWith('Violation'), msg: p.message }); excluded.push({ name: p.pathDesc, why: `generated through ${curie(via)}: at least ${p.qMin} value(s)${p.qClass ? ' of class ' + curie(p.qClass) : ''}` }); }
+        else excluded.push({ name: p.pathDesc, why: 'not a plain predicate path (RDFGraphGen reads predicate paths only)', msg: p.message });
+        continue;
+      }
+      if (closed && inherited.includes(s) && !allowed.has(p.path)) { if (!excluded.some(e => e.path === p.path)) excluded.push({ path: p.path, name: curie(p.path), why: 'not allowed by the closed ' + curie(own.find(o => o.closed).iri) }); continue; }
+      let m = props.get(p.path);
+      if (!m) props.set(p.path, m = { path: p.path, minCount: 0, required: false, recommended: false, maxCount: undefined, datatype: undefined, classes: [],
+        nodeKind: undefined, in: null, patterns: [], rinf: undefined, sparql: [] });
+      if (p.minCount) { m.minCount = Math.max(m.minCount, p.minCount); if (p.severity.endsWith('Violation')) m.required = true; else m.recommended = true; }
+      if (p.maxCount !== undefined) m.maxCount = m.maxCount === undefined ? p.maxCount : Math.min(m.maxCount, p.maxCount);
+      m.datatype = m.datatype || p.datatype; m.nodeKind = m.nodeKind || p.nodeKind; m.in = m.in || p.in; m.rinf = m.rinf || p.rinf;
+      for (const c of p.classes) if (!m.classes.includes(c)) m.classes.push(c);
+      for (const x of p.patterns) if (!m.patterns.includes(x)) m.patterns.push(x);
+      for (const k of ['minIncl', 'maxIncl', 'minExcl', 'maxExcl']) if (p[k] !== undefined && m[k] === undefined) m[k] = p[k];
+      m.sparql.push(...p.sparql);
+    }
+  }
+  for (const q of qualified) {  // the alternative path's plain branch becomes required, with the qualified class
+    let m = props.get(q.path);
+    if (!m) props.set(q.path, m = { path: q.path, minCount: 0, required: false, recommended: false, maxCount: undefined, classes: [], patterns: [], in: null, sparql: [] });
+    m.minCount = Math.max(m.minCount, q.min); if (q.required) m.required = true; else m.recommended = true;
+    m.qualified = { min: q.min, cls: q.cls };
+  }
+  for (const [path, m] of [...props]) {
+    const o = S.ontoProps[path] || {};
+    if (o.deprecated) { excluded.push({ path, name: curie(path), why: 'deprecated in the ontology' }); props.delete(path); }
+    else m.onto = o;
+  }
+  const lname = localName(cls);
+  const isFeature = props.has(GEO + 'hasGeometry');
+  const geomKind = !isFeature ? null : lname === 'SectionOfLine' ? 'sol' : (lname in LINE_KM && LINE_KM[lname]) ? 'line' : 'point';
+  const sparqlRules = [...own, ...inherited].flatMap(s => s.sparql.map(x => ({ ...x, shape: s.iri })))
+    .concat([...props.values()].flatMap(m => m.sparql.map(msg => ({ message: msg, shape: curie(m.path) }))));
+  const model = { cls, own, inherited, shapes: [...own, ...inherited].map(s => s.iri), closed, allowed, props: [...props.values()], excluded, geomKind, sparqlRules };
+  for (const m of model.props) m.rule = ruleFor(model, m);
+  return model;
+}
+
+/* ====================================================================== the planner: one realism rule per property */
+function numberSpec(local, unit, m) {
+  let spec = (NUM_BY_NAME.find(([re]) => re.test(local)) || [])[1] || NUM_BY_UNIT[unit] || { min: 1, max: 100 };
+  spec = { ...spec };
+  if (m.minIncl !== undefined) spec.min = Math.max(spec.min ?? m.minIncl, m.minIncl);
+  if (m.maxIncl !== undefined) spec.max = Math.min(spec.max ?? m.maxIncl, m.maxIncl);
+  if (m.minExcl !== undefined) spec.min = Math.max(spec.min ?? m.minExcl + 1, m.minExcl + (spec.decimals ? 0.01 : 1));
+  if (m.maxExcl !== undefined) spec.max = Math.min(spec.max ?? m.maxExcl - 1, m.maxExcl - (spec.decimals ? 0.01 : 1));
+  if (spec.values) spec.values = spec.values.filter(v => (spec.min === undefined || v >= spec.min) && (spec.max === undefined || v <= spec.max));
+  if (spec.values && !spec.values.length) delete spec.values;
+  if (spec.min > spec.max) [spec.min, spec.max] = [spec.max, spec.min];
+  return spec;
+}
+function numberPool(spec, dt, rand) {
+  if (spec.values) return spec.values;
+  const out = new Set(), isInt = /integer|int|long|short/i.test(dt);
+  for (let i = 0; i < 40 && out.size < 10; i++) {
+    let v = spec.min + rand() * (spec.max - spec.min);
+    if (spec.step) v = Math.round(v / spec.step) * spec.step;
+    v = isInt ? Math.round(v) : +v.toFixed(spec.decimals ?? 1);
+    out.add(v);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+function ruleFor(model, m) {
+  const path = m.path, local = localName(path), o = m.onto || {};
+  const unit = o.unit ? localName(o.unit) : null;
+  const range = o.range;
+  const dt = m.datatype || (range && (range.startsWith(XSD) || range === RDF + 'langString' || range === GEO + 'wktLiteral') ? range : undefined);
+  const linear = model.geomKind === 'sol' || model.geomKind === 'line';
+  const isSol = localName(model.cls) === 'SectionOfLine';
+  const R = (kind, badge, title, extra = {}) => ({ kind, badge, title, ...extra });
+  if (path === GEO + 'hasGeometry') return R('geometry', model.geomKind === 'point' ? 'point near the network' : 'line along the network',
+    'Drawn near operational points sampled live from RINF, shifted by a few tens of metres. Needed for the map.', { layout: 'geometry' });
+  if (path === RDFS + 'label') return R('label', 'synthetic name', 'An invented, language-tagged name (for sections: "start – end").', { layout: 'label' });
+  if (isSol && local === 'opStart') return R('layout', 'start of the section', 'Set by the network layout: the operational point where the section starts.', { layout: 'opStart', link: ERA + 'OperationalPoint' });
+  if (isSol && local === 'opEnd') return R('layout', 'end of the section', 'Set by the network layout: the operational point where the section ends.', { layout: 'opEnd', link: ERA + 'OperationalPoint' });
+  if (isSol && local === 'nationalLine') return R('layout', 'line of the layout', 'One synthetic national line for a connected layout, a few for scattered sections.', { layout: 'nationalLine' });
+  if (local === 'canonicalURI') return R('self', 'own IRI', 'The instance\'s own IRI.', { layout: 'self' });
+  if (local === 'uopid') return R('uopid', 'XX + S + 9 digits', 'Country code, "S" for synthetic, 9 digits. Border points (op type 90) start with "EU", as a SHACL-SPARQL rule requires.', { layout: 'uopid' });
+  if (linear && /^length/i.test(local) && (unit === 'KiloM' || unit === 'M'))
+    return R('length', 'from the geometry (' + (unit === 'KiloM' ? 'km' : 'm') + ')', 'Computed from the drawn line, so length and geometry agree.', { layout: 'length', unit: unit === 'KiloM' ? 'km' : 'm', dt: dt || XSD + 'double' });
+  if (dt === RDF + 'langString' && /name/i.test(local)) return R('name', 'synthetic place name', 'An invented name in the country\'s language.', { layout: 'name' });
+  if (local === 'inCountry') return R('country', 'selected country', 'The EU authority IRI of the selected country.', { make: c => ({ in: [{ iri: c.country.iri }] }) });
+  if (local === 'infrastructureManager') return R('im', 'national IM role', 'The organisation role of the country\'s main infrastructure manager in RINF, e.g. …/organisationRole/0087_IM.', { make: c => ({ in: [{ iri: IM_ROLE + c.country.im + '_IM' }] }) });
+  if (local === 'operatingLanguage') return R('language', 'national language', 'The EU authority IRI of the country\'s language.', { make: c => ({ in: [{ iri: EU_LANG + c.country.langCode }] }) });
+  if (dt === GEO + 'wktLiteral') return R('wkt', 'own geometry (WKT)', 'The instance\'s own geometry as WKT.', { layout: 'wkt' });
+  if (m.in && m.in.length) return R('shape-in', 'shape sh:in · ' + m.in.length, 'Values listed by the shape; RDFGraphGen picks from them.',
+    { make: () => ({ in: m.in.map(t => t.termType === 'NamedNode' ? { iri: t.value } : { v: t.value, dt: t.datatype && t.datatype.value }) }) });
+  if (o.scheme) {
+    const n = S.schemeCounts[o.scheme];
+    const w = WEIGHTS[path];
+    return R('skos', 'SKOS' + (n !== undefined ? ' · ' + n : '') + (w ? ' · weighted' : ''), 'Real concepts of ' + curie(o.scheme) + (w ? ', drawn with realistic frequencies' : ', drawn uniformly by RDFGraphGen') + '.',
+      { scheme: o.scheme, unusable: n === 0, make: c => { const cs = c.concepts[o.scheme] || []; if (!cs.length) return null;
+        return { in: cs.map(x => ({ iri: x.iri })), ...(w ? { weights: cs.map(x => w[x.local] ?? 1) } : {}) }; } });
+  }
+  // a linked resource: an ERA class first, else any other class the shape names (sf:Point, time:Instant…), else an ERA range
+  const linkCls = m.classes.find(c => c.startsWith(ERA)) || m.classes.find(c => c !== SKOS + 'Concept')
+    || (range && range.startsWith(ERA) && !/concepts/.test(range) ? range : null);
+  if (linkCls) {
+    let target = linkCls;
+    if (local === 'hasPart') target = /SectionOfLine|OperationalPoint/.test(model.cls) ? ERA + 'RunningTrack' : linkCls;
+    if (localName(target) === 'NetBasicReference') target = ERA + (model.geomKind === 'sol' || model.geomKind === 'line' ? 'NetLinearReference' : 'NetPointReference');
+    const own = OWN_LINK.has(localName(target)) || local === 'hasPart' || local === 'netReference';
+    return R(own ? 'own' : 'shared', (own ? 'own ' : 'shared ') + localName(target),
+      own ? 'Each instance gets its own ' + localName(target) + ' (generated with its mandatory properties when "also generate" is on).'
+          : 'A small pool of ' + localName(target) + ' resources shared by the instances.',
+      { link: target, own, layout: own ? 'own' : undefined, make: own ? undefined : c => ({ in: c.pool(target).map(iri => ({ iri })) }) });
+  }
+  if (m.classes.includes(SKOS + 'Concept')) return R('iri', 'no concept scheme known', 'The shape wants a SKOS concept but the ontology names no scheme for it.', { unusable: true });
+  if (m.nodeKind === SH + 'IRI' && !dt) return R('iri', 'placeholder IRI', 'An example.org IRI: the shapes say only that the value is an IRI.', { make: c => ({ in: [{ iri: c.base + 'resource-' + local }] }) });
+  if (dt === XSD + 'boolean') return R('boolean', TRUE_PCT + '% true', 'Mostly false: most of these flags describe exceptions.',
+    { make: () => ({ in: [{ v: 'true', dt }, { v: 'false', dt }], weights: [TRUE_PCT, 100 - TRUE_PCT] }) });
+  if (dt && /integer|int|long|short|decimal|double|float/i.test(dt.slice(XSD.length))) {
+    const spec = numberSpec(local, unit, m), ul = UNIT_LABEL[unit] || (unit ? unit.toLowerCase() : '');
+    const native = dt === XSD + 'integer' && !spec.values && !spec.step;
+    const badge = spec.values ? spec.values.length + ' typical values' + (ul ? ' (' + ul + ')' : '') : spec.min + '–' + spec.max + (ul ? ' ' + ul : '');
+    return R('number', badge, (native ? 'RDFGraphGen draws an integer in this range' : 'Drawn from realistic values') + (unit ? ', unit ' + unit : '') + '.',
+      { make: c => native ? { min: spec.min, max: spec.max, dt } : { in: numberPool(spec, dt, c.rand).map(v => ({ v: String(v), dt })) } });
+  }
+  if (dt === XSD + 'date') return R('date', '2015–2030', 'RDFGraphGen draws a date in this range.', { make: () => ({ min: '2015-01-01', max: '2030-12-31', dt }) });
+  if (dt === XSD + 'gYear') return R('date', 'a recent year', '', { make: () => ({ in: ['2019', '2021', '2023', '2025'].map(v => ({ v, dt })) }) });
+  if (dt === XSD + 'gYearMonth') return R('date', 'a recent month', '', { make: () => ({ in: ['2023-03', '2024-06', '2025-01', '2025-09'].map(v => ({ v, dt })) }) });
+  if (dt === XSD + 'dateTimeStamp' || dt === XSD + 'dateTime') return R('date', 'a recent timestamp', '', { make: () => ({ in: ['2024-02-01T08:00:00Z', '2025-05-14T12:30:00Z', '2026-01-20T06:15:00Z'].map(v => ({ v, dt })) }) });
+  if (dt === XSD + 'anyURI') return R('uri', 'example.org document', '', { make: c => ({ in: [{ v: c.base + 'document/' + local + '.pdf', dt }] }) });
+  if (dt === XSD + 'string' || dt === RDF + 'langString' || !dt) {
+    const lang = dt === RDF + 'langString';
+    if (/^(demonstration|verification)/.test(local)) return R('id', 'EC declaration number', 'Format XX/14 characters/year/6 digits, as the shape\'s pattern requires.',
+      { make: c => ({ in: [0, 1, 2].map(i => ({ v: `${c.country.iso2}/${(c.base.length * 7919 + i * 104729).toString(36).toUpperCase().padStart(14, 'S').slice(-14)}/${2016 + i * 3}/${String(100000 + Math.floor(c.rand() * 899999))}`, dt: XSD + 'string' })) }) });
+    if (local === 'gradientProfile') return R('id', 'gradient profile', '', { make: () => ({ in: ['+2.5', '-1.0, +3.5(1200)', '+0.5, -2.0(800)'].map(v => ({ v, dt: XSD + 'string' })) }) });
+    if (m.patterns.length) return R('pattern', 'shape sh:pattern', 'RDFGraphGen draws a string matching ' + m.patterns[0] + ' (with exrex).', { make: () => ({}) });
+    if (/(Id|Identification|Code|Number)$/.test(local)) {
+      const pools = { trackId: ['1', '2', '3', '4', 'V1', 'V2', 'A', 'B'], sidingId: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'], platformId: ['1', '2', '3', '4', '1A', '1B'] };
+      return R('id', 'identifier', 'Short identifiers in the usual style.', { labelFrom: true,
+        make: c => ({ in: (pools[local] || Array.from({ length: 12 }, (_, i) => /Code$/.test(local) ? String(10000 + Math.floor(c.rand() * 89999)) : `${c.country.iso2}-S${String(1000 + i * 37)}`)).map(v => ({ v, dt: XSD + 'string' })) }) });
+    }
+    return R('text', TEXTS[local] ? 'realistic text' : 'placeholder text', TEXTS[local] ? 'Typical wording for this parameter.' : 'A readable placeholder: the shapes give no format.',
+      { make: c => ({ in: (TEXTS[local] || [(o.label || local) + ' (synthetic)']).map(v => lang ? { v, lang: c.lang } : { v, dt: XSD + 'string' }) }) });
+  }
+  return R('random', 'RDFGraphGen default', 'RDFGraphGen\'s own generator for ' + curie(dt) + '.', { make: () => ({}) });
+}
+
+/* ====================================================================== presets + property table */
+function presetSelection(model, preset) {
+  const sel = new Set();
+  for (const m of model.props) {
+    const local = localName(m.path);
+    if (m.rule.unusable) continue;
+    const req = m.required || m.minCount > 0;
+    const extra = m.path === GEO + 'hasGeometry' || m.path === RDFS + 'label';
+    if (req || extra) sel.add(m.path);
+    else if (preset === 'core' && m.rinf && !META.has(local)) sel.add(m.path);
+    else if (preset === 'all' && !META.has(local)) sel.add(m.path);
+  }
+  return sel;
+}
+function propOrder(m) { return (m.required || m.minCount > 0) ? 0 : (m.path === GEO + 'hasGeometry' || m.path === RDFS + 'label') ? 1 : m.rinf ? 2 : 3; }
+function renderProps() {
+  const model = S.model, box = $('props');
+  if (!model) return;
+  const sections = [['Required by the shapes', 0], ['For the map and readability', 1], ['RINF parameters', 2], ['Other properties', 3]];
+  const rows = [...model.props].sort((a, b) => propOrder(a) - propOrder(b) || (a.rinf || '~').localeCompare(b.rinf || '~', undefined, { numeric: true }) || curie(a.path).localeCompare(curie(b.path)));
+  let html = '';
+  for (const [title, k] of sections) {
+    const part = rows.filter(m => propOrder(m) === k);
+    if (!part.length) continue;
+    html += `<div class="sect">${esc(title)} · ${part.length}</div>`;
+    for (const m of part) {
+      const label = (m.onto && m.onto.label) || localName(m.path);
+      const locked = m.required || m.minCount > 0;
+      const card = `${m.minCount || 0}..${m.maxCount === undefined ? '*' : m.maxCount}`;
+      const r = m.rule;
+      html += `<label class="pr"${m.onto && m.onto.comment ? ` title="${esc(m.onto.comment.slice(0, 400))}"` : ''}>
+        <input type="checkbox" data-path="${esc(m.path)}" ${S.selected.has(m.path) ? 'checked' : ''} ${locked || r.unusable ? 'disabled' : ''}>
+        <span class="t">${esc(label)} <span class="c">${esc(curie(m.path))}</span></span>
+        <span class="r">${locked ? '<span class="tag req" title="minCount ≥ 1 in the shapes: always generated">required</span>' : m.recommended ? '<span class="tag" title="minCount 1 at Warning severity">recommended</span>' : ''}
+          <span class="tag card" title="Cardinality in the shapes">${card}</span>
+          <span class="tag k-${esc(r.kind)}" title="${esc(r.title || '')}">${esc(r.badge)}</span>
+          ${m.rinf ? `<span class="tag card" title="RINF index">${esc(m.rinf)}</span>` : ''}</span></label>`;
+    }
+  }
+  box.innerHTML = html || '<div class="hint" style="padding:10px">This class has no properties in the shapes.</div>';
+  box.querySelectorAll('input[data-path]').forEach(cb => cb.addEventListener('change', () => {
+    cb.checked ? S.selected.add(cb.dataset.path) : S.selected.delete(cb.dataset.path);
+    S.preset = 'custom'; markPreset(); saveHash();
+  }));
+  const ex = $('excluded');
+  if (model.excluded.length) {
+    ex.hidden = false;
+    ex.querySelector('summary').textContent = `${model.excluded.length} propert${model.excluded.length === 1 ? 'y' : 'ies'} the generator leaves out`;
+    ex.querySelector('div').innerHTML = model.excluded.map(e => `• <code>${esc(e.name || '?')}</code>: ${esc(e.why)}`).join('<br>');
+  } else ex.hidden = true;
+}
+function markPreset() { document.querySelectorAll('#presets .btn').forEach(b => b.classList.toggle('on', b.dataset.preset === S.preset)); }
+
+/* ====================================================================== class list */
+const ICON = { sol: '〰', line: '〰', point: '•' };
+function classGroups() {
+  const list = [...S.byTarget.keys()].filter(c => c.startsWith(ERA));
+  const models = list.map(c => ({ c, label: (S.ontoClasses[c] || {}).label || localName(c), feature: (S.byTarget.get(c) || []).length,
+    n: (S.byTarget.get(c) || []).reduce((a, s) => a + s.props.length, 0), geo: geoKindQuick(c) }));
+  return models.sort((a, b) => (a.geo ? 0 : 1) - (b.geo ? 0 : 1) || a.label.localeCompare(b.label));
+}
+function geoKindQuick(c) {
+  const supers = (S.ontoClasses[c] || {}).supers || [];
+  if (!supers.includes(ERA + 'Feature') && c !== ERA + 'Feature') return null;
+  const l = localName(c); return l === 'SectionOfLine' ? 'sol' : (LINE_KM[l] ? 'line' : 'point');
+}
+function renderClassList() {
+  const q = $('clsSearch').value.trim().toLowerCase();
+  const items = classGroups().filter(x => !q || x.label.toLowerCase().includes(q) || localName(x.c).toLowerCase().includes(q));
+  let html = '', grp = null;
+  for (const x of items) {
+    const g = x.geo ? 'On the map' : 'Without geometry';
+    if (g !== grp) { html += `<div class="grp">${g}</div>`; grp = g; }
+    html += `<div class="cls${x.c === S.cls ? ' active' : ''}" role="option" tabindex="0" aria-selected="${x.c === S.cls}" data-cls="${esc(x.c)}">
+      <span class="ic">${x.geo ? ICON[x.geo] : '◇'}</span><span class="nm">${esc(x.label)} <span class="c" style="color:var(--dim);font-size:11px">${esc(curie(x.c))}</span></span><span class="ct">${x.n} props</span></div>`;
+  }
+  $('classList').innerHTML = html || '<div class="hint" style="padding:8px">No class matches.</div>';
+  const act = $('classList').querySelector('.cls.active'); if (act && !q) act.scrollIntoView({ block: 'nearest' });
+  $('classList').querySelectorAll('.cls').forEach(el => {
+    el.addEventListener('click', () => selectClass(el.dataset.cls));
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectClass(el.dataset.cls); } });
+  });
+}
+async function selectClass(cls, keepSelection) {
+  S.cls = cls;
+  S.model = classModel(cls);
+  const schemes = [...new Set(S.model.props.map(m => m.onto && m.onto.scheme).filter(Boolean))];
+  try { await loadSchemeCounts(schemes); } catch (e) { console.warn(e); }
+  for (const m of S.model.props) m.rule = ruleFor(S.model, m);
+  if (!keepSelection) { S.selected = presetSelection(S.model, S.preset === 'custom' ? 'core' : S.preset); if (S.preset === 'custom') S.preset = 'core'; }
+  const info = S.ontoClasses[cls] || {};
+  const req = S.model.props.filter(m => m.required || m.minCount > 0).length;
+  $('clsInfo').innerHTML = `<b>${esc(info.label || localName(cls))}</b> · ${S.model.own.length + S.model.inherited.length} shape(s), ${S.model.props.length} properties, ${req} required${S.model.closed ? ', closed shape' : ''}.
+    ${info.comment ? '<br>' + esc(info.comment.split(/(?<=\.)\s/)[0]) : ''}
+    ${S.model.geomKind ? '' : '<br><span class="warnc">No geometry in the shapes: the map stays empty; see the Turtle tab.</span>'}`;
+  $('layoutRow').hidden = S.model.geomKind !== 'sol';
+  renderClassList(); renderProps(); markPreset(); saveHash();
+}
+
+/* ====================================================================== engine (Pyodide + RDFGraphGen) */
+function setEngine(state, text) { $('engDot').className = 'dot ' + state; $('engTxt').textContent = text; }
+function loadScript(src, integrity) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.integrity = integrity; s.crossOrigin = 'anonymous';
+    s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.appendChild(s); });
+}
+function startEngine() {
+  if (S.engine) return S.engine;
+  S.engine = (async () => {
+    const t0 = performance.now();
+    setEngine('busy', 'Loading the Python runtime (Pyodide ' + PYODIDE_VERSION + ', about 10 MB, cached afterwards)…');
+    await loadScript(PYODIDE_BASE + 'pyodide.js', PYODIDE_SRI);
+    const py = await loadPyodide({ indexURL: PYODIDE_BASE });
+    setEngine('busy', 'Installing RDFGraphGen 1.2.0 and rdflib 7.6.0 from PyPI…');
+    await py.loadPackage(['micropip', 'setuptools', 'python-dateutil']);
+    await py.pyimport('micropip').install(PY_PACKAGES);
+    // rdf-graph-gen imports pkg_resources; setuptools 81+ no longer ships it. A two-line stand-in keeps it working either way.
+    py.runPython(`
+try:
+    import pkg_resources
+except ImportError:
+    import sys, os, types, importlib.util
+    _m = types.ModuleType('pkg_resources')
+    _m.resource_filename = lambda pkg, name: os.path.join(os.path.dirname(importlib.util.find_spec(pkg).origin), name)
+    sys.modules['pkg_resources'] = _m
+import warnings; warnings.filterwarnings('ignore')`);
+    py.runPython($('pySynth').textContent);
+    setEngine('busy', 'RDFGraphGen is reading the shapes…');
+    await sleep(30);
+    S.engineInfo = JSON.parse(py.globals.get('load_shapes')(S.shapesTtl));
+    S.py = py;
+    setEngine('ok', `Engine ready: RDFGraphGen 1.2.0 on Pyodide ${PYODIDE_VERSION} (${((performance.now() - t0) / 1000).toFixed(1)} s).`);
+    renderHow();
+    return py;
+  })().catch(e => { setEngine('err', 'The Python engine could not start.'); S.engine = null; throw e; });
+  return S.engine;
+}
+
+/* ====================================================================== names */
+function makeNames(lang, n, rand) {
+  const [a, b, x] = NAME_BANKS[NAME_BANK_OF[lang] || lang] || NAME_BANKS.en;
+  const out = new Set();
+  for (let i = 0; i < n * 20 && out.size < n; i++) {
+    let w = a[Math.floor(rand() * a.length)] + b[Math.floor(rand() * b.length)];
+    if (!/\s$/.test(w)) w = w.replace(/(.)(\1)\1/, '$1$2');
+    out.add(w.charAt(0).toUpperCase() + w.slice(1) + x[Math.floor(rand() * x.length)]);
+  }
+  return [...out];
+}
+
+/* ====================================================================== plan */
+function countFor(m, rule) {
+  const min = Math.max(1, m.minCount || 0);
+  let max = m.maxCount === undefined ? min : Math.max(min, Math.min(m.maxCount, min + 1));
+  if (rule.kind === 'shared' || rule.kind === 'skos' && m.maxCount === undefined) max = min;
+  if (localName(m.path) === 'hasPart') max = Math.max(min, 2);
+  return { minCount: min, maxCount: max };
+}
+function planClass(model, selection, ctx, depth) {
+  const cp = { class: model.cls, shapes: model.shapes, props: {}, label: selection.has(RDFS + 'label') || depth > 0,
+    classLabel: (S.ontoClasses[model.cls] || {}).label || localName(model.cls) };
+  if (depth > 0 && model.props.some(m => m.path === GEO + 'hasGeometry' && m.required)) cp.geometry = 'referrer';
+  for (const m of model.props) {
+    if (!selection.has(m.path) || m.path === RDFS + 'label' || m.path === GEO + 'hasGeometry') continue;
+    const r = m.rule;
+    if (r.unusable) continue;
+    if (depth > 0 && (r.kind === 'layout' || r.kind === 'length' || r.kind === 'geometry' || r.kind === 'wkt')) continue;
+    if (r.labelFrom && !cp.labelFrom) cp.labelFrom = m.path;
+    const counts = countFor(m, r);
+    if (r.link && (r.own || depth > 0)) { cp.props[m.path] = { layout: 'own', linkClass: r.link, ...counts }; continue; }
+    if (r.layout && r.layout !== 'own') { cp.props[m.path] = { layout: r.layout, ...(r.unit ? { unit: r.unit } : {}), ...(r.dt ? { dt: r.dt } : {}) }; continue; }
+    const j = r.make ? r.make(ctx) : {};
+    if (j === null) continue;
+    cp.props[m.path] = { ...j, ...counts };
+  }
+  return cp;
+}
+async function buildPlan() {
+  const country = COUNTRIES.find(c => c.iso3 === $('country').value);
+  const n = Math.max(1, Math.min(200, +$('count').value || 10));
+  const seed = Math.floor(+$('seed').value) || 1;
+  let base = $('base').value.trim() || 'https://example.org/rinf-synthetic/';
+  if (!/[/#]$/.test(base)) base += '/';
+  const rand = mulberry32(seed);
+  const pools = {};
+  const ctx = { country, base, rand, lang: LANG_TAG[country.lang] || country.lang, concepts: S.concepts,
+    pool: cls => pools[cls] || (pools[cls] = Array.from({ length: Math.max(2, Math.ceil(n / 3)) }, (_, i) => `${base}${localName(cls).charAt(0).toLowerCase() + localName(cls).slice(1)}-S${String(i + 1).padStart(3, '0')}`)) };
+  const model = S.model;
+  // linked classes, followed through their mandatory links up to MAX_DEPTH, so that a chain such as
+  // section -> operational point -> net reference -> topological coordinate ends on literals, not on bare stubs
+  const MAX_DEPTH = 3, linkedModels = [], seen = new Set();
+  let frontier = model.props.filter(m => S.selected.has(m.path) && m.rule.link).map(m => m.rule.link);
+  for (let depth = 1; depth <= MAX_DEPTH && frontier.length && $('linked').checked; depth++) {
+    const next = [];
+    for (const c of frontier) {
+      if (seen.has(c) || !S.byTarget.has(c)) continue;
+      seen.add(c);
+      const lm = classModel(c); lm.depth = depth; linkedModels.push(lm);
+      for (const m of lm.props) if ((m.required || m.minCount > 0) && m.rule.link) next.push(m.rule.link);
+    }
+    frontier = next;
+  }
+  const schemes = new Set();
+  for (const mod of [model, ...linkedModels]) for (const m of mod.props) if (m.onto && m.onto.scheme) schemes.add(m.onto.scheme);
+  const usesIm = [model, ...linkedModels].some(mod => mod.props.some(m => m.rule.kind === 'im' && (mod === model ? S.selected.has(m.path) : m.required || m.minCount > 0)));
+  setStatus('Fetching the code lists, network anchors and reference data…');
+  const [anchors, refNt] = await Promise.all([loadAnchors(country), usesIm ? loadImRole(country) : '',
+    loadConcepts([...schemes]).then(() => loadSchemeCounts([...schemes]))]);
+  for (const mod of [model, ...linkedModels]) for (const m of mod.props) m.rule = ruleFor(mod, m);
+  const main = planClass(model, S.selected, ctx, 0);
+  const linked = {};
+  for (const lm of linkedModels) {
+    const sel = presetSelection(lm, 'mandatory');
+    for (const m of lm.props) if (m.rule.kind === 'name') sel.add(m.path);  // linked stations get their name too
+    linked[lm.cls] = planClass(lm, sel, ctx, lm.depth);
+  }
+  const geomOn = S.selected.has(GEO + 'hasGeometry');
+  return {
+    plan: { seed, base, count: n, iso2: country.iso2, lang: ctx.lang, label: main.label, geometry: geomOn ? model.geomKind : null,
+      layoutMode: S.layoutMode, lineKm: LINE_KM[localName(model.cls)] || [0.5, 5], anchors: anchors.pts, names: makeNames(country.lang, n * 4 + 40, rand),
+      main, linked, pools, generateLinked: $('linked').checked, maxDepth: MAX_DEPTH, refNt },
+    meta: { country, n, seed, base, anchorsReal: anchors.real, anchorsN: anchors.pts.length, refFromRinf: /roleOf/.test(refNt) },
+  };
+}
+
+/* ====================================================================== generate */
+function setStatus(t) { $('engTxt').textContent = t; }
+async function generate() {
+  $('err').innerHTML = '';
+  if (!S.model) return;
+  const btn = $('go'); btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const t0 = performance.now();
+    const engine = startEngine();
+    const { plan, meta } = await buildPlan();
+    if (!S.py) { setEngine('busy', 'Waiting for the Python engine…'); await engine; }
+    setEngine('busy', 'RDFGraphGen is generating…'); await sleep(30);
+    const t1 = performance.now();
+    const res = JSON.parse(S.py.globals.get('generate')(JSON.stringify(plan)));
+    const genMs = performance.now() - t1;
+    const quads = new N3.Parser({ format: 'N-Triples' }).parse(res.nt);
+    S.result = { ...res, quads, store: new N3.Store(quads), plan, meta, genMs, totalMs: performance.now() - t0, cls: S.model.cls, model: S.model, selected: new Set(S.selected) };
+    S.result.ttl = await writeTurtle(S.result);
+    renderResult();
+    setEngine('ok', `Done: ${res.triples.toLocaleString()} triples in ${(genMs / 1000).toFixed(2)} s (RDFGraphGen + layout).`);
+  } catch (e) {
+    console.error(e);
+    const url = /rinf\.uat|graph\.uat/.test(String(e && e.message)) ? ONTO_EP : /graph\.data/.test(String(e && e.message)) ? RINF_EP : PYODIDE_BASE;
+    showError(/^HTTP|Failed to fetch|NetworkError|Load failed/.test(String(e && e.message))
+      ? await describeFetchError(e, url)
+      : { title: 'Generation failed', message: 'RDFGraphGen or the layout step raised an error. Try fewer properties or another class.', detail: String((e && e.message) || e).slice(0, 1500) });
+    if (S.py) setEngine('ok', 'Engine ready.');
+  } finally { btn.disabled = false; btn.textContent = 'Generate'; }
+}
+
+/* ====================================================================== Turtle out */
+function groupOf(iri, r) {
+  if (r.mainSet.has(iri)) return 0;
+  if (iri.startsWith(r.plan.base + 'geometry-')) return 3;
+  return iri.startsWith(r.plan.base) ? 1 : 2;
+}
+function writeTurtle(r) {
+  r.mainSet = new Set(r.main);
+  // N3.js does not abbreviate local names that start with a digit (concept codes, IM roles), so no prefixes for those
+  const prefixes = { syn: r.plan.base, era: ERA, rdfs: RDFS, xsd: XSD, geo: GEO, country: EU_COUNTRY, language: EU_LANG };
+  const predRank = p => p === RDF + 'type' ? 0 : p === RDFS + 'label' ? 1 : 2;
+  const sorted = [...r.quads].sort((a, b) => groupOf(a.subject.value, r) - groupOf(b.subject.value, r)
+    || (r.mainSet.has(a.subject.value) && r.mainSet.has(b.subject.value) ? r.main.indexOf(a.subject.value) - r.main.indexOf(b.subject.value) : a.subject.value.localeCompare(b.subject.value))
+    || predRank(a.predicate.value) - predRank(b.predicate.value) || a.predicate.value.localeCompare(b.predicate.value) || a.object.value.localeCompare(b.object.value));
+  const head = [
+    `# Synthetic RINF data — NOT real data. Do not mix with RINF.`,
+    `# ${r.meta.n} × ${curie(r.cls)} in ${r.meta.country.name}, generated ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC by RDFGraphGen 1.2.0 (rdf-graph-gen, MIT)`,
+    `# Shapes: ${SHAPES_URL}${S.shapesModified ? ' (Last-Modified ' + S.shapesModified + ')' : ''}`,
+    `# Code lists: ERA SKOS (UAT ERA-Onto) · positions near RINF operational points${r.meta.anchorsReal ? '' : ' (offline fallback: random points near the country centre)'} · seed ${r.meta.seed}`,
+    `# Reference data copied from RINF: the IM role ${curie(IM_ROLE + r.meta.country.im + '_IM')}${r.meta.refFromRinf ? ' and its body' : ' (type only: RINF was unreachable)'}`,
+    `# Page: https://gatemezing.github.io/onto-dissemination/synthetic.html`, ''].join('\n');
+  return new Promise((res, rej) => {
+    const w = new N3.Writer({ prefixes });
+    w.addQuads(sorted);
+    w.end((err, out) => {
+      if (err) return rej(err);
+      const spaced = [];  // a blank line between subjects
+      for (const l of out.split('\n')) { if (spaced.length && /^[^@\s]/.test(l) && /\.\s*$/.test(spaced[spaced.length - 1])) spaced.push(''); spaced.push(l); }
+      res(head + '\n' + spaced.join('\n'));
+    });
+  });
+}
+
+/* ====================================================================== rendering */
+let map, layerGroup, legend;
+function initMap() {
+  map = L.map('map', { preferCanvas: true, worldCopyJump: true }).setView([50, 9], 4);
+  // Esri's light grey canvas: tile.openstreetmap.org refuses requests from pages like this one.
+  const base = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    { maxZoom: 19, attribution: 'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors' }).addTo(map);
+  const orm = L.tileLayer('https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: .75,
+    attribution: 'Rail © <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a>, © OpenStreetMap contributors (CC-BY-SA)' });
+  L.control.layers({ 'Light grey': base }, { 'Real railways (OpenRailwayMap)': orm }, { collapsed: true }).addTo(map);
+  layerGroup = L.layerGroup().addTo(map);
+}
+function parseWkt(w) {
+  const m = /^\s*(POINT|LINESTRING)\s*\((.*)\)\s*$/i.exec(w);
+  if (!m) return null;
+  const pts = m[2].split(',').map(p => p.trim().split(/\s+/).map(Number)).map(([x, y]) => [y, x]);
+  return { type: m[1].toUpperCase(), pts };
+}
+function valueHtml(t) {
+  if (t.termType === 'Literal') return esc(t.value) + (t.language ? ` <span style="color:#8a96b5">@${esc(t.language)}</span>` : '');
+  const lbl = S.conceptLabel[t.value] || (t.value.startsWith(EU_COUNTRY) ? (COUNTRIES.find(c => c.iri === t.value) || {}).name : null);
+  return lbl ? `${esc(lbl)} <code>${esc(curie(t.value))}</code>` : `<code>${esc(curie(t.value))}</code>`;
+}
+function popupFor(iri) {
+  const st = S.result.store;
+  const label = (st.getObjects(iri, RDFS + 'label', null)[0] || {}).value || localName(iri);
+  const types = st.getObjects(iri, RDF + 'type', null).map(t => curie(t.value)).join(', ');
+  const rows = st.getQuads(iri, null, null, null).filter(q => ![RDF + 'type', RDFS + 'label', GEO + 'hasGeometry'].includes(q.predicate.value))
+    .sort((a, b) => a.predicate.value.localeCompare(b.predicate.value))
+    .map(q => `<tr><td>${esc((S.ontoProps[q.predicate.value] || {}).label || curie(q.predicate.value))}</td><td>${valueHtml(q.object)}</td></tr>`).join('');
+  return `<div class="pp"><h4>${esc(label)}</h4><div class="cl">${esc(types)} · <code>${esc(iri.replace(S.result.plan.base, 'syn:'))}</code></div><table>${rows}</table>
+    <a class="gl" data-graph="${esc(iri)}">Show in the graph →</a></div>`;
+}
+function renderMap() {
+  const r = S.result, st = r.store;
+  layerGroup.clearLayers();
+  if (legend) { legend.remove(); legend = null; }
+  const feats = [], counts = {};
+  for (const q of st.getQuads(null, GEO + 'hasGeometry', null, null)) {
+    const w = st.getObjects(q.object, GEO + 'asWKT', null)[0];
+    const g = w && parseWkt(w.value);
+    if (!g) continue;
+    const s = q.subject.value, isMain = r.mainSet.has(s);
+    const type = (st.getObjects(s, RDF + 'type', null)[0] || {}).value || '';
+    counts[type] = (counts[type] || 0) + 1;
+    feats.push({ s, g, isMain, type });
+  }
+  const bounds = [];
+  for (const f of feats.sort((a, b) => (a.isMain ? 0 : 1) - (b.isMain ? 0 : 1)).reverse()) {
+    let layer;
+    if (f.g.type === 'POINT') {
+      layer = L.circleMarker(f.g.pts[0], f.isMain ? { radius: 7, color: '#fff', weight: 1.5, fillColor: '#e8604f', fillOpacity: .95 }
+        : { radius: 5.5, color: '#0b1220', weight: 1.2, fillColor: '#5fd0ae', fillOpacity: .95 });
+    } else {
+      layer = L.polyline(f.g.pts, { color: f.isMain ? '#e8604f' : '#8fb3ff', weight: f.isMain ? 5 : 3, opacity: .92 });
+    }
+    layer.bindPopup(() => popupFor(f.s), { maxWidth: 400 });
+    layer.bindTooltip(esc((st.getObjects(f.s, RDFS + 'label', null)[0] || {}).value || localName(f.s)), { sticky: true });
+    layer.addTo(layerGroup);
+    bounds.push(...f.g.pts);
+  }
+  if (bounds.length) map.fitBounds(L.latLngBounds(bounds).pad(0.15), { maxZoom: 13 });
+  legend = L.control({ position: 'bottomleft' });
+  legend.onAdd = () => {
+    const d = L.DomUtil.create('div', 'legend');
+    d.innerHTML = Object.entries(counts).map(([t, n]) => {
+      const main = t === r.cls, line = feats.some(f => f.type === t && f.g.type !== 'POINT');
+      const col = main ? '#e8604f' : line ? '#8fb3ff' : '#5fd0ae';
+      return `<div><i class="${line ? '' : 'pt'}" style="background:${col}"></i>${esc(curie(t))} · ${n}</div>`;
+    }).join('') || 'No geometry';
+    return d;
+  };
+  legend.addTo(map);
+  $('mapHint').textContent = feats.length
+    ? `${feats.length} features. Click one for its properties. ${r.meta.anchorsReal ? `Positioned near ${r.meta.anchorsN.toLocaleString()} real operational points of ${r.meta.country.name}.` : 'RINF could not be reached: positions are random points near the country centre.'}`
+    : 'This class has no geometry in the shapes, or "geometry" is unticked: see the Turtle tab.';
+  setTimeout(() => map.invalidateSize(), 50);
+}
+function highlightTtl(text) {
+  return text.split('\n').map(line => {
+    if (/^\s*#/.test(line)) return `<span class="cm">${esc(line)}</span>`;
+    return esc(line)
+      .replace(/(&quot;(?:[^&]|&(?!quot;))*?&quot;)((?:@[\w-]+)|(?:\^\^[\w-]*:[\w-]*))?/g, '<span class="lit">$1$2</span>')
+      .replace(/(&lt;[^&\s]*?&gt;)/g, '<span class="iri">$1</span>')
+      .replace(/(^|\s)([\w-]+:[\w.\-%]*)(?=[\s;,.]|$)/g, '$1<span class="pn">$2</span>')
+      .replace(/(\s)(a)(\s)/, '$1<span class="kw">$2</span>$3');
+  }).join('\n');
+}
+function renderTtl() {
+  const ttl = S.result.ttl, lines = ttl.split('\n');
+  const max = 4000;
+  $('ttlEmpty').hidden = true; $('ttl').hidden = false;
+  $('ttl').innerHTML = highlightTtl(lines.slice(0, max).join('\n'));
+  $('ttlHint').textContent = lines.length > max ? `Showing the first ${max.toLocaleString()} of ${lines.length.toLocaleString()} lines. The download has everything.` : `${lines.length.toLocaleString()} lines.`;
+}
+function renderStats() {
+  const r = S.result, st = r.store;
+  const types = {};
+  for (const q of st.getQuads(null, RDF + 'type', null, null)) if (q.subject.value.startsWith(r.plan.base)) types[q.object.value] = (types[q.object.value] || 0) + 1;
+  const km = r.layers.find(l => l.km !== undefined);
+  $('stats').innerHTML = [`<span><b>${r.meta.n}</b>${esc(localName(r.cls))}</span>`,
+    ...Object.entries(types).filter(([t]) => t !== r.cls && t !== GEO + 'Geometry').map(([t, n]) => `<span><b>${n}</b>${esc(localName(t))}</span>`),
+    km ? `<span><b>${km.km}</b>km of line</span>` : '', `<span><b>${r.triples.toLocaleString()}</b>triples</span>`,
+    `<span><b>${(r.genMs / 1000).toFixed(2)}</b>s</span>`].join('');
+  ['dlTtl', 'dlNt', 'dlJsonld', 'dlGeo', 'copyTtl'].forEach(id => $(id).disabled = false);
+}
+function renderResult() { renderStats(); renderMap(); renderTtl(); renderChecks(); prepareGraph(); if (!S.result.model.geomKind) showTab('graph'); }
+
+/* ====================================================================== graph (vis-network, as in RINF Atlas) */
+let visLoad = null, network = null, gNodes = null, gEdges = null;
+const gExpanded = new Set();
+function gLabel(iri) {
+  const st = S.result.store;
+  const l = (st.getObjects(iri, RDFS + 'label', null)[0] || {}).value || S.conceptLabel[iri] || (COUNTRIES.find(c => c.iri === iri) || {}).name;
+  const short = iri.startsWith(S.result.plan.base) ? iri.slice(S.result.plan.base.length) : curie(iri);
+  return l ? `${l}\n${short}` : short;
+}
+function gColor(iri) {
+  const r = S.result, st = r.store;
+  if (r.mainSet.has(iri)) return { background: '#f6a090', border: '#c4412f' };
+  if (iri.startsWith(r.plan.base + 'geometry-')) return { background: '#d8ccf0', border: '#7d64b5' };
+  if (iri.startsWith(r.plan.base)) return { background: '#9fc3ff', border: '#3f6fbf' };
+  return { background: '#bfe8b3', border: '#4f9a3f' };  // ERA concepts, countries, languages, the IM role
+}
+function gAdd(iri) {
+  if (gNodes.get(iri)) return;
+  gNodes.add({ id: iri, label: gLabel(iri), shape: 'ellipse', color: gColor(iri), title: iri, font: { size: 12 } });
+}
+function gExpand(iri) {
+  if (gExpanded.has(iri) || !S.result) return;
+  gExpanded.add(iri);
+  const st = S.result.store, LIMIT = 40;
+  const out = st.getQuads(iri, null, null, null), inc = st.getQuads(null, null, iri, null);
+  let shown = 0;
+  for (const q of out) {
+    if (q.predicate.value === RDFS + 'label') continue;
+    if (shown++ >= LIMIT) break;
+    const pl = (S.ontoProps[q.predicate.value] || {}).label || curie(q.predicate.value);
+    if (q.object.termType === 'Literal') {
+      const id = `lit|${iri}|${q.predicate.value}|${q.object.value}`;
+      if (!gNodes.get(id)) gNodes.add({ id, label: q.object.value.length > 40 ? q.object.value.slice(0, 38) + '…' : q.object.value, shape: 'box',
+        color: { background: '#fdf0d5', border: '#d7a447' }, font: { size: 11 }, title: q.object.value + (q.object.language ? '@' + q.object.language : '  ' + curie(q.object.datatype.value)) });
+      gEdges.add({ from: iri, to: id, label: pl, arrows: 'to' });
+    } else {
+      gAdd(q.object.value);
+      gEdges.add({ from: iri, to: q.object.value, label: q.predicate.value === RDF + 'type' ? 'a' : pl, arrows: 'to' });
+    }
+  }
+  for (const q of inc.slice(0, LIMIT)) {
+    gAdd(q.subject.value);
+    if (!gEdges.get({ filter: e => e.from === q.subject.value && e.to === iri }).length)
+      gEdges.add({ from: q.subject.value, to: iri, label: (S.ontoProps[q.predicate.value] || {}).label || curie(q.predicate.value), arrows: 'to' });
+  }
+  if (out.length + inc.length > 2 * LIMIT) $('graphHint').textContent = `${curie(iri)} has many links: showing the first ${LIMIT} each way.`;
+}
+function gFocus(iri) {
+  if (!network) return;
+  gNodes.clear(); gEdges.clear(); gExpanded.clear();
+  gAdd(iri); gExpand(iri);
+  $('gFocus').value = iri;
+  setTimeout(() => network.fit({ animation: false }), 400);
+}
+async function ensureGraph() {
+  if (network) return;
+  if (!visLoad) visLoad = loadScript(VIS_URL, VIS_SRI);
+  await visLoad;
+  gNodes = new vis.DataSet(); gEdges = new vis.DataSet();
+  network = new vis.Network($('graph'), { nodes: gNodes, edges: gEdges }, {
+    physics: { solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -60, springLength: 130 }, stabilization: { iterations: 120 } },
+    edges: { font: { size: 10, color: '#4a5878', strokeWidth: 3, strokeColor: '#f4f6fb', align: 'middle' }, color: { color: '#9aa7c4' }, smooth: { type: 'dynamic' } },
+    nodes: { borderWidth: 1.5, font: { color: '#14213D', multi: false } }, interaction: { hover: true, tooltipDelay: 150 } });
+  network.on('doubleClick', p => { const id = p.nodes[0]; if (id && !String(id).startsWith('lit|')) gExpand(id); });
+}
+function prepareGraph() {
+  const r = S.result, st = r.store;
+  $('graphEmpty').hidden = true; $('graphUi').hidden = false;
+  const others = [...new Set(st.getSubjects(RDF + 'type', null, null).map(t => t.value))]
+    .filter(i => i.startsWith(r.plan.base) && !r.mainSet.has(i) && !i.startsWith(r.plan.base + 'geometry-')).sort();
+  const opt = i => `<option value="${esc(i)}">${esc(gLabel(i).replace('\n', ' · '))}</option>`;
+  $('gFocus').innerHTML = `<optgroup label="${esc(localName(r.cls))} (generated)">${r.main.map(opt).join('')}</optgroup>` +
+    (others.length ? `<optgroup label="Linked resources">${others.map(opt).join('')}</optgroup>` : '');
+  if (network) gFocus(r.main[0]);
+}
+async function showInGraph(iri) {
+  showTab('graph');
+  await ensureGraph();
+  gFocus(iri || S.result.main[0]);
+}
+
+/* ====================================================================== checks against the shapes */
+function renderChecks() {
+  const r = S.result, st = r.store, model = r.model, rows = [];
+  let pass = 0, fail = 0, warn = 0;
+  const allowedConcept = iri => Object.values(S.concepts).some(cs => cs.some(c => c.iri === iri)) || iri.startsWith(EU_COUNTRY) || iri.startsWith(EU_LANG);
+  const typedAs = (iri, cls) => st.getObjects(iri, RDF + 'type', null).some(t => t.value === cls || ((S.ontoClasses[t.value] || {}).supers || []).includes(cls));
+  for (const m of model.props) {
+    const issues = [];
+    let checked = 0;
+    for (const s of r.main) {
+      const vals = st.getObjects(s, m.path, null);
+      if (m.minCount && vals.length < m.minCount) issues.push(`${localName(s)}: ${vals.length} value(s), minCount ${m.minCount}${m.required ? '' : ' (Warning)'}`);
+      if (m.maxCount !== undefined && vals.length > m.maxCount) issues.push(`${localName(s)}: ${vals.length} values, maxCount ${m.maxCount}`);
+      if (m.qualified && m.qualified.cls && vals.filter(v => typedAs(v.value, m.qualified.cls)).length < m.qualified.min)
+        issues.push(`${localName(s)}: fewer than ${m.qualified.min} value(s) of class ${curie(m.qualified.cls)} (qualified)`);
+      for (const v of vals) {
+        checked++;
+        if (m.datatype) {
+          const ok = m.datatype === RDF + 'langString' ? v.termType === 'Literal' && !!v.language : v.termType === 'Literal' && v.datatype.value === m.datatype;
+          if (!ok) issues.push(`${localName(s)}: ${v.value.slice(0, 40)} is not ${curie(m.datatype)}`);
+        }
+        if (m.nodeKind === SH + 'IRI' && v.termType !== 'NamedNode') issues.push(`${localName(s)}: a literal where an IRI is required`);
+        if (m.nodeKind === SH + 'Literal' && v.termType !== 'Literal') issues.push(`${localName(s)}: an IRI where a literal is required`);
+        if (m.in && !m.in.some(t => t.value === v.value)) issues.push(`${localName(s)}: ${v.value} is not in sh:in`);
+        for (const p of m.patterns) { try { if (!new RegExp(p).test(v.value)) issues.push(`${localName(s)}: "${v.value.slice(0, 40)}" does not match ${p}`); } catch { /* regex dialect */ } }
+        const n = Number(v.value);
+        if (m.minIncl !== undefined && n < m.minIncl) issues.push(`${localName(s)}: ${n} < ${m.minIncl}`);
+        if (m.maxIncl !== undefined && n > m.maxIncl) issues.push(`${localName(s)}: ${n} > ${m.maxIncl}`);
+        for (const c of m.classes) {
+          if (c === SKOS + 'Concept') { if (!allowedConcept(v.value)) issues.push(`${localName(s)}: ${curie(v.value)} is not a known concept`); }
+          else if (!typedAs(v.value, c)) issues.push(`${localName(s)}: ${curie(v.value)} is not typed ${curie(c)} in the output`);
+        }
+      }
+    }
+    const used = r.main.some(s => st.getObjects(s, m.path, null).length);
+    if (!used && !m.minCount) continue;
+    const severe = issues.length && (m.required || !issues.every(i => /\(Warning\)/.test(i)));
+    if (!issues.length) pass++; else if (severe) fail++; else warn++;
+    rows.push(`<tr><td>${issues.length ? (severe ? '<span class="bad">✗</span>' : '<span class="warnc">!</span>') : '<span class="ok">✓</span>'}</td>
+      <td>${esc((m.onto && m.onto.label) || localName(m.path))}<br><code style="color:var(--dim)">${esc(curie(m.path))}</code></td>
+      <td>${esc([m.minCount || m.maxCount !== undefined ? `${m.minCount || 0}..${m.maxCount ?? '*'}` : '', m.datatype ? curie(m.datatype) : '', m.nodeKind ? curie(m.nodeKind) : '',
+        ...m.classes.map(curie), m.qualified ? `≥ ${m.qualified.min} ${curie(m.qualified.cls || '')} (qualified)` : '', m.in ? 'sh:in' : '', ...m.patterns.map(p => 'pattern'), m.minIncl !== undefined ? '≥ ' + m.minIncl : '', m.maxIncl !== undefined ? '≤ ' + m.maxIncl : ''].filter(Boolean).join(' · '))}</td>
+      <td>${checked}</td><td>${issues.length ? esc(issues.slice(0, 3).join('; ')) + (issues.length > 3 ? ` (+${issues.length - 3})` : '') : '<span class="ok">all values conform</span>'}</td></tr>`);
+  }
+  // closed shape: only declared or ignored properties may appear
+  const extra = new Set();
+  if (model.closed) for (const s of r.main) for (const q of st.getQuads(s, null, null, null)) if (!model.allowed.has(q.predicate.value)) extra.add(curie(q.predicate.value));
+  // node shapes that constrain the IRI itself (Body, OrganisationRole, ReferenceBorderPoint: the ERA namespace)
+  const iriNotes = [];
+  const outTypes = new Set(st.getQuads(null, RDF + 'type', null, null).filter(q => q.subject.value.startsWith(r.plan.base)).map(q => q.object.value));
+  for (const t of outTypes) for (const sh of (S.byTarget.get(t) || [])) for (const pat of sh.iriPatterns || []) {
+    let n = 0; try { const re = new RegExp(pat); n = st.getSubjects(RDF + 'type', t, null).filter(x => x.value.startsWith(r.plan.base) && !re.test(x.value)).length; } catch {}
+    if (n) iriNotes.push(`${n} ${localName(t)} IRI(s) do not match ${pat} (${curie(sh.iri)}): expected, synthetic IRIs stay outside data.europa.eu/949. Set the IRI base to that namespace only if you need them to conform.`);
+  }
+  const rules = model.sparqlRules.filter(x => x.message);
+  const HANDLED = [[/border point.*uopid|uopid.*EU/i, 'respected: border points get an "EU" uopid'], [/SOLnature of type Link|nature \(1\.1\.0\.0\.0\.6\)/i, 'respected: generated tracks carry no 1.1.1.1–1.1.1.3 parameters']];
+  $('checksEmpty').hidden = true;
+  $('checks').innerHTML = `
+    <p class="verdict">${fail ? `<span class="bad">✗ ${fail} constraint(s) violated</span>` : '<span class="ok">✓ The main instances conform to the core constraints of the shapes</span>'}${warn ? ` · <span class="warnc">${warn} warning(s)</span>` : ''}
+      ${model.closed ? (extra.size ? ` · <span class="bad">closed shape: unexpected ${esc([...extra].join(', '))}</span>` : ' · <span class="ok">closed shape respected</span>') : ''}</p>
+    <p class="hint">Checked in your browser for the ${r.main.length} ${esc(localName(r.cls))} instances, property by property: cardinality, datatype, node kind, <code>sh:in</code>, <code>sh:pattern</code>, ranges and <code>sh:class</code> (concepts against the ERA code lists, other classes against the generated types).
+      This is a SHACL Core subset, not a full SHACL engine. For a full check, validate the download with a SHACL engine against the same shapes, loading the ERA SKOS concept schemes too: concept values are <code>sh:class skos:Concept</code>.</p>
+    ${iriNotes.length ? `<p class="hint warnc">${iriNotes.map(esc).join('<br>')}</p>` : ''}
+    <table class="chkt"><thead><tr><th></th><th>Property</th><th>Shape constraints</th><th>Values</th><th>Result</th></tr></thead><tbody>${rows.join('')}</tbody></table>
+    <h3 style="font-size:13px;margin:18px 0 6px">SHACL-SPARQL rules of the class (${rules.length}) <span class="hint">not run here</span></h3>
+    <table class="chkt"><tbody>${rules.map(x => { const h = HANDLED.find(([re]) => re.test(x.message)); return `<tr><td>${h ? '<span class="ok">✓</span>' : '<span style="color:var(--dim)">–</span>'}</td><td>${esc(x.message.split(/(?<=[.:])\s/).slice(0, 2).join(' ').slice(0, 260))}</td><td style="color:var(--dim)">${h ? esc(h[1]) : 'not checked'}</td></tr>`; }).join('')}</tbody></table>`;
+}
+
+/* ====================================================================== how it works */
+function renderHow() {
+  const i = S.engineInfo;
+  $('pane-how').innerHTML = `
+    <h3>Three layers</h3>
+    <ol>
+      <li><b>Planner (this page).</b> For each selected property it reads the shapes (cardinality, datatype, class, <code>sh:in</code>, patterns, ranges), the
+        ontology (range, unit, concept scheme) and your country, and turns them into a rule. The tag next to each property shows the rule.</li>
+      <li><b>RDFGraphGen 1.2.0</b> runs unmodified in Pyodide. The rules are injected into its own shape dictionary as <code>sh:in</code> pools and ranges, and
+        its generator (<code>dictionary_to_rdf_graph</code>) creates the instances, applies the cardinalities and draws the values.</li>
+      <li><b>Realism layer.</b> RDFGraphGen knows no geography or identifiers, so this step adds the network layout (sections chained through shared operational
+        points), geometry, lengths computed from the geometry, names, uopids, the instance's own sub-resources and the linked resources. It also re-draws a few code
+        lists with realistic frequencies, because RDFGraphGen draws <code>sh:in</code> uniformly.</li>
+    </ol>
+    <h3>Why the planner is needed</h3>
+    <p>RDFGraphGen generates realistic values only for some schema.org classes. Everything else comes out as random strings or numbers:
+      a <code>xsd:double</code> or <code>rdf:langString</code> becomes an untyped string, and an IRI-valued property without <code>sh:class</code> becomes a literal.
+      In the RINF shapes, coded values (<code>era:solNature</code>, <code>era:opType</code>…) carry no <code>sh:in</code>; the allowed concepts are checked by
+      SHACL-SPARQL. The planner supplies the real concepts from the ontology's <code>era:inSkosConceptScheme</code>.</p>
+    <h3>Shapes, as RDFGraphGen sees them</h3>
+    <p>${i ? `${i.triples.toLocaleString()} triples, ${i.nodeShapes} node shapes. Removed before generation: ${i.removed['sh:not']} <code>sh:not</code>
+      (RDFGraphGen reads it as an RDF list, but SHACL gives it a single shape, which makes it fail) and ${i.removed['sh:sparql']} SHACL-SPARQL constraints, which RDFGraphGen does not use.` : 'Load the engine to see the details.'}
+      Property shapes with a non-predicate path (an <code>sh:alternativePath</code>) are left out, since RDFGraphGen reads predicate paths only.</p>
+    <h3>Sources</h3>
+    <p>Shapes: <a href="${SHAPES_URL}" target="_blank" rel="noopener">rinf-appGuide/shapes.ttl</a> (UAT${S.shapesModified ? ', ' + esc(S.shapesModified) : ''}).
+      Ontology and code lists: UAT ERA-Onto SPARQL endpoint. Network anchors: RINF (<code>rinf-plus</code>), the operational points of the selected country.
+      Main IM per country: the role with the most sections of line in RINF.</p>`;
+}
+
+/* ====================================================================== exports + link */
+function download(name, text, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const fileBase = () => { const r = S.result; return `rinf-synthetic-${localName(r.cls)}-${r.meta.country.iso3}-${r.meta.n}-seed${r.meta.seed}`; };
+function geojson() {
+  const r = S.result, st = r.store, features = [];
+  for (const q of st.getQuads(null, GEO + 'hasGeometry', null, null)) {
+    const w = st.getObjects(q.object, GEO + 'asWKT', null)[0], g = w && parseWkt(w.value);
+    if (!g) continue;
+    const coords = g.pts.map(([lat, lon]) => [lon, lat]);
+    features.push({ type: 'Feature', id: q.subject.value, geometry: g.type === 'POINT' ? { type: 'Point', coordinates: coords[0] } : { type: 'LineString', coordinates: coords },
+      properties: { iri: q.subject.value, label: (st.getObjects(q.subject, RDFS + 'label', null)[0] || {}).value, class: (st.getObjects(q.subject, RDF + 'type', null)[0] || {}).value, synthetic: true } });
+  }
+  return JSON.stringify({ type: 'FeatureCollection', features }, null, 1);
+}
+function saveHash() {
+  if (!S.cls) return;
+  const p = new URLSearchParams({ c: localName(S.cls), n: $('count').value, cc: $('country').value, seed: $('seed').value, preset: S.preset });
+  if (S.model && S.model.geomKind === 'sol') p.set('layout', S.layoutMode);
+  if (S.preset === 'custom') p.set('props', [...S.selected].map(curie).join(','));
+  if ($('base').value !== 'https://example.org/rinf-synthetic/') p.set('base', $('base').value);
+  if (!$('linked').checked) p.set('linked', '0');
+  history.replaceState(null, '', '#' + p.toString());
+}
+function readHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.get('n')) $('count').value = p.get('n');
+  if (p.get('cc') && COUNTRIES.some(c => c.iso3 === p.get('cc'))) $('country').value = p.get('cc');
+  if (p.get('seed')) $('seed').value = p.get('seed');
+  if (p.get('base')) $('base').value = p.get('base');
+  if (p.get('linked') === '0') $('linked').checked = false;
+  if (p.get('layout')) S.layoutMode = p.get('layout');
+  if (p.get('preset')) S.preset = p.get('preset');
+  return { cls: p.get('c') ? ERA + p.get('c') : ERA + 'SectionOfLine', props: p.get('props') };
+}
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + name));
+  if (name === 'map' && map) setTimeout(() => map.invalidateSize(), 30);
+  if (name === 'graph' && S.result) ensureGraph().then(() => { if (!gNodes.length) gFocus(S.result.main[0]); else network.redraw(); })
+    .catch(() => { $('graphHint').textContent = 'The graph library could not be loaded (unpkg.com blocked?).'; });
+}
+
+/* ====================================================================== wiring + start */
+function wire() {
+  $('country').innerHTML = COUNTRIES.map(c => `<option value="${c.iso3}">${esc(c.name)} · IM ${c.im}</option>`).join('');
+  $('country').value = 'FRA';
+  $('clsSearch').addEventListener('input', renderClassList);
+  document.querySelectorAll('#presets .btn').forEach(b => b.addEventListener('click', () => {
+    S.preset = b.dataset.preset; S.selected = presetSelection(S.model, S.preset); markPreset(); renderProps(); saveHash(); }));
+  document.querySelectorAll('[data-layout]').forEach(b => b.addEventListener('click', () => {
+    S.layoutMode = b.dataset.layout; document.querySelectorAll('[data-layout]').forEach(x => x.classList.toggle('on', x === b)); saveHash(); }));
+  ['count', 'country', 'seed', 'base', 'linked'].forEach(id => $(id).addEventListener('change', saveHash));
+  $('dice').addEventListener('click', () => { $('seed').value = Math.floor(Math.random() * 99999) + 1; saveHash(); });
+  $('go').addEventListener('click', generate);
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  $('dlTtl').addEventListener('click', () => download(fileBase() + '.ttl', S.result.ttl, 'text/turtle'));
+  $('dlNt').addEventListener('click', () => download(fileBase() + '.nt', S.result.nt, 'application/n-triples'));
+  $('dlJsonld').addEventListener('click', () => download(fileBase() + '.jsonld', S.py.globals.get('convert')(S.result.nt, 'json-ld'), 'application/ld+json'));
+  $('dlGeo').addEventListener('click', () => download(fileBase() + '.geojson', geojson(), 'application/geo+json'));
+  $('copyTtl').addEventListener('click', async () => { await navigator.clipboard.writeText(S.result.ttl); flash($('copyTtl'), 'Copied'); });
+  $('copyLink').addEventListener('click', async () => { saveHash(); await navigator.clipboard.writeText(location.href); flash($('copyLink'), 'Link copied'); });
+  $('gFocus').addEventListener('change', () => gFocus($('gFocus').value));
+  $('gReset').addEventListener('click', () => gFocus($('gFocus').value));
+  $('gFit').addEventListener('click', () => network && network.fit());
+  document.addEventListener('click', e => { const a = e.target.closest('[data-graph]'); if (a) { e.preventDefault(); showInGraph(a.dataset.graph); } });
+}
+function flash(btn, text) { const t = btn.textContent; btn.textContent = text; setTimeout(() => btn.textContent = t, 1400); }
+
+async function start() {
+  wire(); initMap(); renderHow();
+  const want = readHash();
+  document.querySelectorAll('[data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === S.layoutMode));
+  try {
+    setEngine('busy', 'Loading the RINF shapes (UAT)…');
+    const res = await fetch(SHAPES_URL, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' from ' + new URL(SHAPES_URL).host);
+    S.shapesModified = res.headers.get('Last-Modified');
+    S.shapesTtl = await res.text();
+    indexShapes(S.shapesTtl);
+    setEngine('busy', 'Reading the ontology (UAT ERA-Onto)…');
+    try { await loadOntology(); } catch (e) { console.warn('ontology', e); $('err').innerHTML = '<div class="msg err">The ontology could not be read: labels, units and code lists are missing, so many properties fall back to RDFGraphGen\'s defaults.</div>'; }
+    $('sources').innerHTML = `<span>Shapes: UAT rinf-appGuide${S.shapesModified ? ' · ' + esc(new Date(S.shapesModified).toISOString().slice(0, 10)) : ''} · ${S.nodeShapes.size} node shapes</span>
+      <span>Ontology + SKOS: UAT ERA-Onto</span><span>Anchors: RINF operational points</span>`;
+    const cls = S.byTarget.has(want.cls) ? want.cls : ERA + 'SectionOfLine';
+    await selectClass(cls);
+    if (want.props) {
+      const wanted = want.props.split(',').map(x => x.startsWith('era:') ? ERA + x.slice(4) : x.startsWith('geo:') ? GEO + x.slice(4) : x.startsWith('rdfs:') ? RDFS + x.slice(5) : x);
+      S.selected = new Set([...presetSelection(S.model, 'mandatory'), ...wanted.filter(p => S.model.props.some(m => m.path === p))]);
+      S.preset = 'custom'; markPreset(); renderProps();
+    }
+    setEngine('busy', 'Shapes ready. Starting the Python engine in the background…');
+    startEngine().catch(async e => showError({ title: 'The Python engine could not start', message: 'Pyodide or a PyPI package could not be loaded. A network filter may block cdn.jsdelivr.net or pypi.org.', detail: String(e && e.message || e) }));
+  } catch (e) {
+    console.error(e); setEngine('err', 'The shapes could not be loaded.');
+    showError(await describeFetchError(e, SHAPES_URL));
+  }
+}
+start();
+</script>
+</body>
+</html>
