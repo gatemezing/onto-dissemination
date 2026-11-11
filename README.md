@@ -7,9 +7,11 @@ Railways at `graph.data.era.europa.eu`.
 
 Every tool is a single self-contained HTML file — no build step, no server —
 that queries the live SPARQL endpoints directly from the browser and exports
-results as CSV or Excel. The only external code is Leaflet in the map tools and
+results as CSV or Excel. The external code is Leaflet in the map tools and
 N3.js in the SHACL Shape Viewer, both pinned to a version and checked with
-SRI. The one tool that doesn't query live is the ERADIS Explorer, which
+SRI. The Synthetic RINF Data page also loads Pyodide 0.28.3 and vis-network 9.1.9
+(pinned, SRI-checked) and installs RDFGraphGen 1.2.0, rdflib 7.6.0 and exrex 0.12.0
+from PyPI at pinned versions. The one tool that doesn't query live is the ERADIS Explorer, which
 searches a snapshot because its endpoint asks for a login (see
 [Data snapshots](#data-snapshots)).
 
@@ -26,6 +28,7 @@ searches a snapshot because its endpoint asks for a login (see
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
+| Synthetic RINF Data (realistic synthetic Turtle from the UAT SHACL shapes with RDFGraphGen, with map, graph, checks and export) | https://gatemezing.github.io/onto-dissemination/synthetic.html |
 | SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 | Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
