@@ -125,3 +125,7 @@ html.dark {
 .slidev-layout .hero { padding: 8px; }
 .slidev-layout .hero .n { font-size: 1.9rem; }
 .slidev-layout h3 { line-height: 1.25; }
+
+/* attribution line for slides adapted from other decks */
+.credit { position: absolute; left: 3.5rem; bottom: 2.15rem; font-size: 10.5px; color: var(--c-ink-subtle); }
+.credit i { font-style: italic; }

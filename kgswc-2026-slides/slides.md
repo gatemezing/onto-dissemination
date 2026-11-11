@@ -98,7 +98,7 @@ layout: section
 <div v-click class="card mt-5">It underpins <b>RINF</b> and the <b>vehicle registers</b>, whose data form the <b>ERA Knowledge Graph</b>, used e.g. for route-compatibility checks. Spatial, temporal and organisational semantics are reused from GeoSPARQL, OWL-Time, FOAF and ORG.</div>
 
 <!--
-[1:00 → 1:50]
+[1:00 → 1:40]
 The ERA Ontology is the reference vocabulary of the Agency. Version 3.3.2 is our baseline: about a hundred classes and seven hundred and fifty properties.
 Its RINF part has five groups (click through them). Infrastructure, technical characteristics, topology, organisations, and operational locations: primary and subsidiary locations, which will matter a lot later.
 Everything so far is static: registers that describe the network and the vehicles. That is what the earlier ISWC paper covered.
@@ -118,13 +118,29 @@ clicks: 3
 <StationGraph :step="$clicks" class="mt-1" />
 
 <!--
-[1:50 → 2:50]
+[1:40 → 2:30]
 To make it concrete: a real resource, Valenciennes station, where the Agency is based. Live data from the rinf-plus graph, published by SNCF Réseau.
 It is an operational point: RINF's word for any place where trains do something, a station, a junction, a border. It has an EU-wide identifier, a type and a country. The green dots mark coded values: "station" and "France" are concepts from controlled lists, SKOS concept schemes. Keep that in mind: the telematics code lists will work the same way.
 (click) Where it is: a point on the map, and a position along each of the three national lines through the station.
 (click) What it contains: era:hasPart leads to its tracks, eight running tracks and a siding. One of them, Voie A: standard gauge; a train radio with roaming agreements for nine networks (Belgium, Switzerland, Germany, Spain, France, Great Britain, Italy, Luxembourg, the Netherlands); part of the North Sea–Mediterranean freight corridor; managed by SNCF Réseau. Its platform, Quai 1: 464 metres usable, 58 centimetres high.
 (click) And two primary locations: the codes that path requests and train-running messages use to say "Valenciennes". That is exactly where messages meet the register, which is the next slide.
 Query used (rinf-plus): DESCRIBE-style SELECT on operationalPoint/83728fa739, track/669db3f795, platformEdge/1e0ce8c500; organisation name from OCR-KG (code 0087).
+-->
+
+---
+
+# One graph, many applications
+
+<AppMontage src="/assets/one-graph-many-apps.mp4" poster="/assets/one-graph-many-apps-poster.jpg" class="-mt-1" />
+
+<div class="text-xs muted mt-2 text-center">Live recording, 11 Nov 2026 · <b>ERA RINF unified search</b> (rinf.data.era.europa.eu) · <b>RINF Atlas</b> (rinf-atlas.matdata.eu, M. Vanden Auweele) · click to pause</div>
+
+<!--
+[2:30 → 3:30]
+The same station, live, in two applications. The video plays by itself for about a minute; talk over it.
+The official RINF unified search: every filter is a RINF parameter, and every RINF parameter is an ERA Ontology property. Unique OP ID, index 1.2.0.0.0.2, is era:uopid. Filter on Valenciennes' code: one row, France, station, its tracks. And "View Query" shows what runs underneath: SPARQL over the ERA Ontology.
+Then RINF Atlas, a community application built by a colleague on the same open data. Search by name, fly to the station: the same IRI, the same graph 0087, and a graph view with the same structure as the previous slide.
+The point: once the data is in the ontology, applications come for free, and they agree, because they share the IRI. That is what we want for telematics messages too.
 -->
 
 ---
@@ -158,7 +174,7 @@ Query used (rinf-plus): DESCRIBE-style SELECT on operationalPoint/83728fa739, tr
 </div>
 
 <!--
-[2:50 → 4:00]
+[3:30 → 4:30]
 What changed this year: the new Telematics TSI. It merges the freight and passenger specifications and names the ERA Ontology as the common semantic model.
 (click) And at the same time everybody is migrating company codes to the new alphanumeric Organization Code.
 Messages, path requests, train running information, consignments, touch the core at three anchor points (click ×3): locations, organisations, vehicles.
@@ -224,7 +240,7 @@ Messages, path requests, train running information, consignments, touch the core
 </style>
 
 <!--
-[4:00 → 5:10]
+[4:30 → 5:30]
 Which schemas are we talking about? The TSI comes with technical documents, version 4.0, published with the regulation in February.
 TAP B5 is about booking seats and issuing tickets between railways: a distributor, an RU or a ticket vendor, asks the attributor, the RU that owns the seat inventory and the fares, for availability, a reservation or a cancellation. There is an old fixed-length binary format and an XML format; we lift the XML one. Ticket layout and barcodes are in B11 and B12.
 TAP B10 books assistance for persons with reduced mobility: an RU asks for help at a station run by someone else. Its model has bookings, customers, assistance, stations, platforms, trains, train stops.
@@ -263,7 +279,7 @@ layout: section
 </div>
 
 <!--
-[5:20 → 6:30]
+[5:40 → 6:40]
 XML guarantees that a message is well formed. It does not guarantee that two systems read it the same way.
 (click) And the schemas mix three things that a knowledge graph should keep apart.
 (click) Domain concepts: what the message is about.
@@ -310,7 +326,7 @@ ex:MessageShape a sh:NodeShape ;
 <div class="text-xs muted mt-2">Illustrative <code>ex:</code> terms, not ERA vocabulary.</div>
 
 <!--
-[6:30 → 7:20]
+[6:40 → 7:30]
 Why does this matter? Take "exactly one sender".
 As an OWL cardinality restriction, a message without a sender is perfectly consistent (click): the reasoner concludes that some sender exists that we don't know.
 As a SHACL shape (click), the same message is a violation. An XSD behaves like the right-hand side: it rejects the document.
@@ -340,7 +356,7 @@ As a SHACL shape (click), the same message is a violation. An XSD behaves like t
 <div v-click class="tk mt-5 text-lg">🎯 <b>Objective</b>: lift each kind of XSD semantics to the W3C language designed for it, <b>automatically, in one schema-driven run</b>, with the three layers <b>linked</b>, and deliver the result as the telematics extension of the ERA Ontology.</div>
 
 <!--
-[7:20 → 8:10]
+[7:30 → 8:10]
 Related work splits in two. Declarative mapping languages are expressive but need a mapping per message type. Schema-lifting tools like XMLSchema2ShEx keep constraints but produce no ontology and no code lists.
 The two lines are complementary: in our pipeline the schemas are lifted by xsd2rdf, and the messages by declarative mappings.
 (click) So the objective: one run, three languages, linked.
@@ -407,39 +423,12 @@ clicks: 4
 </div>
 
 <!--
-[9:00 → 10:10]
+[9:00 → 10:00]
 This is the core design, Table 1 of the paper. Same fragment of the TAF schema.
 1 Complex types, elements, attributes and type extension go to OWL: reusable domain meaning, where the open-world reading is right.
 2 Occurrences, choices, patterns, length and value facets go to SHACL: closed-world validation.
 3 Enumerations go to SKOS, because code lists evolve independently and are reused across messages. A SHACL constraint checks membership in the scheme (dashed line).
 4 And the layers stay navigable: from a property you can reach its shape and its concept scheme.
--->
-
----
-
-# Transformation rules
-
-<div class="rosetta mt-2">
-
-| XSD construct | <span class="pill owl">OWL</span> | <span class="pill shacl">SHACL</span> | <span class="pill skos">SKOS</span> |
-|---|---|---|---|
-| `complexType` | `owl:Class` | `sh:NodeShape` | – |
-| element / attribute of simple type | `owl:DatatypeProperty`, `rdfs:range xsd:*` | `sh:PropertyShape`, `sh:datatype` | – |
-| element of complex type | `owl:ObjectProperty`, `rdfs:range` class | `sh:class` / `sh:node` | – |
-| `extension` | `rdfs:subClassOf` | shape reuses base properties | – |
-| `minOccurs` / `maxOccurs` | (existence only) | `sh:minCount` / `sh:maxCount` | – |
-| `choice` | (approximated) | `sh:xone` | – |
-| `pattern`, `min/maxLength`, `min/maxInclusive` | – | `sh:pattern`, `sh:min/maxLength`, `sh:min/maxInclusive` | – |
-| `enumeration` | `owl:ObjectProperty`, `rdfs:range skos:Concept` | `sh:class skos:Concept` + SPARQL `skos:inScheme` check | `skos:ConceptScheme`, `skos:Concept`, `skos:notation` |
-| `documentation` | `rdfs:comment` | `sh:description` | `skos:prefLabel` |
-
-</div>
-
-<div class="text-sm muted mt-3"><code>xsd:all</code> and <code>xsd:choice</code> are enforced in SHACL but only approximated in OWL, which expresses neither ordering nor exclusivity.</div>
-
-<!--
-[10:10 → 10:30]
-The rules in one table; I won't read it. Two things to notice: cardinalities never become OWL restrictions, only existence; and every enumeration produces something in all three languages.
 -->
 
 ---
@@ -451,11 +440,85 @@ clicks: 3
 <Pipeline :step="$clicks" />
 
 <!--
-[10:30 → 11:30]
+[10:00 → 10:50]
 It runs as a continuous-integration workflow in seven stages. Four schema families: TAF, two TAP families (B5 and B10) and NeTEx, each with its imports and includes.
 1 Generation emits one OWL file, one SHACL file and one SKOS file per code list. Post-processing places terms in the era: namespace and derives readable labels. It is deterministic: the same XSD release gives the same artifacts, so every term traces back to its normative source.
 2 Merge builds one graph per family and a combined one without NeTEx; publication goes to the vocabulary portal.
 3 On the instance side, messages are lifted with RML and validated against the generated shapes; competency questions run on top.
+-->
+
+---
+
+# Post-processing in layers
+
+<div class="-mt-2 mb-3"><span class="pill grey">stage 3 of the pipeline, opened up</span></div>
+
+<div class="ppl">
+  <div class="ppl-box"><b>10-raw</b><span>converter output, never edited</span></div>
+  <div class="ppl-box"><b>20-clean</b><span>source repairs, no ERA knowledge</span><em>12 rules</em></div>
+  <div class="ppl-box hl"><b>30-harmonised</b><span>align with ERA core and across sources</span><em>42 rules</em></div>
+  <div class="ppl-box"><b>40-bundle</b><span>merge, suffixes, provenance, IRIs</span><em>13 rules</em></div>
+  <div class="ppl-box"><b>50-checks</b><span>OWL, SHACL, ERA conflicts, messages</span><em>15 checks</em></div>
+  <div class="ppl-box"><b>60-docs</b><span>generated Pages site</span></div>
+</div>
+
+<div class="grid grid-cols-3 gap-4 mt-5">
+<div v-click class="tk"><b>One rule, one decision</b><br>A SPARQL update or a small script, with a header that names its work items and its policy.</div>
+<div v-click class="tk"><b>Counted</b><br>Each rule states how many terms it changes per source (<code>expects: taf=12, b5=0</code>). The build fails when that changes.</div>
+<div v-click class="tk"><b>Traceable</b><br>Every rename lands in the OWL, SHACL, SKOS and provenance, and the message conversion follows it.</div>
+</div>
+
+<div class="credit">Adapted from M. Vanden Auweele, <i>What the telematics sources get wrong</i>, ERA, Nov. 2026 · CC BY 4.0 · pipeline status Nov. 2026, after the paper</div>
+
+<style>
+.ppl { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.ppl-box { background: var(--c-surface); border: 1px solid var(--c-stroke); border-top: 4px solid var(--c-blue); border-radius: 8px; padding: 8px; text-align: center; font-size: 0.8rem; line-height: 1.25; }
+.ppl-box.hl { border-top-color: var(--c-yellow); background: var(--c-warn-bg); }
+.ppl-box b { display: block; font-size: 0.95rem; margin-bottom: 4px; color: var(--c-heading); }
+.ppl-box span { color: var(--c-ink-mod); display: block; }
+.ppl-box em { display: block; font-style: normal; font-weight: 700; margin-top: 4px; color: var(--c-blue); }
+</style>
+
+<!--
+[10:50 → 11:40]
+Stage 3 of the pipeline, post-processing, as it works today; this is after the paper, and the slides are adapted from my colleague Mathias Vanden Auweele.
+The converter output is never edited: every repair is a numbered rule in a layer. 20-clean repairs what is broken in the source itself, with no ERA knowledge. 30-harmonised is where meaning is added: alignment with the ERA core. 40-bundle merges the sources.
+(click ×3) One rule, one decision. Each rule is counted, so a new schema release that changes the picture breaks the build instead of slipping through. And everything is traceable down to the message conversion.
+-->
+
+---
+
+# The rules, by what they repair
+
+<div class="rosetta mt-1 rules">
+
+| Theme | Rules | Terms changed | Examples |
+|---|---:|---:|---|
+| Repair the source text | 6 | 464 | code meanings onto concepts (366), long labels split (64), broken encoding, wrong Height text |
+| Remove dead weight, mark deprecated | 5 | 493 | unused B.5 types (396), OSDM hypermedia links (88), "not used" / "obsolete" → `owl:deprecated` |
+| Give homonyms their own names | 13 | 202 | Appendix E message reference, B.10 PRM classes (46), B.5 code-list splits (37), case-only clashes |
+| Code lists | 6 | 264 | free text → concept scheme, ERA subsidiary location types, merge same-meaning lists (59) |
+| Reference data → RINF IRIs | 8 | 209 | `LocationIdent` points at the RINF location; company codes → RINF organisation (125) |
+| ERA core namesakes | 3 | 12 | reuse `era:length`, rename what only shares a name (`era:tokenValue`) |
+| Standard patterns | 13 | 354 | `era:Message` (63), OWL-Time periods, units (105), GeoSPARQL points, sequence numbers, ISO codes |
+| Merge the bundle (40-bundle) | 13 | mechanical | DP/OP suffix where one kind, unions of domains, shape source segments, ERA concept IRIs, provenance |
+
+</div>
+
+<div class="text-xs muted mt-2">20-clean and 30-harmonised rules on <code>main</code> (88e7c9b); "terms changed" sums each rule's <code>expects</code> counts over all sources. Highlighted: the two rows that close the loop with slides 5 and 23.</div>
+
+<div class="credit">Adapted from M. Vanden Auweele, <i>What the telematics sources get wrong</i>, ERA, Nov. 2026 · CC BY 4.0 · pipeline status Nov. 2026, after the paper</div>
+
+<style>
+.rules table { font-size: 0.72rem; }
+.rules tbody tr:nth-child(5) td, .rules tbody tr:nth-child(6) td { background: var(--c-blue-bg); }
+</style>
+
+<!--
+[11:40 → 12:20]
+The 54 rules of 20-clean and 30-harmonised, grouped by what they repair: about 2,000 counted changes to the generated terms.
+Two rows close loops in this talk. Reference data: a LocationIdent in a message now points at the RINF location, the very primary location of Valenciennes we saw on slide 5. And ERA core namesakes: era:length, one of the conflicts of slide 23, is now reused, and what only shares a name gets its own.
+The 40-bundle rules are mechanical: they change thousands of triples, but they add no meaning.
 -->
 
 ---
@@ -500,7 +563,7 @@ b13:1001 a skos:Concept ; skos:inScheme b13:BorderPointTypeCodeList ;
 </div>
 
 <!--
-[11:30 → 12:10]
+[12:20 → 13:00]
 The running example end to end. Two XSD fragments: the CompanyCode pattern and the border-point code list.
 (click) OWL: the message class, and the code-list property pointing to its scheme.
 (click) SHACL: the pattern on era:company, and the membership check for border points: a SPARQL constraint that the concept is in scheme B.1.3.
@@ -550,7 +613,7 @@ The running example end to end. Two XSD fragments: the CompanyCode pattern and t
 </div>
 
 <!--
-[12:10 → 13:10]
+[13:00 → 13:50]
 A fragment of a real path-confirmed message, and its RDF form. Note the division of labour: xsd2rdf produced the vocabulary and the shapes; the message is lifted by a mapping.
 Live demo: 2171 and 0071, legacy codes: valid. An alphanumeric code: valid. 07A: rejected.
 -->
@@ -591,6 +654,8 @@ layout: section
 
 <div class="text-xs muted mt-2">Only <code>xsd:all</code> is used by none of the schemas; the converter supports it anyway. Full matrix in the paper's appendix.</div>
 
+<div class="card mt-3 text-sm"><b>OOPS!</b> on TAP B10: no parse failure. Missing disjointness and inverses are expected from XSDs: the report is a <b>review queue</b>, not a pass/fail (backup slide).</div>
+
 </div>
 <div>
 
@@ -622,52 +687,11 @@ layout: section
 </style>
 
 <!--
-[13:20 → 14:10]
+[14:00 → 15:00]
 All 57 XSD constructs found in the TEL TSI schemas are supported. TAF is the richest, using 55.
 Every one of the 2,630 files parses with a parser independent of the pipeline.
+OOPS! on the TAP B10 module found real defects the generator can fix (missing annotations, an untyped class) and expected ones (no disjointness, no inverses: the XSDs state neither). Details on the backup slide.
 (click) NeTEx is 80 % of the files: code lists, mostly. Remember that for the integration strategy.
--->
-
----
-
-# Ontology pitfalls with OOPS!
-
-<div class="text-sm muted">Post-processed TAP B10 module; no parsing failure. On NeTEx the OOPS! web service timed out after 60 s, so NeTEx relies on parser validation.</div>
-
-<div class="grid grid-cols-3 gap-4 mt-4">
-<div class="layer" style="border-top-color: var(--c-bad)">
-<span class="pill" style="background: var(--c-bad-bg); color: var(--c-bad)">genuine defects · fix in generator</span>
-
-- **P08** 102 missing annotations · minor
-- **P34** 1 untyped class · important
-- P04 1 unconnected element · minor
-- P20 10 annotation issues · minor
-- P22 1 naming inconsistency · minor
-
-</div>
-<div class="layer" style="border-top-color: var(--c-good)">
-<span class="pill" style="background: var(--c-good-bg); color: var(--c-good)">expected by design</span>
-
-- **P10** missing disjointness · important
-- **P13** 43 undeclared inverses · minor
-
-<div class="text-sm mt-2">The XSDs state neither. Adding them automatically would add <b>commitments absent from the regulation</b>.</div>
-</div>
-<div class="layer" style="border-top-color: var(--c-yellow)">
-<span class="pill" style="background: var(--c-warn-bg); color: var(--c-warn-ink)">to review</span>
-
-- **P11** 54 properties without domain or range · important
-
-</div>
-</div>
-
-<div v-click class="tk mt-5 text-lg">For schema-derived ontologies, OOPS! is a <b>review queue</b>, not a pass/fail criterion.</div>
-
-<!--
-[14:10 → 14:50]
-OOPS! on the TAP B10 module. Some pitfalls are real defects the generator can fix: missing annotations, the untyped class.
-Others are expected: the XSDs say nothing about disjointness or inverses, and inventing them would put commitments in the ontology that the regulation does not make.
-(click) So we treat the report as a review queue.
 -->
 
 ---
@@ -687,7 +711,7 @@ Others are expected: the XSDs say nothing about disjointness or inverses, and in
 <div v-click class="card warn mt-3 text-sm">📍 Most remaining conflicts sit at the <b>location anchor</b>. These are <b>proposals</b>; the decisions rest with the <b>ERA Ontology CCM board</b>.</div>
 
 <!--
-[14:50 → 16:00]
+[15:00 → 16:00]
 Because TAF and TAP terms are destined for the core, the pipeline compares every module with the ERA Ontology.
 In the June release, TAF had 13 URI collisions and 8 property type conflicts. A preliminary re-run with xsd2rdf 1.6.0, which separates datatype and object properties that share a name (era:length versus era:lengthReference), brings these down to 6 and 1. Hover for each pair. NeTEx, 38 and 20, was not re-run yet.
 (click ×3) Three of the remaining ones: the code as a string or an integer; the label; and a real homonym: start and end location mean the ends of a tunnel in the core, journey locations in TAF. Only a curated decision can resolve that.
@@ -751,7 +775,7 @@ SELECT (COUNT(?loc) AS ?handoverCount) WHERE {
 </style>
 
 <!--
-[16:00 → 16:50]
+[16:00 → 16:40]
 The functional test: 92 competency questions written with domain experts, published on the pipeline wiki. Strongest coverage on the path life-cycle.
 Q2 counts the hand-over points on a train path. The location type code is a SKOS concept (click), matched through its notation, so the query works whatever label the code list carries.
 (click) And because each CQ is executable, the catalogue protects every later release.
@@ -776,7 +800,7 @@ clicks: 3
 <ModuleMap :step="$clicks" />
 
 <!--
-[17:00 → 17:50]
+[16:50 → 17:30]
 The integration strategy.
 1 TAF and TAP go into the core: they are railway-operational notions from the same regulatory source, of moderate size.
 2 NeTEx stays the only separate module, in its own namespace. It imports the core where it needs to; the core never imports NeTEx. Links between generated and existing terms live in curated alignment modules with weak relations (closeMatch, subClassOf), not equivalence. Code lists remain separate modules because they change at a different rhythm.
@@ -843,12 +867,63 @@ The integration strategy.
 </style>
 
 <!--
-[17:50 → 18:40]
+[17:30 → 18:10]
 The converter did not stand still after the paper. Our conflict numbers came from 1.6.0, in August. Since then: 2.0 and 2.1, in October.
-(click) Three of the fidelity gaps from the paper are closed: patterns are anchored, which is exactly the case on slide 18; facet bounds are typed; digit facets become SPARQL constraints. whiteSpace is still ignored.
+(click) Three of the fidelity gaps from the paper are closed: patterns are anchored, which is exactly the case on slide 20; facet bounds are typed; digit facets become SPARQL constraints. whiteSpace is still ignored.
 (click) New: keys and key references become constraints, and with --source-provenance every generated term points to the XSD component it came from, as a W3C component designator. That makes the traceability we claim machine-readable.
 (click) The price: IRIs and OWL output change. So the extension has to be regenerated and the conflict report and the competency questions re-run before v4.0.0. Which is exactly the release loop on the next slide.
 If asked about determinism: 2.0 lists "the output is the same on every run" under Fixed (#27), so 1.x runs were not always identical. Check with the developers what differed before answering.
+-->
+
+---
+
+# Every decision is a written policy
+
+<div class="grid grid-cols-3 gap-4 mt-1 text-center">
+<div class="hero"><div class="l">policies</div><div class="n">31</div><div class="l">24 harmonisation · 5 message conversion · 2 pipeline</div></div>
+<div class="hero" style="background: var(--c-blue-bg); border-color: var(--c-blue)"><div class="l">accepted</div><div class="n">7</div><div class="l">work item closed by the ontology owner</div></div>
+<div class="hero"><div class="l">awaiting acceptance</div><div class="n">24</div><div class="l">implemented, work item still open</div></div>
+</div>
+
+<div class="grid grid-cols-2 gap-x-6 mt-3 text-sm pol">
+<div>
+
+**Accepted**
+- `LocationIdent` stays a reference and points at the RINF location
+- Keep the DP/OP suffix until after the merge, drop it only for one kind
+- Free-text code fields become a concept scheme
+- Every link to ERA core flagged with `era:coreInterface`
+- No `owl:FunctionalProperty`; cardinality only in SHACL
+- Provenance without PROV-O
+- TAF company codes refer to the RINF organisation and its role
+
+</div>
+<div>
+
+**Awaiting acceptance (selection)**
+- Reuse an ERA core property only when meaning and domain fit
+- A reused name is one term unless a reviewed rule splits it
+- Reuse, match, merge or split code lists by codes and meaning
+- Types no element uses are not published
+- Order of repeated elements is `era:sequenceNumber`
+- Deprecated source terms stay, archaic, with their replacement
+- NeTEx is a separate bundle in its own namespace
+
+</div>
+</div>
+
+<div class="credit">Adapted from M. Vanden Auweele, <i>What the telematics sources get wrong</i>, ERA, Nov. 2026 · CC BY 4.0 · pipeline status Nov. 2026, after the paper</div>
+
+<style>
+.pol ul { margin-top: 2px; } .pol li { margin: 1px 0; line-height: 1.3; }
+.pol code { font-size: .75rem; }
+</style>
+
+<!--
+[18:10 → 19:00]
+This is how "the decisions rest with the CCM board" works in practice. Every rule implements a written policy, and a policy is accepted only when the ontology owner closes its work item.
+Seven are accepted. Note two that are the paper's design choices made official: no owl:FunctionalProperty, cardinality only in SHACL; and LocationIdent points at the RINF location.
+24 are implemented and awaiting acceptance, among them NeTEx as a separate bundle in its own namespace, the integration strategy of slide 26.
 -->
 
 ---
@@ -895,7 +970,7 @@ Publish **SPARQL query sets** for cross-border operational analytics.
 </style>
 
 <!--
-[18:40 → 19:20]
+[19:00 → 19:30]
 Three next steps. Regenerate with 2.1, then the conflict decisions with the board, then integration. Of the fidelity gaps, three are closed in the converter; whiteSpace and the concept-scheme renaming in post-processing remain. And reference query sets for cross-border analytics.
 Because the schemas change twice a year, each release follows the same loop; these reports are the evidence base for the board.
 -->
@@ -915,7 +990,7 @@ class: text-center
 </div>
 
 <!--
-[19:20 → 19:45]
+[19:30 → 19:45]
 Four lessons, if you remember only one: give each kind of semantics its own language.
 -->
 
@@ -947,4 +1022,73 @@ hideLogo: true
 <!--
 [19:45 → 20:00]
 Everything is open, under the EUPL. Thank you; happy to take questions.
+-->
+
+---
+
+# Backup · Transformation rules
+
+<div class="rosetta mt-2">
+
+| XSD construct | <span class="pill owl">OWL</span> | <span class="pill shacl">SHACL</span> | <span class="pill skos">SKOS</span> |
+|---|---|---|---|
+| `complexType` | `owl:Class` | `sh:NodeShape` | – |
+| element / attribute of simple type | `owl:DatatypeProperty`, `rdfs:range xsd:*` | `sh:PropertyShape`, `sh:datatype` | – |
+| element of complex type | `owl:ObjectProperty`, `rdfs:range` class | `sh:class` / `sh:node` | – |
+| `extension` | `rdfs:subClassOf` | shape reuses base properties | – |
+| `minOccurs` / `maxOccurs` | (existence only) | `sh:minCount` / `sh:maxCount` | – |
+| `choice` | (approximated) | `sh:xone` | – |
+| `pattern`, `min/maxLength`, `min/maxInclusive` | – | `sh:pattern`, `sh:min/maxLength`, `sh:min/maxInclusive` | – |
+| `enumeration` | `owl:ObjectProperty`, `rdfs:range skos:Concept` | `sh:class skos:Concept` + SPARQL `skos:inScheme` check | `skos:ConceptScheme`, `skos:Concept`, `skos:notation` |
+| `documentation` | `rdfs:comment` | `sh:description` | `skos:prefLabel` |
+
+</div>
+
+<div class="text-sm muted mt-3"><code>xsd:all</code> and <code>xsd:choice</code> are enforced in SHACL but only approximated in OWL, which expresses neither ordering nor exclusivity.</div>
+
+<!--
+[backup]
+The rules in one table; I won't read it. Two things to notice: cardinalities never become OWL restrictions, only existence; and every enumeration produces something in all three languages.
+-->
+
+---
+
+# Backup · Ontology pitfalls with OOPS!
+
+<div class="text-sm muted">Post-processed TAP B10 module; no parsing failure. On NeTEx the OOPS! web service timed out after 60 s, so NeTEx relies on parser validation.</div>
+
+<div class="grid grid-cols-3 gap-4 mt-4">
+<div class="layer" style="border-top-color: var(--c-bad)">
+<span class="pill" style="background: var(--c-bad-bg); color: var(--c-bad)">genuine defects · fix in generator</span>
+
+- **P08** 102 missing annotations · minor
+- **P34** 1 untyped class · important
+- P04 1 unconnected element · minor
+- P20 10 annotation issues · minor
+- P22 1 naming inconsistency · minor
+
+</div>
+<div class="layer" style="border-top-color: var(--c-good)">
+<span class="pill" style="background: var(--c-good-bg); color: var(--c-good)">expected by design</span>
+
+- **P10** missing disjointness · important
+- **P13** 43 undeclared inverses · minor
+
+<div class="text-sm mt-2">The XSDs state neither. Adding them automatically would add <b>commitments absent from the regulation</b>.</div>
+</div>
+<div class="layer" style="border-top-color: var(--c-yellow)">
+<span class="pill" style="background: var(--c-warn-bg); color: var(--c-warn-ink)">to review</span>
+
+- **P11** 54 properties without domain or range · important
+
+</div>
+</div>
+
+<div v-click class="tk mt-5 text-lg">For schema-derived ontologies, OOPS! is a <b>review queue</b>, not a pass/fail criterion.</div>
+
+<!--
+[backup]
+OOPS! on the TAP B10 module. Some pitfalls are real defects the generator can fix: missing annotations, the untyped class.
+Others are expected: the XSDs say nothing about disjointness or inverses, and inventing them would put commitments in the ontology that the regulation does not make.
+(click) So we treat the report as a review queue.
 -->

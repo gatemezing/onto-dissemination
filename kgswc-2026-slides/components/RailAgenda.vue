@@ -13,11 +13,11 @@ const props = withDefaults(defineProps<{ current?: number; reveal?: number; onDa
 })
 
 const stations = [
-  { t: 'ERA Ontology context', s: 'registers, KG, TEL TSI', m: '≈ 4 min' },
-  { t: 'Objective of the paper', s: 'three kinds of semantics', m: '≈ 3 min' },
-  { t: 'Contributions', s: 'xsd2rdf and the extension', m: '≈ 5 min' },
-  { t: 'Results', s: 'coverage, quality, CQs', m: '≈ 3.5 min' },
-  { t: 'Future work', s: 'towards v4.0.0', m: '≈ 3 min' },
+  { t: 'ERA Ontology context', s: 'registers, KG, TEL TSI', m: '≈ 4.5 min' },
+  { t: 'Objective of the paper', s: 'three kinds of semantics', m: '≈ 2.5 min' },
+  { t: 'Contributions', s: 'xsd2rdf and the extension', m: '≈ 5.5 min' },
+  { t: 'Results', s: 'coverage, quality, CQs', m: '≈ 3 min' },
+  { t: 'Future work', s: 'towards v4.0.0', m: '≈ 3.5 min' },
 ]
 const X = (i: number) => 100 + i * 180
 const trainAt = ref(props.current < 0 ? 0 : props.current)
