@@ -8,6 +8,8 @@ The style follows [Dots and lines](https://matdata-eu.github.io/slides-railway-m
 (Slidev, a custom `style.css`, click-driven Vue/SVG components), restyled with the ERA Ontology logo
 and its blue (`#004493`).
 
+Live: https://gatemezing.github.io/onto-dissemination/kgswc-2026/ (rebuilt by `.github/workflows/pages.yml` on every push to `main` that touches this folder).
+
 ## Run
 
 ```bash

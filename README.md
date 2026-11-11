@@ -29,6 +29,7 @@ searches a snapshot because its endpoint asks for a login (see
 | SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 | Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
+| Slides: A Semantic Backbone for European Rail Data Exchange (KGSWC 2026) | https://gatemezing.github.io/onto-dissemination/kgswc-2026/ |
 
 The live-query tools link to each other in their footers. No other page links
 yet to the Holobox Frame, the ERADIS Explorer, the SHACL Shape Viewer or the
