@@ -23,6 +23,7 @@ on:
       - 'scripts/assets/era-eradis-snapshot.json.gz'
       - 'scripts/assets/era-eradis-certificates.json.gz'
       - 'graphwiseAI-summit2026/connected-by-data-answers.html'
+      - 'kgswc-2026-slides/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -65,6 +66,24 @@ jobs:
           cp scripts/assets/era-eradis-snapshot.json.gz _site/era-eradis-snapshot.json.gz
           cp scripts/assets/era-eradis-certificates.json.gz _site/era-eradis-certificates.json.gz
           cp graphwiseAI-summit2026/connected-by-data-answers.html _site/connected-by-data.html
+
+      # The KGSWC 2026 Slidev deck, built as a static site under /kgswc-2026/.
+      # The build needs no browser: skip the dev dependencies and Playwright's browser download
+      # (playwright-chromium is used only for the PDF export, run locally).
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: kgswc-2026-slides/package-lock.json
+
+      - name: Build the KGSWC 2026 slides
+        working-directory: kgswc-2026-slides
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: |
+          npm ci --omit=dev
+          npx slidev build slides.md --base /onto-dissemination/kgswc-2026/ --out ../_site/kgswc-2026
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

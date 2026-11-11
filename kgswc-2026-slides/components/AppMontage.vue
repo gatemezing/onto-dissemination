@@ -7,7 +7,12 @@ import { onSlideEnter, onSlideLeave } from '@slidev/client'
  * Click the video to pause or resume. The poster stands in for the video in the PDF export.
  * The clip itself is recorded with tools/montage/record.mjs.
  */
-defineProps<{ src: string; poster?: string }>()
+const props = defineProps<{ src: string; poster?: string }>()
+// Plain string props are not rewritten by Vite, so prefix public paths with the deploy base
+// (the deck is served from a sub-path such as /onto-dissemination/kgswc-2026/).
+const withBase = (p?: string) => (p && p.startsWith('/') ? import.meta.env.BASE_URL + p.slice(1) : p)
+const videoSrc = withBase(props.src)
+const posterSrc = withBase(props.poster)
 const v = ref<HTMLVideoElement>()
 onSlideEnter(() => {
   const el = v.value
@@ -24,7 +29,7 @@ const toggle = () => {
 
 <template>
   <div class="am">
-    <video ref="v" :src="src" :poster="poster" muted playsinline preload="auto" @click="toggle" />
+    <video ref="v" :src="videoSrc" :poster="posterSrc" muted playsinline preload="auto" @click="toggle" />
   </div>
 </template>
 
