@@ -1,0 +1,78 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>One graph, many applications</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --blue: #004493; --yellow: #FFCC00; --ink: #14213D; }
+  html, body { margin: 0; width: 1280px; height: 720px; overflow: hidden; background: var(--blue); font-family: "Source Sans 3", Arial, sans-serif; }
+  iframe { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; border: 0; background: #fff;
+           transform-origin: 0 0; transition: transform 1.1s cubic-bezier(.45,0,.25,1), opacity .7s, box-shadow .7s; opacity: 0; }
+  iframe.on { opacity: 1; z-index: 2; }
+  iframe:not(.on) { pointer-events: none; }
+  .split iframe { opacity: 1; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  .split #fa { transform: translate(20px, 150px) scale(.48); }
+  .split #fb { transform: translate(646px, 150px) scale(.48); }
+  .card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center;
+          color: #fff; text-align: center; background: var(--blue); transition: opacity .8s; z-index: 5; }
+  .card.off { opacity: 0; pointer-events: none; }
+  .card img { width: 300px; margin-bottom: 26px; }
+  .card h1 { font-size: 48px; margin: 0; font-weight: 700; }
+  .card h1::after { content: ""; display: block; width: 70px; height: 5px; background: var(--yellow); margin: 14px auto 0; border-radius: 3px; }
+  .card p { font-size: 22px; margin: 18px 0 0; color: #CFE0FF; }
+  .card code { font-family: ui-monospace, Menlo, monospace; font-size: 19px; color: #fff; background: rgba(255,255,255,.12); padding: 3px 10px; border-radius: 6px; }
+  .card .cr { font-size: 19px; line-height: 1.6; color: #fff; margin-top: 22px; }
+  .card .cr b { color: var(--yellow); }
+  #cap { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px); max-width: 1080px; z-index: 6;
+         background: var(--blue); color: #fff; font-size: 23px; padding: 12px 24px; border-radius: 12px; box-shadow: 0 6px 22px rgba(0,0,0,.3);
+         border-left: 6px solid var(--yellow); opacity: 0; transition: opacity .45s, transform .45s; white-space: nowrap; }
+  #cap.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #cap b { color: var(--yellow); font-weight: 700; margin-right: 10px; }
+  #cap code { font-family: ui-monospace, Menlo, monospace; font-size: 20px; background: rgba(255,255,255,.14); padding: 1px 7px; border-radius: 5px; }
+  #split-head { position: absolute; top: 36px; left: 0; right: 0; text-align: center; color: #fff; font-size: 40px; font-weight: 700; opacity: 0; transition: opacity .8s .5s; z-index: 4; }
+  #split-head span { color: var(--yellow); }
+  .lab { position: absolute; top: 104px; color: #CFE0FF; font-size: 20px; font-weight: 600; opacity: 0; transition: opacity .8s .6s; z-index: 4; }
+  #la { left: 24px; } #lb { left: 650px; }
+  #iri { position: absolute; left: 50%; top: 528px; transform: translateX(-50%); z-index: 4; opacity: 0; transition: opacity .8s .9s;
+         font-family: ui-monospace, Menlo, monospace; font-size: 22px; color: var(--ink); background: var(--yellow); padding: 8px 18px; border-radius: 10px; white-space: nowrap; }
+  .split ~ #split-head, .split ~ .lab, .split ~ #iri, body.splitmode #split-head, body.splitmode .lab, body.splitmode #iri { opacity: 1; }
+  #cur { position: absolute; left: 0; top: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; z-index: 9;
+         background: rgba(255,204,0,.55); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--blue), 0 3px 10px rgba(0,0,0,.35);
+         transition: left .7s cubic-bezier(.45,0,.25,1), top .7s cubic-bezier(.45,0,.25,1), opacity .3s, transform .15s; opacity: 0; }
+  #cur.on { opacity: 1; }
+  #cur, #cap, #split-head, .lab, #iri { pointer-events: none; }
+  #cur.press { transform: scale(.7); }
+</style></head>
+<body>
+  <div id="stage">
+    <iframe id="fa" src="https://rinf.data.era.europa.eu/unified-search?q=JTdCJTIycXVlcnklMjIlM0ElN0IlMjJ2YWx1ZSUyMiUzQSU3QiU3RCUyQyUyMnZpc2libGUlMjIlM0ElN0IlMjJlcmFfT3BlcmF0aW9uYWxQb2ludF9lcmFfaW5Db3VudHJ5JTIyJTNBdHJ1ZSUyQyUyMmVyYV9PcGVyYXRpb25hbFBvaW50X2VyYV9vcFR5cGUlMjIlM0F0cnVlJTJDJTIyZXJhX09wZXJhdGlvbmFsUG9pbnRfZXJhX3VvcGlkJTIyJTNBdHJ1ZSUyQyUyMmVyYV9PcGVyYXRpb25hbFBvaW50X3BhcnRzJTIyJTNBdHJ1ZSU3RCUyQyUyMmxpbWl0JTIyJTNBMTAlN0QlMkMlMjJyb290T2JqZWN0JTIyJTNBJTIyaHR0cCUzQSUyRiUyRmRhdGEuZXVyb3BhLmV1JTJGOTQ5JTJGT3BlcmF0aW9uYWxQb2ludCUyMiU3RA%3D%3D&amp;view=map"></iframe>
+    <iframe id="fb" src="https://rinf-atlas.matdata.eu/#env=prod&amp;map=4.4/49.6/9.5"></iframe>
+  </div>
+  <div id="split-head">One IRI · one ontology · <span>many applications</span></div>
+  <div class="lab" id="la">ERA · RINF unified search</div>
+  <div class="lab" id="lb">RINF Atlas · community application</div>
+  <div id="iri">http://data.europa.eu/949/operationalPoint/83728fa739</div>
+  <div id="cap"></div>
+  <div id="cur"></div>
+  <div class="card" id="title">
+    <img src="../../public/assets/era-ontology-logo-blue.png" alt="">
+    <h1>One knowledge graph, many applications</h1>
+    <p>Valenciennes station &nbsp;<code>era:operationalPoint/83728fa739</code></p>
+  </div>
+  <div class="card off" id="end">
+    <img src="../../public/assets/era-ontology-logo-blue.png" alt="">
+    <h1>Built on the ERA Ontology</h1>
+    <div class="cr"><b>RINF unified search</b> · rinf.data.era.europa.eu (ERA)<br>
+      <b>RINF Atlas</b> · rinf-atlas.matdata.eu (M. Vanden Auweele)<br>
+      <span style="color:#CFE0FF">live data, recorded 11 November 2026</span></div>
+  </div>
+<script>
+  const $ = id => document.getElementById(id)
+  window.show = id => { for (const f of ['fa', 'fb']) $(f).classList.toggle('on', f === id) }
+  window.card = (id, on) => $(id).classList.toggle('off', !on)
+  window.caption = html => { const c = $('cap'); if (!html) { c.classList.remove('on'); return }
+    c.classList.remove('on'); setTimeout(() => { c.innerHTML = html; c.classList.add('on') }, html && c.innerHTML ? 250 : 0) }
+  window.cursorTo = (x, y) => { const c = $('cur'); c.classList.add('on'); c.style.left = x + 'px'; c.style.top = y + 'px' }
+  window.cursorHide = () => $('cur').classList.remove('on')
+  window.press = () => { const c = $('cur'); c.classList.add('press'); setTimeout(() => c.classList.remove('press'), 180) }
+  window.split = () => { $('stage').classList.add('split'); document.body.classList.add('splitmode') }
+</script>
+</body></html>
