@@ -153,8 +153,8 @@
 <body>
 <div id="app">
   <header>
-    <h1>Synthetic RINF Data</h1>
-    <p>Generate realistic, clearly synthetic RINF data from ERA's SHACL shapes with
+    <h1 id="title">Synthetic RINF Data</h1>
+    <p id="lede">Generate realistic, clearly synthetic RINF data from ERA's SHACL shapes with
       <a href="https://github.com/etnc/RDFGraphGen" target="_blank" rel="noopener">RDFGraphGen</a>. Pick a class and a country,
       choose the properties, and get Turtle you can map, check against the shapes and download. Real ERA vocabularies,
       a layout on the real network, invented names and identifiers.</p>
@@ -164,6 +164,10 @@
     <div>
       <section class="panel">
         <h2><span class="step">1</span> Class</h2>
+        <div class="presets" id="registerBtns" role="tablist" aria-label="Register" style="margin:0 0 10px">
+          <button class="btn on" data-register="rinf" role="tab" type="button" title="Infrastructure: the RINF application-guide shapes">RINF · infrastructure</button>
+          <button class="btn" data-register="evr" role="tab" type="button" title="Vehicles, registrations, vehicle types and authorisations: the EVR and ERATV application-guide shapes">EVR + ERATV · vehicles</button>
+        </div>
         <input type="text" id="clsSearch" placeholder="Search a class, e.g. section, track, tunnel…" aria-label="Search a class" autocomplete="off">
         <div class="classList" id="classList" role="listbox" aria-label="Classes with a SHACL shape"><div class="hint" style="padding:8px">Loading the shapes…</div></div>
         <div class="clsInfo" id="clsInfo"></div>
@@ -173,7 +177,11 @@
         <h2><span class="step">2</span> How many, where</h2>
         <div class="row">
           <div><label class="fl" for="count">Instances</label><input type="number" id="count" min="1" max="200" value="10"></div>
-          <div style="grid-column:span 2"><label class="fl" for="country">Country</label><select id="country"></select></div>
+          <div style="grid-column:span 2"><label class="fl" for="country" id="countryLbl">Country</label><select id="country"></select></div>
+        </div>
+        <div id="chainRow" style="margin-top:10px" hidden>
+          <label class="chk"><input type="checkbox" id="chain" checked> <span id="chainTxt">Build the register around them</span></label>
+          <div class="hint" id="chainHint"></div>
         </div>
         <div id="layoutRow" style="margin-top:10px">
           <label class="fl">Layout</label>
@@ -204,7 +212,7 @@
         <h2><span class="step">3</span> Properties</h2>
         <div class="presets" id="presets">
           <button class="btn" data-preset="mandatory" type="button" title="Only what the shapes require">Required</button>
-          <button class="btn on" data-preset="core" type="button" title="Required + every RINF parameter">RINF core</button>
+          <button class="btn on" data-preset="core" type="button" title="Required + every RINF parameter" id="corePreset">RINF core</button>
           <button class="btn" data-preset="all" type="button" title="Every property the shapes allow">Everything</button>
         </div>
         <div class="props" id="props"><div class="hint" style="padding:10px">Choose a class.</div></div>
@@ -274,12 +282,14 @@
 </div>
 
 <script type="text/x-python" id="pySynth">
-# Synthetic RINF data: RDFGraphGen (rdf-graph-gen 1.2.0) run on ERA's SHACL shapes.
+# Synthetic RINF and EVR data: RDFGraphGen (rdf-graph-gen 1.2.0) run on ERA's SHACL shapes.
 # The page's planner turns every selected property into a rule; this module applies the rules in two layers:
 #  1. RDFGraphGen: instances, cardinalities, sh:in pools, numeric ranges, booleans, dates (its own generator).
-#  2. Realism layer: network layout and geometry, lengths from geometry, names, identifiers, weighted
+#  2. Realism layer. RINF: network layout and geometry, lengths from geometry, names, identifiers, weighted
 #     categories, the instance's own sub-resources (net references), linked resources, and the part-whole
 #     structure as RINF publishes it (tracks, sidings, platform edges, tunnels; era:hasPart and era:isPartOf both ways).
+#     EVR + ERATV: EVNs, ERATV type numbers and EINs with their check digits and formats, invented keepers, owners,
+#     ECMs and manufacturers, and the chain from type authorisation to vehicle registration (vpa: cases, requests, permissions).
 import json, math, random
 from copy import deepcopy
 from rdflib import Graph, URIRef, Literal, Namespace, RDF, RDFS, XSD
@@ -289,12 +299,17 @@ from rdf_graph_gen.shacl_mapping_generator import generate_dictionary_from_shape
 
 ERA = Namespace('http://data.europa.eu/949/')
 GEO = Namespace('http://www.opengis.net/ont/geosparql#')
+VPA = Namespace('https://w3id.org/vpa#')
+DCT = Namespace('http://purl.org/dc/terms/')
+FOAF = Namespace('http://xmlns.com/foaf/0.1/')
+ORG = Namespace('http://www.w3.org/ns/org#')
+LOCN = Namespace('http://w3.org/ns/locn#')  # as ERA's shapes and ERATV-KG write it (the W3C namespace is http://www.w3.org/ns/locn#)
 SH_IN, SH_OR, SH_AND, SH_XONE, SH_NOT = (URIRef(SH + k) for k in ('in', 'or', 'and', 'xone', 'not'))
 SH_CLASS = URIRef(SH + 'class')
 BORDER_POINT = URIRef('http://data.europa.eu/949/concepts/op-types/90')
 DROP_KEYS = (SH_OR, SH_AND, SH_XONE, SH_NOT, SH.node, SH.equals, SH.disjoint, SH.lessThan, SH.lessThanOrEquals,
              SH.qualifiedValueShape, SH.qualifiedMinCount, SH.qualifiedMaxCount, SH.hasValue)
-STATE = {'shapes': None, 'dict': None}
+STATE = {'shapes': None, 'dict': None, 'sets': {}}
 
 
 def _sanitise(g):
@@ -313,14 +328,18 @@ def _sanitise(g):
     return removed
 
 
-def load_shapes(ttl):
+def load_shapes(key, ttls_json):
+    """Reads a register's shapes: one or several application guides (EVR + ERATV) merged into one graph.
+    Each document is parsed on its own, so their blank nodes stay apart."""
     g = Graph()
-    g.parse(data=ttl, format='turtle')
+    for ttl in json.loads(ttls_json):
+        g.parse(data=ttl, format='turtle')
     triples = len(g)
     removed = _sanitise(g)
-    STATE['shapes'] = g
-    STATE['dict'] = generate_dictionary_from_shapes_graph(g)
-    return json.dumps({'triples': triples, 'nodeShapes': len(STATE['dict']), 'removed': removed})
+    d = generate_dictionary_from_shapes_graph(g)
+    STATE['sets'][key] = {'shapes': g, 'dict': d}
+    STATE['shapes'], STATE['dict'] = g, d
+    return json.dumps({'triples': triples, 'nodeShapes': len(d), 'removed': removed})
 
 
 def _term(j):
@@ -499,6 +518,16 @@ def _tidy_numbers(g):
             g.add((s, p, Literal(round(o.toPython(), 2), datatype=o.datatype)))
 
 
+def _luhn(digits):
+    """The UIC check digit (leaflet 438), also used by ERATV type numbers: Luhn, the last digit doubled.
+    11-273-0001 -> 8, 51-445-0002 -> 1, as in ERATV-KG."""
+    total = 0
+    for i, ch in enumerate(reversed(digits)):
+        d = int(ch) * (2 if i % 2 == 0 else 1)
+        total += d - 9 if d > 9 else d
+    return str((10 - total % 10) % 10)
+
+
 class Run:
     def __init__(self, plan):
         self.plan = plan
@@ -520,6 +549,15 @@ class Run:
         self.whole_of, self.cls_of = {}, {}    # part -> its whole; generated resource -> its class
         self.end_ops, self.end_pts = [], []    # operational points at the ends of generated sections
         self.tunnel_seq = 0
+        self.register = plan.get('register', 'rinf')
+        self.evr = plan.get('evr') or {}       # EVR + ERATV: categories, code lists, organisations, chain templates
+        self.type_cat, self.type_year, self.auth_year = {}, {}, {}   # vehicle type -> category / year authorised
+        self.series_code = {}                  # vehicle type (or category) -> EVN digits 1-2 and 5-8, serial counter
+        self.orgs, self.party, self.body_name, self.owner_of = {}, {}, {}, {}
+        self.used = set()                      # EVNs, EINs, type numbers, VKMs, serial numbers: unique in the run
+        self.vta_case = {}                     # vehicle type -> its type authorisation case
+        self.type_nn = {}                      # vehicle type -> first two digits of its ERATV number (11 locomotives...)
+        self.ein_seq = None                    # drawn on first use, so that RINF runs keep their random sequence
 
     def slug(self, cls):
         local = cls.rstrip('/').split('/')[-1].split('#')[-1]
@@ -575,13 +613,28 @@ class Run:
                         c = self.mint(o['linkClass'])
                         out.add((s, P, c))
                         children.setdefault(o['linkClass'], []).append(c)
+                elif lay in ('evn', 'ein', 'typeNumber', 'serial', 'vkm'):  # EVR + ERATV identifiers, unique in the run
+                    out.add((s, P, Literal(self.identifier(lay, s, P), datatype=XSD.string)))
+                elif lay == 'mfgYear':
+                    out.add((s, P, Literal(str(self.mfg_year(s)), datatype=XSD.gYear)))
+                elif lay == 'org':
+                    out.add((s, P, self.party.get((s, o['role'])) or self.org(o['role'])))
+                elif lay == 'national':
+                    self.national(s, optional=rnd.randint(1, 2))
+            if self.register == 'evr':
+                self.settle_category(s, props)
             if cplan.get('label') and (s, RDFS.label, None) not in out:
                 nm = self.name_of.get(s)
                 ident = out.value(s, URIRef(cplan['labelFrom'])) if cplan.get('labelFrom') else None
+                if ident is not None and len(str(ident)) == 12 and str(ident).isdigit():  # an EVN, written as on the vehicle
+                    e = str(ident)
+                    ident = '%s %s %s %s-%s' % (e[:2], e[2:4], e[4:8], e[8:11], e[11])
                 if nm:  # a place name, in the country's language (an English copy is added at the end)
                     out.add((s, RDFS.label, Literal(nm, lang=self.lang)))
                 else:   # the English class label and an identifier: English text
-                    lbl = '%s %s' % (cplan.get('classLabel', self.slug(cplan['class'])), ident if ident is not None else self.next_name())
+                    if ident is None:
+                        ident = self.next_name() if self.register == 'rinf' else str(s).rsplit('-', 1)[-1]
+                    lbl = '%s %s' % (cplan.get('classLabel', self.slug(cplan['class'])), ident)
                     out.add((s, RDFS.label, Literal(lbl, lang='en')))
         for p, o in props.items():  # a geometry-valued property mirrors the instance's own geometry
             if o.get('layout') == 'wkt':
@@ -951,7 +1004,15 @@ class Run:
                             self._length_value(s, URIRef(p), props[p], _length(poly))
             self.layers.append({'layer': 'geometry', 'how': 'points near the real network' if kind == 'point' else 'short lines near the real network',
                                 'class': main['class'], 'instances': n})
+        if self.evr.get('chain') == 'vehicle':   # EVR: types, authorisations and registrations first, so that the
+            self.build_register(iris)            # vehicles' numbers, years and parties follow from them
+        elif self.evr.get('chain') == 'type':
+            self.authorise_types(iris)
         kids = self.apply(iris, main, 0)
+        if main['class'] == str(ERA.VehicleKeeperMarking):  # keeper markings generated on their own: each its keeper's role
+            for s in iris:
+                if (s, ERA.roleOf, None) not in out:
+                    self.as_role(s, self._body('Keeper'), 'Keeper')
         if chain:  # the main class is a part (a track, a siding…): build its wholes and put the instances in them
             self.place_in_wholes(iris, main, chain, kind)
         # end points of the sections: generated like any linked resource, then placed by the layout
@@ -979,7 +1040,8 @@ class Run:
             ref = Graph(); ref.parse(data=plan['refNt'], format='nt')
             if any((None, None, s) in out for s in set(ref.subjects())):
                 out += ref
-        self._english_names()
+        if self.register == 'rinf':
+            self._english_names()
         _tidy_numbers(out)
         return iris
 
@@ -1002,9 +1064,305 @@ class Run:
         lex = round(val, 3) if unit == 'km' else int(round(val))
         self.out.add((s, P, Literal(lex, datatype=dt)))
 
+    # ---------- EVR + ERATV ----------
+    def _unique(self, make):
+        for _ in range(500):
+            v = make()
+            if v not in self.used:
+                self.used.add(v)
+                return v
+        raise ValueError('could not draw a unique identifier')
+
+    def category(self, s):
+        """The vehicle category (1X traction, 3X-4X hauled, 5X wagons, 7X special) of a vehicle, through its type,
+        or of a vehicle type. Decided once per type, so that a type's vehicles and the type itself agree."""
+        cats, out = self.evr['cats'], self.out
+        t = out.value(s, ERA.vehicleType) if (s, ERA.vehicleType, None) in out else s
+        if t not in self.type_cat:
+            v = out.value(t, ERA.vehicleCategory)
+            c = str(v).rsplit('/', 1)[-1] if v is not None else None
+            if c not in cats:
+                keys = sorted(cats)
+                c = self.rnd.choices(keys, [cats[k]['w'] for k in keys])[0]
+            self.type_cat[t] = c
+        return self.type_cat[t]
+
+    def settle_category(self, s, props):
+        """A vehicle type keeps the category its vehicles were numbered with; the sub-category repeats it. Also: the
+        payload mass and axle load are not below those in working order, and the Agency authorises from 2019 on
+        (Fourth Railway Package), national safety authorities before."""
+        out, cat_p, ev = self.out, ERA.vehicleCategory, self.evr
+        if (s, cat_p, None) in out:
+            out.set((s, cat_p, URIRef(ev['catBase'] + self.category(s))))
+        for lo, hi in ev.get('ordered', []):
+            a, b = out.value(s, URIRef(lo)), out.value(s, URIRef(hi))
+            if a is not None and b is not None and float(a) > float(b):
+                out.set((s, URIRef(lo), b)); out.set((s, URIRef(hi), a))
+        y = self._year(s)
+        if y and y < 2019 and str(out.value(s, DCT.creator)) == ev.get('agency'):
+            out.set((s, DCT.creator, Literal(ev['nsa'], datatype=XSD.string)))
+        for p, o in props.items():
+            if o.get('layout') == 'copyOf' and (s, URIRef(o['of']), None) in out:
+                out.set((s, URIRef(p), out.value(s, URIRef(o['of']))))
+
+    def identifier(self, kind, s, P):
+        rnd, ev = self.rnd, self.evr
+        if kind == 'evn':  # 2 digits category, 2 digits country (UIC), 4 digits series, 3 digits serial, check digit
+            cat = self.category(s)
+            t = self.out.value(s, ERA.vehicleType)
+            key = (t if t is not None else cat, P == ERA.previousVehicleNumber)
+            if key not in self.series_code:
+                uic = ev['uic'] if P == ERA.vehicleNumber else rnd.choice([u for u in ev['otherUic'] if u != ev['uic']])
+                nn = self.type_nn.get(t)  # the type's number already chosen: prefixes of that kind of vehicle
+                prefixes = ev['cats'][cat]['eratv'].get(nn) or ev['cats'][cat]['evn']
+                self.series_code[key] = [rnd.choice(prefixes), uic, rnd.randint(1000, 9899), rnd.randint(0, 700)]
+            sc = self.series_code[key]
+
+            def make():  # consecutive numbers within a series
+                sc[3] = (sc[3] + 1) % 1000
+                body = '%s%s%04d%03d' % (sc[0], sc[1], sc[2], sc[3])
+                return body + _luhn(body)
+            return self._unique(make)
+        if kind == 'ein':  # country, "80", the year of the authorisation, a number (ERATV-KG: PL8020240283)
+            y = self._year(s) or self.auth_year.get(s) or rnd.randint(2008, 2025)
+            self.auth_year[s] = y
+
+            if self.ein_seq is None:
+                self.ein_seq = rnd.randint(10, 400)
+
+            def make():
+                self.ein_seq += rnd.randint(1, 40)
+                return '%s80%04d%04d' % (ev['iso2'], y, self.ein_seq % 10000)
+            return self._unique(make)
+        if kind == 'typeNumber':  # NN-NNN-NNNN-C, NN by category (11 locomotives, 51 wagons...), Luhn check digit
+            codes = ev['cats'][self.category(s)]['eratv']
+            sc = self.series_code.get((s, False))  # vehicles numbered first (no chain): a code that fits their prefix
+            fit = [k for k, v in codes.items() if sc and sc[0] in v]
+            nn = self.type_nn[s] = rnd.choice(fit or sorted(codes))
+
+            def make():
+                body = '%s%03d%04d' % (nn, rnd.randint(1, 499), rnd.choice((1, 1, 1, 2, 3)))
+                return '%s-%s-%s-%s' % (body[:2], body[2:5], body[5:], _luhn(body))
+            return self._unique(make)
+        if kind == 'serial':
+            return self._unique(lambda: '%d%05d' % (rnd.randint(1, 9), rnd.randint(0, 99999)))
+        if kind == 'vkm':
+            return self._new_vkm()
+        raise ValueError(kind)
+
+    def _year(self, s):
+        v = self.out.value(s, DCT.issued)
+        try:
+            return int(str(v)[:4]) if v is not None else None
+        except ValueError:
+            return None
+
+    def mfg_year(self, s):
+        """Built in the six years after its type was authorised; 1975-2025 when the type has no authorisation."""
+        y0 = self.type_year.get(self.out.value(s, ERA.vehicleType))
+        return self.rnd.randint(y0, min(y0 + 6, 2025)) if y0 else self.rnd.randint(1975, 2025)
+
+    def _new_vkm(self):
+        letters = 'ABCDEFGHIJKLMNOPRSTUVWZ'
+        return self._unique(lambda: ''.join(self.rnd.choice(letters) for _ in range(self.rnd.choice((3, 4, 4, 4, 5)))))
+
+    def _company_name(self, role):
+        ev = self.evr
+        return '%s %s %s' % (self.next_name(), self.rnd.choice(ev['orgWords'][role]), ev['legalForm'])
+
+    def _body(self, role):
+        """An invented company: its era:Body, and the site and address ERA's combined shapes ask of every body."""
+        out, ev, rnd = self.out, self.evr, self.rnd
+        body = self.mint(str(ERA.Body))
+        name = self._company_name(role)
+        self.body_name[body] = name
+        out.add((body, RDF.type, ERA.Body))
+        out.add((body, RDFS.label, Literal(name, datatype=XSD.string)))  # the Body shape: one xsd:string label
+        out.add((body, FOAF.name, Literal(name)))
+        site, addr = self.mint(str(ORG.Site)), self.mint(str(LOCN.Address))
+        town, street = self.next_name(), '%s %d' % (ev['street'], rnd.randint(1, 120))
+        code = '%0*d' % (ev['postDigits'], rnd.randint(10 ** (ev['postDigits'] - 1), 10 ** ev['postDigits'] - 1))
+        out.add((body, ORG.hasSite, site))
+        out.add((site, RDF.type, ORG.Site))
+        out.add((site, RDFS.label, Literal('Registered office', datatype=XSD.string)))
+        out.add((site, ORG.siteAddress, addr))
+        out.add((addr, RDF.type, LOCN.Address))
+        out.add((addr, LOCN.thoroughfare, Literal(street, datatype=XSD.string)))
+        out.add((addr, LOCN.postCode, Literal(code, datatype=XSD.string)))
+        out.add((addr, LOCN.postName, Literal(town, datatype=XSD.string)))
+        out.add((addr, LOCN.adminUnitL1, URIRef(ev['country'])))
+        out.add((addr, LOCN.fullAddress, Literal('%s, %s %s' % (street, code, town), datatype=XSD.string)))
+        return body
+
+    def as_role(self, r, body, role):
+        """r becomes the organisation role `role` of `body`. A keeper's role is also its vehicle keeper marking (code,
+        status, country), as in the VKM register; in the ontology, era:VehicleKeeperMarking is an era:OrganisationRole."""
+        out, ev = self.out, self.evr
+        out.add((r, RDF.type, ERA.OrganisationRole))
+        out.add((r, ERA.roleOf, body))
+        out.add((body, ERA.role, r))
+        out.add((r, ERA.hasOrganisationRole, URIRef(ev['roles'][role])))
+        if (r, RDFS.label, None) not in out:
+            out.add((r, RDFS.label, Literal('%s, %s' % (self.body_name[body], ev['roleLabel'][role]), lang='en')))
+        if role == 'Keeper':
+            out.add((r, RDF.type, ERA.VehicleKeeperMarking))
+            for P, v in ((ERA.vkmCode, lambda: Literal(self._new_vkm(), datatype=XSD.string)), (ERA.vkmStatus, lambda: URIRef(ev['vkmInUse'])),
+                         (ERA.inCountry, lambda: URIRef(ev['country']))):
+                if (r, P, None) not in out:
+                    out.add((r, P, v()))
+        return r
+
+    def org(self, role, body=None):
+        """An organisation role from a small pool per role (keepers, owners, ECMs, manufacturers), each of an invented company."""
+        pool = self.orgs.setdefault(role, [])
+        if body is None and len(pool) >= self.evr['pool'].get(role, 2):
+            return self.rnd.choice(pool)
+        r = self.mint(str(ERA.VehicleKeeperMarking) if role == 'Keeper' else str(ERA.OrganisationRole))
+        pool.append(self.as_role(r, body if body is not None else self._body(role), role))
+        return r
+
+    def national(self, s, optional=0):
+        """The registering country's national registration properties: every mandatory one (a SHACL-SPARQL rule asks for
+        them on each registration case) and `optional` others, each value of the expected datatype and length."""
+        rnd, out = self.rnd, self.out
+        props = self.evr.get('national') or []
+        opt = [p for p in props if not p['mand']]
+        for p in [p for p in props if p['mand']] + rnd.sample(opt, min(optional, len(opt))):
+            n = self.mint(str(ERA.NationalRegistrationProperty))
+            out.add((n, RDF.type, ERA.NationalRegistrationProperty))
+            out.add((s, ERA.hasNationalRegistrationProperty, n))
+            out.add((n, ERA.nationalPropertyIdentifier, URIRef(p['c'])))
+            dt = p['dt'].rsplit('#', 1)[-1]
+            if dt == 'boolean':
+                v = rnd.choice(('true', 'false', 'false', 'false'))
+            elif dt in ('integer', 'int', 'nonNegativeInteger'):
+                v = str(rnd.randint(1, 120))
+            elif dt in ('decimal', 'double', 'float'):
+                v = '%.1f' % rnd.uniform(1, 100)
+            elif dt in ('date', 'dateTime', 'dateTimeStamp'):
+                v = '%04d-%02d-%02d' % (rnd.randint(2015, 2025), rnd.randint(1, 12), rnd.randint(1, 28))
+                if dt != 'date':
+                    v += 'T%02d:%02d:00%s' % (rnd.randint(6, 18), rnd.choice((0, 15, 30, 45)), 'Z' if dt == 'dateTimeStamp' else '')
+            elif dt == 'gYear':
+                v = str(rnd.randint(1990, 2025))
+            elif dt == 'anyURI':
+                v = '%sdocument/national-%d' % (self.base, rnd.randint(1, 999))
+            elif dt != 'string':  # a datatype not foreseen: keep the value valid by writing it as a string
+                p = dict(p, dt=str(XSD.string))
+                v = '%s %d' % (p['label'] or 'Synthetic', rnd.randint(1, 999))
+            else:
+                v = ('%s %d' % (p['label'] or 'Synthetic', rnd.randint(1, 999)))[:p['max'] or 255]
+            out.add((n, ERA.nationalPropertyValue, Literal(v, datatype=URIRef(p['dt']))))
+            out.add((n, RDFS.label, Literal('%s: %s' % (p['label'], v), lang='en')))
+
+    def owner(self, keeper):
+        """Most keepers own their vehicles; the others lease them from an owner."""
+        if keeper not in self.owner_of:
+            body = self.out.value(keeper, ERA.roleOf)
+            self.owner_of[keeper] = self.org('Owner', body) if self.rnd.random() < 0.6 else self.org('Owner')
+        return self.owner_of[keeper]
+
+    def _make(self, cls_local, k, layer):
+        cls = str(ERA[cls_local])
+        iris = [self.mint(cls) for _ in range(k)]
+        for r in iris:
+            self.cls_of[r] = cls
+        tmpl = self.evr.get('templates', {}).get(cls)
+        if tmpl:
+            self.materialise(cls, iris, 1, layer, tmpl=tmpl)
+        else:
+            for r in iris:
+                self.out.add((r, RDF.type, URIRef(cls)))
+        return iris
+
+    def authorise_types(self, types):
+        """For each vehicle type, as in ERATV-KG: a type authorisation case that concerns the type (vpa:definesCase
+        back), an application constituted by the case, and the authorisation it requests (vpa:requestedIn back).
+        The holder of the authorisation is the type's manufacturer."""
+        out, k = self.out, len(types)
+        for t in types:
+            self.party[(t, 'Manufacturer')] = (self.party.get((t, 'Manufacturer')) or out.value(t, ERA.vehicleTypeManufacturer)
+                                               or self.org('Manufacturer'))
+        cases = self._make('VehicleTypeAuthorisationCase', k, 'type authorisation cases (ERATV)')
+        apps = self._make('VehicleTypeAuthorisationApplication', k, 'type authorisation applications (ERATV)')
+        auths = [self.mint(str(ERA.VehicleTypeAuthorisation)) for _ in types]
+        for t, a in zip(types, auths):
+            self.party[(a, 'Manufacturer')] = self.party[(t, 'Manufacturer')]
+        tmpl = self.evr.get('templates', {}).get(str(ERA.VehicleTypeAuthorisation))
+        if tmpl:
+            self.materialise(str(ERA.VehicleTypeAuthorisation), auths, 1, 'type authorisations (ERATV)', tmpl=tmpl)
+        for t, c, a, p in zip(types, cases, apps, auths):
+            out.add((p, RDF.type, ERA.VehicleTypeAuthorisation))
+            out.add((c, VPA.concerns, t)); out.add((t, VPA.definesCase, c))
+            out.add((a, VPA.constitutedBy, c))
+            out.add((a, VPA.requestFor, p)); out.add((p, VPA.requestedIn, a))
+            self.type_year[t] = self.auth_year.get(p) or self._year(p) or self.rnd.randint(2008, 2024)
+            self.vta_case[t] = c
+        return cases
+
+    def build_register(self, vehicles):
+        """The vehicles' register, end to end: vehicle types (ERATV shapes) and their authorisations, then the
+        registrations (EVR shapes): vehicles of one type are registered in sets; each set is concerned by a
+        registration case that requires the type's authorisation case, constitutes an application, and that
+        application requests the registration (a vpa:Permission with its status)."""
+        ev, out, rnd = self.evr, self.out, self.rnd
+        n = len(vehicles)
+        k = max(1, int(round(n / ev['perType'])))
+        types = self._make('VehicleType', k, 'vehicle types (ERATV)')
+        self.authorise_types(types)
+        by_type, i = {}, 0
+        for j, t in enumerate(types):  # vehicles of one type are numbered in series
+            m = n // k + (1 if j < n % k else 0)
+            for v in vehicles[i:i + m]:
+                out.set((v, ERA.vehicleType, t))
+                by_type.setdefault(t, []).append(v)
+            i += m
+        if any((v, ERA.inVehicleSeries, None) in out for v in vehicles):  # one series per type
+            for t, vs in by_type.items():
+                ser = self.mint(str(ERA.VehicleSeries))
+                out.add((ser, RDF.type, ERA.VehicleSeries))
+                out.add((ser, RDFS.label, Literal('Series %s' % (out.value(t, ERA.vehicleTypeNumber) or str(t).rsplit('-', 1)[-1]), lang='en')))
+                for v in vs:
+                    out.set((v, ERA.inVehicleSeries, ser))
+        groups = []
+        for t, vs in by_type.items():
+            j = 0
+            while j < len(vs):
+                size = min(len(vs) - j, rnd.choice(ev['setSizes']))
+                groups.append((t, vs[j:j + size]))
+                j += size
+        keepers = []
+        for t, vs in groups:  # the parties of a set: one keeper (its VKM), its owner, one ECM
+            keeper = self.org('Keeper')
+            keepers.append(keeper)
+            for v in vs:
+                self.party[(v, 'Keeper')] = keeper
+                self.party[(v, 'Owner')] = self.owner(keeper)
+                self.party[(v, 'ECM')] = self.party.get((t, 'ECM')) or self.org('ECM')
+                self.party[(t, 'ECM')] = self.party[(v, 'ECM')]
+        g = len(groups)
+        sets = self._make('VehicleSet', g, 'vehicle sets (EVR)')
+        cases = self._make('VehicleRegistrationCase', g, 'registration cases (EVR)')
+        apps = self._make('VehicleRegistrationApplication', g, 'registration applications (EVR)')
+        regs = self._make('VehicleRegistration', g, 'registrations (EVR)')
+        for (t, vs), st, c, a, r in zip(groups, sets, cases, apps, regs):
+            if (c, ERA.hasNationalRegistrationProperty, None) not in out:
+                self.national(c)  # the mandatory ones of the registering country
+            for v in vs:
+                out.add((st, RDFS.member, v))
+            out.add((c, VPA.concerns, st)); out.add((st, VPA.definesCase, c))
+            out.add((c, DCT.requires, self.vta_case[t]))
+            out.add((a, VPA.constitutedBy, c))
+            out.add((a, VPA.requestFor, r)); out.add((r, VPA.requestedIn, a))
+        self.layers.append({'layer': 'register chain', 'how': '%d types, %d sets, %d keepers' % (k, g, len(set(keepers))),
+                            'class': str(ERA.Vehicle), 'instances': n})
+
 
 def generate(plan_json):
     plan = json.loads(plan_json)
+    st = STATE['sets'].get(plan.get('register', 'rinf'))
+    if st:
+        STATE['shapes'], STATE['dict'] = st['shapes'], st['dict']
     r = Run(plan)
     iris = r.run()
     return json.dumps({'nt': r.out.serialize(format='nt'), 'main': [str(i) for i in iris],
@@ -1020,7 +1378,28 @@ def convert(nt, fmt):
 <script>
 'use strict';
 /* ====================================================================== constants */
-const SHAPES_URL = 'https://rinf.uat.data.test-era.europa.eu/era-vocabulary/rinf-appGuide/shapes.ttl';
+const UAT_VOCAB = 'https://rinf.uat.data.test-era.europa.eu/era-vocabulary/';
+/* Two registers, each with its application-guide shapes (UAT, CORS-open). EVR and ERATV are read together: vehicles
+   point to vehicle types, registrations to type authorisations. Their shapes equal those of ERA's combined era-shapes.ttl
+   (36 of 42 node shapes identical; the other 6 add only what other registers merge into the same shape). */
+const REGISTERS = {
+  rinf: { name: 'RINF', title: 'Synthetic RINF Data', shapes: [UAT_VOCAB + 'rinf-appGuide/shapes.ttl'], defaultCls: 'SectionOfLine',
+    base: 'https://example.org/rinf-synthetic/', core: ['RINF core', 'Required + every RINF parameter'], indexName: 'RINF parameters',
+    search: 'Search a class, e.g. section, track, tunnel…', country: 'Country', groups: null,
+    lede: `Generate realistic, clearly synthetic RINF data from ERA's SHACL shapes with
+      <a href="https://github.com/etnc/RDFGraphGen" target="_blank" rel="noopener">RDFGraphGen</a>. Pick a class and a country,
+      choose the properties, and get Turtle you can map, check against the shapes and download. Real ERA vocabularies,
+      a layout on the real network, invented names and identifiers.` },
+  evr: { name: 'EVR', title: 'Synthetic EVR Data', shapes: [UAT_VOCAB + 'evr-appGuide/shapes.ttl', UAT_VOCAB + 'eratv-appGuide/shapes.ttl'],
+    defaultCls: 'Vehicle', base: 'https://example.org/evr-synthetic/', core: ['EVR + ERATV core', 'Required + every EVR and ERATV parameter'],
+    indexName: 'EVR and ERATV parameters', search: 'Search a class, e.g. vehicle, type, registration…', country: 'Registering country',
+    groups: ['EVR · vehicles and their registration', 'ERATV · vehicle types and their authorisation'],
+    lede: `Generate realistic, clearly synthetic vehicle data for the European Vehicle Register (EVR) and the register of authorised
+      vehicle types (ERATV), from ERA's SHACL shapes for both with <a href="https://github.com/etnc/RDFGraphGen" target="_blank" rel="noopener">RDFGraphGen</a>.
+      Vehicles get valid EVNs, types ERATV numbers, authorisations EINs, and the chain from type authorisation to registration is linked
+      as in ERA's knowledge graphs. Real ERA vocabularies, invented companies and numbers.` },
+};
+const REG = () => REGISTERS[S.register];
 const ONTO_EP = 'https://graph.uat.data.test-era.europa.eu/repositories/ERA-Onto';
 const RINF_EP = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
 const PYODIDE_VERSION = '0.28.3';
@@ -1033,9 +1412,10 @@ const ERA = 'http://data.europa.eu/949/', SH = 'http://www.w3.org/ns/shacl#', RD
       RDFS = 'http://www.w3.org/2000/01/rdf-schema#', XSD = 'http://www.w3.org/2001/XMLSchema#', GEO = 'http://www.opengis.net/ont/geosparql#',
       SKOS = 'http://www.w3.org/2004/02/skos/core#', OWL = 'http://www.w3.org/2002/07/owl#', QUDT = 'http://qudt.org/vocab/unit/',
       EU_COUNTRY = 'http://publications.europa.eu/resource/authority/country/', EU_LANG = 'http://publications.europa.eu/resource/authority/language/',
-      IM_ROLE = ERA + 'body/organisation/organisationRole/';
+      IM_ROLE = ERA + 'body/organisation/organisationRole/', VPA = 'https://w3id.org/vpa#', DCT = 'http://purl.org/dc/terms/',
+      FOAF = 'http://xmlns.com/foaf/0.1/';
 const PREFIXES = { era: ERA, rdf: RDF, rdfs: RDFS, xsd: XSD, geo: GEO, skos: SKOS, owl: OWL, sh: SH, country: EU_COUNTRY, language: EU_LANG,
-  imrole: IM_ROLE, 'era-sh': ERA + 'shapes/', qudt: QUDT };
+  imrole: IM_ROLE, 'era-sh': ERA + 'shapes/', qudt: QUDT, vpa: VPA, dct: DCT, foaf: FOAF };
 
 /* Main infrastructure manager per country: the role with the most sections of line in RINF (measured 11 Nov 2026). */
 const COUNTRIES = [
@@ -1116,11 +1496,86 @@ const PART_NOUN = { SectionOfLine: ['section of line', 'sections of line'], Oper
 const PART_IDS = { RunningTrack: 'trackId', Siding: 'sidingId', PlatformEdge: 'platformId', Tunnel: 'tunnelIdentification' };
 const TRACK_DIR = ERA + 'concepts/track-running-directions/';  // 10 N(ormal), 20 O(pposite), 30 B(oth)
 const partChain = lname => { const opts = PART_OF[lname] || []; return opts.find(ch => ch[ch.length - 1] === S.partOf) || opts[0] || null; };
+
+/* ---------- EVR + ERATV ---------- */
+/* UIC country codes: digits 3-4 of an EVN (the registering country). Liechtenstein has no code of its own here: Austria's is used. */
+const UIC = { AUT: '81', BEL: '88', BGR: '52', HRV: '78', CZE: '54', DNK: '86', EST: '26', FIN: '10', FRA: '87', DEU: '80', GRC: '73', HUN: '55',
+  IRL: '60', ITA: '83', LVA: '25', LIE: '81', LTU: '24', LUX: '82', NLD: '84', NOR: '76', POL: '51', PRT: '94', ROU: '53', SVK: '56', SVN: '79',
+  ESP: '71', SWE: '74', CHE: '85' };
+/* Vehicle categories: the four concepts the ontology gives era:vehicleCategory (concepts/vehicle-types/Categories), with
+   evn    the first two EVN digits (TSI OPE Appendix P: 9x traction, 5x-7x hauled passenger, 3x and 8x wagons, 99 special vehicles),
+   eratv  the first two digits of ERATV type numbers in that category,
+   w      the share of the 4,149 numbered types in ERATV-KG (UAT, measured 2026-11-13). */
+const EVR_CATS = {  // eratv: type-number code -> the EVN prefixes of its vehicles (11 locomotives: 91 electric, 92 diesel; 13 trainsets: 94, 95)
+  '1X': { evn: ['91', '92', '94', '95'], eratv: { 11: ['91', '92'], 13: ['94', '95'] }, w: 59 },
+  '3X-4X': { evn: ['50', '51', '61', '73'], eratv: { 31: ['50', '51', '61', '73'] }, w: 8 },
+  '5X': { evn: ['31', '33', '37', '81', '83', '84'], eratv: { 51: ['31', '33', '37', '81', '83', '84'] }, w: 18 },
+  '7X': { evn: ['99'], eratv: { 71: ['99'], 73: ['99'] }, w: 15 },
+};
+const ORG_ROLE_OF = { vehicleKeeper: 'Keeper', vehicleKeeperMarking: 'Keeper', vehicleOwner: 'Owner', vehicleECM: 'ECM',
+  vehicleTypeAuthorisationHolder: 'Manufacturer', vehicleTypeManufacturer: 'Manufacturer' };
+const ORG_LABEL = { Keeper: 'vehicle keeper', Owner: 'vehicle owner', ECM: 'entity in charge of maintenance', Manufacturer: 'railway manufacturer' };
+const ORG_WORDS = { Keeper: ['Rail Cargo', 'Wagon Leasing', 'Rail Logistics', 'Rail Freight', 'Rail Services'], Owner: ['Rolling Stock Leasing', 'Rail Capital', 'Wagon Finance'],
+  ECM: ['Rail Maintenance', 'Wagon Maintenance', 'Rolling Stock Services'], Manufacturer: ['Rail Systems', 'Rolling Stock Works', 'Rail Vehicles'] };
+const LEGAL_FORM = { AUT: 'GmbH', BEL: 'NV', BGR: 'EOOD', HRV: 'd.o.o.', CZE: 's.r.o.', DNK: 'A/S', EST: 'AS', FIN: 'Oy', FRA: 'SAS', DEU: 'GmbH', GRC: 'S.A.',
+  HUN: 'Kft.', IRL: 'Ltd', ITA: 'S.p.A.', LVA: 'SIA', LIE: 'AG', LTU: 'UAB', LUX: 'S.A.', NLD: 'B.V.', NOR: 'AS', POL: 'Sp. z o.o.', PRT: 'S.A.', ROU: 'S.R.L.',
+  SVK: 's.r.o.', SVN: 'd.o.o.', ESP: 'S.A.', SWE: 'AB', CHE: 'AG' };
+/* The register chain (vpa: Scope -> Case -> Request -> Permission), built around vehicles or vehicle types. The chain sets
+   these links itself: the shapes' vehicleType, rdfs:member, vpa:concerns, vpa:constitutedBy, vpa:requestedIn, dct:requires. */
+const CHAIN_LINKS = new Set([ERA + 'vehicleType', RDFS + 'member', VPA + 'concerns', VPA + 'constitutedBy', VPA + 'requestedIn', DCT + 'requires']);
+const CHAIN_OF = {
+  Vehicle: ['VehicleType', 'VehicleTypeAuthorisationCase', 'VehicleTypeAuthorisationApplication', 'VehicleTypeAuthorisation',
+    'VehicleSet', 'VehicleRegistrationCase', 'VehicleRegistrationApplication', 'VehicleRegistration'],
+  VehicleType: ['VehicleTypeAuthorisationCase', 'VehicleTypeAuthorisationApplication', 'VehicleTypeAuthorisation'],
+};
+/* What the chain's resources (and linked vehicle types) carry besides what the shapes require. For vehicle types: the ERATV
+   parameters at least 70 % of the 4,471 types in ERATV-KG carry (UAT, measured 2026-11-13). */
+const LINKED_CORE = {
+  VehicleType: ['vehicleCategory', 'vehicleSubCategory', 'vehicleTypeNumber', 'includedVersionsVariant', 'vehicleTypePlatform', 'vehicleTypeManufacturer',
+    'wheelSetGaugeTransformationMethod', 'endCouplingType', 'gaugingProfile', 'temperatureRange', 'lengthOfVehicle', 'trainDetectionSystemType',
+    'axleBearingConditionMonitoring', 'designMassWorkingOrder', 'minimumHorizontalRadius', 'staticAxleLoadNormalPayload', 'staticAxleLoadWorkingOrder',
+    'designMassNormalPayload', 'energySupplySystem', 'parkingBrakeMaximumGradient', 'snowIceHailConditions'],
+  VehicleTypeAuthorisation: ['identifier', 'issued', 'creator', 'vehicleTypeAuthorisationHolder'],
+  VehicleTypeAuthorisationCase: ['authorisingMemberState', 'typeRegistrationMethod'],
+  VehicleRegistrationCase: ['registeringMemberState', 'registrationCaseType'],
+  VehicleRegistration: ['permissionStatus'],
+};
+/* Parameters for exceptional cases, left out of the core preset (a previous EVN only after a change of number; the national
+   registration properties a country requires are added by the register chain anyway). */
+const EVR_RARE = new Set(['previousVehicleNumber', 'hasNationalRegistrationProperty', 'vehicleDependentCondition', 'additionalVehicleConditions',
+  'configDependentCondition', 'configDependentCompliance', 'safetyDeclaration']);
+/* Numbers for vehicle types: quantiles of the values in ERATV-KG (UAT, measured 2026-11-13: p5, p25, p50, p75, p95 and between). */
+const NUM_BY_NAME_EVR = [
+  [/^lengthOfVehicle$/, { values: [11.3, 14.2, 16.4, 18, 19.5, 20.77, 22.3, 24.8, 26.4, 55.94, 74, 200.6] }],
+  [/^designMassWorkingOrder$/, { values: [20000, 24000, 35000, 50000, 64000, 80000, 86000, 90000, 110000, 120000, 160000, 335860] }],
+  [/^designMassNormalPayload$/, { values: [27400, 40000, 60000, 76000, 85000, 90000, 100000, 120000, 135000, 180000, 402000] }],
+  [/^staticAxleLoad/, { values: [5375, 10000, 12750, 15000, 16692, 18000, 20000, 21279, 22500] }],
+  [/^minimumHorizontalRadius$/, { values: [35, 60, 80, 90, 100, 120, 135, 150] }],
+  [/^parkingBrakeMaximumGradient$/, { values: [5, 20, 32, 35, 40, 40, 40, 59] }],
+  [/^maximumLocomotivesCoupled$/, { values: [1, 2, 3] }],
+];
+/* Track gauge a vehicle type is built for, by registering country (ERATV-KG: 1435mm 3,906, 1668mm 161, 1520mm 140, 1524mm 75). */
+const GAUGE_BY_COUNTRY = { ESP: '1668mm', PRT: '1668mm', FIN: '1524mm', EST: '1520mm', LVA: '1520mm', LTU: '1520mm', IRL: '1600mm' };
+/* Company addresses: "Station Street" in the national language, and the number of digits of a postcode. */
+const STREET = { fr: 'Rue de la Gare', de: 'Bahnhofstraße', nl: 'Stationsstraat', it: 'Via della Stazione', es: 'Calle de la Estación', pt: 'Rua da Estação',
+  pl: 'ul. Dworcowa', cs: 'Nádražní', sk: 'Staničná', hr: 'Kolodvorska ulica', sl: 'Kolodvorska ulica', sv: 'Stationsgatan', da: 'Stationsvej', no: 'Stasjonsveien',
+  fi: 'Asemakatu', et: 'Jaama tänav', hu: 'Állomás utca', ro: 'Strada Gării', lt: 'Stoties gatvė', lv: 'Stacijas iela', el: 'Odos Stathmou', bg: 'ul. Gara', en: 'Station Road' };
+const POST_DIGITS = { AUT: 4, BEL: 4, BGR: 4, CHE: 4, DNK: 4, HUN: 4, LIE: 4, LUX: 4, NOR: 4, SVN: 4, NLD: 4, PRT: 4, LVA: 4, ROU: 6, IRL: 7 };
+const PLATFORMS = ['Arvelo', 'Corvane', 'Lumeto', 'Nerval', 'Ostrin', 'Pavona', 'Quintar', 'Selvan', 'Vireo', 'Halvor'];
+/* Code lists the ontology names no scheme for. */
+const SCHEME_OF = { [ERA + 'vkmStatus']: ERA + 'concepts/vkm-status/VKMStatus' };
 /* Realistic frequencies for some code lists (RDFGraphGen draws sh:in uniformly). Key: last segment of the concept IRI. */
 const WEIGHTS = {
   [ERA + 'solNature']: { '10': 95, '20': 5 },
   [ERA + 'opType']: { '10': 22, '20': 15, '70': 30, '80': 12, '40': 4, '100': 2, '120': 6, '50': 2, '90': 1, '30': 2, '60': 1, '110': 1, '130': 1, '140': 1, '150': 1 },
   [ERA + 'operationalRegimeType']: { '40': 55, '20': 30, '30': 10, '10': 5 },
+  // EVR + ERATV. Categories: the share of types in ERATV-KG. The others are assumptions (EVR-KG is not open): the chain
+  // describes how vehicles were first registered, mostly valid; types are mostly new; only codes for these cases are drawn.
+  [ERA + 'vehicleCategory']: Object.fromEntries(Object.entries(EVR_CATS).map(([k, c]) => [k, c.w])),
+  [ERA + 'registrationCaseType']: { NEW: 85, NEW_WITH_APOM: 10, NEW_IMPORT: 5, '*': 0 },
+  [VPA + 'permissionStatus']: { '00': 90, '10': 2, '11': 2, '13': 1, '20': 2, '33': 3, '*': 0 },
+  [ERA + 'typeRegistrationMethod']: { NT: 45, NVER: 20, NVAR: 15, NTFRP: 8, NCM: 7, NTFNP: 5, '*': 0 },
+  [ERA + 'vkmStatus']: { 'in-use': 1, '*': 0 },
 };
 const TRUE_PCT = 20;
 /* Numeric realism: by property name first, then by unit (QUDT local name). values = a pool, otherwise a range. */
@@ -1165,7 +1620,10 @@ const S = {
   ontoProps: {}, ontoClasses: {}, schemeCounts: {}, concepts: {}, conceptLabel: {}, anchors: {},
   cls: null, model: null, selected: new Set(), preset: 'core', layoutMode: 'connected', partOf: 'SectionOfLine',
   py: null, engine: null, engineInfo: null, result: null,
+  register: 'rinf', chain: true, sets: {}, engineSets: new Set(),  // per register: shapes and their index; loaded into the engine
 };
+/* A property's code list: the ontology's era:inSkosConceptScheme, else the one the property shape names, else a known one. */
+const schemeOf = m => (m.onto && m.onto.scheme) || m.shapeScheme || SCHEME_OF[m.path];
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const localName = iri => String(iri).replace(/[#/]$/, '').split(/[#/]/).pop();
@@ -1199,8 +1657,10 @@ function showError(e) {
 }
 
 /* ====================================================================== shapes */
-function indexShapes(ttl) {
-  const store = new N3.Store(new N3.Parser().parse(ttl));
+function indexShapes(ttls) {  // one or several shape documents (EVR + ERATV); a parser per document keeps blank nodes apart
+  const store = new N3.Store();
+  const srcOf = new Map();
+  ttls.forEach((ttl, i) => { for (const q of new N3.Parser().parse(ttl)) { store.addQuad(q); if (q.predicate.value === RDF + 'type' && !srcOf.has(q.subject.value)) srcOf.set(q.subject.value, i); } });
   const objs = (s, p) => store.getObjects(s, p, null);
   const one = (s, p) => objs(s, p)[0];
   const list = head => { const out = []; let n = head, guard = 0; while (n && n.value !== RDF + 'nil' && guard++ < 1000) { const f = one(n, RDF + 'first'); if (f) out.push(f); n = one(n, RDF + 'rest'); } return out; };
@@ -1220,7 +1680,11 @@ function indexShapes(ttl) {
       minIncl: num(one(ps, SH + 'minInclusive')), maxIncl: num(one(ps, SH + 'maxInclusive')),
       minExcl: num(one(ps, SH + 'minExclusive')), maxExcl: num(one(ps, SH + 'maxExclusive')),
       severity: lit(one(ps, SH + 'severity')) || SH + 'Violation', message: lit(one(ps, SH + 'message')),
-      rinf: lit(one(ps, ERA + 'rinfIndex')), sparql: sparqlMsgs,
+      // the register's parameter number (RINF, EVR or ERATV) and the code list the shape names
+      index: lit(one(ps, ERA + 'rinfIndex')) || lit(one(ps, ERA + 'evrIndex')) || lit(one(ps, ERA + 'eratvIndex')),
+      indexKind: one(ps, ERA + 'rinfIndex') ? 'RINF' : one(ps, ERA + 'evrIndex') ? 'EVR' : one(ps, ERA + 'eratvIndex') ? 'ERATV' : undefined,
+      shapeScheme: lit(one(ps, ERA + 'inSkosConceptScheme')), sparql: sparqlMsgs,
+      orDatatypes: one(ps, SH + 'or') ? list(one(ps, SH + 'or')).map(n => lit(one(n, SH + 'datatype'))).filter(Boolean) : [],
       // a qualified value shape on an alternative path, e.g. SoL: (era:hasPart | ^…) with ≥ 1 value of class era:Track
       altPaths: path && path.termType !== 'NamedNode' && one(path, SH + 'alternativePath') ? list(one(path, SH + 'alternativePath')).filter(t => t.termType === 'NamedNode').map(t => t.value) : [],
       qMin: num(one(ps, SH + 'qualifiedMinCount')),
@@ -1229,7 +1693,7 @@ function indexShapes(ttl) {
   };
   for (const ns of store.getSubjects(RDF + 'type', SH + 'NodeShape', null)) {
     const shape = {
-      iri: ns.value, targets: objs(ns, SH + 'targetClass').map(t => t.value), closed: lit(one(ns, SH + 'closed')) === 'true',
+      iri: ns.value, src: srcOf.get(ns.value) || 0, targets: objs(ns, SH + 'targetClass').map(t => t.value), closed: lit(one(ns, SH + 'closed')) === 'true',
       iriPatterns: objs(ns, SH + 'pattern').map(t => t.value),
       ignored: one(ns, SH + 'ignoredProperties') ? list(one(ns, SH + 'ignoredProperties')).map(t => t.value) : [],
       props: objs(ns, SH + 'property').map(readProp),
@@ -1316,6 +1780,22 @@ async function loadImRole(country) {
   if (!S.imRoles[role]) S.imRoles[role] = `<${role}> <${RDF}type> <${ERA}OrganisationRole> .`;
   return S.imRoles[role];
 }
+/* EVR: the national registration properties of a Member State (a skos:Collection per country in ERA's SKOS), with the
+   datatype each value must have, its maximum length and whether a registration case must carry it. */
+async function loadNationalProps(country) {
+  const code = country.iso2 === 'GR' ? 'EL' : country.iso2;  // the collections use EU country codes
+  S.national = S.national || {};
+  if (S.national[code]) return S.national[code];
+  try {
+    const rows = await sparql(ONTO_EP, `PREFIX skos: <${SKOS}> PREFIX era: <${ERA}>
+SELECT ?c ?l ?dt ?mand ?max WHERE { <${ERA}concepts/national-reg-props/${code}> skos:member ?c
+  OPTIONAL { ?c skos:prefLabel ?l FILTER(LANG(?l) = "en") } OPTIONAL { ?c era:nationalPropertyExpectedDatatype ?dt }
+  OPTIONAL { ?c era:nationalPropertyMandatory ?mand } OPTIONAL { ?c era:nationalPropertyMaxLength ?max } } ORDER BY ?c`);
+    S.national[code] = rows.map(b => ({ c: b.c.value, label: b.l ? b.l.value : localName(b.c.value), dt: b.dt ? b.dt.value : XSD + 'string',
+      mand: !!b.mand && b.mand.value === 'true', max: b.max ? +b.max.value : null }));
+  } catch (e) { console.warn('national registration properties', e); S.national[code] = []; }
+  return S.national[code];
+}
 async function loadAnchors(country) {
   if (S.anchors[country.iso3]) return S.anchors[country.iso3];
   let pts = [];
@@ -1353,10 +1833,11 @@ function classModel(cls) {
       if (closed && inherited.includes(s) && !allowed.has(p.path)) { if (!excluded.some(e => e.path === p.path)) excluded.push({ path: p.path, name: curie(p.path), why: 'not allowed by the closed ' + curie(own.find(o => o.closed).iri) }); continue; }
       let m = props.get(p.path);
       if (!m) props.set(p.path, m = { path: p.path, minCount: 0, required: false, recommended: false, maxCount: undefined, datatype: undefined, classes: [],
-        nodeKind: undefined, in: null, patterns: [], rinf: undefined, sparql: [] });
+        nodeKind: undefined, in: null, patterns: [], index: undefined, sparql: [] });
       if (p.minCount) { m.minCount = Math.max(m.minCount, p.minCount); if (p.severity.endsWith('Violation')) m.required = true; else m.recommended = true; }
       if (p.maxCount !== undefined) m.maxCount = m.maxCount === undefined ? p.maxCount : Math.min(m.maxCount, p.maxCount);
-      m.datatype = m.datatype || p.datatype; m.nodeKind = m.nodeKind || p.nodeKind; m.in = m.in || p.in; m.rinf = m.rinf || p.rinf;
+      m.datatype = m.datatype || p.datatype; m.nodeKind = m.nodeKind || p.nodeKind; m.in = m.in || p.in; if (!m.index) { m.index = p.index; m.indexKind = p.indexKind; }
+      m.shapeScheme = m.shapeScheme || p.shapeScheme; m.orDatatypes = m.orDatatypes && m.orDatatypes.length ? m.orDatatypes : p.orDatatypes;
       for (const c of p.classes) if (!m.classes.includes(c)) m.classes.push(c);
       m.orClasses = m.orClasses && m.orClasses.length ? m.orClasses : p.orClasses;
       for (const x of p.patterns) if (!m.patterns.includes(x)) m.patterns.push(x);
@@ -1387,7 +1868,8 @@ function classModel(cls) {
 
 /* ====================================================================== the planner: one realism rule per property */
 function numberSpec(local, unit, m) {
-  let spec = (NUM_BY_NAME.find(([re]) => re.test(local)) || [])[1] || NUM_BY_UNIT[unit] || { min: 1, max: 100 };
+  const byName = S.register === 'evr' ? [...NUM_BY_NAME_EVR, ...NUM_BY_NAME] : NUM_BY_NAME;
+  let spec = (byName.find(([re]) => re.test(local)) || [])[1] || NUM_BY_UNIT[unit] || { min: 1, max: 100 };
   spec = { ...spec };
   if (m.minIncl !== undefined) spec.min = Math.max(spec.min ?? m.minIncl, m.minIncl);
   if (m.maxIncl !== undefined) spec.max = Math.min(spec.max ?? m.maxIncl, m.maxIncl);
@@ -1409,14 +1891,63 @@ function numberPool(spec, dt, rand) {
   }
   return [...out].sort((a, b) => a - b);
 }
+/* EVR + ERATV: identifiers with their real formats and check digits, organisations, and a few values the shapes leave open. */
+function evrRule(model, m, dt, R) {
+  const local = localName(m.path), cls = localName(model.cls);
+  const str = v => ({ v, dt: XSD + 'string' });
+  if (local === 'vehicleNumber' || local === 'previousVehicleNumber')
+    return R('evn', local === 'vehicleNumber' ? 'EVN · 12 digits, check digit' : 'earlier EVN, other country',
+      'European Vehicle Number: two digits for the vehicle category (9x traction, 5x-7x passenger, 3x and 8x wagons, 99 special vehicles), the UIC code of the ' +
+      'registering country, four digits shared by the vehicles of one type, a serial number and the UIC check digit. Unique in the run.', { layout: 'evn', labelFrom: local === 'vehicleNumber' });
+  if (cls === 'VehicleTypeAuthorisation' && m.path === DCT + 'identifier')
+    return R('ein', 'EIN · country, 80, year, number', 'European Identification Number, as in ERATV (e.g. PL8020240283): the country, "80", the year of dct:issued and a number. Unique in the run.', { layout: 'ein', labelFrom: true });
+  if (cls === 'VehicleTypeAuthorisation' && m.path === DCT + 'issued') return R('date', '2008–2025', 'A date of authorisation; the EIN carries its year.', { make: () => ({ min: '2008-01-01', max: '2025-12-31', dt }) });
+  if (cls === 'VehicleTypeAuthorisation' && m.path === DCT + 'creator')
+    return R('text', 'authorising entity', 'The Agency, or a national safety authority.', { make: c => ({ in: ['European Union Agency for Railways', 'National safety authority, ' + c.country.name].map(str) }) });
+  if (local === 'vehicleTypeNumber')
+    return R('typeNumber', 'ERATV number · check digit', 'NN-NNN-NNNN-C as in ERATV: the category code (11 locomotives, 13 trainsets, 31 coaches, 51 wagons, 71 and 73 special vehicles), ' +
+      'a three-digit number, a serial and the Luhn check digit (11-273-0001-8 in ERATV-KG). Unique in the run.', { layout: 'typeNumber', labelFrom: true });
+  if (local === 'vehicleSubCategory') return R('copy', 'same as the category', 'The ontology gives the sub-category the same four concepts as the category: it repeats the category.', { layout: 'copyOf', of: ERA + 'vehicleCategory' });
+  if (local === 'manufacturingYear' || local === 'registeredManufacturingYear')
+    return R('mfgYear', 'after the type was authorised', 'Within six years after the vehicle type was authorised; 1975–2025 for a type without an authorisation.', { layout: 'mfgYear' });
+  if (local === 'manufacturingSerialNumber' || local === 'registeredManufacturingSerialNumber') return R('id', 'serial number', 'A manufacturer serial number, unique in the run.', { layout: 'serial' });
+  if (local === 'vkmCode' || local === 'vkmNational') return R('vkm', 'VKM · 3–5 letters', 'A vehicle keeper marking in capital letters, unique in the run. Invented: it may coincide with a real one.', { layout: 'vkm' });
+  if (ORG_ROLE_OF[local]) {
+    const role = ORG_ROLE_OF[local];
+    return R('org', 'invented ' + ORG_LABEL[role], `An organisation role (era:hasOrganisationRole ${role}) of an invented company, with its era:Body. ` +
+      (role === 'Keeper' ? 'As in the VKM register, the keeper\'s role is also its vehicle keeper marking (VKM code, status, country). ' : '') +
+      'A few per role, shared by the vehicles; in the register chain the vehicles of one set share their keeper.', { layout: 'org', role });
+  }
+  if (local === 'hasNationalRegistrationProperty')
+    return R('national', 'the country\'s national properties', 'The registering country\'s national registration properties (ERA SKOS: concepts/national-reg-props/<country>): every mandatory one, ' +
+      'and one or two others, each value of the datatype the property expects and within its maximum length. Countries without such properties get none.', { layout: 'national' });
+  if (local === 'includedVersionsVariant') return R('id', 'version 001–003', '', { make: () => ({ in: ['001', '002', '003'].map(str), weights: [80, 15, 5] }) });
+  if (local === 'vehicleTypePlatform' || local === 'alternativeTypeName')
+    return R('name', 'invented platform name', 'A product-family name, like TRAXX or FLIRT in ERATV, invented.',
+      { make: c => ({ in: PLATFORMS.flatMap(p => ['', ' AC', ' 2E', ' 160'].map(x => p + x)).map(v => dt === RDF + 'langString' ? { v, lang: 'en' } : str(v)) }) });
+  if (local === 'wheelSetGaugeTransformationMethod')
+    return R('text', 'gauge of the country', 'The track gauge the type runs on: 1668 mm in Spain and Portugal, 1520/1524 mm in the Baltics and Finland, 1600 mm in Ireland, 1435 mm elsewhere (ERATV-KG values).',
+      { make: c => ({ in: [GAUGE_BY_COUNTRY[c.country.iso3] || '1435mm', 'Bogie / axle change'].map(str), weights: [97, 3] }) });
+  return null;
+}
 function ruleFor(model, m) {
   const path = m.path, local = localName(path), o = m.onto || {};
   const unit = o.unit ? localName(o.unit) : null;
   const range = o.range;
-  const dt = m.datatype || (range && (range.startsWith(XSD) || range === RDF + 'langString' || range === GEO + 'wktLiteral') ? range : undefined);
+  const dt = m.datatype || (m.orDatatypes || [])[0]  // sh:or ( [sh:datatype xsd:decimal] [sh:datatype xsd:integer] ): the first
+    || (range && (range.startsWith(XSD) || range === RDF + 'langString' || range === GEO + 'wktLiteral') ? range : undefined);
   const linear = model.geomKind === 'sol' || model.geomKind === 'line';
   const isSol = localName(model.cls) === 'SectionOfLine';
   const R = (kind, badge, title, extra = {}) => ({ kind, badge, title, ...extra });
+  const scheme = schemeOf(m);
+  if (S.register === 'evr') { const r = evrRule(model, m, dt, R); if (r) return r; }
+  // a country: a code list of EU authority countries, or a pattern on their IRIs
+  if ((scheme && scheme.replace(/\/$/, '') + '/' === EU_COUNTRY) || m.patterns.some(p => /publications\\?\.europa\\?\.eu\/resource\/authority\/country/.test(p)))
+    return local === 'manufacturingCountry'
+      ? R('country', 'selected country or a neighbour', 'Half the vehicles are built in the selected country, the others in another rail-manufacturing country (an assumption).',
+        { make: c => { const others = ['DEU', 'FRA', 'POL', 'CZE', 'ITA', 'ESP', 'CHE', 'AUT'].filter(x => x !== c.country.iso3);
+          return { in: [c.country.iso3, ...others].map(x => ({ iri: EU_COUNTRY + x })), weights: [others.length, ...others.map(() => 1)] }; } })
+      : R('country', 'selected country', 'The EU authority IRI of the selected country.', { make: c => ({ in: [{ iri: c.country.iri }] }) });
   if (path === GEO + 'hasGeometry') return R('geometry', model.geomKind === 'point' ? 'point near the network' : 'line along the network',
     'Drawn near operational points sampled live from RINF, shifted by a few tens of metres. Needed for the map.', { layout: 'geometry' });
   if (path === RDFS + 'label') return R('label', 'synthetic name', 'An invented, language-tagged name (for sections: "start – end").', { layout: 'label' });
@@ -1455,12 +1986,14 @@ function ruleFor(model, m) {
   if (dt === GEO + 'wktLiteral') return R('wkt', 'own geometry (WKT)', 'The instance\'s own geometry as WKT.', { layout: 'wkt' });
   if (m.in && m.in.length) return R('shape-in', 'shape sh:in · ' + m.in.length, 'Values listed by the shape; RDFGraphGen picks from them.',
     { make: () => ({ in: m.in.map(t => t.termType === 'NamedNode' ? { iri: t.value } : { v: t.value, dt: t.datatype && t.datatype.value }) }) });
-  if (o.scheme) {
-    const n = S.schemeCounts[o.scheme];
+  if (scheme) {
+    const n = S.schemeCounts[scheme];
     const w = WEIGHTS[path];
-    return R('skos', 'SKOS' + (n !== undefined ? ' · ' + n : '') + (w ? ' · weighted' : ''), 'Real concepts of ' + curie(o.scheme) + (w ? ', drawn with realistic frequencies' : ', drawn uniformly by RDFGraphGen') + '.',
-      { scheme: o.scheme, unusable: n === 0, make: c => { const cs = c.concepts[o.scheme] || []; if (!cs.length) return null;
-        return { in: cs.map(x => ({ iri: x.iri })), ...(w ? { weights: cs.map(x => w[x.local] ?? 1) } : {}) }; } });
+    return R('skos', 'SKOS' + (n !== undefined ? ' · ' + n : '') + (w ? ' · weighted' : ''), 'Real concepts of ' + curie(scheme) + (w ? ', drawn with realistic frequencies' : ', drawn uniformly by RDFGraphGen') + '.',
+      { scheme, unusable: n === 0, make: c => { let cs = c.concepts[scheme] || [];
+        if (w) cs = cs.filter(x => (w[x.local] ?? w['*'] ?? 1) > 0);  // codes for other cases are not drawn at all
+        if (!cs.length) return null;
+        return { in: cs.map(x => ({ iri: x.iri })), ...(w ? { weights: cs.map(x => w[x.local] ?? w['*'] ?? 1) } : {}) }; } });
   }
   // a linked resource: an ERA class first, else any other class the shape names (sf:Point, time:Instant…), else an ERA range
   const ors = m.orClasses || [];
@@ -1521,17 +2054,17 @@ function presetSelection(model, preset) {
     const req = m.required || m.minCount > 0;
     const extra = m.path === GEO + 'hasGeometry' || m.path === RDFS + 'label';
     if (req || extra) sel.add(m.path);
-    else if (preset === 'core' && (m.rinf || m.rule.kind === 'part') && !META.has(local)) sel.add(m.path);
+    else if (preset === 'core' && (m.index || m.rule.kind === 'part') && !META.has(local) && !EVR_RARE.has(local)) sel.add(m.path);
     else if (preset === 'all' && !META.has(local)) sel.add(m.path);
   }
   return sel;
 }
-function propOrder(m) { return (m.required || m.minCount > 0) ? 0 : (m.path === GEO + 'hasGeometry' || m.path === RDFS + 'label') ? 1 : m.rinf ? 2 : 3; }
+function propOrder(m) { return (m.required || m.minCount > 0) ? 0 : (m.path === GEO + 'hasGeometry' || m.path === RDFS + 'label') ? 1 : m.index ? 2 : 3; }
 function renderProps() {
   const model = S.model, box = $('props');
   if (!model) return;
-  const sections = [['Required by the shapes', 0], ['For the map and readability', 1], ['RINF parameters', 2], ['Other properties', 3]];
-  const rows = [...model.props].sort((a, b) => propOrder(a) - propOrder(b) || (a.rinf || '~').localeCompare(b.rinf || '~', undefined, { numeric: true }) || curie(a.path).localeCompare(curie(b.path)));
+  const sections = [['Required by the shapes', 0], ['For the map and readability', 1], [REG().indexName, 2], ['Other properties', 3]];
+  const rows = [...model.props].sort((a, b) => propOrder(a) - propOrder(b) || (a.index || '~').localeCompare(b.index || '~', undefined, { numeric: true }) || curie(a.path).localeCompare(curie(b.path)));
   let html = '';
   for (const [title, k] of sections) {
     const part = rows.filter(m => propOrder(m) === k);
@@ -1548,7 +2081,7 @@ function renderProps() {
         <span class="r">${locked ? '<span class="tag req" title="minCount ≥ 1 in the shapes: always generated">required</span>' : m.recommended ? '<span class="tag" title="minCount 1 at Warning severity">recommended</span>' : ''}
           <span class="tag card" title="Cardinality in the shapes">${card}</span>
           <span class="tag k-${esc(r.kind)}" title="${esc(r.title || '')}">${esc(r.badge)}</span>
-          ${m.rinf ? `<span class="tag card" title="RINF index">${esc(m.rinf)}</span>` : ''}</span></label>`;
+          ${m.index ? `<span class="tag card" title="${esc(m.indexKind || REG().name)} index">${esc(m.index)}</span>` : ''}</span></label>`;
     }
   }
   box.innerHTML = html || '<div class="hint" style="padding:10px">This class has no properties in the shapes.</div>';
@@ -1568,10 +2101,16 @@ function markPreset() { document.querySelectorAll('#presets .btn').forEach(b => 
 /* ====================================================================== class list */
 const ICON = { sol: '〰', line: '〰', point: '•' };
 function classGroups() {
-  const list = [...S.byTarget.keys()].filter(c => c.startsWith(ERA));
+  // ERA classes with at least one property shape: the EVR guide targets era:FreightWagon, era:TractionVehicle… with empty
+  // node shapes (and SHACL-SPARQL rules), and the ontology does not define them; nothing to generate there
+  const list = [...S.byTarget.keys()].filter(c => c.startsWith(ERA) && S.byTarget.get(c).some(s => s.props.length));
+  const groups = REG().groups;
   const models = list.map(c => ({ c, label: (S.ontoClasses[c] || {}).label || localName(c), feature: (S.byTarget.get(c) || []).length,
-    n: (S.byTarget.get(c) || []).reduce((a, s) => a + s.props.length, 0), geo: geoKindQuick(c) }));
-  return models.sort((a, b) => (a.geo ? 0 : 1) - (b.geo ? 0 : 1) || a.label.localeCompare(b.label));
+    n: (S.byTarget.get(c) || []).reduce((a, s) => a + s.props.length, 0), geo: geoKindQuick(c),
+    // EVR + ERATV: grouped by the guide that shapes the class first (a class in both, e.g. Vehicle, is EVR's)
+    grp: groups ? groups[Math.min(...(S.byTarget.get(c) || []).map(s => s.src))] : null }));
+  return models.sort((a, b) => groups ? groups.indexOf(a.grp) - groups.indexOf(b.grp) || a.label.localeCompare(b.label)
+    : (a.geo ? 0 : 1) - (b.geo ? 0 : 1) || a.label.localeCompare(b.label));
 }
 function geoKindQuick(c) {
   const supers = (S.ontoClasses[c] || {}).supers || [];
@@ -1583,7 +2122,7 @@ function renderClassList() {
   const items = classGroups().filter(x => !q || x.label.toLowerCase().includes(q) || localName(x.c).toLowerCase().includes(q));
   let html = '', grp = null;
   for (const x of items) {
-    const g = x.geo ? 'On the map' : 'Without geometry';
+    const g = x.grp || (x.geo ? 'On the map' : 'Without geometry');
     if (g !== grp) { html += `<div class="grp">${g}</div>`; grp = g; }
     html += `<div class="cls${x.c === S.cls ? ' active' : ''}" role="option" tabindex="0" aria-selected="${x.c === S.cls}" data-cls="${esc(x.c)}">
       <span class="ic">${x.geo ? ICON[x.geo] : '◇'}</span><span class="nm">${esc(x.label)} <span class="c" style="color:var(--dim);font-size:11px">${esc(curie(x.c))}</span></span><span class="ct">${x.n} props</span></div>`;
@@ -1598,7 +2137,7 @@ function renderClassList() {
 async function selectClass(cls, keepSelection) {
   S.cls = cls;
   S.model = classModel(cls);
-  const schemes = [...new Set(S.model.props.map(m => m.onto && m.onto.scheme).filter(Boolean))];
+  const schemes = [...new Set(S.model.props.map(schemeOf).filter(x => x && !EU_COUNTRY.startsWith(x)))];
   try { await loadSchemeCounts(schemes); } catch (e) { console.warn(e); }
   for (const m of S.model.props) m.rule = ruleFor(S.model, m);
   if (!keepSelection) { S.selected = presetSelection(S.model, S.preset === 'custom' ? 'core' : S.preset); if (S.preset === 'custom') S.preset = 'core'; }
@@ -1606,8 +2145,8 @@ async function selectClass(cls, keepSelection) {
   const req = S.model.props.filter(m => m.required || m.minCount > 0).length;
   $('clsInfo').innerHTML = `<b>${esc(info.label || localName(cls))}</b> · ${S.model.own.length + S.model.inherited.length} shape(s), ${S.model.props.length} properties, ${req} required${S.model.closed ? ', closed shape' : ''}.
     ${info.comment ? '<br>' + esc(info.comment.split(/(?<=\.)\s/)[0]) : ''}
-    ${S.model.geomKind ? '' : '<br><span class="warnc">No geometry in the shapes: the map stays empty; see the Turtle tab.</span>'}`;
-  renderPartOf();
+    ${S.model.geomKind || S.register !== 'rinf' ? '' : '<br><span class="warnc">No geometry in the shapes: the map stays empty; see the Turtle tab.</span>'}`;
+  renderPartOf(); renderChain();
   renderClassList(); renderProps(); markPreset(); saveHash();
 }
 /* "Part of" for classes with more than one possible whole; the section layout also applies to sections built as wholes. */
@@ -1622,6 +2161,81 @@ function renderPartOf() {
     renderPartOf(); renderProps(); saveHash();
   }));
   $('layoutRow').hidden = !(S.model.geomKind === 'sol' || (chain && chain[chain.length - 1] === 'SectionOfLine'));
+}
+/* EVR: the register chain around vehicles (types, authorisations, sets, registrations) or vehicle types (authorisations). */
+function renderChain() {
+  const lname = localName(S.cls), on = S.register === 'evr' && !!CHAIN_OF[lname];
+  $('chainRow').hidden = !on;
+  if (!on) return;
+  $('chain').checked = S.chain;
+  $('chainTxt').textContent = lname === 'Vehicle' ? 'Register them: types, type authorisations, registrations' : 'Authorise them: case, application, authorisation';
+  $('chainHint').innerHTML = lname === 'Vehicle'
+    ? 'One vehicle type per six vehicles or so (ERATV shapes), each with its type authorisation. The vehicles of a type are registered in sets of 1 to 8, each set with its registration case, application and registration (EVR shapes), linked through <code>vpa:</code> as in ERA\'s knowledge graphs.'
+    : 'Each type gets a type authorisation case that <code>vpa:concerns</code> it, an application and the authorisation it requests, with an EIN, as in ERATV-KG.';
+}
+
+/* ====================================================================== registers */
+async function setRegister(key, wantCls) {
+  if (!REGISTERS[key]) key = 'rinf';
+  const changed = S.register !== key;
+  S.register = key;
+  const reg = REG();
+  document.querySelectorAll('[data-register]').forEach(b => { b.classList.toggle('on', b.dataset.register === key); b.setAttribute('aria-selected', String(b.dataset.register === key)); });
+  $('title').textContent = reg.title; document.title = reg.title; $('lede').innerHTML = reg.lede;
+  $('clsSearch').placeholder = reg.search; $('clsSearch').value = ''; $('countryLbl').textContent = reg.country;
+  $('corePreset').textContent = reg.core[0]; $('corePreset').title = reg.core[1];
+  if (Object.values(REGISTERS).some(r => r.base === $('base').value.trim()) || !$('base').value.trim()) $('base').value = reg.base;
+  document.querySelector('[data-tab=map]').hidden = key !== 'rinf'; $('dlGeo').hidden = key !== 'rinf';
+  if (key !== 'rinf' && $('pane-map').classList.contains('on')) showTab('graph');
+  if (changed && S.preset === 'custom') S.preset = 'core';
+  return loadRegister(wantCls);
+}
+async function loadRegister(wantCls) {
+  const reg = REG(), key = S.register, tok = S.regTok = (S.regTok || 0) + 1;
+  S.model = null; S.cls = null;
+  $('classList').innerHTML = '<div class="hint" style="padding:8px">Loading the shapes…</div>'; $('props').innerHTML = ''; $('clsInfo').innerHTML = '';
+  try {
+    let set = S.sets[key];
+    if (!set) {
+      setEngine('busy', `Loading the ${reg.name}${key === 'evr' ? ' and ERATV' : ''} shapes (UAT)…`);
+      const docs = await Promise.all(reg.shapes.map(async u => {
+        const res = await fetch(u, { cache: 'no-cache' });
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' from ' + new URL(u).host);
+        return { ttl: await res.text(), modified: res.headers.get('Last-Modified') };
+      }));
+      S.nodeShapes = new Map(); S.byTarget = new Map(); S.propShapes = new Map(); S.partShapes = {};
+      indexShapes(docs.map(d => d.ttl));
+      set = { ttls: docs.map(d => d.ttl), modified: docs.map(d => d.modified).filter(Boolean).sort((a, b) => new Date(a) - new Date(b)).pop() || null,
+        nodeShapes: S.nodeShapes, byTarget: S.byTarget, propShapes: S.propShapes, partShapes: S.partShapes };
+      setEngine('busy', 'Reading the ontology (UAT ERA-Onto)…');
+      try { await loadOntology(); } catch (e) { console.warn('ontology', e); $('err').innerHTML = '<div class="msg err">The ontology could not be read: labels, units and code lists are missing, so many properties fall back to RDFGraphGen\'s defaults.</div>'; }
+      S.sets[key] = set;
+    }
+    if (tok !== S.regTok) return false;  // another register was picked meanwhile
+    Object.assign(S, { nodeShapes: set.nodeShapes, byTarget: set.byTarget, propShapes: set.propShapes, partShapes: set.partShapes, shapesTtl: set.ttls, shapesModified: set.modified });
+    const day = set.modified ? ' · ' + esc(new Date(set.modified).toISOString().slice(0, 10)) : '';
+    $('sources').innerHTML = key === 'rinf'
+      ? `<span>Shapes: UAT rinf-appGuide${day} · ${S.nodeShapes.size} node shapes</span><span>Ontology + SKOS: UAT ERA-Onto</span><span>Anchors: RINF operational points</span>`
+      : `<span>Shapes: UAT evr-appGuide + eratv-appGuide${day} · ${S.nodeShapes.size} node shapes</span><span>Ontology + SKOS: UAT ERA-Onto</span><span>Numbers and formats: ERATV-KG, VKM-KG (UAT)</span>`;
+    await selectClass(S.byTarget.has(wantCls) ? wantCls : ERA + reg.defaultCls);
+    if (S.py) { setEngine('ok', 'Engine ready.'); renderHow(); }
+    else if (S.engine) setEngine('busy', 'Shapes ready. The Python engine is still starting…');
+    return true;
+  } catch (e) {
+    console.error(e); if (tok !== S.regTok) return false;
+    setEngine('err', 'The shapes could not be loaded.');
+    showError(await describeFetchError(e, reg.shapes[0]));
+    return false;
+  }
+}
+/* The engine keeps RDFGraphGen's reading of each register's shapes; read once, on first use. */
+async function ensureEngineShapes(key) {
+  if (S.engineSets.has(key) || !S.sets[key]) return;
+  setEngine('busy', `RDFGraphGen is reading the ${REGISTERS[key].name} shapes…`); await sleep(30);
+  S.engineInfo = S.engineInfo || {};
+  S.engineInfo[key] = JSON.parse(S.py.globals.get('load_shapes')(key, JSON.stringify(S.sets[key].ttls)));
+  S.engineSets.add(key);
+  renderHow();
 }
 
 /* ====================================================================== engine (Pyodide + RDFGraphGen) */
@@ -1651,10 +2265,8 @@ except ImportError:
     sys.modules['pkg_resources'] = _m
 import warnings; warnings.filterwarnings('ignore')`);
     py.runPython($('pySynth').textContent);
-    setEngine('busy', 'RDFGraphGen is reading the shapes…');
-    await sleep(30);
-    S.engineInfo = JSON.parse(py.globals.get('load_shapes')(S.shapesTtl));
     S.py = py;
+    await ensureEngineShapes(S.register);
     setEngine('ok', `Engine ready: RDFGraphGen 1.2.0 on Pyodide ${PYODIDE_VERSION} (${((performance.now() - t0) / 1000).toFixed(1)} s).`);
     renderHow();
     return py;
@@ -1693,7 +2305,8 @@ function planClass(model, selection, ctx, depth) {
     if (r.labelFrom && !cp.labelFrom) cp.labelFrom = m.path;
     const counts = countFor(m, r);
     if (r.link && (r.own || depth > 0)) { cp.props[m.path] = { layout: 'own', linkClass: r.link, ...counts }; continue; }
-    if (r.layout && r.layout !== 'own') { cp.props[m.path] = { layout: r.layout, ...(r.unit ? { unit: r.unit } : {}), ...(r.dt ? { dt: r.dt } : {}) }; continue; }
+    if (r.layout && r.layout !== 'own') { cp.props[m.path] = { layout: r.layout, ...(r.unit ? { unit: r.unit } : {}), ...(r.dt ? { dt: r.dt } : {}),
+      ...(r.role ? { role: r.role } : {}), ...(r.of ? { of: r.of } : {}) }; continue; }
     const j = r.make ? r.make(ctx) : {};
     if (j === null) continue;
     cp.props[m.path] = { ...j, ...counts };
@@ -1718,7 +2331,7 @@ async function buildPlan() {
   const country = COUNTRIES.find(c => c.iso3 === $('country').value);
   const n = Math.max(1, Math.min(200, +$('count').value || 10));
   const seed = Math.floor(+$('seed').value) || 1;
-  let base = $('base').value.trim() || 'https://example.org/rinf-synthetic/';
+  let base = $('base').value.trim() || REG().base;
   if (!/[/#]$/.test(base)) base += '/';
   const rand = mulberry32(seed);
   const pools = {};
@@ -1739,8 +2352,13 @@ async function buildPlan() {
   const needs = Object.entries(S.partShapes).filter(([k]) => pw.pairs.has(k.split('|').reverse().join('|')))
     .map(([k, shape]) => ({ key: k, part: ERA + k.split('|')[0], whole: ERA + k.split('|')[1], paths: shape.props.map(x => x.path).filter(Boolean), model: classModel(ERA + k.split('|')[0]) }));
   const needLinks = needs.flatMap(nd => nd.model.props.filter(m => nd.paths.includes(m.path) && m.rule.link).map(m => m.rule.link));
+  // EVR: the register chain around vehicles or vehicle types; its resources are generated from their own shapes
+  const evr = S.register === 'evr', lname = localName(model.cls);
+  const chainKind = evr && S.chain && CHAIN_OF[lname] ? (lname === 'Vehicle' ? 'vehicle' : 'type') : null;
+  const chainModels = chainKind ? CHAIN_OF[lname].filter(c => S.byTarget.has(ERA + c)).map(c => Object.assign(classModel(ERA + c), { depth: 1 })) : [];
+  const chainLinks = chainModels.flatMap(cm => cm.props.filter(m => (m.required || m.minCount > 0) && m.rule.link && !CHAIN_LINKS.has(m.path)).map(m => m.rule.link));
   let frontier = [...model.props.filter(m => S.selected.has(m.path) && m.rule.link).map(m => m.rule.link),
-    ...pw.classes.filter(c => c !== top), ...topLinks, ...needLinks];
+    ...pw.classes.filter(c => c !== top), ...topLinks, ...needLinks, ...chainLinks];
   for (let depth = 1; depth <= MAX_DEPTH && frontier.length && $('linked').checked; depth++) {
     const next = [];
     for (const c of frontier) {
@@ -1753,21 +2371,28 @@ async function buildPlan() {
   }
   const wholeModels = topModel ? [topModel] : [];
   for (const nd of needs) nd.model = linkedModels.find(l => l.cls === nd.part) || nd.model;
+  const allModels = [model, ...linkedModels, ...wholeModels, ...needs.map(nd => nd.model), ...chainModels];
   const schemes = new Set();
-  for (const mod of [model, ...linkedModels, ...wholeModels, ...needs.map(nd => nd.model)]) for (const m of mod.props) if (m.onto && m.onto.scheme) schemes.add(m.onto.scheme);
+  for (const mod of allModels) for (const m of mod.props) { const sc = schemeOf(m); if (sc && !EU_COUNTRY.startsWith(sc)) schemes.add(sc); }
   const usesIm = [model, ...linkedModels, ...wholeModels].some(mod => mod.props.some(m => m.rule.kind === 'im' && (mod === model ? S.selected.has(m.path) : m.required || m.minCount > 0)));
-  setStatus('Fetching the code lists, network anchors and reference data…');
-  const [anchors, refNt] = await Promise.all([loadAnchors(country), usesIm ? loadImRole(country) : '',
-    loadConcepts([...schemes]).then(() => loadSchemeCounts([...schemes]))]);
-  for (const mod of new Set([model, ...linkedModels, ...wholeModels, ...needs.map(nd => nd.model)])) for (const m of mod.props) m.rule = ruleFor(mod, m);
+  setStatus(evr ? 'Fetching the code lists…' : 'Fetching the code lists, network anchors and reference data…');
+  const [anchors, refNt, national] = await Promise.all([evr ? { pts: [], real: false } : loadAnchors(country), usesIm ? loadImRole(country) : '',
+    evr ? loadNationalProps(country) : [], loadConcepts([...schemes]).then(() => loadSchemeCounts([...schemes]))]);
+  for (const mod of new Set(allModels)) for (const m of mod.props) m.rule = ruleFor(mod, m);
   const main = planClass(model, S.selected, ctx, 0);
+  if (evr) main.label = true;  // the EVR shapes ask for no label; the class and the EVN (or other identifier) make one
   const linked = {};
   const mandatoryAndName = lm => {
     const sel = presetSelection(lm, 'mandatory');
-    for (const m of lm.props) if (m.rule.kind === 'name') sel.add(m.path);  // linked stations get their name too
+    for (const m of lm.props) {
+      if (m.rule.kind === 'name' && !evr) sel.add(m.path);  // linked stations get their name too
+      if (evr && !m.rule.unusable && (LINKED_CORE[localName(lm.cls)] || []).includes(localName(m.path))) sel.add(m.path);
+    }
     return sel;
   };
   for (const lm of linkedModels) linked[lm.cls] = planClass(lm, mandatoryAndName(lm), ctx, lm.depth);
+  const templates = {};
+  for (const cm of chainModels) { const sel = mandatoryAndName(cm); for (const p of CHAIN_LINKS) sel.delete(p); templates[cm.cls] = planClass(cm, sel, ctx, 1); }
   const wholes = {};
   for (const wm of wholeModels) { wholes[wm.cls] = planClass(wm, mandatoryAndName(wm), ctx, 0); wholes[wm.cls].label = true; }
   const partTemplates = {}, partRequired = {};
@@ -1784,11 +2409,19 @@ async function buildPlan() {
     ids: iriKeys(Object.fromEntries(Object.entries(PART_IDS).map(([c, p]) => [c, ERA + p]))),
     direction: { prop: ERA + 'trackDirection', N: TRACK_DIR + '10', O: TRACK_DIR + '20', B: TRACK_DIR + '30' } };
   const geomOn = S.selected.has(GEO + 'hasGeometry');
+  const evrPlan = !evr ? {} : { chain: chainKind, templates, cats: EVR_CATS, catBase: ERA + 'concepts/vehicle-types/', uic: UIC[country.iso3],
+    otherUic: [...new Set(Object.values(UIC))], iso2: country.iso2, country: country.iri, legalForm: LEGAL_FORM[country.iso3] || 'S.A.',
+    roles: Object.fromEntries(Object.keys(ORG_LABEL).map(r => [r, ERA + 'concepts/organisation-roles/' + r])), roleLabel: ORG_LABEL, orgWords: ORG_WORDS,
+    vkmInUse: ERA + 'concepts/vkm-status/in-use', perType: 6, setSizes: [1, 2, 3, 4, 5, 6, 8],
+    agency: 'European Union Agency for Railways', nsa: 'National safety authority, ' + country.name, national,
+    street: STREET[country.lang] || STREET.en, postDigits: POST_DIGITS[country.iso3] || 5,
+    ordered: [['designMassWorkingOrder', 'designMassNormalPayload'], ['staticAxleLoadWorkingOrder', 'staticAxleLoadNormalPayload']].map(x => x.map(y => ERA + y)),
+    pool: { Keeper: Math.max(1, Math.ceil(n / 12)), Owner: Math.max(1, Math.ceil(n / 25)), ECM: Math.max(1, Math.ceil(n / 20)), Manufacturer: Math.min(3, Math.ceil(n / 15)) } };
   return {
-    plan: { seed, base, count: n, iso2: country.iso2, lang: ctx.lang, label: main.label, geometry: geomOn ? model.geomKind : null,
+    plan: { register: S.register, seed, base, count: n, iso2: country.iso2, lang: ctx.lang, label: main.label, geometry: geomOn ? model.geomKind : null,
       layoutMode: S.layoutMode, lineKm: LINE_KM[localName(model.cls)] || [0.5, 5], anchors: anchors.pts, names: makeNames(country.lang, n * 4 + 40, rand),
-      main, linked, pools, generateLinked: $('linked').checked, maxDepth: MAX_DEPTH, refNt, partWhole },
-    meta: { country, n, seed, base, anchorsReal: anchors.real, anchorsN: anchors.pts.length, refFromRinf: /roleOf/.test(refNt) },
+      main, linked, pools, generateLinked: $('linked').checked, maxDepth: MAX_DEPTH, refNt, partWhole, evr: evrPlan },
+    meta: { register: S.register, country, n, seed, base, anchorsReal: anchors.real, anchorsN: anchors.pts.length, refFromRinf: /roleOf/.test(refNt), chain: chainKind },
   };
 }
 
@@ -1803,12 +2436,14 @@ async function generate() {
     const engine = startEngine();
     const { plan, meta } = await buildPlan();
     if (!S.py) { setEngine('busy', 'Waiting for the Python engine…'); await engine; }
+    await ensureEngineShapes(S.register);
     setEngine('busy', 'RDFGraphGen is generating…'); await sleep(30);
     const t1 = performance.now();
     const res = JSON.parse(S.py.globals.get('generate')(JSON.stringify(plan)));
     const genMs = performance.now() - t1;
     const quads = new N3.Parser({ format: 'N-Triples' }).parse(res.nt);
-    S.result = { ...res, quads, store: new N3.Store(quads), plan, meta, genMs, totalMs: performance.now() - t0, cls: S.model.cls, model: S.model, selected: new Set(S.selected) };
+    S.result = { ...res, quads, store: new N3.Store(quads), plan, meta, genMs, totalMs: performance.now() - t0, cls: S.model.cls, model: S.model, selected: new Set(S.selected),
+      shapesModified: S.shapesModified };
     S.result.ttl = await writeTurtle(S.result);
     renderResult();
     setEngine('ok', `Done: ${res.triples.toLocaleString()} triples in ${(genMs / 1000).toFixed(2)} s (RDFGraphGen + layout).`);
@@ -1831,18 +2466,25 @@ function groupOf(iri, r) {
 function writeTurtle(r) {
   r.mainSet = new Set(r.main);
   // N3.js does not abbreviate local names that start with a digit (concept codes, IM roles), so no prefixes for those
-  const prefixes = { syn: r.plan.base, era: ERA, rdfs: RDFS, xsd: XSD, geo: GEO, country: EU_COUNTRY, language: EU_LANG };
+  const prefixes = { syn: r.plan.base, era: ERA, rdfs: RDFS, xsd: XSD, geo: GEO, country: EU_COUNTRY, language: EU_LANG,
+    ...(r.meta.register === 'evr' ? { vpa: VPA, dct: DCT, foaf: FOAF, org: 'http://www.w3.org/ns/org#', locn: 'http://w3.org/ns/locn#' } : {}) };
   const predRank = p => p === RDF + 'type' ? 0 : p === RDFS + 'label' ? 1 : 2;
   const sorted = [...r.quads].sort((a, b) => groupOf(a.subject.value, r) - groupOf(b.subject.value, r)
     || (r.mainSet.has(a.subject.value) && r.mainSet.has(b.subject.value) ? r.main.indexOf(a.subject.value) - r.main.indexOf(b.subject.value) : a.subject.value.localeCompare(b.subject.value))
     || predRank(a.predicate.value) - predRank(b.predicate.value) || a.predicate.value.localeCompare(b.predicate.value) || a.object.value.localeCompare(b.object.value));
-  const head = [
+  const reg = REGISTERS[r.meta.register], when = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const head = (reg === REGISTERS.rinf ? [
     `# Synthetic RINF data — NOT real data. Do not mix with RINF.`,
-    `# ${r.meta.n} × ${curie(r.cls)} in ${r.meta.country.name}, generated ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC by RDFGraphGen 1.2.0 (rdf-graph-gen, MIT)`,
-    `# Shapes: ${SHAPES_URL}${S.shapesModified ? ' (Last-Modified ' + S.shapesModified + ')' : ''}`,
+    `# ${r.meta.n} × ${curie(r.cls)} in ${r.meta.country.name}, generated ${when} UTC by RDFGraphGen 1.2.0 (rdf-graph-gen, MIT)`,
+    `# Shapes: ${reg.shapes.join(' + ')}${r.shapesModified ? ' (Last-Modified ' + r.shapesModified + ')' : ''}`,
     `# Code lists: ERA SKOS (UAT ERA-Onto) · positions near RINF operational points${r.meta.anchorsReal ? '' : ' (offline fallback: random points near the country centre)'} · seed ${r.meta.seed}`,
     `# Reference data copied from RINF: the IM role ${curie(IM_ROLE + r.meta.country.im + '_IM')}${r.meta.refFromRinf ? ' and its body' : ' (type only: RINF was unreachable)'}`,
-    `# Page: https://gatemezing.github.io/onto-dissemination/synthetic.html`, ''].join('\n');
+  ] : [
+    `# Synthetic EVR and ERATV data — NOT real data. Do not mix with the EVR or ERATV. Companies, numbers and markings are invented.`,
+    `# ${r.meta.n} × ${curie(r.cls)} registered in ${r.meta.country.name}, generated ${when} UTC by RDFGraphGen 1.2.0 (rdf-graph-gen, MIT)`,
+    `# Shapes: ${reg.shapes.join(' + ')}${r.shapesModified ? ' (Last-Modified ' + r.shapesModified + ')' : ''}`,
+    `# Code lists: ERA SKOS (UAT ERA-Onto) · formats and value ranges measured in ERATV-KG and VKM-KG (UAT) · seed ${r.meta.seed}`,
+  ]).concat([`# Page: https://gatemezing.github.io/onto-dissemination/synthetic.html`, '']).join('\n');
   return new Promise((res, rej) => {
     const w = new N3.Writer({ prefixes });
     w.addQuads(sorted);
@@ -1960,8 +2602,9 @@ function renderStats() {
     km ? `<span><b>${km.km}</b>km of line</span>` : '', `<span><b>${r.triples.toLocaleString()}</b>triples</span>`,
     `<span><b>${(r.genMs / 1000).toFixed(2)}</b>s</span>`].join('');
   ['dlTtl', 'dlNt', 'dlJsonld', 'dlGeo', 'copyTtl'].forEach(id => $(id).disabled = false);
+  $('dlGeo').disabled = r.meta.register !== 'rinf';
 }
-function renderResult() { renderStats(); renderMap(); renderTtl(); renderChecks(); prepareGraph(); if (!S.result.model.geomKind) showTab('graph'); }
+function renderResult() { renderStats(); if (S.result.meta.register === 'rinf') renderMap(); renderTtl(); renderChecks(); prepareGraph(); if (!S.result.model.geomKind) showTab('graph'); }
 
 /* ====================================================================== graph (vis-network, as in RINF Atlas) */
 let visLoad = null, network = null, gNodes = null, gEdges = null;
@@ -2045,9 +2688,84 @@ async function showInGraph(iri) {
 }
 
 /* ====================================================================== checks against the shapes */
+/* EVR + ERATV: identifiers (format, check digit, uniqueness) and the register chain, link by link. */
+function evrChecks(r, st) {
+  const base = r.plan.base, rows = [];
+  let fail = 0;
+  const all = c => st.getSubjects(RDF + 'type', ERA + c, null).map(t => t.value).filter(x => x.startsWith(base));
+  const val = (s, p) => (st.getObjects(s, p, null)[0] || {}).value;
+  const vals = (s, p) => st.getObjects(s, p, null).map(o => o.value);
+  const subj = (p, o) => st.getSubjects(p, o, null).map(x => x.value);
+  const luhn = d => { let t = 0; [...d].reverse().forEach((ch, i) => { const x = +ch * (i % 2 === 0 ? 2 : 1); t += x > 9 ? x - 9 : x; }); return String((10 - t % 10) % 10); };
+  const add = (ok, what, detail) => { if (!ok) fail++; rows.push(`<tr><td>${ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td><td>${what}</td><td>${detail}</td></tr>`); };
+  const ids = (list, label, test) => {
+    if (!list.length) return;
+    const bad = list.filter(x => !test(x)).length, dup = list.length - new Set(list).size;
+    add(!bad && !dup, label, bad || dup ? `${bad} malformed, ${dup} duplicate(s) of ${list.length}` : `${list.length} checked, all valid and unique`);
+  };
+  const vehicles = all('Vehicle'), types = all('VehicleType'), auths = all('VehicleTypeAuthorisation'), regCases = all('VehicleRegistrationCase');
+  ids(vehicles.flatMap(v => vals(v, ERA + 'vehicleNumber')), 'EVNs: 12 digits, UIC check digit', e => /^\d{12}$/.test(e) && luhn(e.slice(0, 11)) === e[11]);
+  const uic = UIC[r.meta.country.iso3], evns = vehicles.map(v => val(v, ERA + 'vehicleNumber')).filter(Boolean);
+  if (evns.length) { const off = evns.filter(e => e.slice(2, 4) !== uic).length;
+    add(!off, `EVN country code ${uic}: registered in ${esc(r.meta.country.name)}`, off ? `${off} with another code` : `${evns.length} EVNs`); }
+  const catOf = t => localName(val(t, ERA + 'vehicleCategory') || '');
+  const typed = vehicles.filter(v => val(v, ERA + 'vehicleNumber') && EVR_CATS[catOf(val(v, ERA + 'vehicleType'))]);
+  if (typed.length) { const off = typed.filter(v => !EVR_CATS[catOf(val(v, ERA + 'vehicleType'))].evn.includes(val(v, ERA + 'vehicleNumber').slice(0, 2))).length;
+    add(!off, 'EVN category digits match the vehicle type\'s category', off ? `${off} vehicle(s) numbered as another category` : `${typed.length} vehicles`); }
+  ids(types.flatMap(t => vals(t, ERA + 'vehicleTypeNumber')), 'ERATV type numbers: NN-NNN-NNNN-C, check digit',
+    x => /^\d{2}-\d{3}-\d{4}-\d$/.test(x) && luhn(x.replace(/-/g, '').slice(0, 9)) === x.slice(-1));
+  const issued = new Map(auths.flatMap(a => vals(a, DCT + 'identifier').map(x => [x, val(a, DCT + 'issued')])));
+  ids(auths.flatMap(a => vals(a, DCT + 'identifier')), 'EINs: country, 80, the year of dct:issued',
+    x => /^[A-Z]{2}80\d{8}$/.test(x) && (!issued.get(x) || issued.get(x).slice(0, 4) === x.slice(4, 8)));
+  if (r.meta.chain) {
+    const cases = all('VehicleTypeAuthorisationCase');
+    // the types the chain authorised: the main instances, or the types built for the vehicles (not a shared "previous type")
+    const chained = r.meta.chain === 'type' ? r.main : types.filter(t => vehicles.some(v => val(v, ERA + 'vehicleType') === t));
+    const lone = chained.filter(t => !subj(VPA + 'concerns', N3.DataFactory.namedNode(t)).some(c => cases.includes(c)) || !vals(t, VPA + 'definesCase').length).length;
+    const broken = cases.filter(c => { const apps = subj(VPA + 'constitutedBy', N3.DataFactory.namedNode(c)); if (apps.length !== 1) return true;
+      const p = vals(apps[0], VPA + 'requestFor'); return p.length !== 1 || !vals(p[0], VPA + 'requestedIn').includes(apps[0]); }).length;
+    add(!lone && !broken, 'Type authorisation: type ← case → application → authorisation', lone || broken ? `${lone} type(s) without their case, ${broken} broken case(s)`
+      : `${chained.length} types, each concerned by a case (<code>vpa:definesCase</code> back), constituting an application that requests an authorisation (<code>vpa:requestedIn</code> back)`);
+  }
+  if (r.meta.chain === 'vehicle') {
+    const sets = all('VehicleSet');
+    const inSets = vehicles.map(v => subj(RDFS + 'member', N3.DataFactory.namedNode(v)).length);
+    const offSet = inSets.filter(k => k !== 1).length;
+    add(!offSet, 'Each vehicle in exactly one registered set', offSet ? `${offSet} vehicle(s) in none or several` : `${vehicles.length} vehicles in ${sets.length} sets`);
+    const badReq = regCases.filter(c => { const st_ = vals(c, VPA + 'concerns')[0], v = st_ && vals(st_, RDFS + 'member')[0], t = v && val(v, ERA + 'vehicleType');
+      const need = t && subj(VPA + 'concerns', N3.DataFactory.namedNode(t))[0]; return !need || !vals(c, DCT + 'requires').includes(need); }).length;
+    const badChain = regCases.filter(c => { const apps = subj(VPA + 'constitutedBy', N3.DataFactory.namedNode(c)); if (apps.length !== 1) return true;
+      const p = vals(apps[0], VPA + 'requestFor'); return p.length !== 1 || !vals(p[0], VPA + 'requestedIn').includes(apps[0]) || !vals(p[0], VPA + 'permissionStatus').length; }).length;
+    add(!badReq && !badChain, 'Registration: set ← case → application → registration', badReq || badChain ? `${badReq} case(s) not requiring their type's authorisation case, ${badChain} broken`
+      : `${regCases.length} cases, each requiring the authorisation case of its vehicles' type (<code>dct:requires</code>) and leading to a registration with its status`);
+    const early = vehicles.filter(v => { const y = +val(v, ERA + 'manufacturingYear'), t = val(v, ERA + 'vehicleType'), c = t && subj(VPA + 'concerns', N3.DataFactory.namedNode(t))[0];
+      const app = c && subj(VPA + 'constitutedBy', N3.DataFactory.namedNode(c))[0], a = app && val(app, VPA + 'requestFor'), d = a && val(a, DCT + 'issued');
+      return y && d && y < +d.slice(0, 4); }).length;
+    if (vehicles.some(v => val(v, ERA + 'manufacturingYear'))) add(!early, 'Built after their type was authorised', early ? `${early} vehicle(s) built before` : 'every manufacturing year is on or after the year of the type authorisation');
+    const split = sets.filter(x => new Set(vals(x, RDFS + 'member').map(v => val(v, ERA + 'vehicleKeeper'))).size > 1).length;
+    if (vehicles.some(v => val(v, ERA + 'vehicleKeeper'))) add(!split, 'One keeper per registered set', split ? `${split} set(s) with several keepers` : `${sets.length} sets`);
+  }
+  const mand = ((r.plan.evr || {}).national || []).filter(x => x.mand);
+  if (mand.length && regCases.length) {
+    const lacking = regCases.filter(c => mand.some(x => !vals(c, ERA + 'hasNationalRegistrationProperty').some(n => val(n, ERA + 'nationalPropertyIdentifier') === x.c))).length;
+    add(!lacking, `Mandatory national registration properties of ${esc(r.meta.country.name)} (${mand.length})`, lacking ? `${lacking} case(s) lack some` : `${regCases.length} registration case(s) carry ${esc(mand.map(x => x.label).join(', '))}`);
+  }
+  const nprops = all('NationalRegistrationProperty');
+  if (nprops.length) {
+    const spec = new Map(((r.plan.evr || {}).national || []).map(x => [x.c, x]));
+    const off = nprops.filter(np => { const x = spec.get(val(np, ERA + 'nationalPropertyIdentifier')), v = st.getObjects(np, ERA + 'nationalPropertyValue', null)[0];
+      return !x || !v || v.termType !== 'Literal' || v.datatype.value !== x.dt || (x.max && v.value.length > x.max); }).length;
+    add(!off, 'National registration property values: the datatype and length each property expects', off ? `${off} of ${nprops.length} values off` : `${nprops.length} values`);
+  }
+  const keepers = st.getSubjects(RDF + 'type', ERA + 'VehicleKeeperMarking', null).map(t => t.value).filter(x => x.startsWith(base));
+  const vkms = keepers.flatMap(k => vals(k, ERA + 'vkmCode'));
+  ids(vkms, 'Vehicle keeper markings: 2 to 5 capital letters, unique', x => /^[A-Z]{2,5}$/.test(x));
+  return { fail, html: rows.length ? `<h3 style="font-size:13px;margin:18px 0 6px">Register structure (EVR + ERATV)</h3><table class="chkt"><tbody>${rows.join('')}</tbody></table>` : '' };
+}
 function renderChecks() {
   const r = S.result, st = r.store, model = r.model, rows = [];
   let pass = 0, fail = 0, warn = 0;
+  const nsNotes = new Set();  // IRI patterns on a namespace (^http://data.europa.eu/949/): synthetic IRIs stay outside it
   const allowedConcept = iri => Object.values(S.concepts).some(cs => cs.some(c => c.iri === iri)) || iri.startsWith(EU_COUNTRY) || iri.startsWith(EU_LANG);
   const typedAs = (iri, cls) => st.getObjects(iri, RDF + 'type', null).some(t => t.value === cls || ((S.ontoClasses[t.value] || {}).supers || []).includes(cls));
   for (const m of model.props) {
@@ -2068,7 +2786,13 @@ function renderChecks() {
         if (m.nodeKind === SH + 'IRI' && v.termType !== 'NamedNode') issues.push(`${localName(s)}: a literal where an IRI is required`);
         if (m.nodeKind === SH + 'Literal' && v.termType !== 'Literal') issues.push(`${localName(s)}: an IRI where a literal is required`);
         if (m.in && !m.in.some(t => t.value === v.value)) issues.push(`${localName(s)}: ${v.value} is not in sh:in`);
-        for (const p of m.patterns) { try { if (!new RegExp(p).test(v.value)) issues.push(`${localName(s)}: "${v.value.slice(0, 40)}" does not match ${p}`); } catch { /* regex dialect */ } }
+        for (const p of m.patterns) {
+          try {
+            if (new RegExp(p).test(v.value)) continue;
+            if (v.termType === 'NamedNode' && v.value.startsWith(r.plan.base) && /^\^https?:/.test(p)) nsNotes.add(curie(m.path));
+            else issues.push(`${localName(s)}: "${v.value.slice(0, 40)}" does not match ${p}`);
+          } catch { /* regex dialect */ }
+        }
         const n = Number(v.value);
         if (m.minIncl !== undefined && n < m.minIncl) issues.push(`${localName(s)}: ${n} < ${m.minIncl}`);
         if (m.maxIncl !== undefined && n > m.maxIncl) issues.push(`${localName(s)}: ${n} > ${m.maxIncl}`);
@@ -2098,6 +2822,9 @@ function renderChecks() {
     let n = 0; try { const re = new RegExp(pat); n = st.getSubjects(RDF + 'type', t, null).filter(x => x.value.startsWith(r.plan.base) && !re.test(x.value)).length; } catch {}
     if (n) iriNotes.push(`${n} ${localName(t)} IRI(s) do not match ${pat} (${curie(sh.iri)}): expected, synthetic IRIs stay outside data.europa.eu/949. Set the IRI base to that namespace only if you need them to conform.`);
   }
+  if (nsNotes.size) iriNotes.push(`The values of ${[...nsNotes].join(', ')} are synthetic IRIs: the shapes' patterns ask for the data.europa.eu/949 namespace. Expected, as above.`);
+  const evr = r.meta.register === 'evr' ? evrChecks(r, st) : null;
+  if (evr) fail += evr.fail;
   const rules = model.sparqlRules.filter(x => x.message);
   const HANDLED = [[/border point.*uopid|uopid.*EU/i, 'respected: border points get an "EU" uopid'], [/SOLnature of type Link|nature \(1\.1\.0\.0\.0\.6\)/i, 'respected: generated tracks carry no 1.1.1.1–1.1.1.3 parameters']];
   // part-whole structure: both directions, parts per whole, identifiers numbered within the whole, running directions
@@ -2156,14 +2883,35 @@ function renderChecks() {
       This is a SHACL Core subset, not a full SHACL engine. For a full check, validate the download with a SHACL engine against the same shapes, loading the ERA SKOS concept schemes too: concept values are <code>sh:class skos:Concept</code>.</p>
     ${iriNotes.length ? `<p class="hint warnc">${iriNotes.map(esc).join('<br>')}</p>` : ''}
     <table class="chkt"><thead><tr><th></th><th>Property</th><th>Shape constraints</th><th>Values</th><th>Result</th></tr></thead><tbody>${rows.join('')}</tbody></table>
-    ${pwHtml}
+    ${pwHtml}${evr ? evr.html : ''}
     <h3 style="font-size:13px;margin:18px 0 6px">SHACL-SPARQL rules of the class (${rules.length}) <span class="hint">not run here</span></h3>
     <table class="chkt"><tbody>${rules.map(x => { const h = HANDLED.find(([re]) => re.test(x.message)); return `<tr><td>${h ? '<span class="ok">✓</span>' : '<span style="color:var(--dim)">–</span>'}</td><td>${esc(x.message.split(/(?<=[.:])\s/).slice(0, 2).join(' ').slice(0, 260))}</td><td style="color:var(--dim)">${h ? esc(h[1]) : 'not checked'}</td></tr>`; }).join('')}</tbody></table>`;
 }
 
 /* ====================================================================== how it works */
+function howEvr() {
+  return `<h3>EVR + ERATV</h3>
+    <p>The shapes of both application guides are read together: a vehicle (EVR) points to its vehicle type (ERATV), a registration case to the type's
+      authorisation. Most of their properties are optional, so the presets follow the guides' parameter numbers (<code>era:evrIndex</code>, <code>era:eratvIndex</code>),
+      and the code lists come from the shapes' own <code>era:inSkosConceptScheme</code> where the ontology names none (registration status).</p>
+    <ul>
+      <li><b>Identifiers</b> have their real formats and check digits: 12-digit EVNs (category, UIC country code, series, serial, UIC check digit),
+        ERATV type numbers <code>NN-NNN-NNNN-C</code> with the same Luhn check digit, EINs <code>XX80YYYYNNNN</code> carrying the year of the authorisation.</li>
+      <li><b>Organisations</b> are invented: a few keepers, owners, ECMs and manufacturers, each an <code>era:OrganisationRole</code> with its role concept and its
+        <code>era:Body</code>. As in the VKM register, a keeper's role is also its vehicle keeper marking.</li>
+      <li><b>The register chain</b> (vehicles): about one vehicle type per six vehicles, with the ERATV parameters that 70&nbsp;% of the types in ERATV-KG carry;
+        per type a type authorisation case (<code>vpa:concerns</code> the type, <code>vpa:definesCase</code> back), an application and the authorisation
+        (<code>vpa:requestFor</code> / <code>vpa:requestedIn</code>). The vehicles of a type are registered in sets: a <code>era:VehicleSet</code> with its members,
+        a registration case that requires the type's authorisation case (<code>dct:requires</code>), an application and the registration with its status.
+        Manufacturing years follow the type's authorisation.</li>
+    </ul>
+    <p>National registration properties come from the registering country's own collection in ERA's SKOS (<code>concepts/national-reg-props/XX</code>):
+      every mandatory one on each registration case, a few others when selected, each value of the datatype and length the property expects.
+      Not generated: restrictions, configurations and parameter sets. Vehicles are not typed with <code>era:FreightWagon</code>,
+      <code>era:TractionVehicle</code>… : the shapes target these classes, but the ontology does not define them.</p>`;
+}
 function renderHow() {
-  const i = S.engineInfo;
+  const i = S.engineInfo && S.engineInfo[S.register], reg = REG();
   $('pane-how').innerHTML = `
     <h3>Three layers</h3>
     <ol>
@@ -2175,7 +2923,8 @@ function renderHow() {
         points), geometry, lengths computed from the geometry, names, uopids, the instance's own sub-resources, the linked resources and the part-whole structure. It also re-draws a few code
         lists with realistic frequencies, because RDFGraphGen draws <code>sh:in</code> uniformly.</li>
     </ol>
-    <h3>Part-whole structure</h3>
+    ${S.register === 'evr' ? howEvr() : ''}
+    <h3>Part-whole structure${S.register === 'evr' ? ' (RINF)' : ''}</h3>
     <p>RINF links infrastructure elements with <code>era:hasPart</code> and, always, <code>era:isPartOf</code> back (BEL, FRA and DEU: not one
       link without its inverse). Sections of line have running tracks (1 or 2, sometimes up to 14); operational points have tracks and sidings depending on
       their type; tracks have platform edges (in stations) and tunnels. This page builds that tree with counts measured in RINF:</p>
@@ -2198,9 +2947,10 @@ function renderHow() {
       (RDFGraphGen reads it as an RDF list, but SHACL gives it a single shape, which makes it fail) and ${i.removed['sh:sparql']} SHACL-SPARQL constraints, which RDFGraphGen does not use.` : 'Load the engine to see the details.'}
       Property shapes with a non-predicate path (an <code>sh:alternativePath</code>) are left out, since RDFGraphGen reads predicate paths only.</p>
     <h3>Sources</h3>
-    <p>Shapes: <a href="${SHAPES_URL}" target="_blank" rel="noopener">rinf-appGuide/shapes.ttl</a> (UAT${S.shapesModified ? ', ' + esc(S.shapesModified) : ''}).
-      Ontology and code lists: UAT ERA-Onto SPARQL endpoint. Network anchors: RINF (<code>rinf-plus</code>), the operational points of the selected country.
-      Main IM per country: the role with the most sections of line in RINF.</p>`;
+    <p>Shapes: ${reg.shapes.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(UAT_VOCAB, ''))}</a>`).join(' and ')} (UAT${S.shapesModified ? ', ' + esc(S.shapesModified) : ''}).
+      Ontology and code lists: UAT ERA-Onto SPARQL endpoint. ${S.register === 'rinf' ? `Network anchors: RINF (<code>rinf-plus</code>), the operational points of the selected country.
+      Main IM per country: the role with the most sections of line in RINF.` : `Formats, value ranges and the authorisation chain: ERATV-KG and VKM-KG on the UAT
+      endpoint (EVR-KG is not open to anonymous queries).`}</p>`;
 }
 
 /* ====================================================================== exports + link */
@@ -2208,7 +2958,7 @@ function download(name, text, type) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-const fileBase = () => { const r = S.result; return `rinf-synthetic-${localName(r.cls)}-${r.meta.country.iso3}-${r.meta.n}-seed${r.meta.seed}`; };
+const fileBase = () => { const r = S.result; return `${r.meta.register}-synthetic-${localName(r.cls)}-${r.meta.country.iso3}-${r.meta.n}-seed${r.meta.seed}`; };
 function geojson() {
   const r = S.result, st = r.store, features = [];
   for (const q of st.getQuads(null, GEO + 'hasGeometry', null, null)) {
@@ -2223,10 +2973,12 @@ function geojson() {
 function saveHash() {
   if (!S.cls) return;
   const p = new URLSearchParams({ c: localName(S.cls), n: $('count').value, cc: $('country').value, seed: $('seed').value, preset: S.preset });
+  if (S.register !== 'rinf') p.set('r', S.register);
+  if (S.model && !$('chainRow').hidden && !S.chain) p.set('chain', '0');
   if (S.model && !$('layoutRow').hidden) p.set('layout', S.layoutMode);
   if (S.model && !$('partOfRow').hidden) p.set('in', S.partOf);
   if (S.preset === 'custom') p.set('props', [...S.selected].map(curie).join(','));
-  if ($('base').value !== 'https://example.org/rinf-synthetic/') p.set('base', $('base').value);
+  if ($('base').value !== REG().base) p.set('base', $('base').value);
   if (!$('linked').checked) p.set('linked', '0');
   history.replaceState(null, '', '#' + p.toString());
 }
@@ -2240,7 +2992,9 @@ function readHash() {
   if (p.get('layout')) S.layoutMode = p.get('layout');
   if (p.get('in') === 'SectionOfLine' || p.get('in') === 'OperationalPoint') S.partOf = p.get('in');
   if (p.get('preset')) S.preset = p.get('preset');
-  return { cls: p.get('c') ? ERA + p.get('c') : ERA + 'SectionOfLine', props: p.get('props') };
+  if (REGISTERS[p.get('r')]) S.register = p.get('r');
+  if (p.get('chain') === '0') S.chain = false;
+  return { cls: p.get('c') ? ERA + p.get('c') : ERA + REG().defaultCls, props: p.get('props'), base: p.get('base') };
 }
 function showTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name));
@@ -2272,6 +3026,11 @@ function wire() {
   $('gFocus').addEventListener('change', () => gFocus($('gFocus').value));
   $('gReset').addEventListener('click', () => gFocus($('gFocus').value));
   $('gFit').addEventListener('click', () => network && network.fit());
+  document.querySelectorAll('[data-register]').forEach(b => b.addEventListener('click', async () => {
+    if (b.dataset.register === S.register) return;
+    await setRegister(b.dataset.register); saveHash();
+  }));
+  $('chain').addEventListener('change', () => { S.chain = $('chain').checked; saveHash(); });
   document.addEventListener('click', e => { const a = e.target.closest('[data-graph]'); if (a) { e.preventDefault(); showInGraph(a.dataset.graph); } });
 }
 function flash(btn, text) { const t = btn.textContent; btn.textContent = text; setTimeout(() => btn.textContent = t, 1400); }
@@ -2280,30 +3039,15 @@ async function start() {
   wire(); initMap(); renderHow();
   const want = readHash();
   document.querySelectorAll('[data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === S.layoutMode));
-  try {
-    setEngine('busy', 'Loading the RINF shapes (UAT)…');
-    const res = await fetch(SHAPES_URL, { cache: 'no-cache' });
-    if (!res.ok) throw new Error('HTTP ' + res.status + ' from ' + new URL(SHAPES_URL).host);
-    S.shapesModified = res.headers.get('Last-Modified');
-    S.shapesTtl = await res.text();
-    indexShapes(S.shapesTtl);
-    setEngine('busy', 'Reading the ontology (UAT ERA-Onto)…');
-    try { await loadOntology(); } catch (e) { console.warn('ontology', e); $('err').innerHTML = '<div class="msg err">The ontology could not be read: labels, units and code lists are missing, so many properties fall back to RDFGraphGen\'s defaults.</div>'; }
-    $('sources').innerHTML = `<span>Shapes: UAT rinf-appGuide${S.shapesModified ? ' · ' + esc(new Date(S.shapesModified).toISOString().slice(0, 10)) : ''} · ${S.nodeShapes.size} node shapes</span>
-      <span>Ontology + SKOS: UAT ERA-Onto</span><span>Anchors: RINF operational points</span>`;
-    const cls = S.byTarget.has(want.cls) ? want.cls : ERA + 'SectionOfLine';
-    await selectClass(cls);
-    if (want.props) {
-      const wanted = want.props.split(',').map(x => x.startsWith('era:') ? ERA + x.slice(4) : x.startsWith('geo:') ? GEO + x.slice(4) : x.startsWith('rdfs:') ? RDFS + x.slice(5) : x);
-      S.selected = new Set([...presetSelection(S.model, 'mandatory'), ...wanted.filter(p => S.model.props.some(m => m.path === p))]);
-      S.preset = 'custom'; markPreset(); renderProps();
-    }
-    setEngine('busy', 'Shapes ready. Starting the Python engine in the background…');
-    startEngine().catch(async e => showError({ title: 'The Python engine could not start', message: 'Pyodide or a PyPI package could not be loaded. A network filter may block cdn.jsdelivr.net or pypi.org.', detail: String(e && e.message || e) }));
-  } catch (e) {
-    console.error(e); setEngine('err', 'The shapes could not be loaded.');
-    showError(await describeFetchError(e, SHAPES_URL));
+  if (!await setRegister(S.register, want.cls)) return;
+  if (want.props) {
+    const pre = { 'era:': ERA, 'geo:': GEO, 'rdfs:': RDFS, 'vpa:': VPA, 'dct:': DCT };
+    const wanted = want.props.split(',').map(x => { const k = Object.keys(pre).find(k => x.startsWith(k)); return k ? pre[k] + x.slice(k.length) : x; });
+    S.selected = new Set([...presetSelection(S.model, 'mandatory'), ...wanted.filter(p => S.model.props.some(m => m.path === p))]);
+    S.preset = 'custom'; markPreset(); renderProps();
   }
+  setEngine('busy', 'Shapes ready. Starting the Python engine in the background…');
+  startEngine().catch(async e => showError({ title: 'The Python engine could not start', message: 'Pyodide or a PyPI package could not be loaded. A network filter may block cdn.jsdelivr.net or pypi.org.', detail: String(e && e.message || e) }));
 }
 start();
 </script>

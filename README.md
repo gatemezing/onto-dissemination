@@ -28,7 +28,7 @@ searches a snapshot because its endpoint asks for a login (see
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
-| Synthetic RINF Data (realistic synthetic Turtle from the UAT SHACL shapes with RDFGraphGen: tracks, sidings, platform edges and tunnels linked to their sections and stations with `era:hasPart`/`era:isPartOf`; map, graph, checks and export) | https://gatemezing.github.io/onto-dissemination/synthetic.html |
+| Synthetic RINF and EVR Data (realistic synthetic Turtle from the UAT SHACL shapes with RDFGraphGen. RINF: tracks, sidings, platform edges and tunnels linked to their sections and stations with `era:hasPart`/`era:isPartOf`, on a map. EVR + ERATV: vehicles with valid EVNs, vehicle types with ERATV numbers, type authorisations with EINs, invented keepers, owners and ECMs, and the `vpa:` chain from type authorisation to registration; graph, checks and export) | https://gatemezing.github.io/onto-dissemination/synthetic.html |
 | SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 | Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
