@@ -183,6 +183,11 @@
           </div>
           <div class="hint">Connected: each section starts where the previous one ends, like a real line.</div>
         </div>
+        <div id="partOfRow" style="margin-top:10px" hidden>
+          <label class="fl">Part of</label>
+          <div class="presets" style="margin:0" id="partOfBtns"></div>
+          <div class="hint">Where each instance sits, through <code>era:isPartOf</code> (and <code>era:hasPart</code> back). The wholes are generated too.</div>
+        </div>
         <details style="margin-top:10px">
           <summary class="hint" style="cursor:pointer;display:inline">Advanced: seed, IRIs, linked resources</summary>
           <div class="row2" style="margin-top:8px">
@@ -273,7 +278,8 @@
 # The page's planner turns every selected property into a rule; this module applies the rules in two layers:
 #  1. RDFGraphGen: instances, cardinalities, sh:in pools, numeric ranges, booleans, dates (its own generator).
 #  2. Realism layer: network layout and geometry, lengths from geometry, names, identifiers, weighted
-#     categories, the instance's own sub-resources (net references, tracks) and linked resources.
+#     categories, the instance's own sub-resources (net references), linked resources, and the part-whole
+#     structure as RINF publishes it (tracks, sidings, platform edges, tunnels; era:hasPart and era:isPartOf both ways).
 import json, math, random
 from copy import deepcopy
 from rdflib import Graph, URIRef, Literal, Namespace, RDF, RDFS, XSD
@@ -365,10 +371,47 @@ def _length(pts):
     return sum(_dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
 
 
+def _offset(pts, km):
+    """The polyline shifted sideways by km (positive: to the right), e.g. the second track of a double-track line."""
+    if not km:
+        return [list(p) for p in pts]
+    return [_move(p, _bearing(pts[max(0, i - 1)], pts[min(len(pts) - 1, i + 1)]) + 90, km) for i, p in enumerate(pts)]
+
+
+def _slice(pts, a_km, b_km):
+    """The stretch of a polyline between a_km and b_km from its start, e.g. a tunnel on a section."""
+    out, run = [], 0.0
+    for i in range(len(pts) - 1):
+        p, q = pts[i], pts[i + 1]
+        d, br = _dist(p, q), _bearing(p, q)
+        if not out and run + d >= a_km:
+            out.append(_move(p, br, a_km - run))
+        if out:
+            if run + d >= b_km:
+                out.append(_move(p, br, b_km - run))
+                return out
+            out.append(q)
+        run += d
+    return out if len(out) > 1 else [pts[0], pts[-1]]
+
+
 def _wkt(pts):
     if len(pts) == 1:
         return 'POINT(%.7f %.7f)' % tuple(pts[0])
     return 'LINESTRING(' + ', '.join('%.7f %.7f' % tuple(p) for p in pts) + ')'
+
+
+def _line_bearing(anchors, j):
+    """Direction from a real operational point to its nearest neighbour (over 100 m away): roughly the railway's
+    direction there, so that a station's tracks run along it. Planar distance: fast enough for thousands of anchors."""
+    a, best, bd = anchors[j], None, 1e9
+    c = math.cos(math.radians(a[1]))
+    for i, b in enumerate(anchors):
+        dx, dy = (b[0] - a[0]) * c, b[1] - a[1]
+        d = dx * dx + dy * dy
+        if i != j and 1e-6 < d < bd:
+            best, bd = b, d
+    return _bearing(a, best) if best is not None else None
 
 
 def _next_anchor(rnd, cur, anchors, used, heading):
@@ -471,6 +514,12 @@ class Run:
         self.uopid_seq = self.rnd.randint(1000, 8000) * 10000
         self.name_of = {}
         self.layers = []
+        self.anchors = plan.get('anchors') or [[4.35, 50.85]]
+        self.pw = plan.get('partWhole') or {}  # part-whole structure: the tree measured in RINF, and what to build
+        self.tree = self.pw.get('tree') or {}
+        self.whole_of, self.cls_of = {}, {}    # part -> its whole; generated resource -> its class
+        self.end_ops, self.end_pts = [], []    # operational points at the ends of generated sections
+        self.tunnel_seq = 0
 
     def slug(self, cls):
         local = cls.rstrip('/').split('/')[-1].split('#')[-1]
@@ -499,6 +548,17 @@ class Run:
         """Non-spatial layout rules, weighted re-draws, labels; returns the instance's own children by class."""
         rnd, out, children = self.rnd, self.out, {}
         props = cplan['props']
+        # categories with realistic frequencies (RDFGraphGen draws sh:in uniformly); first, so that the uopid
+        # below sees the final op type (border points get an "EU" uopid)
+        for p, o in props.items():
+            if o.get('weights') and o.get('in'):
+                P, terms = URIRef(p), [_term(t) for t in o['in']]
+                for s in subjects:
+                    olds = list(out.objects(s, P))
+                    for old in olds:
+                        out.remove((s, P, old))
+                    for _ in olds:
+                        out.add((s, P, rnd.choices(terms, o['weights'])[0]))
         for s in subjects:
             for p, o in props.items():
                 lay, P = o.get('layout'), URIRef(p)
@@ -518,22 +578,11 @@ class Run:
             if cplan.get('label') and (s, RDFS.label, None) not in out:
                 nm = self.name_of.get(s)
                 ident = out.value(s, URIRef(cplan['labelFrom'])) if cplan.get('labelFrom') else None
-                if nm:
-                    lbl = nm
-                elif ident is not None:
-                    lbl = '%s %s' % (cplan.get('classLabel', self.slug(cplan['class'])), ident)
-                else:
-                    lbl = '%s %s' % (cplan.get('classLabel', self.slug(cplan['class'])), self.next_name())
-                out.add((s, RDFS.label, Literal(lbl, lang=self.lang)))
-        for p, o in props.items():  # categories with realistic frequencies (RDFGraphGen draws sh:in uniformly)
-            if o.get('weights') and o.get('in'):
-                P, terms = URIRef(p), [_term(t) for t in o['in']]
-                for s in subjects:
-                    olds = list(out.objects(s, P))
-                    for old in olds:
-                        out.remove((s, P, old))
-                    for _ in olds:
-                        out.add((s, P, rnd.choices(terms, o['weights'])[0]))
+                if nm:  # a place name, in the country's language (an English copy is added at the end)
+                    out.add((s, RDFS.label, Literal(nm, lang=self.lang)))
+                else:   # the English class label and an identifier: English text
+                    lbl = '%s %s' % (cplan.get('classLabel', self.slug(cplan['class'])), ident if ident is not None else self.next_name())
+                    out.add((s, RDFS.label, Literal(lbl, lang='en')))
         for p, o in props.items():  # a geometry-valued property mirrors the instance's own geometry
             if o.get('layout') == 'wkt':
                 for s in subjects:
@@ -543,11 +592,11 @@ class Run:
                         out.add((s, URIRef(p), w))
         return children
 
-    def materialise(self, cls, iris, depth, layer_name):
+    def materialise(self, cls, iris, depth, layer_name, tmpl=None):
         """Generates linked resources with RDFGraphGen (mandatory properties) or leaves typed stubs."""
         if not iris:
             return
-        tmpl = self.plan.get('linked', {}).get(cls)
+        tmpl = tmpl or self.plan.get('linked', {}).get(cls)
         if tmpl and depth <= self.plan.get('maxDepth', 3) and self.plan.get('generateLinked', True):
             g, nodes = _rdfgraphgen(tmpl, len(iris), 'L')
             self.out += _rename(g, dict(zip(nodes, iris)))
@@ -570,70 +619,323 @@ class Run:
                 self.out.add((r, RDFS.label, Literal('Synthetic %s %s' % (self.slug(cls), str(r).rsplit('-', 1)[-1]), lang='en')))
             self.layers.append({'layer': layer_name, 'how': 'typed stub', 'class': cls, 'instances': len(iris)})
 
+    def layout_sections(self, iris, cplan, connected, layer_name):
+        """Sections drawn between operational points near real ones, chained (connected) or apart (scattered).
+        Sets the layout properties (start, end, line, length, label) and returns each section's polyline."""
+        rnd, out, anchors, n = self.rnd, self.out, self.anchors, len(iris)
+        layout = {p: o['layout'] for p, o in cplan['props'].items() if o.get('layout')}
+        used, lines = set(), []
+        if connected:
+            i0 = rnd.randrange(len(anchors)); used.add(i0)
+            pts, cur, heading = [anchors[i0]], anchors[i0], None
+            for _ in range(n):
+                j = _next_anchor(rnd, cur, anchors, used, heading)
+                nxt = anchors[j] if j is not None else _move(cur, (heading if heading is not None else rnd.uniform(0, 360)) + rnd.uniform(-30, 30), rnd.uniform(5, 15))
+                if j is not None:
+                    used.add(j)
+                heading, cur = _bearing(cur, nxt), nxt
+                pts.append(nxt)
+            op_pts = [_jitter(rnd, p, 20, 70) for p in pts]
+            lines = [(i, i + 1) for i in range(n)]
+        else:
+            op_pts = []
+            for _ in range(n):
+                a = rnd.randrange(len(anchors)); used.add(a)
+                b = _next_anchor(rnd, anchors[a], anchors, used, None)
+                pb = anchors[b] if b is not None else _move(anchors[a], rnd.uniform(0, 360), rnd.uniform(5, 15))
+                if b is not None:
+                    used.add(b)
+                op_pts += [_jitter(rnd, anchors[a], 20, 70), _jitter(rnd, pb, 20, 70)]
+                lines.append((len(op_pts) - 2, len(op_pts) - 1))
+        op_iris = [self.mint(str(ERA.OperationalPoint)) for _ in op_pts]
+        for r in op_iris:
+            self.name_of[r] = self.next_name()
+            self.cls_of[r] = str(ERA.OperationalPoint)
+        n_lines = 1 if connected else max(1, n // 3)
+        lps = [self.mint(str(ERA.LinearPositioningSystem)) for _ in range(n_lines)]
+        total, polys = 0, []
+        for k, (ia, ib) in enumerate(lines):
+            s, poly = iris[k], _curve(rnd, op_pts[ia], op_pts[ib])
+            km = _length(poly); total += km
+            polys.append(poly)
+            self.add_geometry(s, poly, 'sol')
+            for p, what in layout.items():
+                P = URIRef(p)
+                if what == 'opStart':
+                    out.add((s, P, op_iris[ia]))
+                elif what == 'opEnd':
+                    out.add((s, P, op_iris[ib]))
+                elif what == 'nationalLine':
+                    out.add((s, P, lps[0 if connected else k % n_lines]))
+                elif what == 'length':
+                    self._length_value(s, P, cplan['props'][p], km)
+            if cplan.get('label'):
+                out.add((s, RDFS.label, Literal('%s – %s' % (self.name_of[op_iris[ia]], self.name_of[op_iris[ib]]), lang=self.lang)))
+        for i, l in enumerate(lps):
+            out.add((l, RDF.type, ERA.LinearPositioningSystem))
+            out.add((l, RDFS.label, Literal('Synthetic national line S%d' % (2600 + 7 * i + rnd.randint(0, 6)), lang='en')))
+        self.end_ops += op_iris
+        self.end_pts += op_pts
+        self.layers.append({'layer': layer_name, 'how': 'connected line' if connected else 'scattered sections',
+                            'class': cplan['class'], 'instances': n, 'operationalPoints': len(op_iris), 'lines': n_lines, 'km': round(total, 1)})
+        return polys
+
+    # ---------- part-whole structure (era:hasPart / era:isPartOf, both ways, as RINF publishes them) ----------
+    @staticmethod
+    def _local(iri):
+        return str(iri).rstrip('/').split('/')[-1].split('#')[-1]
+
+    def _code(self, op):
+        t = self.out.value(op, ERA.opType) if op is not None else None
+        return str(t).rsplit('/', 1)[-1] if t is not None else None
+
+    def _spec_weights(self, whole_cls, part_cls, code, site_cls):
+        """Parts per whole as {count: weight}: by OP type where the tree says so; for a track, by where the track is."""
+        for spec in self.tree.get(whole_cls, []):
+            if spec['part'] != part_cls:
+                continue
+            s = (spec.get('site') or {}).get(site_cls) or {} if 'site' in spec else spec
+            if 'byOpType' in s:
+                return s['byOpType'].get(code) or {}
+            return s.get('n') or {}
+        return {}
+
+    def _weights(self, whole_cls, part_cls, whole):
+        site = self.whole_of.get(whole)
+        site_cls = self.cls_of.get(site, str(ERA.SectionOfLine)) if site is not None else str(ERA.SectionOfLine)
+        op = whole if self._local(whole_cls) == 'OperationalPoint' else site
+        return self._spec_weights(whole_cls, part_cls, self._code(op), site_cls)
+
+    def _draw(self, w, at_least=0):
+        items = [(int(k), v) for k, v in w.items() if int(k) >= at_least and v > 0]
+        return self.rnd.choices([k for k, _ in items], [v for _, v in items])[0] if items else at_least
+
+    def _label_of(self, r):
+        lab = self.out.value(r, RDFS.label)
+        return str(lab) if lab is not None else self.name_of.get(r) or str(r).rsplit('/', 1)[-1]
+
+    def link(self, whole, part, whole_cls, part_cls):
+        self.out.add((whole, ERA.hasPart, part))
+        self.out.add((part, ERA.isPartOf, whole))
+        self.whole_of[part], self.cls_of[part], self.cls_of[whole] = whole, part_cls, whole_cls
+
+    def finish_parts(self, made, part_cls):
+        """Identifiers numbered within the whole (the SHACL-SPARQL uniqueness rules), one running direction per
+        track of a section (B on single track, N and O on double track), and a readable label."""
+        out, local = self.out, self._local(part_cls)
+        ids, dirs = self.pw.get('ids') or {}, self.pw.get('direction') or {}
+        idp = ids.get(part_cls)
+        for p, w, i, k in made:
+            wl = self._local(self.cls_of.get(w, ''))
+            if local == 'PlatformEdge':  # named after its track, so unique within the operational point
+                tid = out.value(w, URIRef(ids.get(str(ERA.RunningTrack), str(ERA.trackId))))
+                ident = '%s%s' % (tid if tid is not None else i + 1, '' if k == 1 else ('a', 'b')[i] if i < 2 else str(i + 1))
+            elif local == 'Siding':
+                ident = 'S%d' % (i + 1)
+            elif local == 'Tunnel':
+                self.tunnel_seq += 1
+                ident = '%s-T%04d' % (self.iso2, self.tunnel_seq)
+            else:
+                ident = str(i + 1)
+            if idp:
+                out.set((p, URIRef(idp), Literal(ident, datatype=XSD.string)))
+            if local == 'RunningTrack' and wl == 'SectionOfLine' and dirs.get('prop'):
+                out.set((p, URIRef(dirs['prop']), URIRef(dirs['B'] if k == 1 else (dirs['N'], dirs['O'], dirs['B'])[i % 3])))
+            site = self.whole_of.get(w) if wl == 'RunningTrack' else None
+            noun = {'RunningTrack': 'track', 'Siding': 'siding', 'PlatformEdge': 'platform', 'Tunnel': 'tunnel'}.get(local, local)
+            out.set((p, RDFS.label, Literal('%s, %s %s' % (self._label_of(site if site is not None else w), noun, ident), lang='en')))
+
+    def materialise_parts(self, made, whole_cls, part_cls, layer_name):
+        """Parts with their mandatory properties, plus what a shape requires of them as parts of this whole
+        (RunningTrackOfSectionOfLineShape: 13 parameters on the tracks of a section). A Link section's tracks may
+        carry no 1.1.1.1-1.1.1.3 parameters, so they declare those as era:notApplicable, as RINF publishers do."""
+        out, key = self.out, whole_cls + '|' + part_cls
+        tmpl = (self.pw.get('partTemplates') or {}).get(key)
+        if not tmpl:
+            self.materialise(part_cls, [m[0] for m in made], 1, layer_name)
+            return
+        link = URIRef(self.pw['linkNature']) if self.pw.get('linkNature') else None
+        on_link = [m for m in made if link is not None and (m[1], ERA.solNature, link) in out]
+        regular = [m for m in made if m not in on_link]
+        self.materialise(part_cls, [m[0] for m in regular], 1, layer_name, tmpl)
+        self.materialise(part_cls, [m[0] for m in on_link], 1, layer_name + ' (on a link section)')
+        for p, w, i, k in made:
+            for q in self.pw['partRequired'][key]:
+                if (p, URIRef(q), None) not in out:  # nothing generated (or a link section): declared, never left out
+                    out.add((p, ERA.notApplicable if (p, w, i, k) in on_link else ERA.notYetAvailable, URIRef(q)))
+        # SHACL-SPARQL rules that these parameters bring along: above 250 km/h the track says whether it is ballasted,
+        # and a track with level crossings names the document on acceleration near them
+        docs = []
+        for p, w, i, k in regular:
+            mps = out.value(p, ERA.maximumPermittedSpeed)
+            if mps is not None and float(mps) > 250 and (p, ERA.hasBallast, None) not in out:
+                out.add((p, ERA.hasBallast, Literal(True)))
+            if (p, ERA.hasLevelCrossings, Literal(True)) in out and (p, ERA.accelerationLevelCrossing, None) not in out:
+                d = self.mint(str(ERA.Document))
+                out.add((p, ERA.accelerationLevelCrossing, d)); docs.append(d)
+        self.materialise(str(ERA.Document), docs, 2, 'documents of the parts')
+
+    def build_parts(self, wholes, whole_cls, depth=1):
+        """Parts of the given wholes, drawn from the tree measured in RINF, generated with their mandatory
+        properties; then the parts' own parts (platform edges and tunnels of the tracks)."""
+        for spec in self.tree.get(whole_cls, []):
+            pcls, made = spec['part'], []
+            for w in wholes:
+                k = self._draw(self._weights(whole_cls, pcls, w))
+                for i in range(k):
+                    p = self.mint(pcls)
+                    self.link(w, p, whole_cls, pcls)
+                    made.append((p, w, i, k))
+            if not made:
+                continue
+            self.materialise_parts(made, whole_cls, pcls, 'parts of %s' % self._local(whole_cls))
+            self.finish_parts(made, pcls)
+            if depth < 3:
+                self.build_parts([m[0] for m in made], pcls, depth + 1)
+
+    def make_wholes(self, cls, k):
+        tmpl = (self.pw.get('wholes') or {}).get(cls) or {'class': cls, 'shapes': [], 'props': {}, 'label': True}
+        g, nodes = _rdfgraphgen(tmpl, k, 'W')
+        iris = [self.mint(cls) for _ in nodes]
+        self.out += _rename(g, dict(zip(nodes, iris)))
+        for r in iris:
+            self.cls_of[r] = cls
+        return iris, tmpl
+
+    def place_in_wholes(self, iris, main, chain, kind):
+        """The main instances are parts: their wholes are built top-down from the tree (the station's type first,
+        then its tracks, then what is on them), the instances are placed in them, and drawn inside them."""
+        rnd, out, n = self.rnd, self.out, len(iris)
+        down = list(reversed([main['class']] + list(chain)))  # top whole -> ... -> the main class
+        top, top_op = down[0], self._local(down[0]) == 'OperationalPoint'
+        op_w = self.pw.get('opWeights') or {}
+
+        def possible(w):
+            return any(int(x) >= 1 and v > 0 for x, v in w.items())
+
+        def pick_code():
+            cands = [(c, wt) for c, wt in op_w.items() if possible(self._spec_weights(top, down[1], c, None))
+                     and (len(down) < 3 or possible(self._spec_weights(down[1], down[2], c, top)))]
+            return rnd.choices([c for c, _ in cands], [w for _, w in cands])[0] if cands else '10'
+
+        tops, remaining = [], n
+        while remaining > 0:
+            code = pick_code() if top_op else None
+            k = self._draw(self._spec_weights(top, down[1], code, None), 1)
+            if len(down) == 2:
+                take = min(k, remaining); remaining -= take
+                tops.append({'code': code, 'leaves': take})
+            else:
+                ks = [self._draw(self._spec_weights(down[1], down[2], code, top)) for _ in range(k)]
+                if not sum(ks):
+                    ks[0] = 1
+                take = []
+                for x in ks:
+                    t = min(x, remaining); remaining -= t; take.append(t)
+                tops.append({'code': code, 'tracks': take})
+        top_iris, tmpl = self.make_wholes(top, len(tops))
+        polys, op_pt, bearing = {}, {}, {}
+        if top_op:
+            used = set()
+            for r in top_iris:
+                free = [i for i in range(len(self.anchors)) if i not in used] or list(range(len(self.anchors)))
+                j = rnd.choice(free); used.add(j)
+                lb = _line_bearing(self.anchors, j)
+                op_pt[r] = _jitter(rnd, self.anchors[j], 20, 70)
+                bearing[r] = (lb if lb is not None else rnd.uniform(0, 180)) + rnd.uniform(-6, 6)
+                self.add_geometry(r, [op_pt[r]], 'op')
+                self.name_of.setdefault(r, self.next_name())
+        else:
+            polys = dict(zip(top_iris, self.layout_sections(top_iris, tmpl, self.pw.get('connected', True), 'wholes: network layout')))
+        kids = self.apply(top_iris, tmpl, 0)
+        if top_op:
+            for r, node in zip(top_iris, tops):
+                out.set((r, ERA.opType, URIRef(str(ERA) + 'concepts/op-types/' + node['code'])))
+                if (r, ERA.uopid, None) in out:  # the type is final now: border points need an "EU" uopid
+                    out.set((r, ERA.uopid, Literal(self.uopid(r), datatype=XSD.string)))
+        elif self.pw.get('regularNature'):  # tracks with parameters sit on regular sections, not on links
+            for r in top_iris:
+                if (r, ERA.solNature, None) in out:
+                    out.set((r, ERA.solNature, URIRef(self.pw['regularNature'])))
+        for kcls, kiris in kids.items():
+            self.materialise(kcls, kiris, 1, 'own sub-resources of the wholes')
+        self.layers.append({'layer': 'wholes', 'how': 'part tree measured in RINF', 'class': top, 'instances': len(top_iris)})
+        mi, made, tracks = iter(iris), [], []
+        if len(down) == 2:
+            for r, node in zip(top_iris, tops):
+                for i in range(node['leaves']):
+                    p = next(mi); self.link(r, p, top, down[1]); made.append((p, r, i, node['leaves']))
+        else:
+            for r, node in zip(top_iris, tops):
+                for i, kl in enumerate(node['tracks']):
+                    t = self.mint(down[1]); self.link(r, t, top, down[1]); tracks.append((t, r, i, len(node['tracks']), kl))
+            self.materialise_parts([(t, r, i, kt) for t, r, i, kt, _ in tracks], top, down[1], 'wholes: tracks')
+            self.finish_parts([(t, r, i, kt) for t, r, i, kt, _ in tracks], down[1])
+            for t, r, i, kt, kl in tracks:
+                for j in range(kl):
+                    p = next(mi); self.link(t, p, down[1], down[2]); made.append((p, t, j, kl))
+        self.finish_parts(made, down[-1])
+        if not kind:
+            return
+        # geometry of the main instances, inside their wholes
+        track_pos = {t: (i, kt) for t, r, i, kt, _ in tracks}
+        lines = {}
+
+        def station_track(op, i, k):  # a track through the station, parallel to the others, 5 m apart
+            c, b, L = op_pt[op], bearing[op], rnd.uniform(0.4, 1.2)
+            off = (i - (k - 1) / 2) * 0.005
+            return [_move(_move(c, b + 180, L / 2), b + 90, off), _move(_move(c, b, L / 2), b + 90, off)]
+
+        for p, w, i, k in made:
+            local = self._local(down[-1])
+            if len(down) == 2 and not top_op:                       # a track of a section: along it, 6 m apart
+                pts = _offset(polys[w], (i - (k - 1) / 2) * 0.006)
+            elif len(down) == 2 and local == 'Siding':              # a siding beside the station tracks
+                c, b, L = op_pt[w], bearing[w], rnd.uniform(0.2, 0.8)
+                s0 = _move(c, b + 90, 0.03 + 0.008 * i)
+                pts = [_move(s0, b + 180, L / 2), _move(s0, b, L / 2)]
+            elif len(down) == 2:                                    # a station track
+                pts = station_track(w, i, k)
+            else:
+                r, (ti, kt) = self.whole_of[w], track_pos[w]
+                if local == 'PlatformEdge':                         # beside its track, centred on the station
+                    tl = lines.setdefault(w, station_track(r, ti, kt))
+                    b, L = bearing[r], rnd.uniform(0.15, 0.42)
+                    c = [(tl[0][0] + tl[-1][0]) / 2, (tl[0][1] + tl[-1][1]) / 2]
+                    side = 0.003 if i % 2 == 0 else -0.003
+                    pts = [_move(_move(c, b + 180, L / 2), b + 90, side), _move(_move(c, b, L / 2), b + 90, side)]
+                elif top_op:                                        # a tunnel under a station track
+                    pts = lines.setdefault(w, station_track(r, ti, kt))
+                else:                                               # a tunnel: a stretch of its track's section
+                    poly = _offset(polys[r], (ti - (kt - 1) / 2) * 0.006)
+                    total = _length(poly)
+                    L = min(rnd.uniform(0.3, 3.0), 0.5 * total)
+                    a0 = rnd.uniform(0.1 * total, max(0.1 * total, 0.9 * total - L))
+                    pts = _slice(poly, a0, a0 + L)
+            if kind == 'point':
+                pts = pts[:1]
+            self.add_geometry(p, pts, 'f')
+            for prop, o in main['props'].items():
+                if o.get('layout') == 'length' and len(pts) > 1:
+                    self._length_value(p, URIRef(prop), o, _length(pts))
+
     def run(self):
         plan, rnd, out = self.plan, self.rnd, self.out
         main, n = plan['main'], plan['count']
-        anchors = plan.get('anchors') or [[4.35, 50.85]]
+        anchors = self.anchors
         g, nodes = _rdfgraphgen(main, n, 'M')
         iris = [self.mint(main['class']) for _ in nodes]
         out += _rename(g, dict(zip(nodes, iris)))
+        for s in iris:
+            self.cls_of[s] = main['class']
         self.layers.append({'layer': 'main', 'how': 'RDFGraphGen', 'class': main['class'], 'instances': n, 'triples': len(g)})
         props = main['props']
         layout = {p: o['layout'] for p, o in props.items() if o.get('layout')}
         kind = plan.get('geometry')
-        op_iris, op_pts = [], []
+        chain = self.pw.get('chain')
         if kind == 'sol':
-            connected = plan.get('layoutMode', 'connected') == 'connected'
-            used, lines = set(), []
-            if connected:
-                i0 = rnd.randrange(len(anchors)); used.add(i0)
-                pts, cur, heading = [anchors[i0]], anchors[i0], None
-                for _ in range(n):
-                    j = _next_anchor(rnd, cur, anchors, used, heading)
-                    nxt = anchors[j] if j is not None else _move(cur, (heading if heading is not None else rnd.uniform(0, 360)) + rnd.uniform(-30, 30), rnd.uniform(5, 15))
-                    if j is not None:
-                        used.add(j)
-                    heading, cur = _bearing(cur, nxt), nxt
-                    pts.append(nxt)
-                op_pts = [_jitter(rnd, p, 20, 70) for p in pts]
-                lines = [(i, i + 1) for i in range(n)]
-            else:
-                for _ in range(n):
-                    a = rnd.randrange(len(anchors)); used.add(a)
-                    b = _next_anchor(rnd, anchors[a], anchors, used, None)
-                    pb = anchors[b] if b is not None else _move(anchors[a], rnd.uniform(0, 360), rnd.uniform(5, 15))
-                    if b is not None:
-                        used.add(b)
-                    op_pts += [_jitter(rnd, anchors[a], 20, 70), _jitter(rnd, pb, 20, 70)]
-                    lines.append((len(op_pts) - 2, len(op_pts) - 1))
-            op_iris = [self.mint(str(ERA.OperationalPoint)) for _ in op_pts]
-            for r in op_iris:
-                self.name_of[r] = self.next_name()
-            n_lines = 1 if connected else max(1, n // 3)
-            lps = [self.mint(str(ERA.LinearPositioningSystem)) for _ in range(n_lines)]
-            total = 0
-            for k, (ia, ib) in enumerate(lines):
-                s, poly = iris[k], _curve(rnd, op_pts[ia], op_pts[ib])
-                km = _length(poly); total += km
-                self.add_geometry(s, poly, 'sol')
-                for p, what in layout.items():
-                    P = URIRef(p)
-                    if what == 'opStart':
-                        out.add((s, P, op_iris[ia]))
-                    elif what == 'opEnd':
-                        out.add((s, P, op_iris[ib]))
-                    elif what == 'nationalLine':
-                        out.add((s, P, lps[0 if connected else k % n_lines]))
-                    elif what == 'length':
-                        self._length_value(s, P, props[p], km)
-                if plan.get('label'):
-                    out.add((s, RDFS.label, Literal('%s – %s' % (self.name_of[op_iris[ia]], self.name_of[op_iris[ib]]), lang=self.lang)))
-            for i, l in enumerate(lps):
-                out.add((l, RDF.type, ERA.LinearPositioningSystem))
-                out.add((l, RDFS.label, Literal('Synthetic national line S%d' % (2600 + 7 * i + rnd.randint(0, 6)), lang='en')))
-            self.layers.append({'layer': 'network layout', 'how': 'connected line' if connected else 'scattered sections',
-                                'class': main['class'], 'instances': n, 'operationalPoints': len(op_iris), 'lines': n_lines, 'km': round(total, 1)})
-        elif kind in ('line', 'point'):
+            self.layout_sections(iris, main, plan.get('layoutMode', 'connected') == 'connected', 'network layout')
+        elif kind in ('line', 'point') and not chain:
             lo, hi = plan.get('lineKm', [0.5, 5])
             for k, s in enumerate(iris):
                 a = anchors[rnd.randrange(len(anchors))]
@@ -650,16 +952,20 @@ class Run:
             self.layers.append({'layer': 'geometry', 'how': 'points near the real network' if kind == 'point' else 'short lines near the real network',
                                 'class': main['class'], 'instances': n})
         kids = self.apply(iris, main, 0)
+        if chain:  # the main class is a part (a track, a siding…): build its wholes and put the instances in them
+            self.place_in_wholes(iris, main, chain, kind)
         # end points of the sections: generated like any linked resource, then placed by the layout
-        if op_iris:
-            self.materialise(str(ERA.OperationalPoint), op_iris, 1, 'section end points')
-            for r, pt in zip(op_iris, op_pts):
+        if self.end_ops:
+            self.materialise(str(ERA.OperationalPoint), self.end_ops, 1, 'section end points')
+            for r, pt in zip(self.end_ops, self.end_pts):
                 if (r, GEO.hasGeometry, None) not in out:
                     self.add_geometry(r, [pt], 'op')
                 if (r, RDFS.label, None) in out and str(out.value(r, RDFS.label)).startswith('Synthetic'):
                     out.set((r, RDFS.label, Literal(self.name_of[r], lang=self.lang)))
         for cls, ciris in kids.items():
             self.materialise(cls, ciris, 1, 'own sub-resources')
+        if self.pw.get('parts'):  # the main class is a whole: its tracks, sidings, platform edges, tunnels
+            self.build_parts(iris, main['class'])
         for cls, pool in plan.get('pools', {}).items():
             used = [URIRef(r) for r in pool if (None, None, URIRef(r)) in out]
             self.materialise(cls, used, 1, 'shared linked resources')
@@ -673,8 +979,21 @@ class Run:
             ref = Graph(); ref.parse(data=plan['refNt'], format='nt')
             if any((None, None, s) in out for s in set(ref.subjects())):
                 out += ref
+        self._english_names()
         _tidy_numbers(out)
         return iris
+
+    def _english_names(self):
+        """The UAT shapes (LangStringEnRequired) want an English rdfs:label on every infrastructure element and an
+        English era:opName on every operational point, one value per language. Place names are proper nouns: the
+        English name is the same text, so it is added @en next to the national one."""
+        out = self.out
+        for P in (RDFS.label, ERA.opName):
+            for s in set(out.subjects(P, None)):
+                vals = [v for v in out.objects(s, P) if isinstance(v, Literal)]
+                if str(s).startswith(self.base) and vals and not any(v.language == 'en' for v in vals):
+                    named = [v for v in vals if v.language] or vals
+                    out.add((s, P, Literal(str(named[0]), lang='en')))
 
     def _length_value(self, s, P, rule, km):
         unit = rule.get('unit', 'km')
@@ -770,7 +1089,33 @@ const OWN_LINK = new Set(['NetBasicReference','NetPointReference','NetLinearRefe
   'Geometry','KilometricPost','Point','Instant','TemporalEntity','TemporalDuration']);
 /* Bookkeeping properties: allowed by the shapes, rarely useful in synthetic data; left out of the presets. */
 const META = new Set(['notApplicable','notYetAvailable','hashSource','belongsTo','parameterApplicability','exemptSpecialVehiclesFromATO',
-  'exemptSpecialVehiclesFromETCS','exemptSpecialVehiclesFromRMR','isPartOf','primaryLocation','validity']);
+  'exemptSpecialVehiclesFromETCS','exemptSpecialVehiclesFromRMR','primaryLocation','validity']);
+/* The part-whole structure as RINF publishes it (BEL graph/0088, FRA graph/0087, DEU graph/0080; measured 2026-11-12):
+   sections of line and operational points have running tracks and sidings as parts, running tracks have platform edges
+   and tunnels, and every era:hasPart has its era:isPartOf back. Parts per whole as { count: weight }; per OP type where
+   the type decides it (stations have tracks and platforms, depots and yards sidings, junctions and switches mostly nothing). */
+const PART_TREE = {
+  SectionOfLine: [{ part: 'RunningTrack', n: { 1: 40, 2: 52, 3: 3, 4: 5 } }],
+  OperationalPoint: [
+    { part: 'RunningTrack', byOpType: { 10: { 2: 30, 3: 20, 4: 25, 6: 15, 8: 10 }, 20: { 1: 25, 2: 50, 3: 15, 4: 10 }, 30: { 4: 30, 6: 30, 10: 40 },
+      40: { 1: 55, 2: 35, 3: 10 }, 60: { 0: 50, 2: 30, 4: 20 }, 70: { 1: 35, 2: 60, 3: 5 }, 80: { 0: 75, 2: 25 }, 90: { 0: 85, 1: 15 },
+      110: { 0: 80, 2: 20 }, 120: { 0: 40, 1: 40, 2: 20 }, 150: { 1: 60, 2: 40 } } },
+    { part: 'Siding', byOpType: { 10: { 0: 40, 1: 15, 2: 15, 4: 20, 8: 10 }, 20: { 0: 60, 1: 15, 2: 15, 4: 10 }, 30: { 0: 50, 2: 50 },
+      40: { 0: 40, 1: 25, 2: 20, 4: 15 }, 50: { 2: 20, 4: 30, 6: 25, 10: 25 }, 60: { 2: 30, 4: 40, 8: 30 }, 100: { 6: 30, 10: 40, 16: 30 }, 130: { 1: 85, 2: 15 } } },
+  ],
+  RunningTrack: [
+    { part: 'PlatformEdge', site: { OperationalPoint: { byOpType: { 10: { 0: 35, 1: 62, 2: 3 }, 20: { 0: 40, 1: 60 }, 30: { 0: 10, 1: 90 }, 40: { 0: 90, 1: 10 }, 70: { 0: 5, 1: 95 } } } } },
+    { part: 'Tunnel', site: { SectionOfLine: { n: { 0: 92, 1: 7, 2: 1 } }, OperationalPoint: { n: { 0: 97, 1: 3 } } } },
+  ],
+};
+/* Where a part sits when it is the class being generated: the chain of wholes above it, nearest first. */
+const PART_OF = { RunningTrack: [['SectionOfLine'], ['OperationalPoint']], Siding: [['OperationalPoint']],
+  PlatformEdge: [['RunningTrack', 'OperationalPoint']], Tunnel: [['RunningTrack', 'SectionOfLine'], ['RunningTrack', 'OperationalPoint']] };
+const PART_NOUN = { SectionOfLine: ['section of line', 'sections of line'], OperationalPoint: ['operational point', 'operational points'],
+  RunningTrack: ['running track', 'running tracks'], Siding: ['siding', 'sidings'], PlatformEdge: ['platform edge', 'platform edges'], Tunnel: ['tunnel', 'tunnels'] };
+const PART_IDS = { RunningTrack: 'trackId', Siding: 'sidingId', PlatformEdge: 'platformId', Tunnel: 'tunnelIdentification' };
+const TRACK_DIR = ERA + 'concepts/track-running-directions/';  // 10 N(ormal), 20 O(pposite), 30 B(oth)
+const partChain = lname => { const opts = PART_OF[lname] || []; return opts.find(ch => ch[ch.length - 1] === S.partOf) || opts[0] || null; };
 /* Realistic frequencies for some code lists (RDFGraphGen draws sh:in uniformly). Key: last segment of the concept IRI. */
 const WEIGHTS = {
   [ERA + 'solNature']: { '10': 95, '20': 5 },
@@ -786,6 +1131,7 @@ const NUM_BY_NAME = [
   [/Speed/i, { values: [40, 60, 80, 100, 120, 140, 160, 200, 230, 250, 300] }],
   [/Noise/i, { min: 70, max: 95 }],
   [/Gradient/i, { min: 0, max: 35 }],
+  [/cantDeficiency/i, { values: [80, 100, 110, 130, 150, 160, 180] }],
   [/Radius/i, { min: 150, max: 5000, step: 50 }],
   [/Voltage|umax|umin/i, { values: [750, 1500, 3000, 15000, 25000] }],
   [/Current/i, { min: 200, max: 2000, step: 50 }],
@@ -815,9 +1161,9 @@ const TEXTS = {
 /* ====================================================================== state */
 const S = {
   shapesTtl: null, shapesInfo: null, shapesModified: null,
-  nodeShapes: new Map(), byTarget: new Map(), propShapes: new Map(),
+  nodeShapes: new Map(), byTarget: new Map(), propShapes: new Map(), partShapes: {},
   ontoProps: {}, ontoClasses: {}, schemeCounts: {}, concepts: {}, conceptLabel: {}, anchors: {},
-  cls: null, model: null, selected: new Set(), preset: 'core', layoutMode: 'connected',
+  cls: null, model: null, selected: new Set(), preset: 'core', layoutMode: 'connected', partOf: 'SectionOfLine',
   py: null, engine: null, engineInfo: null, result: null,
 };
 const $ = id => document.getElementById(id);
@@ -868,6 +1214,8 @@ function indexShapes(ttl) {
       pathDesc: path && path.termType !== 'NamedNode' ? describePath(store, path) : null,
       minCount: num(one(ps, SH + 'minCount')), maxCount: num(one(ps, SH + 'maxCount')),
       datatype: lit(one(ps, SH + 'datatype')), classes: objs(ps, SH + 'class').map(t => t.value), nodeKind: lit(one(ps, SH + 'nodeKind')),
+      // sh:or ( [ sh:class A ] [ sh:class B ] ): a value of one of these classes (e.g. a Document or a Vehicle)
+      orClasses: one(ps, SH + 'or') ? list(one(ps, SH + 'or')).map(n => lit(one(n, SH + 'class'))).filter(Boolean) : [],
       in: one(ps, SH + 'in') ? list(one(ps, SH + 'in')) : null, patterns: objs(ps, SH + 'pattern').map(t => t.value),
       minIncl: num(one(ps, SH + 'minInclusive')), maxIncl: num(one(ps, SH + 'maxInclusive')),
       minExcl: num(one(ps, SH + 'minExclusive')), maxExcl: num(one(ps, SH + 'maxExclusive')),
@@ -889,6 +1237,13 @@ function indexShapes(ttl) {
     };
     S.nodeShapes.set(shape.iri, shape);
     for (const t of shape.targets) { if (!S.byTarget.has(t)) S.byTarget.set(t, []); S.byTarget.get(t).push(shape); }
+    // a shape that applies to a class only as part of a whole (SPARQL target), e.g. RunningTrackOfSectionOfLineShape:
+    // running tracks that are part of a section of line must carry 13 more parameters (or declare them not applicable)
+    const tgt = one(ns, SH + 'target'), affected = lit(one(ns, ERA + 'affectedClass'));
+    const sel = tgt ? lit(one(tgt, SH + 'select')) || '' : '';
+    if (!shape.targets.length && affected && /era:isPartOf|era:hasPart/.test(sel))
+      for (const whole of Object.keys(PART_TREE))
+        if (whole !== localName(affected) && new RegExp('a\\s+era:' + whole + '\\b').test(sel)) S.partShapes[localName(affected) + '|' + whole] = shape;
   }
 }
 function describePath(store, node) {
@@ -1003,6 +1358,7 @@ function classModel(cls) {
       if (p.maxCount !== undefined) m.maxCount = m.maxCount === undefined ? p.maxCount : Math.min(m.maxCount, p.maxCount);
       m.datatype = m.datatype || p.datatype; m.nodeKind = m.nodeKind || p.nodeKind; m.in = m.in || p.in; m.rinf = m.rinf || p.rinf;
       for (const c of p.classes) if (!m.classes.includes(c)) m.classes.push(c);
+      m.orClasses = m.orClasses && m.orClasses.length ? m.orClasses : p.orClasses;
       for (const x of p.patterns) if (!m.patterns.includes(x)) m.patterns.push(x);
       for (const k of ['minIncl', 'maxIncl', 'minExcl', 'maxExcl']) if (p[k] !== undefined && m[k] === undefined) m[k] = p[k];
       m.sparql.push(...p.sparql);
@@ -1068,6 +1424,27 @@ function ruleFor(model, m) {
   if (isSol && local === 'opEnd') return R('layout', 'end of the section', 'Set by the network layout: the operational point where the section ends.', { layout: 'opEnd', link: ERA + 'OperationalPoint' });
   if (isSol && local === 'nationalLine') return R('layout', 'line of the layout', 'One synthetic national line for a connected layout, a few for scattered sections.', { layout: 'nationalLine' });
   if (local === 'canonicalURI') return R('self', 'own IRI', 'The instance\'s own IRI.', { layout: 'self' });
+  if (local === 'hasPart' || local === 'isPartOf') {
+    const lname = localName(model.cls);
+    const TREE_DESC = { SectionOfLine: '1 to 4 running tracks (mostly 1 or 2), now and then with a tunnel',
+      OperationalPoint: 'running tracks and sidings by OP type: stations get tracks with platform edges, depots and yards sidings, junctions and switches mostly nothing',
+      RunningTrack: 'platform edges on station tracks, now and then a tunnel' };
+    if (local === 'hasPart' && PART_TREE[lname]) {
+      return R('part', 'parts: ' + PART_TREE[lname].map(s => PART_NOUN[s.part][1].replace('running ', '')).join(', ') + (lname === 'OperationalPoint' ? ' · by OP type' : ''),
+        `Builds the part tree measured in RINF: ${TREE_DESC[lname]}. Every part has era:isPartOf back, as every RINF publisher does. ` +
+        'Parts get their mandatory properties; identifiers are numbered within the whole' +
+        (lname === 'SectionOfLine' ? ', and each track has one running direction (B on single track, N and O on double track).' : '.'),
+        { layout: 'part' });
+    }
+    const chain = local === 'isPartOf' && partChain(lname);
+    if (chain) {
+      const art = s => (/^[aeiou]/.test(s) ? 'an ' : 'a ') + s;
+      const where = chain.map(c => art(PART_NOUN[c][0])).join(' of ');
+      return R('part', 'part of ' + where, `Each instance is placed in ${where}, generated with its mandatory properties, with era:hasPart back.` +
+        (chain[0] === 'SectionOfLine' ? ' Tracks follow their section, 6 m apart on double track.' : ''), { layout: 'part' });
+    }
+    return R('part', 'not generated', `In RINF, ${local === 'hasPart' ? 'parts' : 'wholes'} link only sections of line and operational points to running tracks and sidings, and running tracks to platform edges and tunnels: nothing realistic to generate for ${localName(model.cls)}.`, { unusable: true });
+  }
   if (local === 'uopid') return R('uopid', 'XX + S + 9 digits', 'Country code, "S" for synthetic, 9 digits. Border points (op type 90) start with "EU", as a SHACL-SPARQL rule requires.', { layout: 'uopid' });
   if (linear && /^length/i.test(local) && (unit === 'KiloM' || unit === 'M'))
     return R('length', 'from the geometry (' + (unit === 'KiloM' ? 'km' : 'm') + ')', 'Computed from the drawn line, so length and geometry agree.', { layout: 'length', unit: unit === 'KiloM' ? 'km' : 'm', dt: dt || XSD + 'double' });
@@ -1086,13 +1463,14 @@ function ruleFor(model, m) {
         return { in: cs.map(x => ({ iri: x.iri })), ...(w ? { weights: cs.map(x => w[x.local] ?? 1) } : {}) }; } });
   }
   // a linked resource: an ERA class first, else any other class the shape names (sf:Point, time:Instant…), else an ERA range
+  const ors = m.orClasses || [];
   const linkCls = m.classes.find(c => c.startsWith(ERA)) || m.classes.find(c => c !== SKOS + 'Concept')
+    || ors.find(c => c === ERA + 'Document') || ors.find(c => c.startsWith(ERA))  // sh:or of classes: a document where allowed
     || (range && range.startsWith(ERA) && !/concepts/.test(range) ? range : null);
   if (linkCls) {
     let target = linkCls;
-    if (local === 'hasPart') target = /SectionOfLine|OperationalPoint/.test(model.cls) ? ERA + 'RunningTrack' : linkCls;
     if (localName(target) === 'NetBasicReference') target = ERA + (model.geomKind === 'sol' || model.geomKind === 'line' ? 'NetLinearReference' : 'NetPointReference');
-    const own = OWN_LINK.has(localName(target)) || local === 'hasPart' || local === 'netReference';
+    const own = OWN_LINK.has(localName(target)) || local === 'netReference';
     return R(own ? 'own' : 'shared', (own ? 'own ' : 'shared ') + localName(target),
       own ? 'Each instance gets its own ' + localName(target) + ' (generated with its mandatory properties when "also generate" is on).'
           : 'A small pool of ' + localName(target) + ' resources shared by the instances.',
@@ -1100,6 +1478,9 @@ function ruleFor(model, m) {
   }
   if (m.classes.includes(SKOS + 'Concept')) return R('iri', 'no concept scheme known', 'The shape wants a SKOS concept but the ontology names no scheme for it.', { unusable: true });
   if (m.nodeKind === SH + 'IRI' && !dt) return R('iri', 'placeholder IRI', 'An example.org IRI: the shapes say only that the value is an IRI.', { make: c => ({ in: [{ iri: c.base + 'resource-' + local }] }) });
+  if (local === 'redLightsRequired') return R('boolean', 'BE, FR, IT, PT, ES only',
+    'Two steady red lights: a parameter of Belgium, France, Italy, Portugal and Spain only (a SHACL-SPARQL rule, checked through the track\'s whole); left out elsewhere.',
+    { make: c => ['BEL', 'FRA', 'ITA', 'PRT', 'ESP'].includes(c.country.iso3) ? { in: [{ v: 'true', dt: XSD + 'boolean' }, { v: 'false', dt: XSD + 'boolean' }], weights: [TRUE_PCT, 100 - TRUE_PCT] } : null });
   if (dt === XSD + 'boolean') return R('boolean', TRUE_PCT + '% true', 'Mostly false: most of these flags describe exceptions.',
     { make: () => ({ in: [{ v: 'true', dt }, { v: 'false', dt }], weights: [TRUE_PCT, 100 - TRUE_PCT] }) });
   if (dt && /integer|int|long|short|decimal|double|float/i.test(dt.slice(XSD.length))) {
@@ -1140,7 +1521,7 @@ function presetSelection(model, preset) {
     const req = m.required || m.minCount > 0;
     const extra = m.path === GEO + 'hasGeometry' || m.path === RDFS + 'label';
     if (req || extra) sel.add(m.path);
-    else if (preset === 'core' && m.rinf && !META.has(local)) sel.add(m.path);
+    else if (preset === 'core' && (m.rinf || m.rule.kind === 'part') && !META.has(local)) sel.add(m.path);
     else if (preset === 'all' && !META.has(local)) sel.add(m.path);
   }
   return sel;
@@ -1226,8 +1607,21 @@ async function selectClass(cls, keepSelection) {
   $('clsInfo').innerHTML = `<b>${esc(info.label || localName(cls))}</b> · ${S.model.own.length + S.model.inherited.length} shape(s), ${S.model.props.length} properties, ${req} required${S.model.closed ? ', closed shape' : ''}.
     ${info.comment ? '<br>' + esc(info.comment.split(/(?<=\.)\s/)[0]) : ''}
     ${S.model.geomKind ? '' : '<br><span class="warnc">No geometry in the shapes: the map stays empty; see the Turtle tab.</span>'}`;
-  $('layoutRow').hidden = S.model.geomKind !== 'sol';
+  renderPartOf();
   renderClassList(); renderProps(); markPreset(); saveHash();
+}
+/* "Part of" for classes with more than one possible whole; the section layout also applies to sections built as wholes. */
+function renderPartOf() {
+  const lname = localName(S.cls), opts = PART_OF[lname] || [], chain = partChain(lname);
+  $('partOfRow').hidden = opts.length < 2;
+  $('partOfBtns').innerHTML = opts.map(ch => { const t = ch[ch.length - 1];
+    return `<button class="btn${chain && t === chain[chain.length - 1] ? ' on' : ''}" data-partof="${t}" type="button">${esc(ch.map(c => PART_NOUN[c][0]).join(' of ').replace(/^./, c => c.toUpperCase()))}</button>`; }).join('');
+  $('partOfBtns').querySelectorAll('[data-partof]').forEach(b => b.addEventListener('click', () => {
+    S.partOf = b.dataset.partof;
+    for (const m of S.model.props) if (m.rule.kind === 'part') m.rule = ruleFor(S.model, m);
+    renderPartOf(); renderProps(); saveHash();
+  }));
+  $('layoutRow').hidden = !(S.model.geomKind === 'sol' || (chain && chain[chain.length - 1] === 'SectionOfLine'));
 }
 
 /* ====================================================================== engine (Pyodide + RDFGraphGen) */
@@ -1285,7 +1679,6 @@ function countFor(m, rule) {
   const min = Math.max(1, m.minCount || 0);
   let max = m.maxCount === undefined ? min : Math.max(min, Math.min(m.maxCount, min + 1));
   if (rule.kind === 'shared' || rule.kind === 'skos' && m.maxCount === undefined) max = min;
-  if (localName(m.path) === 'hasPart') max = Math.max(min, 2);
   return { minCount: min, maxCount: max };
 }
 function planClass(model, selection, ctx, depth) {
@@ -1307,6 +1700,20 @@ function planClass(model, selection, ctx, depth) {
   }
   return cp;
 }
+/* What the part-whole step builds: the parts of the main instances (hasPart selected), and/or the wholes they sit in
+   (isPartOf selected, along the chain chosen under "Part of"). */
+function partWholePlan(model, sel) {
+  const lname = localName(model.cls);
+  const on = local => model.props.some(m => localName(m.path) === local && sel.has(m.path) && m.rule.kind === 'part' && !m.rule.unusable);
+  const parts = on('hasPart') && !!PART_TREE[lname];
+  const chain = on('isPartOf') ? partChain(lname) : null;
+  const classes = new Set(), pairs = new Set();  // pairs: "Whole|Part" generated by the structure (not the main class)
+  const walk = c => { for (const s of PART_TREE[c] || []) { pairs.add(c + '|' + s.part); if (!classes.has(s.part)) { classes.add(s.part); walk(s.part); } } };
+  if (parts) walk(lname);
+  for (const c of chain || []) classes.add(c);
+  for (let i = 0; chain && i + 1 < chain.length; i++) pairs.add(chain[i + 1] + '|' + chain[i]);  // e.g. tracks of the sections a tunnel is in
+  return { parts, pairs, chain: chain ? chain.map(c => ERA + c) : null, classes: [...classes].map(c => ERA + c) };
+}
 async function buildPlan() {
   const country = COUNTRIES.find(c => c.iso3 === $('country').value);
   const n = Math.max(1, Math.min(200, +$('count').value || 10));
@@ -1318,10 +1725,22 @@ async function buildPlan() {
   const ctx = { country, base, rand, lang: LANG_TAG[country.lang] || country.lang, concepts: S.concepts,
     pool: cls => pools[cls] || (pools[cls] = Array.from({ length: Math.max(2, Math.ceil(n / 3)) }, (_, i) => `${base}${localName(cls).charAt(0).toLowerCase() + localName(cls).slice(1)}-S${String(i + 1).padStart(3, '0')}`)) };
   const model = S.model;
+  const pw = partWholePlan(model, S.selected);
   // linked classes, followed through their mandatory links up to MAX_DEPTH, so that a chain such as
-  // section -> operational point -> net reference -> topological coordinate ends on literals, not on bare stubs
+  // section -> operational point -> net reference -> topological coordinate ends on literals, not on bare stubs;
+  // plus the classes of the part-whole structure (the parts to generate, or the wholes to put the instances in)
   const MAX_DEPTH = 3, linkedModels = [], seen = new Set();
-  let frontier = model.props.filter(m => S.selected.has(m.path) && m.rule.link).map(m => m.rule.link);
+  // the top whole of the chain (a section of line or an operational point) is generated like a main class, layout
+  // included, so its own links start at depth 1, as for a main class
+  const top = pw.chain && pw.chain[pw.chain.length - 1];
+  const topModel = top && S.byTarget.has(top) ? classModel(top) : null;
+  const topLinks = topModel ? topModel.props.filter(m => (m.required || m.minCount > 0) && m.rule.link).map(m => m.rule.link) : [];
+  // parts that a shape asks more of as parts of a whole (RunningTrackOfSectionOfLineShape): what they must carry
+  const needs = Object.entries(S.partShapes).filter(([k]) => pw.pairs.has(k.split('|').reverse().join('|')))
+    .map(([k, shape]) => ({ key: k, part: ERA + k.split('|')[0], whole: ERA + k.split('|')[1], paths: shape.props.map(x => x.path).filter(Boolean), model: classModel(ERA + k.split('|')[0]) }));
+  const needLinks = needs.flatMap(nd => nd.model.props.filter(m => nd.paths.includes(m.path) && m.rule.link).map(m => m.rule.link));
+  let frontier = [...model.props.filter(m => S.selected.has(m.path) && m.rule.link).map(m => m.rule.link),
+    ...pw.classes.filter(c => c !== top), ...topLinks, ...needLinks];
   for (let depth = 1; depth <= MAX_DEPTH && frontier.length && $('linked').checked; depth++) {
     const next = [];
     for (const c of frontier) {
@@ -1332,25 +1751,43 @@ async function buildPlan() {
     }
     frontier = next;
   }
+  const wholeModels = topModel ? [topModel] : [];
+  for (const nd of needs) nd.model = linkedModels.find(l => l.cls === nd.part) || nd.model;
   const schemes = new Set();
-  for (const mod of [model, ...linkedModels]) for (const m of mod.props) if (m.onto && m.onto.scheme) schemes.add(m.onto.scheme);
-  const usesIm = [model, ...linkedModels].some(mod => mod.props.some(m => m.rule.kind === 'im' && (mod === model ? S.selected.has(m.path) : m.required || m.minCount > 0)));
+  for (const mod of [model, ...linkedModels, ...wholeModels, ...needs.map(nd => nd.model)]) for (const m of mod.props) if (m.onto && m.onto.scheme) schemes.add(m.onto.scheme);
+  const usesIm = [model, ...linkedModels, ...wholeModels].some(mod => mod.props.some(m => m.rule.kind === 'im' && (mod === model ? S.selected.has(m.path) : m.required || m.minCount > 0)));
   setStatus('Fetching the code lists, network anchors and reference data…');
   const [anchors, refNt] = await Promise.all([loadAnchors(country), usesIm ? loadImRole(country) : '',
     loadConcepts([...schemes]).then(() => loadSchemeCounts([...schemes]))]);
-  for (const mod of [model, ...linkedModels]) for (const m of mod.props) m.rule = ruleFor(mod, m);
+  for (const mod of new Set([model, ...linkedModels, ...wholeModels, ...needs.map(nd => nd.model)])) for (const m of mod.props) m.rule = ruleFor(mod, m);
   const main = planClass(model, S.selected, ctx, 0);
   const linked = {};
-  for (const lm of linkedModels) {
+  const mandatoryAndName = lm => {
     const sel = presetSelection(lm, 'mandatory');
     for (const m of lm.props) if (m.rule.kind === 'name') sel.add(m.path);  // linked stations get their name too
-    linked[lm.cls] = planClass(lm, sel, ctx, lm.depth);
+    return sel;
+  };
+  for (const lm of linkedModels) linked[lm.cls] = planClass(lm, mandatoryAndName(lm), ctx, lm.depth);
+  const wholes = {};
+  for (const wm of wholeModels) { wholes[wm.cls] = planClass(wm, mandatoryAndName(wm), ctx, 0); wholes[wm.cls].label = true; }
+  const partTemplates = {}, partRequired = {};
+  for (const nd of needs) {  // mandatory properties + what the part-whole shape requires, for parts of that whole
+    const sel = mandatoryAndName(nd.model);
+    for (const p of nd.paths) if (nd.model.props.some(m => m.path === p && !m.rule.unusable)) sel.add(p);
+    partTemplates[nd.whole + '|' + nd.part] = planClass(nd.model, sel, ctx, 1);
+    partRequired[nd.whole + '|' + nd.part] = nd.paths;
   }
+  const iriKeys = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [ERA + k, v]));
+  const partWhole = { parts: pw.parts, chain: pw.chain, wholes, connected: S.layoutMode === 'connected', opWeights: WEIGHTS[ERA + 'opType'],
+    partTemplates, partRequired, linkNature: ERA + 'concepts/sol-natures/20', regularNature: ERA + 'concepts/sol-natures/10',
+    tree: iriKeys(Object.fromEntries(Object.entries(PART_TREE).map(([w, specs]) => [w, specs.map(s => ({ ...s, part: ERA + s.part, ...(s.site ? { site: iriKeys(s.site) } : {}) }))]))),
+    ids: iriKeys(Object.fromEntries(Object.entries(PART_IDS).map(([c, p]) => [c, ERA + p]))),
+    direction: { prop: ERA + 'trackDirection', N: TRACK_DIR + '10', O: TRACK_DIR + '20', B: TRACK_DIR + '30' } };
   const geomOn = S.selected.has(GEO + 'hasGeometry');
   return {
     plan: { seed, base, count: n, iso2: country.iso2, lang: ctx.lang, label: main.label, geometry: geomOn ? model.geomKind : null,
       layoutMode: S.layoutMode, lineKm: LINE_KM[localName(model.cls)] || [0.5, 5], anchors: anchors.pts, names: makeNames(country.lang, n * 4 + 40, rand),
-      main, linked, pools, generateLinked: $('linked').checked, maxDepth: MAX_DEPTH, refNt },
+      main, linked, pools, generateLinked: $('linked').checked, maxDepth: MAX_DEPTH, refNt, partWhole },
     meta: { country, n, seed, base, anchorsReal: anchors.real, anchorsN: anchors.pts.length, refFromRinf: /roleOf/.test(refNt) },
   };
 }
@@ -1424,7 +1861,7 @@ function initMap() {
   map = L.map('map', { preferCanvas: true, worldCopyJump: true }).setView([50, 9], 4);
   // Esri's light grey canvas: tile.openstreetmap.org refuses requests from pages like this one.
   const base = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    { maxZoom: 19, attribution: 'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors' }).addTo(map);
+    { maxZoom: 19, maxNativeZoom: 16, attribution: 'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors' }).addTo(map);  // no tiles past 16: upscale them when zooming into a station
   const orm = L.tileLayer('https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', { maxZoom: 19, opacity: .75,
     attribution: 'Rail © <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a>, © OpenStreetMap contributors (CC-BY-SA)' });
   L.control.layers({ 'Light grey': base }, { 'Real railways (OpenRailwayMap)': orm }, { collapsed: true }).addTo(map);
@@ -1663,6 +2100,54 @@ function renderChecks() {
   }
   const rules = model.sparqlRules.filter(x => x.message);
   const HANDLED = [[/border point.*uopid|uopid.*EU/i, 'respected: border points get an "EU" uopid'], [/SOLnature of type Link|nature \(1\.1\.0\.0\.0\.6\)/i, 'respected: generated tracks carry no 1.1.1.1–1.1.1.3 parameters']];
+  // part-whole structure: both directions, parts per whole, identifiers numbered within the whole, running directions
+  const hp = st.getQuads(null, ERA + 'hasPart', null, null), ip = st.getQuads(null, ERA + 'isPartOf', null, null);
+  let pwHtml = '';
+  if (hp.length || ip.length) {
+    const typeOf = iri => localName((st.getObjects(iri, RDF + 'type', null)[0] || {}).value || '');
+    const partsOf = (w, cls) => st.getObjects(w, ERA + 'hasPart', null).filter(p => !cls || typeOf(p.value) === cls);
+    const oneWay = hp.filter(q => !st.getQuads(q.object, ERA + 'isPartOf', q.subject, null).length).length
+      + ip.filter(q => !st.getQuads(q.object, ERA + 'hasPart', q.subject, null).length).length;
+    const pairs = new Map();
+    for (const q of hp) {
+      const k = typeOf(q.subject.value) + '|' + typeOf(q.object.value);
+      if (!pairs.has(k)) pairs.set(k, new Map());
+      pairs.get(k).set(q.subject.value, (pairs.get(k).get(q.subject.value) || 0) + 1);
+    }
+    let dup = 0, idChecked = 0;
+    const dupIn = vals => { idChecked += vals.length; dup += vals.length - new Set(vals).size; };
+    const idOf = (p, cls) => (st.getObjects(p, ERA + PART_IDS[cls], null)[0] || {}).value;
+    for (const w of new Set(hp.map(q => q.subject.value))) {
+      for (const cls of ['RunningTrack', 'Siding', 'Tunnel']) dupIn(partsOf(w, cls).map(p => idOf(p.value, cls)).filter(Boolean));
+      if (typeOf(w) === 'OperationalPoint')  // platforms are parts of tracks; their numbers must differ within the operational point
+        dupIn(partsOf(w, 'RunningTrack').flatMap(t => partsOf(t.value, 'PlatformEdge')).map(p => idOf(p.value, 'PlatformEdge')).filter(Boolean));
+    }
+    const solTracks = hp.filter(q => typeOf(q.subject.value) === 'SectionOfLine' && typeOf(q.object.value) === 'RunningTrack');
+    const badDir = solTracks.filter(q => st.getObjects(q.object, ERA + 'trackDirection', null).length !== 1).length;
+    const solShape = S.partShapes['RunningTrack|SectionOfLine'], req = solShape ? solShape.props.map(p => p.path).filter(Boolean) : [];
+    const declared = (t, p) => st.getQuads(t, p, null, null).length || st.getQuads(t, ERA + 'notApplicable', p, null).length || st.getQuads(t, ERA + 'notYetAvailable', p, null).length;
+    const lacking = req.length ? solTracks.filter(q => req.some(p => !declared(q.object, p))).length : 0;
+    const row = (ok, what, detail) => `<tr><td>${ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td><td>${what}</td><td>${detail}</td></tr>`;
+    const per = [...pairs].map(([k, m]) => { const [w, p] = k.split('|'), c = [...m.values()];
+      return row(true, `${esc(PART_NOUN[w] ? PART_NOUN[w][0] : w)} → ${esc(PART_NOUN[p] ? PART_NOUN[p][1] : p)}`,
+        `${c.reduce((a, b) => a + b, 0)} parts in ${m.size} wholes (${Math.min(...c)}–${Math.max(...c)} each)`); });
+    pwHtml = `<h3 style="font-size:13px;margin:18px 0 6px">Part-whole structure</h3>
+      <table class="chkt"><tbody>
+        ${row(!oneWay, '<code>era:hasPart</code> and <code>era:isPartOf</code> both ways', oneWay ? `${oneWay} link(s) without their inverse` : `${hp.length} links, each with its inverse, as RINF publishes them`)}
+        ${per.join('')}
+        ${row(!dup, 'Identifiers unique within their whole', dup ? `${dup} duplicate(s)` : `${idChecked} identifiers checked (tracks and sidings per whole, platforms per operational point)`)}
+        ${solTracks.length ? row(!badDir, 'One running direction per track of a section', badDir ? `${badDir} track(s) with none or several` : `${solTracks.length} tracks: B on single track, N and O on double track`) : ''}
+        ${solTracks.length && req.length ? row(!lacking, `Parameters required of the tracks of a section (<code>${esc(curie(solShape.iri))}</code>)`,
+          lacking ? `${lacking} track(s) lack some of the ${req.length}` : `${solTracks.length} tracks carry the ${req.length} parameters, or declare them <code>era:notApplicable</code> (on link sections) or <code>era:notYetAvailable</code>`) : ''}
+      </tbody></table>`;
+    fail += (oneWay ? 1 : 0) + (dup ? 1 : 0) + (badDir ? 1 : 0) + (lacking ? 1 : 0);
+    if (!dup) HANDLED.push([/unique identification or number within the (SoL|OP)/i, 'respected: identifiers are numbered within their whole']);
+    if (solTracks.length && !badDir) HANDLED.push([/Track Direction/i, 'respected: one running direction per track of a section']);
+    HANDLED.push([/hasPart from an operational point/i, 'respected: every part is a typed infrastructure element']);
+    if (localName(r.cls) === 'OperationalPoint' && r.plan.partWhole && r.plan.partWhole.parts)
+      HANDLED.push([/must have a hasPart reference that is a Track/i, 'respected: operational points of these types get tracks or sidings']);
+    if (!st.getQuads(null, ERA + 'validity', null, null).length) HANDLED.push([/does not englobe the validity of its child/i, 'not applicable: no validity periods generated']);
+  }
   $('checksEmpty').hidden = true;
   $('checks').innerHTML = `
     <p class="verdict">${fail ? `<span class="bad">✗ ${fail} constraint(s) violated</span>` : '<span class="ok">✓ The main instances conform to the core constraints of the shapes</span>'}${warn ? ` · <span class="warnc">${warn} warning(s)</span>` : ''}
@@ -1671,6 +2156,7 @@ function renderChecks() {
       This is a SHACL Core subset, not a full SHACL engine. For a full check, validate the download with a SHACL engine against the same shapes, loading the ERA SKOS concept schemes too: concept values are <code>sh:class skos:Concept</code>.</p>
     ${iriNotes.length ? `<p class="hint warnc">${iriNotes.map(esc).join('<br>')}</p>` : ''}
     <table class="chkt"><thead><tr><th></th><th>Property</th><th>Shape constraints</th><th>Values</th><th>Result</th></tr></thead><tbody>${rows.join('')}</tbody></table>
+    ${pwHtml}
     <h3 style="font-size:13px;margin:18px 0 6px">SHACL-SPARQL rules of the class (${rules.length}) <span class="hint">not run here</span></h3>
     <table class="chkt"><tbody>${rules.map(x => { const h = HANDLED.find(([re]) => re.test(x.message)); return `<tr><td>${h ? '<span class="ok">✓</span>' : '<span style="color:var(--dim)">–</span>'}</td><td>${esc(x.message.split(/(?<=[.:])\s/).slice(0, 2).join(' ').slice(0, 260))}</td><td style="color:var(--dim)">${h ? esc(h[1]) : 'not checked'}</td></tr>`; }).join('')}</tbody></table>`;
 }
@@ -1686,9 +2172,22 @@ function renderHow() {
       <li><b>RDFGraphGen 1.2.0</b> runs unmodified in Pyodide. The rules are injected into its own shape dictionary as <code>sh:in</code> pools and ranges, and
         its generator (<code>dictionary_to_rdf_graph</code>) creates the instances, applies the cardinalities and draws the values.</li>
       <li><b>Realism layer.</b> RDFGraphGen knows no geography or identifiers, so this step adds the network layout (sections chained through shared operational
-        points), geometry, lengths computed from the geometry, names, uopids, the instance's own sub-resources and the linked resources. It also re-draws a few code
+        points), geometry, lengths computed from the geometry, names, uopids, the instance's own sub-resources, the linked resources and the part-whole structure. It also re-draws a few code
         lists with realistic frequencies, because RDFGraphGen draws <code>sh:in</code> uniformly.</li>
     </ol>
+    <h3>Part-whole structure</h3>
+    <p>RINF links infrastructure elements with <code>era:hasPart</code> and, always, <code>era:isPartOf</code> back (BEL, FRA and DEU: not one
+      link without its inverse). Sections of line have running tracks (1 or 2, sometimes up to 14); operational points have tracks and sidings depending on
+      their type; tracks have platform edges (in stations) and tunnels. This page builds that tree with counts measured in RINF:</p>
+    <ul>
+      <li><b>hasPart</b> on a section or an operational point generates its parts, then their own parts, with their mandatory properties. Identifiers are
+        numbered within the whole (the SHACL-SPARQL uniqueness rules), and each track of a section gets one running direction: B on single track, N and O on double track.
+        Tracks of a section also get the parameters that <code>era-sh:RunningTrackOfSectionOfLineShape</code> requires of them (cant deficiency, gradient profile,
+        maximum speed…); on a link section, which may carry none of them, they are declared <code>era:notApplicable</code>.</li>
+      <li><b>isPartOf</b> on a track, a siding, a platform edge or a tunnel puts each instance in a generated whole, chosen under "Part of": a
+        section of line (drawn on the network, tracks along it) or an operational point of a fitting type (tracks through it, sidings beside, platforms along the tracks).</li>
+    </ul>
+    <p>As in RINF, parts carry no geometry of their own when they are not the class you generate: they are located through their whole.</p>
     <h3>Why the planner is needed</h3>
     <p>RDFGraphGen generates realistic values only for some schema.org classes. Everything else comes out as random strings or numbers:
       a <code>xsd:double</code> or <code>rdf:langString</code> becomes an untyped string, and an IRI-valued property without <code>sh:class</code> becomes a literal.
@@ -1724,7 +2223,8 @@ function geojson() {
 function saveHash() {
   if (!S.cls) return;
   const p = new URLSearchParams({ c: localName(S.cls), n: $('count').value, cc: $('country').value, seed: $('seed').value, preset: S.preset });
-  if (S.model && S.model.geomKind === 'sol') p.set('layout', S.layoutMode);
+  if (S.model && !$('layoutRow').hidden) p.set('layout', S.layoutMode);
+  if (S.model && !$('partOfRow').hidden) p.set('in', S.partOf);
   if (S.preset === 'custom') p.set('props', [...S.selected].map(curie).join(','));
   if ($('base').value !== 'https://example.org/rinf-synthetic/') p.set('base', $('base').value);
   if (!$('linked').checked) p.set('linked', '0');
@@ -1738,6 +2238,7 @@ function readHash() {
   if (p.get('base')) $('base').value = p.get('base');
   if (p.get('linked') === '0') $('linked').checked = false;
   if (p.get('layout')) S.layoutMode = p.get('layout');
+  if (p.get('in') === 'SectionOfLine' || p.get('in') === 'OperationalPoint') S.partOf = p.get('in');
   if (p.get('preset')) S.preset = p.get('preset');
   return { cls: p.get('c') ? ERA + p.get('c') : ERA + 'SectionOfLine', props: p.get('props') };
 }
