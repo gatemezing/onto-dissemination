@@ -29,7 +29,7 @@ searches a snapshot because its endpoint asks for a login (see
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
 | Synthetic RINF and EVR Data (realistic synthetic Turtle from the UAT SHACL shapes with RDFGraphGen. RINF: tracks, sidings, platform edges and tunnels linked to their sections and stations with `era:hasPart`/`era:isPartOf`, on a map. EVR + ERATV: vehicles with valid EVNs, vehicle types with ERATV numbers, type authorisations with EINs, invented keepers, owners and ECMs, and the `vpa:` chain from type authorisation to registration; graph, checks and export) | https://gatemezing.github.io/onto-dissemination/synthetic.html |
-| SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
+| SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, an OWL gap analysis of the UAT release candidate with the immediate actions to fix, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 | Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
 | Slides: A Semantic Backbone for European Rail Data Exchange (KGSWC 2026) | https://gatemezing.github.io/onto-dissemination/kgswc-2026/ |
@@ -195,7 +195,7 @@ to (`sh:node`, or `sh:class` when another shape targets that class, including
 inside `sh:or` / `sh:xone` / `sh:and`) and from the shapes that point to it.
 Click any shape to follow it. ERA's SHACL-SPARQL constraints are listed under
 the property they name with `era:affectedProperty`, each with its full query.
-Three ERA views:
+Four ERA views:
 - **PROD**: the production shapes, live (`graph/shacl` in `ERA-Onto`, one
   `CONSTRUCT`).
 - **UAT**: the shapes in acceptance testing for the next release, from the
@@ -205,6 +205,19 @@ Three ERA views:
   added, plus a line diff of each changed SHACL-SPARQL query. Queries are
   compared by body and message; differences only in their `PREFIX`
   declarations are ignored.
+- **OWL gaps**: the UAT release candidate's shapes (`graph/shacl`) set against
+  its ontology's OWL axioms (`graph/ontology`), both from the UAT SPARQL
+  endpoint, with the latest release named from the GitLab API. 28 checks find
+  where data the shapes accept is inconsistent with the axioms (functional
+  super-properties, datatypes and classes outside a range, domains a shape
+  contradicts, …), where the two name terms the other lacks, and what OWL 2
+  reasoners reject in the axioms on their own. The report lists the immediate
+  actions, most severe first (BLOCKER, MAJOR, MINOR, SUGGESTION), each with
+  why it matters, the fix and every finding. It exports as Markdown and CSV,
+  and the shapes below carry a badge where they have gaps. The analysis is a
+  pure function of the two graphs, tested in
+  [scripts/tests/shacl-viewer-gaps.test.js](scripts/tests/shacl-viewer-gaps.test.js)
+  (`npm install --no-save n3@1.17.2 && node --test scripts/tests/shacl-viewer-gaps.test.js`).
 
 You can also open, drop or paste any Turtle, N-Triples, N-Quads or TriG file;
 it is parsed in the browser with N3.js (pinned, with SRI) and never uploaded.

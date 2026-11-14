@@ -191,6 +191,59 @@
   .shapeLevel{padding:10px 16px 14px;border-top:1px solid var(--line);}
   .shapeLevel>summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
 
+  /* ---- OWL gap analysis ---- */
+  #gapPanel[hidden]{display:none;}
+  .gapHead h2{margin:0 0 6px;font-size:17px;}
+  .gapHead p{margin:0 0 6px;font-size:12.5px;color:var(--muted);line-height:1.55;max-width:115ch;}
+  .gapHead p b{color:var(--paper);}
+  .sev{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;border-radius:4px;padding:1px 6px;border:1px solid;white-space:nowrap;vertical-align:1px;}
+  .sev.BLOCKER{color:#ff9c9c;border-color:rgba(242,109,109,.6);background:rgba(242,109,109,.12);}
+  .sev.MAJOR{color:var(--orange);border-color:rgba(240,168,58,.55);background:rgba(240,168,58,.08);}
+  .sev.MINOR{color:#8fb3ff;border-color:rgba(91,155,213,.55);}
+  .sev.SUGGESTION{color:var(--teal);border-color:rgba(95,208,174,.5);}
+  .sev.pass{color:var(--green);border-color:rgba(122,195,106,.5);}
+  .sevTiles{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 6px;}
+  .sevTile{border:1px solid var(--line);border-radius:10px;padding:8px 14px;min-width:120px;background:rgba(255,255,255,.03);}
+  .sevTile b{display:block;font-size:21px;line-height:1.2;}
+  .sevTile span{font-size:11.5px;color:var(--muted);}
+  .sevTile.BLOCKER b{color:#ff9c9c;} .sevTile.MAJOR b{color:var(--orange);} .sevTile.MINOR b{color:#8fb3ff;}
+  .sevTile.SUGGESTION b{color:var(--teal);} .sevTile.pass b{color:var(--green);}
+  .gapSub{margin:16px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600;}
+  ol.actions{margin:8px 0 0;padding-left:24px;}
+  ol.actions>li{margin:0 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);}
+  ol.actions>li::marker{color:var(--muted);font-size:12px;}
+  .aHead{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;}
+  .aHead b{font-size:13.5px;}
+  .aHead .meta{font-size:11.5px;color:var(--muted);}
+  .aHead .decide{color:var(--orange);}
+  .action p{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:var(--muted);max-width:120ch;}
+  .action p.fix{color:var(--paper);}
+  ul.groups{margin:6px 0 0;padding:0;list-style:none;font-size:12px;display:flex;flex-direction:column;gap:3px;}
+  ul.groups code{color:var(--teal);overflow-wrap:anywhere;}
+  ul.groups .note{display:block;color:var(--muted);font-size:11.5px;margin:2px 0 2px 16px;border-left:2px solid var(--line);padding-left:8px;}
+  details.fl{margin-top:8px;}
+  details.fl>summary,details.checksBox>summary{cursor:pointer;font-size:12px;color:var(--blue);}
+  .tableWrap{overflow-x:auto;margin-top:6px;}
+  table.ftab{border-collapse:collapse;width:100%;font-size:11.5px;}
+  table.ftab th{text-align:left;color:var(--muted);font-weight:600;padding:3px 10px 3px 0;border-bottom:1px solid var(--line);white-space:nowrap;}
+  table.ftab td{padding:4px 10px 4px 0;vertical-align:top;border-top:1px solid rgba(255,255,255,.05);overflow-wrap:anywhere;}
+  table.ftab td.t{font-family:var(--mono);min-width:150px;}
+  table.ftab td.d{color:var(--muted);min-width:240px;}
+  table.ftab .chip{font-size:11px;text-align:left;}
+  .ftab .more{color:var(--muted);font-style:italic;}
+  details.checksBox{margin-top:14px;}
+  .gapTools{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center;}
+  .gapTools .hint{font-size:11.5px;color:var(--muted);}
+  .b.gapb.BLOCKER{color:#ff9c9c;border-color:rgba(242,109,109,.6);}
+  .b.gapb.MAJOR{color:var(--orange);border-color:rgba(240,168,58,.55);}
+  .b.gapb.MINOR{color:#8fb3ff;border-color:rgba(91,155,213,.55);}
+  .b.gapb.SUGGESTION{color:var(--teal);border-color:rgba(95,208,174,.5);}
+  ul.gapList{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.45;}
+  ul.gapList li .ttl{color:var(--paper);font-weight:600;}
+  ul.gapList li .dt{color:var(--muted);}
+  .gapBox{margin-top:10px;border:1px solid rgba(242,109,109,.35);border-radius:8px;padding:8px 10px;background:rgba(242,109,109,.05);}
+  .gapBox .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px;}
+
   #dropHint{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:10;
     background:rgba(11,18,32,.82);border:3px dashed var(--blue);font-size:18px;font-weight:600;}
   body.dragging #dropHint{display:flex;}
@@ -234,8 +287,10 @@
       with lines to the shapes its values must conform to (left: shapes that point here; right: shapes this one points to).
       Click any shape to follow it. Starts with ERA's production shapes, read live; switch to UAT for the shapes
       being tested for the next release, or to <em>Compare</em> to see what UAT changes — shapes and property constraints
-      marked new, changed or removed, with the statements and SPARQL queries before and after. You can also drop in any
-      Turtle, N-Triples or TriG file to view your own.</p>
+      marked new, changed or removed, with the statements and SPARQL queries before and after. <em>OWL gaps</em> sets the
+      UAT release candidate’s shapes against its ontology’s OWL axioms — where data the shapes accept is inconsistent with
+      the axioms or gains types nobody meant, and what OWL 2 reasoners reject in the axioms themselves — and lists the
+      immediate actions to fix, most severe first. You can also drop in any Turtle, N-Triples or TriG file to view your own.</p>
   </header>
 
   <div class="panel">
@@ -244,6 +299,7 @@
         <button type="button" data-env="prod" aria-pressed="false">PROD<span class="sub">production graph</span></button>
         <button type="button" data-env="uat" aria-pressed="false">UAT<span class="sub">acceptance testing</span></button>
         <button type="button" data-env="diff" aria-pressed="false">Compare<span class="sub">PROD → UAT</span></button>
+        <button type="button" data-env="gaps" aria-pressed="false">OWL gaps<span class="sub">UAT axioms vs shapes</span></button>
       </div>
       <button type="button" class="linkBtn" id="reloadEnv" title="Fetch the selected environment again">Reload</button>
       <span class="or">or</span>
@@ -260,10 +316,23 @@
     <div id="stats"></div>
   </div>
 
+  <section class="panel" id="gapPanel" hidden aria-labelledby="gapTitle">
+    <div class="gapHead" id="gapHead"></div>
+    <div class="sevTiles" id="gapTiles"></div>
+    <h3 class="gapSub">Immediate actions, most severe first</h3>
+    <ol class="actions" id="gapActions"></ol>
+    <details class="checksBox" id="gapChecksBox"><summary id="gapChecksSummary">All checks</summary><div class="tableWrap" id="gapChecks"></div></details>
+    <div class="gapTools">
+      <button type="button" class="btn" id="gapMd">Download the report (Markdown)</button>
+      <button type="button" class="btn" id="gapCsv">Download all findings (CSV)</button>
+      <span class="hint">Click a shape in a finding to open it below; shapes and properties with gaps carry a badge there.</span>
+    </div>
+  </section>
+
   <div class="layout" id="layout" hidden>
     <nav class="panel" id="sidebar" aria-label="Node shapes">
       <input id="shapeFilter" type="search" placeholder="Find a shape, class or property…" spellcheck="false">
-      <label class="toggle" id="onlyDiffWrap" hidden><input type="checkbox" id="onlyDiff"> Only differences</label>
+      <label class="toggle" id="onlyDiffWrap" hidden><input type="checkbox" id="onlyDiff"> <span id="onlyDiffText">Only differences</span></label>
       <div id="shapeCount"></div>
       <div id="shapeList"></div>
     </nav>
@@ -286,6 +355,16 @@
     <code>sh:node</code>, or through <code>sh:class</code> when another shape targets that class — including inside
     <code>sh:or</code> / <code>sh:xone</code> / <code>sh:and</code> lists. SHACL-SPARQL constraints attached to a node shape
     are listed under the property they name with <code>era:affectedProperty</code>; the rest stay at shape level.
+    <br><em>OWL gaps</em> sends two <code>CONSTRUCT</code>s to the UAT endpoint
+    <code>graph.uat.data.test-era.europa.eu/repositories/ERA-Onto</code>, for <code>graph/ontology</code> and
+    <code>graph/shacl</code>, and reads the release list from the GitLab API to name the latest candidate. Measured
+    2026-11-14: UAT’s <code>graph/ontology</code> matches the <code>ontology.ttl</code> of tag <code>v4.0.0-rc.4</code>
+    triple for triple (blank nodes apart), and <code>graph/shacl</code> is the union of that tag’s RINF, ERATV, EVR,
+    ERADIS and telematics shape files. The checks read the axioms as OWL 2 does: domains and ranges are inherited from
+    super-properties, functional properties pass their restriction to their sub-properties, and the external subclass
+    axioms of OWL-Time, GeoSPARQL, Simple Features, ORG and FOAF are taken into account. Only shapes that can apply are
+    judged — active, and listed by an active node shape. Reasoning beyond told subclass and disjointness axioms is out of
+    scope; the dated HermiT result in the report is a separate measurement.
     <br>← Back to the <a href="./">ERA Graph Explorer</a> (bubble-graph "follow your nose" demo)
     · <a href="./exporter.html">RDF Exporter</a> (one resource's full graph as RDF/XML)
     · <a href="./values.html">RINF Parameter Values</a> (distinct values per parameter, by country, as CSV/Excel)
@@ -314,7 +393,23 @@ const SOURCES = {
     describe: 'ERA shapes from the UAT vocabulary release (rinf.uat.data.test-era.europa.eu/era-vocabulary/era-shapes)',
     url: 'https://rinf.uat.data.test-era.europa.eu/era-vocabulary/era-shapes',
   },
+  /* The OWL gap analysis reads both graphs of the release deployed in UAT
+     from its SPARQL endpoint: graph/shacl there holds the RINF, ERATV, EVR
+     and ERADIS shapes of the shapes file above plus the telematics shapes. */
+  uatOnto: {
+    label: 'UAT ontology',
+    endpoint: 'https://graph.uat.data.test-era.europa.eu/repositories/ERA-Onto',
+    graph: 'http://data.europa.eu/949/graph/ontology',
+  },
+  uatShacl: {
+    label: 'UAT shapes graph',
+    endpoint: 'https://graph.uat.data.test-era.europa.eu/repositories/ERA-Onto',
+    graph: 'http://data.europa.eu/949/graph/shacl',
+  },
 };
+const ENVS = ['prod', 'uat', 'diff', 'gaps'];
+// The ontology's releases, newest first, to tell which candidate UAT should hold.
+const RELEASES_URL = 'https://gitlab.com/api/v4/projects/era-europa-eu%2Fpublic%2Finteroperable-data-programme%2Fera-ontology%2Fera-ontology/releases?per_page=20';
 const TIMEOUT_MS = 60000;
 const WIDE_QUERY = '(min-width: 1181px)';
 
@@ -391,28 +486,17 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
  * Model: everything the page draws, built once per loaded graph.
  * Pure functions of the N3 store — no DOM — so they can be tested in Node. */
 
-function buildModel(store, declaredPrefixes){
+/* Store access shared by the model and the gap analysis: predicates by IRI,
+   RDF lists, and blank-node structures as comparable text. */
+function rdfAccess(store){
   const { namedNode } = N3.DataFactory;
-  const termCache = {};
-  const P = iri => termCache[iri] || (termCache[iri] = namedNode(iri));
-  const objs = (s, iri) => store.getObjects(s, P(iri), null);
-  const one = (s, iri) => objs(s, iri)[0] || null;
-  const subjectsWith = iri => store.getSubjects(P(iri), null, null);
+  const cache = {};
+  const P = iri => cache[iri] || (cache[iri] = namedNode(iri));
+  const T = s => typeof s === 'string' ? P(s) : s;
+  const objs = (s, p) => store.getObjects(T(s), P(p), null);
+  const one = (s, p) => objs(s, p)[0] || null;
+  const subs = (p, o) => store.getSubjects(P(p), o == null ? null : T(o), null);
   const key = t => (t.termType === 'BlankNode' ? '_:' : '') + t.value;
-
-  const prefixes = Object.entries({...DEFAULT_PREFIXES, ...declaredPrefixes})
-    .filter(([, ns]) => ns).sort((a, b) => b[1].length - a[1].length);
-  const compact = iri => {
-    for(const [p, ns] of prefixes)
-      if(iri.startsWith(ns) && iri.length > ns.length && /^[\w.-]+$/.test(iri.slice(ns.length))) return p + ':' + iri.slice(ns.length);
-    return '<' + iri + '>';
-  };
-  const localName = iri => iri.replace(/[#/]+$/, '').split(/[#/]/).pop() || iri;
-
-  const pickLit = terms => {
-    const lits = terms.filter(t => t.termType === 'Literal');
-    return (lits.find(t => t.language === 'en') || lits.find(t => !t.language) || lits[0] || {}).value || '';
-  };
   const readList = head => {
     if(!head) return null;
     if(head.value === RDF + 'nil') return [];
@@ -426,6 +510,37 @@ function buildModel(store, declaredPrefixes){
       cur = one(cur, RDF + 'rest');
     }
     return out;
+  };
+  // A blank-node structure as text, so that two copies of the same
+  // expression compare equal.
+  const canon = (t, depth = 0) => {
+    if(!t) return '';
+    if(t.termType === 'NamedNode') return '<' + t.value + '>';
+    if(t.termType === 'Literal') return JSON.stringify(t.value) + (t.language ? '@' + t.language : '^^' + (t.datatype ? t.datatype.value : ''));
+    if(depth > 6) return '[…]';
+    const list = readList(t);
+    if(list) return '(' + list.map(x => canon(x, depth + 1)).join(' ') + ')';
+    return '[' + store.getQuads(t, null, null, null).map(q => q.predicate.value + ' ' + canon(q.object, depth + 1)).sort().join(';') + ']';
+  };
+  return {P, objs, one, subs, key, readList, canon};
+}
+
+function buildModel(store, declaredPrefixes){
+  const {P, objs, one, key, readList} = rdfAccess(store);
+  const subjectsWith = iri => store.getSubjects(P(iri), null, null);
+
+  const prefixes = Object.entries({...DEFAULT_PREFIXES, ...declaredPrefixes})
+    .filter(([, ns]) => ns).sort((a, b) => b[1].length - a[1].length);
+  const compact = iri => {
+    for(const [p, ns] of prefixes)
+      if(iri.startsWith(ns) && iri.length > ns.length && /^[\w.-]+$/.test(iri.slice(ns.length))) return p + ':' + iri.slice(ns.length);
+    return '<' + iri + '>';
+  };
+  const localName = iri => iri.replace(/[#/]+$/, '').split(/[#/]/).pop() || iri;
+
+  const pickLit = terms => {
+    const lits = terms.filter(t => t.termType === 'Literal');
+    return (lits.find(t => t.language === 'en') || lits.find(t => !t.language) || lits[0] || {}).value || '';
   };
   const termText = (t, depth = 0, max = 120) => {
     if(!t) return '';
@@ -828,19 +943,940 @@ function lineDiff(a, b){
   return out;
 }
 
-if(typeof module !== 'undefined') module.exports = {buildModel, shapeView, parseRdf, diffModels, lineDiff};
+/* ------------------------------------------------------------------ *
+ * OWL gap analysis. The shapes say what data must look like; the OWL axioms
+ * say what the same terms mean. This sets one against the other — where data
+ * the shapes accept is inconsistent with the axioms, or gains types nobody
+ * meant — and checks the axioms on their own for what OWL 2 reasoners
+ * reject. A pure function of two N3 stores (plus, optionally, the release
+ * list from GitLab), so it can be tested in Node like the model above. */
+
+const XSD = 'http://www.w3.org/2001/XMLSchema#';
+const SKOS = 'http://www.w3.org/2004/02/skos/core#';
+const DCT = 'http://purl.org/dc/terms/';
+const SEVERITIES = ['BLOCKER', 'MAJOR', 'MINOR', 'SUGGESTION'];
+const sevRank = s => SEVERITIES.indexOf(s);
+
+const OWL2_DATATYPES = new Set([
+  ...('decimal integer nonNegativeInteger nonPositiveInteger positiveInteger negativeInteger long int short byte ' +
+    'unsignedLong unsignedInt unsignedShort unsignedByte double float string normalizedString token language Name ' +
+    'NCName NMTOKEN boolean hexBinary base64Binary anyURI dateTime dateTimeStamp').split(' ').map(n => XSD + n),
+  OWL + 'real', OWL + 'rational', RDF + 'XMLLiteral', RDF + 'PlainLiteral', RDF + 'langString', RDFS + 'Literal']);
+// XSD derivation, i.e. value-space inclusion, for the datatypes OWL 2 uses.
+const XSD_PARENT = {integer:'decimal', long:'integer', int:'long', short:'int', byte:'short',
+  nonNegativeInteger:'integer', positiveInteger:'nonNegativeInteger', unsignedLong:'nonNegativeInteger',
+  unsignedInt:'unsignedLong', unsignedShort:'unsignedInt', unsignedByte:'unsignedShort', nonPositiveInteger:'integer',
+  negativeInteger:'nonPositiveInteger', normalizedString:'string', token:'normalizedString', language:'token',
+  Name:'token', NCName:'Name', NMTOKEN:'token', dateTimeStamp:'dateTime'};
+
+// Subclass axioms of the external vocabularies ERA uses, which its own graph
+// doesn't repeat; without them sf:Point would look unrelated to geo:Geometry.
+const KNOWN_SUPERS = (() => {
+  const T = 'http://www.w3.org/2006/time#', G = 'http://www.opengis.net/ont/geosparql#', F = 'http://www.opengis.net/ont/sf#';
+  const O = 'http://www.w3.org/ns/org#', A = 'http://xmlns.com/foaf/0.1/';
+  const m = {[T + 'Instant']:[T + 'TemporalEntity'], [T + 'Interval']:[T + 'TemporalEntity'], [T + 'ProperInterval']:[T + 'Interval'],
+    [T + 'DateTimeInterval']:[T + 'ProperInterval'], [G + 'Geometry']:[G + 'SpatialObject'], [G + 'Feature']:[G + 'SpatialObject'],
+    [F + 'Geometry']:[G + 'Geometry'], [O + 'FormalOrganization']:[O + 'Organization'], [O + 'OrganizationalUnit']:[O + 'Organization'],
+    [O + 'Organization']:[A + 'Agent'], [A + 'Person']:[A + 'Agent'], [A + 'Organization']:[A + 'Agent']};
+  for(const [c, s] of [['Point','Geometry'], ['Curve','Geometry'], ['LineString','Curve'], ['Line','LineString'], ['LinearRing','LineString'],
+    ['Surface','Geometry'], ['Polygon','Surface'], ['GeometryCollection','Geometry'], ['MultiPoint','GeometryCollection'],
+    ['MultiCurve','GeometryCollection'], ['MultiLineString','MultiCurve'], ['MultiSurface','GeometryCollection'], ['MultiPolygon','MultiSurface']])
+    m[F + c] = [F + s];
+  return m;
+})();
+
+// Standard namespaces: an IRI in a near miss of one of these (no "www.", a
+// different scheme, a missing "#") is a different term from the standard one.
+const WELL_KNOWN_NS = [RDF, RDFS, OWL, XSD, SH, SKOS, DCT, 'http://purl.org/dc/elements/1.1/', 'http://www.w3.org/ns/dcat#',
+  'http://xmlns.com/foaf/0.1/', 'http://www.w3.org/ns/org#', 'http://www.w3.org/ns/prov#', 'http://www.w3.org/2006/time#',
+  'http://www.opengis.net/ont/geosparql#', 'http://www.opengis.net/ont/sf#', 'http://www.w3.org/ns/locn#',
+  'http://www.w3.org/2006/vcard/ns#', 'http://www.w3.org/ns/adms#', 'http://schema.org/', 'https://schema.org/',
+  'http://www.w3.org/2003/01/geo/wgs84_pos#', 'http://data.europa.eu/eli/ontology#', 'http://purl.org/vocab/vann/',
+  'http://creativecommons.org/ns#', 'http://www.w3.org/ns/odrl/2/', 'http://purl.org/goodrelations/v1#',
+  'http://www.w3.org/2003/06/sw-vocab-status/ns#'];
+const VALUE_FACETS = new Set(['minInclusive', 'maxInclusive', 'minExclusive', 'maxExclusive'].map(f => XSD + f));
+const nsOf = iri => iri.slice(0, Math.max(iri.lastIndexOf('#'), iri.lastIndexOf('/')) + 1);
+const nsNorm = ns => ns.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/[#/]+$/, '');
+
+// The predicates each core vocabulary defines; any other predicate in its
+// namespace is a typo that tools reading the real term never see.
+const VOCAB_PREDICATES = {
+  [RDF]: 'type first rest value subject predicate object direction language reifies',
+  [RDFS]: 'subClassOf subPropertyOf comment label domain range seeAlso isDefinedBy member',
+  [OWL]: 'allValuesFrom annotatedProperty annotatedSource annotatedTarget assertionProperty backwardCompatibleWith ' +
+    'bottomDataProperty bottomObjectProperty cardinality complementOf datatypeComplementOf deprecated differentFrom ' +
+    'disjointUnionOf disjointWith distinctMembers equivalentClass equivalentProperty hasKey hasSelf hasValue imports ' +
+    'incompatibleWith intersectionOf inverseOf maxCardinality maxQualifiedCardinality members minCardinality ' +
+    'minQualifiedCardinality onClass onDataRange onDatatype oneOf onProperties onProperty priorVersion ' +
+    'propertyChainAxiom propertyDisjointWith qualifiedCardinality sameAs someValuesFrom sourceIndividual ' +
+    'targetIndividual targetValue topDataProperty topObjectProperty unionOf versionInfo versionIRI withRestrictions',
+  [SKOS]: 'altLabel broadMatch broader broaderTransitive changeNote closeMatch definition editorialNote exactMatch ' +
+    'example hasTopConcept hiddenLabel historyNote inScheme mappingRelation member memberList narrowMatch narrower ' +
+    'narrowerTransitive notation note prefLabel related relatedMatch scopeNote semanticRelation topConceptOf',
+  [DCT]: 'abstract accessRights accrualMethod accrualPeriodicity accrualPolicy alternative audience available ' +
+    'bibliographicCitation conformsTo contributor coverage created creator date dateAccepted dateCopyrighted ' +
+    'dateSubmitted description educationLevel extent format hasFormat hasPart hasVersion identifier ' +
+    'instructionalMethod isFormatOf isPartOf isReferencedBy isReplacedBy isRequiredBy issued isVersionOf language ' +
+    'license mediator medium modified provenance publisher references relation replaces requires rights rightsHolder ' +
+    'source spatial subject tableOfContents temporal title type valid',
+};
+const VOCAB_TERMS = Object.fromEntries(Object.entries(VOCAB_PREDICATES).map(([ns, s]) => [ns, new Set(s.split(' '))]));
+
+/* What each check looks for, why it matters and how to fix it. `action` is
+   'fix' for an edit that can go into the next candidate, 'decide' for one
+   that needs a modelling decision first. A check's severity is that of its
+   worst finding; the one given here is what it reports at most. The order is
+   the order of the actions within a severity: causes before the findings
+   they produce (a datatype super-property before the sh:class it breaks). */
+const GAP_CHECKS = [
+  {id:'functional-super', area:'axioms', severity:'BLOCKER', action:'fix',
+    title:'Functional super-properties make their sub-properties share one value',
+    why:'A sub-property of an owl:FunctionalProperty is functional too, and its values count as values of the super-property. A resource that gives two sub-properties different values is inconsistent, and an OWL reasoner rejects the whole dataset. Blocker when a shape validates two of the sub-properties on the same focus node, so conforming data is expected to carry both.',
+    fix:'Remove owl:FunctionalProperty from the super-property and declare it on the single-valued sub-properties instead; or take the grouping out of rdfs:subPropertyOf.'},
+  {id:'property-kind', area:'axioms', severity:'BLOCKER', action:'fix',
+    title:'Object and datatype properties mixed in one property hierarchy',
+    why:'OWL 2 DL keeps object, datatype and annotation properties apart. An rdfs:subPropertyOf link between two kinds — or a range of the wrong kind — puts the ontology outside OWL 2 DL, and the sub-property inherits a range it cannot have.',
+    fix:'Remove the rdfs:subPropertyOf link, or retype one of the two so that both are the same kind of property.'},
+  {id:'facet-type', area:'axioms', severity:'BLOCKER', action:'fix',
+    title:'Datatype facets typed differently from the datatype they restrict',
+    why:'A facet such as xsd:minInclusive must be a value of the datatype it restricts. HermiT stops on the whole ontology with an UnsupportedFacetException.',
+    fix:'Retype the facet values to the restricted datatype, e.g. "0.0"^^xsd:double on an xsd:double restriction.'},
+  {id:'unsat-class', area:'axioms', severity:'BLOCKER', action:'fix',
+    title:'Classes under two disjoint classes',
+    why:'A subclass of two disjoint classes can have no instances: any data typed with it is inconsistent.',
+    fix:'Remove one of the two rdfs:subClassOf axioms, or the owl:disjointWith.'},
+  {id:'shape-kind', area:'shapes', severity:'BLOCKER', action:'fix',
+    title:'Shapes ask for literals on object properties, or IRIs on datatype properties',
+    why:'Data that conforms gives an object property a literal value, or a datatype property an IRI. OWL 2 DL reasoners reject it, and RDFS entailment types the value wrongly.',
+    fix:'Use sh:class or sh:nodeKind sh:IRI for an object property and sh:datatype for a datatype property — or correct the property declaration if the shape is right.'},
+  {id:'datatype-range', area:'shapes', severity:'BLOCKER', action:'fix',
+    title:'Shape datatypes outside the property’s rdfs:range',
+    why:'Under OWL a literal outside the range’s value space makes the data inconsistent. A datatype disjoint from the range (xsd:string against xsd:integer or rdf:langString) does so for every conforming value; a broader or overlapping one (xsd:decimal against xsd:integer) for some.',
+    fix:'Use the range datatype, or one derived from it, in sh:datatype — or correct the rdfs:range.'},
+  {id:'class-range', area:'shapes', severity:'BLOCKER', action:'fix',
+    title:'Shape classes that disagree with the property’s rdfs:range',
+    why:'rdfs:range types every value. If sh:class names a class disjoint with the range, every conforming value is inconsistent; if the two are unrelated, every value is also inferred to be of the range class.',
+    fix:'Make sh:class the range or a subclass of it, or widen the range with owl:unionOf to the classes the shapes need.'},
+  {id:'domain-inherited', area:'shapes', severity:'MAJOR', action:'fix',
+    title:'Domains inherited from a super-property contradict the shapes',
+    why:'rdfs:domain on a super-property applies to all its sub-properties. Where a shape uses a sub-property on another class, every focus node it validates is inferred to be an instance of the super-property’s domain.',
+    fix:'Remove rdfs:domain from the super-property (a grouping property rarely needs one), or widen it with owl:unionOf to the classes its sub-properties are used on.'},
+  {id:'domain-own', area:'shapes', severity:'BLOCKER', action:'fix',
+    title:'Shapes use properties on classes outside their rdfs:domain',
+    why:'Every focus node the shape validates is inferred to be an instance of the domain: inconsistent if the two classes are disjoint, otherwise an unintended extra type.',
+    fix:'Add the shape’s target class to the domain with owl:unionOf, or move the property shape to a node shape whose target is in the domain.'},
+  {id:'undeclared-path', area:'shapes', severity:'MAJOR', action:'fix',
+    title:'Shapes constrain properties the ontology doesn’t declare',
+    why:'The data these shapes accept uses predicates with no definition, domain, range or label in the release — usually a property renamed in one artefact and not in the other.',
+    fix:'Correct sh:path to the declared property (closest matches are listed), or declare the property.'},
+  {id:'undeclared-class', area:'shapes', severity:'MAJOR', action:'fix',
+    title:'Shapes name classes the ontology doesn’t declare',
+    why:'A node shape whose sh:targetClass is undeclared validates nothing typed with the ontology’s classes; an undeclared sh:class requires values typed with a class that has no definition.',
+    fix:'Point sh:targetClass / sh:class to the declared class (closest matches are listed), or declare it.'},
+  {id:'undeclared-axiom-class', area:'axioms', severity:'MAJOR', action:'fix',
+    title:'Axioms refer to classes the ontology doesn’t declare',
+    why:'A domain, range or superclass that is never declared is a dangling reference: tools show an unknown class, and inferences type data with a class that has no definition.',
+    fix:'Replace the reference with the declared class (closest matches are listed), or declare the class.'},
+  {id:'namespace-typo', area:'axioms', severity:'MAJOR', action:'fix',
+    title:'Terms minted in a misspelt standard namespace',
+    why:'An IRI in a near miss of a standard namespace is a different term. Data using the real vocabulary never matches these shapes or axioms, and the ontology silently defines its own copy of the standard.',
+    fix:'Replace the namespace with the standard one, in the ontology and in the shapes.'},
+  {id:'functional-maxcount', area:'shapes', severity:'MAJOR', action:'fix',
+    title:'Functional properties whose shapes allow several values',
+    why:'owl:FunctionalProperty allows one value per resource. Data that passes these shapes with two values is inconsistent (two different literals), or has its two values inferred to be the same resource (owl:sameAs).',
+    fix:'Add sh:maxCount 1 to the property shape, or remove owl:FunctionalProperty where repeated values are intended.'},
+  {id:'restriction-cardinality', area:'shapes', severity:'MAJOR', action:'fix',
+    title:'OWL restrictions the shapes don’t enforce',
+    why:'A cardinality or owl:allValuesFrom restriction on a class is a semantic commitment. A shape on the class, or a subclass, that allows more values or other classes lets through data the axiom makes inconsistent or merges.',
+    fix:'Give the property shape the restriction’s sh:maxCount (and sh:minCount where it is meant as a data requirement) and its class.'},
+  {id:'multiple-domain-range', area:'axioms', severity:'MAJOR', action:'fix',
+    title:'Properties with several different rdfs:domain or rdfs:range axioms',
+    why:'Two domains (or ranges) mean their intersection, not their union — almost never what is meant.',
+    fix:'Merge them into one owl:unionOf.'},
+  {id:'deprecated-in-shapes', area:'shapes', severity:'MAJOR', action:'fix',
+    title:'Active shapes still validate deprecated terms',
+    why:'New data should not use a deprecated term, but these shapes still validate it — and may require it.',
+    fix:'Move the shape to the replacement (dcterms:isReplacedBy), or deactivate it with sh:deactivated true.'},
+  {id:'validation-rule-links', area:'axioms', severity:'MAJOR', action:'fix',
+    title:'era:shaclShapeValidationRule links to shapes that are missing, never applied, or about another term',
+    why:'The ontology tells readers which shape validates each term. A link to a shape that isn’t in the shapes graph, or that validates another term, sends them to the wrong rule; a link to a property shape no node shape lists claims a validation SHACL never runs (major).',
+    fix:'Point the link at the shape that validates the term, or remove it.'},
+  {id:'non-owl2-datatypes', area:'axioms', severity:'MAJOR', action:'decide',
+    title:'Ranges use datatypes outside the OWL 2 datatype map',
+    why:'OWL 2 DL supports only the datatypes of its datatype map; xsd:date, xsd:time and xsd:gYear are not among them, and any other datatype must be declared. HermiT stops on the whole ontology.',
+    fix:'Decide the profile: keep these datatypes and publish an OWL 2 DL variant that maps them, or move to xsd:dateTime or a declared ERA datatype.'},
+  {id:'rinf-index', area:'shapes', severity:'MINOR', action:'fix',
+    title:'RINF index annotations that disagree',
+    why:'era:rinfIndex is the legal cross-reference. Leading or trailing spaces break exact matching, and an index cited by a shape but not by its property gives two different legal bases.',
+    fix:'Trim the literals, and keep each shape’s indices a subset of its property’s.'},
+  {id:'predicate-typos', area:'axioms', severity:'MINOR', action:'fix',
+    title:'Predicates their vocabulary doesn’t define',
+    why:'A misspelt annotation (a predicate its namespace doesn’t define) is invisible to every tool that reads the real one.',
+    fix:'Rename to the defined term (closest matches are listed), or declare the ERA property.'},
+  {id:'inverse-mismatch', area:'axioms', severity:'MINOR', action:'fix',
+    title:'Inverse properties whose domain and range don’t mirror each other',
+    why:'For owl:inverseOf, the domain of one is the range of the other. When they differ, the inverse adds types the property itself never states.',
+    fix:'Make the domain of each property the range of its inverse.'},
+  {id:'deprecated-no-replacement', area:'axioms', severity:'MINOR', action:'fix',
+    title:'Deprecated terms without dcterms:isReplacedBy',
+    why:'Publishers and queries can’t migrate away from a deprecated term without knowing what replaces it.',
+    fix:'Add dcterms:isReplacedBy, or a note saying the term has no replacement.'},
+  {id:'duplicate-axioms', area:'deployment', severity:'MINOR', action:'fix',
+    title:'The same axiom stated several times',
+    why:'Identical copies of a blank-node expression mean the same thing, but they bloat the graph and break naive counts (“two domains”). In a triple store they are the mark of a graph reloaded without being cleared first, since blank nodes can’t be merged.',
+    fix:'Clear the named graph before loading a release (DROP GRAPH, or an HTTP PUT that replaces it).'},
+  {id:'version-metadata', area:'deployment', severity:'MINOR', action:'fix',
+    title:'Version metadata that doesn’t match the release',
+    why:'owl:versionInfo and owl:versionIRI are how tools and people tell which release they are reading.',
+    fix:'During the candidate phase, give owl:versionInfo the candidate tag and owl:versionIRI a release page that exists.'},
+  {id:'shaped-without-domain-range', area:'axioms', severity:'SUGGESTION', action:'decide',
+    title:'Properties validated by shapes but given no domain or range',
+    why:'Their meaning lives only in SHACL: a reasoner, or a reader of the ontology alone, learns nothing about where they apply.',
+    fix:'Add rdfs:domain / rdfs:range where a semantic commitment is intended. SHACL stays the place for data rules.'},
+  {id:'external-alignment', area:'shapes', severity:'SUGGESTION', action:'decide',
+    title:'ERA classes used with external properties but not aligned with their domain or range',
+    why:'An external property’s domain or range (OWL-Time, ORG, GeoSPARQL …) types ERA instances with the external class. That is often intended, and then better stated as rdfs:subClassOf.',
+    fix:'Add the rdfs:subClassOf alignment if the inference is intended, or use an ERA property.'},
+  {id:'missing-documentation', area:'axioms', severity:'SUGGESTION', action:'fix',
+    title:'Terms with no definition or no English label',
+    why:'A term without a definition can’t be checked against the shapes by a reader, nor reused with confidence.',
+    fix:'Add rdfs:comment or skos:definition, and an rdfs:label in English.'},
+];
+
+/* Dated measurements that back a finding beyond what the two graphs show. */
+const GAP_NOTES = {
+  'http://data.europa.eu/949/trackDataParameter':
+    'Measured 2026-11-14: HermiT finds rc.4 plus one track carrying era:cantDeficiency and era:hasBallast inconsistent (the same track with only one of them is consistent); 36,890 tracks in PROD carry both. PROD v3.3.4 has the same axioms.',
+};
+
+// Edit distance, giving up past `max`.
+function editDistance(a, b, max){
+  if(Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({length: b.length + 1}, (_, j) => j);
+  for(let i = 1; i <= a.length; i++){
+    const cur = [i];
+    let best = i;
+    for(let j = 1; j <= b.length; j++){
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      best = Math.min(best, cur[j]);
+    }
+    if(best > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/* How a shape's sh:datatype x relates to a range datatype r: 'ok' (the same
+   or derived from it), 'broader' (r derived from x: some values fall outside
+   the range), 'overlap' (siblings), 'disjoint' (no value in common), or
+   'unknown' (a datatype this table doesn't know). */
+function datatypeRelation(x, r){
+  if(x === r || r === RDFS + 'Literal') return 'ok';
+  const chain = d => { const out = [d]; while(d.startsWith(XSD) && XSD_PARENT[d.slice(XSD.length)]){ d = XSD + XSD_PARENT[d.slice(XSD.length)]; out.push(d); } return out; };
+  const ax = chain(x), ar = chain(r), rootX = ax[ax.length - 1], rootR = ar[ar.length - 1];
+  const stringy = (d, root) => root === XSD + 'string' || d === RDF + 'langString';
+  const numeric = root => root === XSD + 'decimal';
+  const REAL = [OWL + 'real', OWL + 'rational'];
+  if(ax.includes(r)) return 'ok';
+  if(r === RDF + 'PlainLiteral' && stringy(x, rootX)) return 'ok';
+  if(REAL.includes(r) && (numeric(rootX) || (r === OWL + 'real' && x === OWL + 'rational'))) return 'ok';
+  if(x === RDFS + 'Literal' || ar.includes(x)) return 'broader';
+  if(x === RDF + 'PlainLiteral' && stringy(r, rootR)) return 'broader';
+  if(REAL.includes(x) && numeric(rootR)) return 'broader';
+  if(rootX === rootR) return 'overlap';
+  const known = d => d.startsWith(XSD) || d === RDF + 'langString' || d === RDF + 'PlainLiteral' || REAL.includes(d);
+  return known(x) && known(r) ? 'disjoint' : 'unknown';
+}
+
+function gapAnalysis(ontoStore, shapesStore, opts = {}){
+  const c = opts.compact || (x => x);
+  const cs = k => k.startsWith('_:') ? 'a blank-node shape' : c(k);
+  const list = (xs, n = 4) => xs.slice(0, n).map(c).join(', ') + (xs.length > n ? ', …' : '');
+  const O = rdfAccess(ontoStore), S = rdfAccess(shapesStore);
+  const findings = Object.fromEntries(GAP_CHECKS.map(k => [k.id, []]));
+  const add = (id, f) => findings[id].push({ps: null, ns: null, group: '', ...f, check: id});
+  const isTrue = t => !!t && (t.value === 'true' || t.value === '1');
+
+  /* ---- the ontology ---- */
+  const types = new Map();
+  ontoStore.forEach(q => {
+    if(q.subject.termType !== 'NamedNode') return;
+    if(!types.has(q.subject.value)) types.set(q.subject.value, new Set());
+    types.get(q.subject.value).add(q.object.value);
+  }, null, O.P(RDF + 'type'), null, null);
+  const is = (iri, t) => !!(types.get(iri) && types.get(iri).has(t));
+  const isClass = iri => is(iri, OWL + 'Class') || is(iri, RDFS + 'Class');
+  const isObj = iri => is(iri, OWL + 'ObjectProperty');
+  const isData = iri => is(iri, OWL + 'DatatypeProperty');
+  const isAnn = iri => is(iri, OWL + 'AnnotationProperty');
+  const PROP_TYPES = ['ObjectProperty', 'DatatypeProperty', 'AnnotationProperty', 'OntologyProperty', 'FunctionalProperty']
+    .map(t => OWL + t).concat(RDF + 'Property');
+  const isProp = iri => PROP_TYPES.some(t => is(iri, t));
+  const kindOf = iri => isObj(iri) ? 'object property' : isData(iri) ? 'datatype property' : isAnn(iri) ? 'annotation property' : 'property';
+  const kindCode = iri => isObj(iri) ? 'o' : isData(iri) ? 'd' : isAnn(iri) ? 'a' : '';
+  const isFunctional = iri => is(iri, OWL + 'FunctionalProperty');
+  const deprecated = new Set();
+  ontoStore.forEach(q => { if(q.subject.termType === 'NamedNode' && isTrue(q.object)) deprecated.add(q.subject.value); },
+    null, O.P(OWL + 'deprecated'), null, null);
+  const replacedBy = iri => O.objs(iri, DCT + 'isReplacedBy').map(t => t.value);
+  const named = (s, p) => O.objs(s, p).filter(t => t.termType === 'NamedNode').map(t => t.value);
+
+  const closure = next => {
+    const memo = new Map();
+    return iri => {
+      if(memo.has(iri)) return memo.get(iri);
+      const out = new Set([iri]), stack = [iri];
+      while(stack.length){ const x = stack.pop(); for(const y of next(x)) if(!out.has(y)){ out.add(y); stack.push(y); } }
+      memo.set(iri, out);
+      return out;
+    };
+  };
+  const ancestors = closure(k => [...named(k, RDFS + 'subClassOf'), ...(KNOWN_SUPERS[k] || [])]);
+  const pAncestors = closure(p => named(p, RDFS + 'subPropertyOf'));
+  const subProps = new Map();
+  ontoStore.forEach(q => {
+    if(q.subject.termType !== 'NamedNode' || q.object.termType !== 'NamedNode') return;
+    if(!subProps.has(q.object.value)) subProps.set(q.object.value, []);
+    subProps.get(q.object.value).push(q.subject.value);
+  }, null, O.P(RDFS + 'subPropertyOf'), null, null);
+  const pDescendants = closure(p => subProps.get(p) || []);
+
+  const disjoint = new Set();
+  const pair = (a, b) => { disjoint.add(a + '\u0001' + b); disjoint.add(b + '\u0001' + a); };
+  ontoStore.forEach(q => { if(q.subject.termType === 'NamedNode' && q.object.termType === 'NamedNode') pair(q.subject.value, q.object.value); },
+    null, O.P(OWL + 'disjointWith'), null, null);
+  for(const x of O.subs(RDF + 'type', OWL + 'AllDisjointClasses'))
+    for(const l of O.objs(x, OWL + 'members')){
+      const m = (O.readList(l) || []).filter(t => t.termType === 'NamedNode').map(t => t.value);
+      for(let i = 0; i < m.length; i++) for(let j = i + 1; j < m.length; j++) pair(m[i], m[j]);
+    }
+  const disjointMemo = new Map();
+  const isDisjoint = (a, b) => {
+    if(!disjoint.size) return false;
+    const k = a + '\u0001' + b;
+    if(disjointMemo.has(k)) return disjointMemo.get(k);
+    let r = false;
+    const B = ancestors(b);
+    outer: for(const x of ancestors(a)) for(const y of B) if(disjoint.has(x + '\u0001' + y)){ r = true; break outer; }
+    disjointMemo.set(k, r);
+    return r;
+  };
+
+  // A domain or range: a named class or datatype, an owl:unionOf of them, a
+  // datatype restriction (compared by its base), or something else, which
+  // isn't judged.
+  const exprOf = t => {
+    if(t.termType === 'NamedNode') return {key: t.value, kind: 'named', members: [t.value], term: t};
+    const key = O.canon(t);
+    const base = O.one(t, OWL + 'onDatatype');
+    if(base) return {key, kind: 'restriction', members: [base.value], term: t};
+    const u = O.one(t, OWL + 'unionOf');
+    if(u){
+      const ms = (O.readList(u) || []).map(m => m.termType === 'NamedNode' ? m.value : (O.one(m, OWL + 'onDatatype') || {}).value);
+      if(ms.length && ms.every(Boolean)) return {key, kind: 'union', members: ms, term: t};
+    }
+    return {key, kind: 'complex', members: [], term: t};
+  };
+  const exprText = e => e.kind === 'union' ? '(' + e.members.map(c).join(' ⊔ ') + ')'
+    : e.kind === 'restriction' ? c(e.members[0]) + ' with facets' : e.kind === 'named' ? c(e.key) : 'a class expression';
+  const ownMemo = new Map();
+  const own = (p, pred) => {
+    const k = pred + ' ' + p;
+    if(ownMemo.has(k)) return ownMemo.get(k);
+    const raw = O.objs(p, pred).map(exprOf);
+    const seen = new Map();
+    for(const e of raw) if(!seen.has(e.key)) seen.set(e.key, e);
+    const r = {list: [...seen.values()], raw: raw.length};
+    ownMemo.set(k, r);
+    return r;
+  };
+  // The property's own domains or ranges and those of its super-properties.
+  const inherited = (p, pred) => {
+    const out = [], seen = new Set();
+    for(const q of pAncestors(p)) for(const e of own(q, pred).list)
+      if(!seen.has(e.key)){ seen.add(e.key); out.push({...e, from: q}); }
+    return out;
+  };
+
+  const TOP = new Set([OWL + 'Thing', RDFS + 'Resource']);
+  const isExternal = iri => !iri.startsWith(ERA);
+  // How a class t (a shape's target or sh:class) relates to a domain or range.
+  const isDatatype = m => m.startsWith(XSD) || OWL2_DATATYPES.has(m) || is(m, RDFS + 'Datatype');
+  const classRelation = (t, e) => {
+    if(e.kind === 'restriction') return 'datatype';
+    if(e.kind !== 'named' && e.kind !== 'union') return 'ok';
+    if(e.members.some(m => TOP.has(m))) return 'ok';
+    if(e.members.every(isDatatype)) return 'datatype';
+    const anc = ancestors(t);
+    if(e.members.some(m => anc.has(m))) return 'ok';
+    if(e.members.every(m => isDisjoint(t, m))) return 'disjoint';
+    if(e.members.every(isExternal)) return 'external';
+    if(e.members.every(m => ancestors(m).has(t))) return 'broader';
+    return 'unrelated';
+  };
+  const REL_TEXT = {disjoint:'is disjoint with', unrelated:'is unrelated to', broader:'is a superclass of',
+    external:'is not stated to be a subclass of', overlap:'only overlaps', unknown:'can’t be compared with',
+    datatype:'asks for resources, but a datatype is'};
+  const REL_SEVERITY = {disjoint:'BLOCKER', datatype:'BLOCKER', unrelated:'MAJOR', broader:'MINOR', external:'SUGGESTION'};
+  const RANK = {ok:0, broader:1, overlap:2, unknown:3, disjoint:4};
+  const datatypeVsRange = (x, e) => {
+    if(e.kind === 'complex') return 'ok';
+    return e.members.map(m => datatypeRelation(x, m)).sort((a, b) => RANK[a] - RANK[b])[0];
+  };
+
+  const inEra = iri => iri.startsWith(ERA);
+  const eraTerms = [...types.keys()].filter(i => inEra(i) && (isClass(i) || isProp(i)));
+  const eraClasses = eraTerms.filter(i => isClass(i) && !deprecated.has(i));
+  const eraProps = eraTerms.filter(i => isProp(i) && !deprecated.has(i));
+  // Declared terms that an undeclared one most likely means: the same name
+  // in another case, a one- or two-letter typo, or a longer name ending or
+  // starting with it (CancelReply → BookingCancelReply).
+  const poolMemo = new Map();
+  const locals = pool => poolMemo.get(pool) || poolMemo.set(pool, pool.map(x => [x, x.slice(nsOf(x).length).toLowerCase()])).get(pool);
+  const nearest = (iri, pool) => {
+    const loc = iri.slice(nsOf(iri).length), lo = loc.toLowerCase(), L = locals(pool);
+    const same = L.filter(([, l]) => l === lo).map(([x]) => x);
+    if(same.length) return same.slice(0, 3);
+    if(loc.length > 4){
+      const max = loc.length > 8 ? 2 : 1;
+      const typo = L.filter(([, l]) => Math.abs(l.length - lo.length) <= max && editDistance(l, lo, max) <= max).map(([x]) => x);
+      if(typo.length) return typo.slice(0, 3);
+    }
+    if(loc.length > 5)
+      return L.filter(([, l]) => l !== lo && (l.endsWith(lo) || l.startsWith(lo))).map(([x]) => x)
+        .sort((a, b) => a.length - b.length || a.localeCompare(b)).slice(0, 3);
+    return [];
+  };
+  const suggest = (iri, pool) => { const n = nearest(iri, pool); return n.length ? ' — declared: ' + n.map(c).join(', ') : ''; };
+
+  /* ---- the shapes: node shapes, and the property shapes they list ---- */
+  const nsInfo = new Map(), psInfo = new Map();
+  const nodeShape = t => {
+    const k = S.key(t);
+    if(!nsInfo.has(k)){
+      const shapeTypes = S.objs(t, RDF + 'type').map(x => x.value);
+      const implicit = t.termType === 'NamedNode' && (shapeTypes.includes(RDFS + 'Class') || shapeTypes.includes(OWL + 'Class'));
+      nsInfo.set(k, {key: k, deactivated: isTrue(S.one(t, SH + 'deactivated')),
+        targets: [...S.objs(t, SH + 'targetClass').filter(x => x.termType === 'NamedNode').map(x => x.value), ...(implicit ? [t.value] : [])],
+        props: []});
+    }
+    return nsInfo.get(k);
+  };
+  const values = (ps, pred) => {
+    const out = S.objs(ps, pred).map(t => t.value);
+    for(const op of ['or', 'xone', 'and']) for(const l of S.objs(ps, SH + op))
+      for(const m of S.readList(l) || []) out.push(...S.objs(m, pred).map(t => t.value));
+    return [...new Set(out)];
+  };
+  const propertyShape = t => {
+    const k = S.key(t);
+    if(!psInfo.has(k)){
+      const path = S.one(t, SH + 'path');
+      const num = p => { const v = S.one(t, SH + p); return v ? +v.value : null; };
+      psInfo.set(k, {key: k, path: path && path.termType === 'NamedNode' ? path.value : null,
+        deactivated: isTrue(S.one(t, SH + 'deactivated')),
+        datatypes: values(t, SH + 'datatype'), classes: values(t, SH + 'class'), nodeKinds: values(t, SH + 'nodeKind'),
+        max: num('maxCount'), min: num('minCount'), qualified: !!S.one(t, SH + 'qualifiedValueShape'),
+        rinf: S.objs(t, ERA + 'rinfIndex').map(x => x.value), users: []});
+    }
+    return psInfo.get(k);
+  };
+  shapesStore.forEach(q => {
+    const ns = nodeShape(q.subject), ps = propertyShape(q.object);
+    ns.props.push(ps);
+    ps.users.push(ns);
+  }, null, S.P(SH + 'property'), null, null);
+  for(const t of S.subs(SH + 'targetClass')) nodeShape(t);
+  for(const t of S.subs(RDF + 'type', SH + 'NodeShape')) nodeShape(t);
+  const allPropertyShapes = new Set(S.subs(SH + 'path').map(S.key)).size;
+  // Only shapes that can apply are judged: active, and listed by an active node shape.
+  // Whatever their path, these are the property shapes SHACL applies; the
+  // checks below judge those whose path is a single property.
+  const applied = [...psInfo.values()].filter(ps => !ps.deactivated && ps.users.some(u => !u.deactivated));
+  const activeKeys = new Set(applied.map(ps => ps.key));
+  const activePs = applied.filter(ps => ps.path);
+
+  /* ==== 1. the OWL axioms on their own ==== */
+
+  for(const q of types.keys()){
+    if(!isFunctional(q)) continue;
+    const subs = [...pDescendants(q)].filter(x => x !== q).sort();
+    if(subs.length < 2) continue;
+    const set = new Set(subs), together = [];
+    for(const ns of nsInfo.values()){
+      if(ns.deactivated) continue;
+      const hit = [...new Set(ns.props.filter(p => !p.deactivated && set.has(p.path)).map(p => p.path))];
+      if(hit.length >= 2) together.push({ns, hit});
+    }
+    add('functional-super', {severity: together.length ? 'BLOCKER' : 'MAJOR', term: q, group: q,
+      ns: together.length ? together[0].ns.key : null, note: GAP_NOTES[q] || '',
+      detail: `functional ${kindOf(q)} with ${subs.length} sub-properties (${list(subs)})` + (together.length
+        ? `; ${together.length} node shape${together.length > 1 ? 's' : ''} validate two or more of them on one focus node, e.g. ${cs(together[0].ns.key)}: ${together[0].hit.slice(0, 3).map(c).join(' + ')}`
+        : '')});
+  }
+
+  ontoStore.forEach(q => {
+    if(q.subject.termType !== 'NamedNode' || q.object.termType !== 'NamedNode') return;
+    const a = q.subject.value, b = q.object.value, ka = kindCode(a), kb = kindCode(b);
+    if(!ka || !kb || ka === kb) return;
+    const r = own(b, RDFS + 'range').list;
+    add('property-kind', {severity: 'BLOCKER', term: a, group: b,
+      detail: `${c(a)} (${kindOf(a)}) rdfs:subPropertyOf ${c(b)} (${kindOf(b)})` + (r.length ? `, so it inherits the range ${r.map(exprText).join(', ')}` : '')});
+  }, null, O.P(RDFS + 'subPropertyOf'), null, null);
+  for(const [iri, ts] of types){
+    const kinds = ['ObjectProperty', 'DatatypeProperty', 'AnnotationProperty'].filter(t => ts.has(OWL + t));
+    if(kinds.length > 1) add('property-kind', {severity: 'BLOCKER', term: iri, group: 'declared as two kinds', detail: 'declared owl:' + kinds.join(' and owl:')});
+    if(ts.has(OWL + 'DatatypeProperty'))
+      for(const e of own(iri, RDFS + 'range').list) for(const m of e.members)
+        if(isClass(m)) add('property-kind', {severity: 'BLOCKER', term: iri, group: 'range of the wrong kind', detail: `datatype property with the class ${c(m)} as range`});
+    if(ts.has(OWL + 'ObjectProperty'))
+      for(const e of own(iri, RDFS + 'range').list) for(const m of e.members)
+        if(m.startsWith(XSD) || m === RDF + 'langString' || m === RDFS + 'Literal')
+          add('property-kind', {severity: 'BLOCKER', term: iri, group: 'range of the wrong kind', detail: `object property with the datatype ${c(m)} as range`});
+  }
+
+  const rangeUsers = new Map();
+  ontoStore.forEach(q => {
+    if(q.object.termType !== 'BlankNode') return;
+    const push = t => { const k = O.key(t); if(!rangeUsers.has(k)) rangeUsers.set(k, []); rangeUsers.get(k).push(q.subject.value); };
+    push(q.object);
+    for(const u of O.objs(q.object, OWL + 'unionOf')) for(const m of O.readList(u) || []) if(m.termType === 'BlankNode') push(m);
+  }, null, O.P(RDFS + 'range'), null, null);
+  ontoStore.forEach(q => {
+    const base = q.object.value;
+    // Only the bounds are values of the restricted datatype; length and
+    // digit facets are integers, xsd:pattern a string.
+    for(const l of O.objs(q.subject, OWL + 'withRestrictions')) for(const f of O.readList(l) || [])
+      for(const fq of ontoStore.getQuads(f, null, null, null)){
+        const v = fq.object;
+        if(!VALUE_FACETS.has(fq.predicate.value) || v.termType !== 'Literal' || !v.datatype) continue;
+        if(datatypeRelation(v.datatype.value, base) === 'ok' || datatypeRelation(v.datatype.value, base) === 'unknown') continue;
+        const users = [...new Set(rangeUsers.get(O.key(q.subject)) || [])];
+        add('facet-type', {severity: 'BLOCKER', term: users[0] || '', group: base,
+          detail: `${c(fq.predicate.value)} "${v.value}" is typed ${c(v.datatype.value)} on a ${c(base)} restriction` +
+            (users.length ? ` (the range of ${list(users)})` : '')});
+      }
+  }, null, O.P(OWL + 'onDatatype'), null, null);
+
+  if(disjoint.size) for(const k of types.keys()){
+    if(!isClass(k)) continue;
+    const anc = [...ancestors(k)];
+    let hit = null;
+    for(let i = 0; i < anc.length && !hit; i++) for(let j = i + 1; j < anc.length && !hit; j++)
+      if(disjoint.has(anc[i] + '\u0001' + anc[j])) hit = [anc[i], anc[j]];
+    if(hit) add('unsat-class', {severity: 'BLOCKER', term: k, group: k, detail: `a subclass of both ${c(hit[0])} and ${c(hit[1])}, declared disjoint`});
+  }
+
+  {
+    const owner = t => {
+      if(t.termType === 'NamedNode') return c(t.value);
+      const cls = O.subs(RDFS + 'subClassOf', t).find(x => x.termType === 'NamedNode');
+      return cls ? 'a restriction on ' + c(cls.value) : 'a class expression';
+    };
+    const seen = new Set();
+    const check = (m, subj, pred) => {
+      if(!inEra(m) || isClass(m) || isProp(m) || is(m, RDFS + 'Datatype')) return;
+      const k = m + ' ' + O.key(subj) + ' ' + pred;
+      if(seen.has(k)) return;
+      seen.add(k);
+      add('undeclared-axiom-class', {severity: 'MAJOR', term: m, group: m, detail: `${c(pred)} of ${owner(subj)}` + suggest(m, eraClasses)});
+    };
+    for(const pred of [RDFS + 'domain', RDFS + 'range', RDFS + 'subClassOf', OWL + 'onClass', OWL + 'allValuesFrom',
+      OWL + 'someValuesFrom', OWL + 'disjointWith', OWL + 'equivalentClass'])
+      ontoStore.forEach(q => {
+        if(pred === RDFS + 'range' && !(q.subject.termType === 'NamedNode' && isObj(q.subject.value))) return;
+        for(const m of exprOf(q.object).members) check(m, q.subject, pred);
+      }, null, O.P(pred), null, null);
+  }
+
+  {
+    const known = new Map();
+    for(const ns of WELL_KNOWN_NS){ const n = nsNorm(ns); if(!known.has(n)) known.set(n, new Set()); known.get(n).add(ns); }
+    const where = new Map();
+    for(const [store, label] of [[ontoStore, 'ontology'], [shapesStore, 'shapes']]){
+      const iris = new Set();
+      store.forEach(q => {
+        if(q.subject.termType === 'NamedNode') iris.add(q.subject.value);
+        iris.add(q.predicate.value);
+        if(q.object.termType === 'NamedNode') iris.add(q.object.value);
+      });
+      const nsMemo = new Map();
+      for(const iri of iris){
+        const ns = nsOf(iri);
+        if(!nsMemo.has(ns)){ const k = known.get(nsNorm(ns)); nsMemo.set(ns, k && !k.has(ns) ? [...k][0] : null); }
+        const std = nsMemo.get(ns);
+        if(!std) continue;
+        if(!where.has(iri)) where.set(iri, {ns, std, in: new Set()});
+        where.get(iri).in.add(label);
+      }
+    }
+    for(const [iri, w] of [...where].sort())
+      add('namespace-typo', {severity: 'MAJOR', term: iri, group: w.ns,
+        detail: `used in the ${[...w.in].join(' and ')}; the standard term is <${w.std}${iri.slice(w.ns.length)}>`});
+  }
+
+  for(const p of types.keys()){
+    if(!isData(p)) continue;
+    for(const e of own(p, RDFS + 'range').list) for(const m of e.members){
+      if(OWL2_DATATYPES.has(m) || isClass(m)) continue;
+      if(m.startsWith(XSD)) add('non-owl2-datatypes', {severity: 'MAJOR', term: p, group: m, detail: `rdfs:range ${exprText(e)}: ${c(m)} is not in the OWL 2 datatype map`});
+      else if(!is(m, RDFS + 'Datatype')) add('non-owl2-datatypes', {severity: 'MAJOR', term: p, group: m, detail: `rdfs:range ${exprText(e)}: ${c(m)} is not declared as an rdfs:Datatype`});
+    }
+  }
+
+  for(const p of types.keys()){
+    if(!isProp(p)) continue;
+    for(const [pred, word] of [[RDFS + 'domain', 'domains'], [RDFS + 'range', 'ranges']]){
+      const r = own(p, pred);
+      if(r.list.length > 1)
+        add('multiple-domain-range', {severity: 'MAJOR', term: p, group: c(pred), detail: `${r.list.length} different ${word}, read as their intersection: ${r.list.map(exprText).join(' ⊓ ')}`});
+      if(r.raw > r.list.length)
+        add('duplicate-axioms', {severity: 'MINOR', term: p, group: c(pred), detail: `${r.raw} rdfs:${pred.slice(RDFS.length)} statements for ${r.list.length} distinct expression${r.list.length > 1 ? 's' : ''}`});
+    }
+  }
+  for(const k of types.keys()){
+    if(!isClass(k)) continue;
+    const raw = O.objs(k, RDFS + 'subClassOf'), distinct = new Set(raw.map(t => O.canon(t)));
+    if(raw.length > distinct.size)
+      add('duplicate-axioms', {severity: 'MINOR', term: k, group: c(RDFS + 'subClassOf'), detail: `${raw.length} rdfs:subClassOf statements for ${distinct.size} distinct superclasses`});
+  }
+
+  for(const d of [...deprecated].sort())
+    if(inEra(d) && !replacedBy(d).length)
+      add('deprecated-no-replacement', {severity: 'MINOR', term: d, group: isClass(d) ? 'classes' : isProp(d) ? 'properties' : 'other terms',
+        detail: `deprecated ${isClass(d) ? 'class' : kindOf(d)} with no dcterms:isReplacedBy`});
+
+  for(const [store, label] of [[ontoStore, 'ontology'], [shapesStore, 'shapes']]){
+    for(const p of store.getPredicates(null, null, null)){
+      const iri = p.value, ns = nsOf(iri), local = iri.slice(ns.length), terms = VOCAB_TERMS[ns];
+      const bad = terms ? !terms.has(local) && !/^_\d+$/.test(local) : inEra(iri) && !isProp(iri);
+      if(!bad) continue;
+      const n = store.countQuads(null, p, null, null);
+      const on = store.getSubjects(p, null, null).filter(t => t.termType === 'NamedNode').slice(0, 3).map(t => t.value);
+      const better = terms ? [...terms].filter(t => editDistance(t.toLowerCase(), local.toLowerCase(), 2) <= 2).map(t => ns + t) : nearest(iri, eraProps);
+      add('predicate-typos', {severity: 'MINOR', term: iri, group: label,
+        detail: `used ${n}× in the ${label}${on.length ? ', e.g. on ' + list(on, 3) : ''}` +
+          (terms ? `; ${c(ns + local)} is not defined by its vocabulary` : '; not declared in the ontology') +
+          (better.length ? ' — did you mean ' + better.slice(0, 3).map(c).join(', ') + '?' : '')});
+    }
+  }
+
+  const inversePairs = new Set();
+  ontoStore.forEach(q => {
+    if(q.subject.termType !== 'NamedNode' || q.object.termType !== 'NamedNode') return;
+    // Stated both ways (a inverseOf b, b inverseOf a), a pair is checked once.
+    const [a, b] = [q.subject.value, q.object.value].sort();
+    if(inversePairs.has(a + ' ' + b)) return;
+    inversePairs.add(a + ' ' + b);
+    const keys = (p, pred) => own(p, pred).list.map(e => e.key).sort().join(' ');
+    const text = (p, pred) => own(p, pred).list.map(exprText).join(', ');
+    for(const [pa, pb, x, y] of [[RDFS + 'domain', RDFS + 'range', 'domain', 'range'], [RDFS + 'range', RDFS + 'domain', 'range', 'domain']]){
+      const ka = keys(a, pa), kb = keys(b, pb);
+      if(ka && kb && ka !== kb)
+        add('inverse-mismatch', {severity: 'MINOR', term: a, group: a + ' ⇄ ' + b, detail: `${c(a)} owl:inverseOf ${c(b)}: the ${x} of ${c(a)} is ${text(a, pa)}, the ${y} of ${c(b)} is ${text(b, pb)}`});
+    }
+  }, null, O.P(OWL + 'inverseOf'), null, null);
+
+  for(const t of eraTerms){
+    if(deprecated.has(t)) continue;
+    const what = isClass(t) ? 'class' : kindOf(t);
+    if(!O.objs(t, RDFS + 'comment').length && !O.objs(t, SKOS + 'definition').length && !O.objs(t, DCT + 'description').length)
+      add('missing-documentation', {severity: 'SUGGESTION', term: t, group: 'no definition', detail: `${what} with no rdfs:comment, skos:definition or dcterms:description`});
+    if(!O.objs(t, RDFS + 'label').some(l => l.termType === 'Literal' && /^en\b/i.test(l.language || '')))
+      add('missing-documentation', {severity: 'SUGGESTION', term: t, group: 'no English label', detail: `${what} with no rdfs:label in English`});
+  }
+
+  // The ontology header and its release.
+  const headers = O.subs(RDF + 'type', OWL + 'Ontology').filter(t => t.termType === 'NamedNode');
+  const header = headers.find(t => t.value === ERA) || headers.find(t => t.value.startsWith(ERA)) || headers[0] || null;
+  const hv = p => header && O.one(header, p) ? O.one(header, p).value : '';
+  const versionInfo = hv(OWL + 'versionInfo'), versionIRI = hv(OWL + 'versionIRI');
+  const releases = Array.isArray(opts.releases) ? opts.releases : null;
+  const latest = releases && releases[0] || null;
+  if(header && latest){
+    const norm = s => s.trim().replace(/^v/i, '');
+    if(norm(versionInfo) !== norm(latest.tag))
+      add('version-metadata', {severity: 'MINOR', term: header.value, group: 'owl:versionInfo',
+        detail: `owl:versionInfo is "${versionInfo || '(none)'}", but the latest release on GitLab is ${latest.tag}` + (latest.name ? ` (${latest.name}` + (latest.date ? ', ' + latest.date : '') + ')' : '')});
+    const m = /\/-\/releases\/([^/?#]+)\/?$/.exec(versionIRI);
+    let tag = m ? m[1] : '';
+    try{ tag = decodeURIComponent(tag); }catch{ /* keep it as written */ }
+    if(m && !releases.some(r => r.tag === tag))
+      add('version-metadata', {severity: 'MINOR', term: header.value, group: 'owl:versionIRI',
+        detail: `owl:versionIRI <${versionIRI}> names the release ${tag}, which GitLab doesn’t list among its releases`});
+  }
+
+  /* ==== 2. the shapes against the axioms ==== */
+
+  const shapeProps = new Set();
+  for(const ps of activePs){
+    const p = ps.path;
+    if(inEra(p) && !isProp(p))
+      add('undeclared-path', {severity: 'MAJOR', term: p, ps: ps.key, group: p, detail: 'sh:path is not declared in the ontology' + suggest(p, eraProps)});
+    if(deprecated.has(p))
+      add('deprecated-in-shapes', {severity: 'MAJOR', term: p, ps: ps.key, group: p,
+        detail: 'sh:path is deprecated' + (replacedBy(p).length ? '; replaced by ' + list(replacedBy(p)) : '; no replacement given')});
+    for(const x of ps.classes){
+      if(inEra(x) && !isClass(x))
+        add('undeclared-class', {severity: 'MAJOR', term: x, ps: ps.key, group: x, detail: `sh:class on ${c(p)} is not declared in the ontology` + suggest(x, eraClasses)});
+      if(deprecated.has(x))
+        add('deprecated-in-shapes', {severity: 'MAJOR', term: x, ps: ps.key, group: x,
+          detail: `sh:class on ${c(p)} is deprecated` + (replacedBy(x).length ? '; replaced by ' + list(replacedBy(x)) : '; no replacement given')});
+    }
+    const literalKinds = ps.nodeKinds.filter(k => k === SH + 'Literal');
+    const iriKinds = ps.nodeKinds.filter(k => [SH + 'IRI', SH + 'BlankNode', SH + 'BlankNodeOrIRI'].includes(k));
+    if(isObj(p) && (ps.datatypes.length || literalKinds.length))
+      add('shape-kind', {severity: 'BLOCKER', term: p, ps: ps.key, group: 'literal on an object property',
+        detail: `${c(p)} is an object property; the shape asks for ${[...ps.datatypes.map(d => 'sh:datatype ' + c(d)), ...literalKinds.map(() => 'sh:nodeKind sh:Literal')].join(', ')}`});
+    if(isData(p) && (ps.classes.length || iriKinds.length))
+      add('shape-kind', {severity: 'BLOCKER', term: p, ps: ps.key, group: 'IRI on a datatype property',
+        detail: `${c(p)} is a datatype property; the shape asks for ${[...ps.classes.map(x => 'sh:class ' + c(x)), ...iriKinds.map(k => 'sh:nodeKind ' + c(k))].join(', ')}`});
+    if(isData(p) && ps.datatypes.length)
+      for(const r of inherited(p, RDFS + 'range')){
+        const rels = ps.datatypes.map(x => [x, datatypeVsRange(x, r)]);
+        const bad = rels.filter(([, rel]) => ['disjoint', 'broader', 'overlap'].includes(rel));
+        if(!bad.length) continue;
+        add('datatype-range', {severity: rels.every(([, rel]) => rel === 'disjoint') ? 'BLOCKER' : 'MAJOR', term: p, ps: ps.key,
+          group: bad.some(([, rel]) => rel === 'disjoint') ? 'disjoint datatype' : 'broader or overlapping datatype',
+          detail: bad.map(([x, rel]) => `sh:datatype ${c(x)} ${REL_TEXT[rel] || rel} the range`).join('; ') +
+            ` — rdfs:range ${exprText(r)}` + (r.from !== p ? ` (inherited from ${c(r.from)})` : '')});
+      }
+    if(isObj(p) && ps.classes.length)
+      for(const r of inherited(p, RDFS + 'range')){
+        const rels = ps.classes.map(x => [x, classRelation(x, r)]).filter(([, rel]) => rel !== 'ok');
+        if(!rels.length) continue;
+        const worst = rels.map(([, rel]) => rel).sort((a, b) => sevRank(REL_SEVERITY[a]) - sevRank(REL_SEVERITY[b]))[0];
+        add(worst === 'external' ? 'external-alignment' : 'class-range', {severity: REL_SEVERITY[worst], term: p, ps: ps.key,
+          group: worst === 'external' ? exprText(r) : worst,
+          detail: rels.map(([x, rel]) => `sh:class ${c(x)} ${REL_TEXT[rel]}`).join('; ') + ` the range ${exprText(r)}` + (r.from !== p ? ` (inherited from ${c(r.from)})` : '')});
+      }
+    const fn = [...pAncestors(p)].find(isFunctional);
+    if(fn && !ps.qualified && (ps.max === null || ps.max > 1))
+      add('functional-maxcount', {severity: 'MAJOR', term: p, ps: ps.key, group: kindOf(p),
+        detail: (ps.max === null ? 'no sh:maxCount' : 'sh:maxCount ' + ps.max) + '; ' +
+          (fn === p ? `${c(p)} is owl:FunctionalProperty` : `${c(p)} inherits owl:FunctionalProperty from ${c(fn)}`)});
+    if(ps.rinf.length && isProp(p)){
+      const onto = O.objs(p, ERA + 'rinfIndex').map(x => x.value);
+      const split = s => s.split(/[,;\s]+/).filter(Boolean);
+      const ontoSet = new Set(onto.flatMap(split)), cited = [...new Set(ps.rinf.flatMap(split))];
+      const quoted = xs => xs.map(s => JSON.stringify(s)).join(', ');
+      const issues = [];
+      const spaced = ps.rinf.filter(s => s !== s.trim());
+      const packed = ps.rinf.filter(s => split(s).length > 1);
+      if(spaced.length) issues.push(['spaces in the shape’s index', `era:rinfIndex ${quoted(spaced)} on the shape`]);
+      if(packed.length) issues.push(['several indices in one literal', `era:rinfIndex ${quoted(packed)} on the shape: one literal per index, as on ${c(p)}`]);
+      if(!onto.length) issues.push(['index only on the shape', `the shape cites ${cited.join(', ')}; ${c(p)} carries no era:rinfIndex`]);
+      else {
+        const extra = cited.filter(s => !ontoSet.has(s));
+        if(extra.length) issues.push(['index not on the property', `the shape cites ${extra.join(', ')}, which ${c(p)} doesn’t (it has ${[...ontoSet].join(', ')})`]);
+      }
+      for(const [group, detail] of issues) add('rinf-index', {severity: 'MINOR', term: p, ps: ps.key, group, detail});
+    }
+    if(inEra(p) && (isObj(p) || isData(p)) && !shapeProps.has(p)){
+      shapeProps.add(p);
+      if(!inherited(p, RDFS + 'domain').length)
+        add('shaped-without-domain-range', {severity: 'SUGGESTION', term: p, ps: ps.key, group: 'no rdfs:domain', detail: `${kindOf(p)} with no rdfs:domain (nor one inherited)`});
+      if(!inherited(p, RDFS + 'range').length)
+        add('shaped-without-domain-range', {severity: 'SUGGESTION', term: p, ps: ps.key, group: 'no rdfs:range', detail: `${kindOf(p)} with no rdfs:range (nor one inherited)`});
+    }
+  }
+  {
+    const spaced = new Set();
+    ontoStore.forEach(q => {
+      if(q.object.value !== q.object.value.trim() && !spaced.has(q.subject.value)){
+        spaced.add(q.subject.value);
+        add('rinf-index', {severity: 'MINOR', term: q.subject.value, group: 'spaces in the ontology’s index', detail: `era:rinfIndex ${JSON.stringify(q.object.value)} in the ontology`});
+      }
+    }, null, O.P(ERA + 'rinfIndex'), null, null);
+  }
+
+  // Restrictions on a class, inherited by its subclasses.
+  const restrictions = [];
+  ontoStore.forEach(q => {
+    if(q.subject.termType !== 'NamedNode' || q.object.termType !== 'BlankNode') return;
+    const prop = O.one(q.object, OWL + 'onProperty');
+    if(!prop) return;
+    const n = ['qualifiedCardinality', 'cardinality', 'maxQualifiedCardinality', 'maxCardinality']
+      .map(p => O.one(q.object, OWL + p)).find(Boolean);
+    const all = O.one(q.object, OWL + 'allValuesFrom');
+    restrictions.push({cls: q.subject.value, prop: prop.value, max: n ? +n.value : null,
+      all: all && all.termType === 'NamedNode' ? all.value : null,
+      onClass: (O.one(q.object, OWL + 'onClass') || {}).value || '', onDataRange: (O.one(q.object, OWL + 'onDataRange') || {}).value || ''});
+  }, null, O.P(RDFS + 'subClassOf'), null, null);
+
+  // A qualified restriction counts only the values of its class or datatype:
+  // it bounds the shape's values when they all are — by sh:class, sh:datatype
+  // or the property's range.
+  const qualifies = (ps, r) => {
+    if(r.onClass){
+      const of = x => ancestors(x).has(r.onClass);
+      return (ps.classes.length && ps.classes.every(of)) || inherited(ps.path, RDFS + 'range').some(e => e.kind === 'named' && of(e.key));
+    }
+    if(r.onDataRange){
+      const of = x => datatypeRelation(x, r.onDataRange) === 'ok';
+      return (ps.datatypes.length && ps.datatypes.every(of)) || inherited(ps.path, RDFS + 'range').some(e => e.kind === 'named' && of(e.key));
+    }
+    return true;
+  };
+  for(const ns of nsInfo.values()){
+    if(ns.deactivated) continue;
+    for(const t of ns.targets){
+      if(inEra(t) && !isClass(t)){
+        add('undeclared-class', {severity: 'MAJOR', term: t, ns: ns.key, group: t, detail: 'sh:targetClass is not declared in the ontology, so the shape applies to nothing typed with a declared class' + suggest(t, eraClasses)});
+        continue;
+      }
+      if(deprecated.has(t))
+        add('deprecated-in-shapes', {severity: 'MAJOR', term: t, ns: ns.key, group: t,
+          detail: 'sh:targetClass is deprecated' + (replacedBy(t).length ? '; replaced by ' + list(replacedBy(t)) : '; no replacement given')});
+      const tAnc = ancestors(t);
+      for(const ps of ns.props){
+        if(ps.deactivated || !ps.path) continue;
+        for(const d of inherited(ps.path, RDFS + 'domain')){
+          const rel = classRelation(t, d);
+          if(rel === 'ok') continue;
+          const id = rel === 'external' ? 'external-alignment' : d.from === ps.path ? 'domain-own' : 'domain-inherited';
+          add(id, {severity: REL_SEVERITY[rel], term: ps.path, ps: ps.key, ns: ns.key,
+            group: id === 'domain-inherited' ? d.from : id === 'external-alignment' ? exprText(d) : rel,
+            detail: `target ${c(t)} ${REL_TEXT[rel]} the rdfs:domain ${exprText(d)}` + (d.from !== ps.path ? ` inherited from ${c(d.from)}` : '')});
+        }
+        for(const r of restrictions){
+          if(r.prop !== ps.path || !tAnc.has(r.cls)) continue;
+          if(r.max !== null && !ps.qualified && (ps.max === null || ps.max > r.max) && qualifies(ps, r))
+            add('restriction-cardinality', {severity: 'MAJOR', term: ps.path, ps: ps.key, ns: ns.key, group: r.cls,
+              detail: `${c(r.cls)} allows at most ${r.max} ${c(ps.path)}` + (r.onClass ? ` (qualified: ${c(r.onClass)})` : '') +
+                `; the shape on ${c(t)} has ${ps.max === null ? 'no sh:maxCount' : 'sh:maxCount ' + ps.max}`});
+          if(r.all && ps.classes.length && ps.classes.every(x => classRelation(x, {kind: 'named', members: [r.all]}) !== 'ok'))
+            add('restriction-cardinality', {severity: 'MAJOR', term: ps.path, ps: ps.key, ns: ns.key, group: r.cls,
+              detail: `${c(r.cls)} requires every ${c(ps.path)} to be a ${c(r.all)}; the shape on ${c(t)} asks for ${list(ps.classes)}`});
+        }
+      }
+    }
+  }
+
+  {
+    const inShapes = t => shapesStore.countQuads(t, null, null, null) > 0;
+    ontoStore.forEach(q => {
+      if(q.subject.termType !== 'NamedNode' || q.object.termType !== 'NamedNode') return;
+      const term = q.subject.value, shape = q.object;
+      if(!inShapes(shape)){
+        add('validation-rule-links', {severity: 'MINOR', term, group: 'shape not in the shapes graph', detail: `points to ${c(shape.value)}, which the shapes graph doesn’t contain`});
+        return;
+      }
+      const path = S.one(shape, SH + 'path'), targets = S.objs(shape, SH + 'targetClass').map(t => t.value);
+      const k = S.key(shape);
+      if(S.one(shape, SH + 'path') && !activeKeys.has(k))
+        add('validation-rule-links', {severity: 'MAJOR', term, ps: psInfo.has(k) ? k : null, group: 'shape never applied',
+          detail: `points to ${c(shape.value)}, which no active node shape lists with sh:property, so SHACL never applies it`});
+      else if(path && path.termType === 'NamedNode' && path.value !== term && isProp(term))
+        add('validation-rule-links', {severity: 'MINOR', term, ps: k, group: 'shape about another term', detail: `points to ${c(shape.value)}, whose sh:path is ${c(path.value)}`});
+      else if(!path && targets.length && isClass(term) && !targets.includes(term))
+        add('validation-rule-links', {severity: 'MINOR', term, ns: k, group: 'shape about another term', detail: `points to ${c(shape.value)}, which targets ${list(targets)}`});
+    }, null, O.P(ERA + 'shaclShapeValidationRule'), null, null);
+  }
+
+  /* ---- assemble: checks, then the actions they call for ---- */
+  const byText = (a, b) => sevRank(a.severity) - sevRank(b.severity) || a.group.localeCompare(b.group) || (a.term || '').localeCompare(b.term || '');
+  const checks = GAP_CHECKS.map(k => {
+    const fs = findings[k.id].sort(byText);
+    const groups = new Map();
+    for(const f of fs){
+      if(!groups.has(f.group)) groups.set(f.group, {group: f.group, count: 0, severity: f.severity, terms: new Set(), note: f.note || ''});
+      const g = groups.get(f.group);
+      g.count++; g.terms.add(f.term);
+      if(sevRank(f.severity) < sevRank(g.severity)) g.severity = f.severity;
+    }
+    return {...k, findings: fs, status: fs.length ? 'fail' : 'pass',
+      severity: fs.length ? fs.reduce((s, f) => sevRank(f.severity) < sevRank(s) ? f.severity : s, 'SUGGESTION') : k.severity,
+      groups: [...groups.values()].map(g => ({...g, terms: g.terms.size}))
+        .sort((a, b) => sevRank(a.severity) - sevRank(b.severity) || b.count - a.count || a.group.localeCompare(b.group))};
+  });
+  const order = new Map(GAP_CHECKS.map((k, i) => [k.id, i]));
+  const actions = checks.filter(k => k.status === 'fail').sort((a, b) =>
+    sevRank(a.severity) - sevRank(b.severity) || (a.action === 'decide') - (b.action === 'decide') || order.get(a.id) - order.get(b.id));
+  const counts = Object.fromEntries(SEVERITIES.map(s => [s, 0]));
+  for(const k of checks) for(const f of k.findings) counts[f.severity]++;
+
+  return {
+    checks, actions, counts,
+    meta: {
+      ontology: {iri: header ? header.value : '', versionInfo, versionIRI, priorVersion: hv(OWL + 'priorVersion'),
+        triples: ontoStore.size, classes: eraTerms.filter(isClass).length,
+        objectProperties: eraTerms.filter(isObj).length, datatypeProperties: eraTerms.filter(isData).length,
+        functional: eraTerms.filter(isFunctional).length, deprecated: deprecated.size},
+      shapes: {triples: shapesStore.size, nodeShapes: nsInfo.size, propertyShapes: allPropertyShapes, judged: applied.length},
+      release: latest, releasesChecked: !!releases,
+    },
+  };
+}
+
+/* The report as Markdown and the findings as CSV, for the board and for
+   tracking — both pure, from gapAnalysis()'s result. */
+function gapMarkdown(rep, opts = {}){
+  const c = opts.compact || (x => x);
+  const cs = k => !k ? '' : k.startsWith('_:') ? 'blank-node shape' : c(k);
+  const cell = s => String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  const m = rep.meta, o = m.ontology, out = [];
+  out.push('# OWL axioms against SHACL shapes — gap analysis', '');
+  out.push(`- **Ontology:** ${opts.ontologySource || 'the ontology graph'} — owl:versionInfo \`${o.versionInfo || '(none)'}\`, owl:versionIRI <${o.versionIRI || '(none)'}>.`);
+  out.push(`  ${o.classes.toLocaleString('en-GB')} ERA classes, ${o.objectProperties.toLocaleString('en-GB')} object and ${o.datatypeProperties.toLocaleString('en-GB')} datatype properties (${o.functional.toLocaleString('en-GB')} functional), ${o.deprecated} deprecated terms; ${o.triples.toLocaleString('en-GB')} triples.`);
+  out.push(`- **Shapes:** ${opts.shapesSource || 'the shapes graph'} — ${m.shapes.nodeShapes.toLocaleString('en-GB')} node shapes, ${m.shapes.propertyShapes.toLocaleString('en-GB')} property shapes, of which ${m.shapes.judged.toLocaleString('en-GB')} are judged (the others are deactivated or listed by no active node shape, so SHACL never applies them); ${m.shapes.triples.toLocaleString('en-GB')} triples.`);
+  out.push(`- **Latest release on GitLab:** ` + (m.release ? `${m.release.tag}${m.release.name ? ' — ' + m.release.name : ''}${m.release.date ? ', ' + m.release.date : ''}` : m.releasesChecked ? 'none listed' : 'not checked (GitLab unreachable)'));
+  if(opts.generated) out.push(`- **Generated:** ${opts.generated}${opts.tool ? ' by ' + opts.tool : ''}`);
+  out.push('', '## Summary', '', '| Severity | Findings | Checks failing |', '|---|---:|---:|');
+  for(const s of SEVERITIES) out.push(`| ${s} | ${rep.counts[s]} | ${rep.checks.filter(k => k.status === 'fail' && k.severity === s).length} |`);
+  out.push(`| passed | — | ${rep.checks.filter(k => k.status === 'pass').length} |`, '');
+  out.push('Severity: **BLOCKER** — OWL 2 DL tools reject the ontology, or data the shapes accept is inconsistent with it. **MAJOR** — shapes and axioms disagree on what a term means or where it applies. **MINOR** — hygiene that misleads tools or readers. **SUGGESTION** — completeness.', '');
+  out.push('## Immediate actions', '');
+  rep.actions.forEach((k, i) => {
+    out.push(`${i + 1}. **[${k.severity}] ${k.title}** — ${k.findings.length} finding${k.findings.length === 1 ? '' : 's'}${k.action === 'decide' ? ' · *needs a decision*' : ''}`);
+    out.push(`   - Why: ${k.why}`, `   - Fix: ${k.fix}`);
+    for(const g of k.groups.slice(0, 8)){
+      const label = /^https?:/.test(g.group) ? '`' + c(g.group) + '`' : g.group;
+      out.push(`   - ${label} — ${g.count}${g.terms > 1 && g.terms !== g.count ? ` (${g.terms} terms)` : ''}`);
+      if(g.note) out.push(`     - ${g.note}`);
+    }
+    if(k.groups.length > 8) out.push(`   - … and ${k.groups.length - 8} more groups`);
+  });
+  out.push('', '## All checks', '', '| Check | Area | Severity | Findings |', '|---|---|---|---:|');
+  for(const k of rep.checks) out.push(`| ${cell(k.title)} | ${k.area} | ${k.status === 'pass' ? 'pass' : k.severity} | ${k.findings.length} |`);
+  const cap = opts.maxPerCheck || 200;
+  out.push('', '## Findings', '', `Up to ${cap} per check; the CSV export has all of them.`, '');
+  for(const k of rep.checks){
+    if(k.status === 'pass') continue;
+    out.push(`### ${k.title}`, '', '| Severity | Term | Shape | Detail |', '|---|---|---|---|');
+    for(const f of k.findings.slice(0, cap)) out.push(`| ${f.severity} | ${f.term ? '`' + cell(c(f.term)) + '`' : ''} | ${cell(cs(f.ns || f.ps))} | ${cell(f.detail)} |`);
+    if(k.findings.length > cap) out.push(`| | | | … and ${k.findings.length - cap} more (CSV) |`);
+    out.push('');
+  }
+  return out.join('\n');
+}
+
+function gapCsv(rep, opts = {}){
+  const c = opts.compact || (x => x);
+  const q = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+  const rows = [['check', 'severity', 'action', 'group', 'term', 'node_shape', 'property_shape', 'detail'].join(',')];
+  for(const k of rep.checks) for(const f of k.findings)
+    rows.push([k.id, f.severity, k.action, /^https?:/.test(f.group) ? c(f.group) : f.group, f.term, f.ns || '', f.ps || '', f.detail].map(q).join(','));
+  return rows.join('\r\n') + '\r\n';
+}
+
+if(typeof module !== 'undefined') module.exports = {buildModel, shapeView, parseRdf, diffModels, lineDiff,
+  gapAnalysis, gapMarkdown, gapCsv, datatypeRelation, editDistance, GAP_CHECKS};
 
 /* ------------------------------------------------------------------ *
  * Page */
 
 if(typeof document !== 'undefined') (() => {
   const $ = id => document.getElementById(id);
-  // env: 'prod' | 'uat' | 'diff' | 'file'. model is what is drawn; for 'diff'
-  // it is UAT's shapes plus PROD's removed ones, with model.diff alongside.
+  // env: 'prod' | 'uat' | 'diff' | 'gaps' | 'file'. model is what is drawn;
+  // for 'diff' it is UAT's shapes plus PROD's removed ones, with model.diff
+  // alongside; for 'gaps' it is UAT's shapes graph, with model.gaps alongside.
   let model = null, current = null, env = null, fileLabel = '';
-  let view = null, dinfo = null;
+  let view = null, dinfo = null, gapIdx = null;
   const texts = {}, parsed = {}, models = {};
   let loadSeq = 0, loadCtrl = null;
+  // GitLab's release list: undefined until asked, null when it couldn't be read.
+  let releases;
 
   function setStatus(msg, kind){
     const el = $('statusArea');
@@ -878,9 +1914,33 @@ if(typeof document !== 'undefined') (() => {
   }
   const parseCached = id => parsed[id] || (parsed[id] = parseRdf(texts[id], id + '.ttl'));
 
+  async function fetchReleases(signal){
+    const res = await fetch(RELEASES_URL, {signal, headers:{'Accept':'application/json'}});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const list = await res.json();
+    return list.map(r => ({tag: r.tag_name, name: r.name || '', date: (r.released_at || '').slice(0, 10)}))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }
+  // Shape IRIs carry slashes after the ERA namespace; show them as era:… too.
+  const gapCompact = compact => iri => {
+    const s = compact(iri);
+    return s.startsWith('<') && iri.startsWith(ERA) && !/[\s<>"]/.test(iri) ? 'era:' + iri.slice(ERA.length) : s;
+  };
+  const NEEDS = {diff: ['prod', 'uat'], gaps: ['uatOnto', 'uatShacl']};
+  // GitLab only names the latest release: give it 8 s, so a slow answer
+  // never holds back the two graphs.
+  const RELEASES_TIMEOUT_MS = 8000;
+  const releaseSignal = parent => {
+    const c = new AbortController();
+    const timer = setTimeout(() => c.abort(), RELEASES_TIMEOUT_MS);
+    parent.addEventListener('abort', () => c.abort(), {once: true});
+    c.signal.addEventListener('abort', () => clearTimeout(timer), {once: true});
+    return c.signal;
+  };
+
   function setEnvButtons(e){
     for(const b of document.querySelectorAll('.envSeg button')) b.setAttribute('aria-pressed', String(b.dataset.env === e));
-    $('reloadEnv').hidden = !SOURCES[e] && e !== 'diff';
+    $('reloadEnv').hidden = !ENVS.includes(e);
   }
 
   /* Each environment is fetched once per visit and kept, so switching back
@@ -891,20 +1951,29 @@ if(typeof document !== 'undefined') (() => {
     if(loadCtrl) loadCtrl.abort();
     const ctrl = loadCtrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-    const need = next === 'diff' ? ['prod', 'uat'] : [next];
+    const need = NEEDS[next] || [next];
     if(reload){
       for(const id of need){ delete texts[id]; delete parsed[id]; delete models[id]; }
-      delete models.diff;
+      delete models.diff; delete models.gaps;
+      if(next === 'gaps') releases = undefined;
     }
     setEnvButtons(next);
     const missing = need.filter(id => texts[id] === undefined);
+    // The release list only labels the report: when GitLab can't be read the
+    // analysis still runs, and says the release wasn't checked.
+    const wantReleases = next === 'gaps' && releases === undefined;
     try{
-      if(missing.length){
-        setStatus('Reading the ' + missing.map(id => SOURCES[id].label).join(' and ') + ' shapes…', 'loading');
-        await Promise.all(missing.map(async id => {
-          try{ texts[id] = await fetchText(id, ctrl.signal); }
-          catch(err){ err.sourceId = id; throw err; }
-        }));
+      if(missing.length || wantReleases){
+        setStatus(next === 'gaps'
+          ? 'Reading the ontology and the shapes graph of the UAT release, and the release list from GitLab…'
+          : 'Reading the ' + missing.map(id => SOURCES[id].label).join(' and ') + ' shapes…', 'loading');
+        await Promise.all([
+          ...missing.map(async id => {
+            try{ texts[id] = await fetchText(id, ctrl.signal); }
+            catch(err){ err.sourceId = id; throw err; }
+          }),
+          wantReleases ? fetchReleases(releaseSignal(ctrl.signal)).then(r => { releases = r; }, () => { if(seq === loadSeq) releases = null; }) : null,
+        ]);
       }
     }catch(err){
       if(seq !== loadSeq) return;
@@ -918,7 +1987,19 @@ if(typeof document !== 'undefined') (() => {
     if(seq !== loadSeq) return;
     let m;
     try{
-      if(next === 'diff'){
+      if(next === 'gaps' && !models.gaps){
+        // Parsing and checking ~150,000 triples takes a few seconds: let the
+        // status paint first.
+        setStatus('Setting the OWL axioms against the shapes…', 'loading');
+        await new Promise(r => setTimeout(r, 30));
+        if(seq !== loadSeq) return;
+        const o = parseCached('uatOnto'), s = parseCached('uatShacl');
+        const gm = buildModel(s.store, {...o.prefixes, ...s.prefixes});
+        gm.gaps = gapAnalysis(o.store, s.store, {compact: gapCompact(gm.compact), releases});
+        models.gaps = gm;
+      }
+      if(next === 'gaps') m = models.gaps;
+      else if(next === 'diff'){
         if(!models.diff){
           const p = parseCached('prod'), u = parseCached('uat');
           const prefixes = {...p.prefixes, ...u.prefixes};
@@ -931,7 +2012,7 @@ if(typeof document !== 'undefined') (() => {
       }
     }catch(err){
       setEnvButtons(env);
-      setStatus('Couldn’t read the shapes as RDF: ' + (err.message || err), 'error');
+      setStatus('Couldn’t read the ' + (next === 'gaps' ? 'ontology or the shapes' : 'shapes') + ' as RDF: ' + (err.message || err), 'error');
       return;
     }
     show(m, next);
@@ -969,6 +2050,17 @@ if(typeof document !== 'undefined') (() => {
         [m.diff.P.nodeShapes, 'node shapes in PROD'], [m.diff.U.nodeShapes, 'in UAT'],
         [c.added, 'new in UAT'], [c.removed, 'removed in UAT'], [c.changed, 'changed'], [c.same, 'unchanged'],
       ]);
+    }else if(m.gaps){
+      const g = m.gaps, o = g.meta.ontology;
+      setStatus('OWL gap analysis of the UAT release (owl:versionInfo ' + (o.versionInfo || 'not given') + '): ' +
+        fmt(g.counts.BLOCKER) + ' blocker' + (g.counts.BLOCKER === 1 ? '' : 's') + ' and ' + fmt(g.counts.MAJOR) +
+        ' major findings. The immediate actions are listed below, then the shapes with their gaps marked.', 'success');
+      $('stats').innerHTML = tiles([
+        [o.classes, 'ERA classes'], [o.objectProperties + o.datatypeProperties, 'properties'],
+        [g.meta.shapes.nodeShapes, 'node shapes'], [g.meta.shapes.propertyShapes, 'property shapes'],
+        [g.checks.length, 'checks'], [g.checks.filter(k => k.status === 'fail').length, 'failing'],
+        [o.triples + g.meta.shapes.triples, 'triples'],
+      ]);
     }else{
       setStatus('Showing ' + (SOURCES[env] ? env.toUpperCase() + ': ' + SOURCES[env].describe : fileLabel) + '.', 'success');
       const st = m.stats;
@@ -977,7 +2069,11 @@ if(typeof document !== 'undefined') (() => {
         [st.sparql, 'SPARQL constraints'], [st.links, 'shape-to-shape links'], [st.triples, 'triples'],
       ]);
     }
-    $('onlyDiffWrap').hidden = !m.diff;
+    $('onlyDiffWrap').hidden = !m.diff && !m.gaps;
+    $('onlyDiffText').textContent = m.gaps ? 'Only shapes with OWL gaps' : 'Only differences';
+    gapIdx = m.gaps ? gapIndex(m) : null;
+    $('gapPanel').hidden = !m.gaps;
+    if(m.gaps) renderGapPanel(m);
     $('layout').hidden = false;
     renderList();
     // Keep the shape in view when switching environment, so the same shape
@@ -993,6 +2089,15 @@ if(typeof document !== 'undefined') (() => {
   // changed.
   function defaultShape(){
     let best = null, score = -1;
+    // In the gap analysis, open on the shape with the most severe gaps.
+    if(gapIdx) for(const s of model.shapes.values()){
+      if(s.pseudo) continue;
+      const fs = gapIdx.perShape.get(s.key) || [];
+      const n = fs.reduce((a, f) => a + [1e6, 1e3, 1, 0][sevRank(f.severity)], 0);
+      if(n > 0 && n > score){ score = n; best = s.key; }
+    }
+    if(best) return best;
+    score = -1;
     for(const s of model.shapes.values()){
       if(s.pseudo) continue;
       const d = model.diff && model.diff.info.get(s.key);
@@ -1009,12 +2114,15 @@ if(typeof document !== 'undefined') (() => {
   function renderList(){
     const q = $('shapeFilter').value.trim().toLowerCase();
     const onlyDiff = !!model.diff && $('onlyDiff').checked;
+    const onlyGaps = !!gapIdx && $('onlyDiff').checked;
     const items = [...model.shapes.values()].sort((a, b) =>
       (a.pseudo ? 1 : 0) - (b.pseudo ? 1 : 0) || a.name.localeCompare(b.name));
     let shown = 0;
     const html = items.map(s => {
       const d = statusOf(s.key);
       if(onlyDiff && d.status === 'same') return '';
+      const gs = gapIdx ? gapIdx.perShape.get(s.key) || [] : [];
+      if(onlyGaps && !gs.length) return '';
       let why = '';
       if(q){
         const own = (s.name + ' ' + s.iri + ' ' + s.targets.map(t => t.text).join(' ')).toLowerCase().includes(q);
@@ -1025,7 +2133,8 @@ if(typeof document !== 'undefined') (() => {
       shown++;
       const tg = s.targets.length ? s.targets.map(t => t.text).join(', ') : (s.pseudo ? '' : 'no target');
       const pill = d && d.status !== 'same'
-        ? '<span class="b d-' + d.status + '">' + STATUS_TEXT[d.status] + (d.status === 'changed' ? ' · ' + d.nChanges : '') + '</span> ' : '';
+        ? '<span class="b d-' + d.status + '">' + STATUS_TEXT[d.status] + (d.status === 'changed' ? ' · ' + d.nChanges : '') + '</span> '
+        : gs.length ? gapBadge(gs) + ' ' : '';
       return '<button type="button" class="shapeItem" data-key="' + esc(s.key) + '" aria-current="' + (s.key === current) + '">' +
         '<span class="nm" title="' + esc(s.name) + '">' + esc(s.name) + '</span><span class="ct" title="property shapes">' + s.rows.length + '</span>' +
         '<span class="tg" title="' + esc(tg) + '">' + esc(tg) + '</span>' +
@@ -1049,7 +2158,7 @@ if(typeof document !== 'undefined') (() => {
       try{ return decodeURIComponent(m[1]); }catch{ return null; }
     };
     const e = get('env');
-    return {env: SOURCES[e] || e === 'diff' ? e : null, shape: get('shape')};
+    return {env: ENVS.includes(e) ? e : null, shape: get('shape')};
   }
   // A file can't be reopened from a link, so its hash carries no environment.
   const hashFor = (e, k) => '#' + (e && e !== 'file' ? 'env=' + e + '&' : '') + (k ? 'shape=' + encodeURIComponent(k) : '');
@@ -1118,7 +2227,7 @@ if(typeof document !== 'undefined') (() => {
           (s.comment ? '<p class="comment">' + esc(s.comment) + '</p>' : '') +
           (s.nodeCons.length ? '<div class="nodeCons">Every focus node: ' + esc(s.nodeCons.join(' · ')) + '</div>' : '') +
           (selfLinks ? '<div class="nodeCons">↺ Some values must themselves conform to this shape.</div>' : '') +
-          headDiffHtml() +
+          headDiffHtml() + headGapHtml(k) +
         '</header>' +
         '<div class="fcTools">' +
           '<input id="rowFilter" type="search" placeholder="Filter ' + view.rows.length + ' properties…" spellcheck="false">' +
@@ -1131,6 +2240,25 @@ if(typeof document !== 'undefined') (() => {
 
     $('rowFilter').addEventListener('input', filterRows);
     filterRows();
+  }
+
+  /* ---- OWL gaps on the shape card ---- */
+  // A row's gaps: those of its property shape, unless they belong to
+  // another node shape that lists the same (shared) property shape.
+  const rowGaps = v => !gapIdx || v.removed ? [] : (gapIdx.rows.get(v.row.key) || []).filter(f => !f.ns || f.ns === current);
+  const worstOf = fs => fs.reduce((s, f) => sevRank(f.severity) < sevRank(s) ? f.severity : s, 'SUGGESTION');
+  const gapBadge = fs => {
+    const w = worstOf(fs);
+    return '<span class="b gapb ' + w + '" title="' + esc(fs.length + ' finding' + (fs.length === 1 ? '' : 's') + ' against the OWL axioms, the worst ' + w) + '">' +
+      (w === 'BLOCKER' ? 'OWL blocker' : 'OWL gap') + (fs.length > 1 ? ' ×' + fs.length : '') + '</span>';
+  };
+  const gapListHtml = fs => '<ul class="gapList">' + fs.map(f => {
+    const k = gapIdx.checks.get(f.check);
+    return '<li><span class="sev ' + f.severity + '">' + f.severity + '</span> <span class="ttl">' + esc(k.title) + '.</span> <span class="dt">' + esc(f.detail) + '</span></li>';
+  }).join('') + '</ul>';
+  function headGapHtml(k){
+    const fs = gapIdx ? gapIdx.shapes.get(k) || [] : [];
+    return fs.length ? '<div class="gapBox"><div class="k">Gaps with the OWL axioms (this shape)</div>' + gapListHtml(fs) + '</div>' : '';
   }
 
   function headDiffHtml(){
@@ -1182,6 +2310,7 @@ if(typeof document !== 'undefined') (() => {
           (v.sparql.length ? '<span class="b sparql" title="SHACL-SPARQL constraints on this property">' + v.sparql.length + ' SPARQL</span>' : '') +
           (r.usedBy.length > 1 ? '<span class="b shared" title="this property shape is reused by other node shapes">×' + r.usedBy.length + '</span>' : '') +
           (r.deactivated ? '<span class="b off">off</span>' : '') +
+          (rowGaps(v).length ? gapBadge(rowGaps(v)) : '') +
         '</span>' +
       '</button>' +
       '<div class="rowBody" hidden></div>' +
@@ -1226,6 +2355,7 @@ if(typeof document !== 'undefined') (() => {
         parts.push('<div class="diffBox">' + ch.stmts.removed.map(x => dlLine('-', x)).join('') + ch.stmts.added.map(x => dlLine('+', x)).join('') + '</div>');
       parts.push(sparqlDiffHtml(ch.sparql));
     }
+    if(rowGaps(v).length) parts.push('<h4>Gaps with the OWL axioms</h4>' + gapListHtml(rowGaps(v)));
     if(ch && ch.status === 'removed') parts.push('<h4>Removed in UAT</h4><div>This property shape is in PROD but not in UAT. Its PROD definition:</div>');
     if(ch && ch.status === 'added') parts.push('<h4>New in UAT</h4>');
     if(r.name) parts.push('<div><b>' + esc(r.name) + '</b></div>');
@@ -1259,10 +2389,12 @@ if(typeof document !== 'undefined') (() => {
   function filterRows(){
     const q = $('rowFilter').value.trim().toLowerCase();
     const onlyDiff = !!model.diff && $('onlyDiff').checked && dinfo && dinfo.status === 'changed';
+    // A shape whose gaps are all on the shape itself keeps all its rows.
+    const onlyGaps = !!gapIdx && $('onlyDiff').checked && view.rows.some(v => rowGaps(v).length);
     for(const el of $('rows').querySelectorAll('.row')){
       const v = view.rows[+el.dataset.i], r = v.row;
       const hay = (r.path + ' ' + r.name + ' ' + r.types.map(x => x.text).join(' ') + ' ' + r.rinf.join(' ')).toLowerCase();
-      el.hidden = (!!q && !hay.includes(q)) || (onlyDiff && !rowChange(v));
+      el.hidden = (!!q && !hay.includes(q)) || (onlyDiff && !rowChange(v)) || (onlyGaps && !rowGaps(v).length);
     }
     scheduleWires();
   }
@@ -1373,6 +2505,119 @@ if(typeof document !== 'undefined') (() => {
   }
   window.addEventListener('resize', scheduleWires);
   if(window.ResizeObserver) new ResizeObserver(scheduleWires).observe($('focusCol'));
+
+  /* ---- the OWL gap report ---- */
+  // Findings by property shape (rows), by node shape (card header), and all
+  // that touch a node shape (list badges, "only shapes with gaps").
+  function gapIndex(m){
+    const push = (map, k, f) => { if(!map.has(k)) map.set(k, []); map.get(k).push(f); };
+    const psUsers = new Map();
+    for(const s of m.shapes.values()) for(const r of s.rows) push(psUsers, r.key, s.key);
+    const rows = new Map(), shapes = new Map(), perShape = new Map();
+    for(const k of m.gaps.checks) for(const f of k.findings){
+      if(f.ps){
+        push(rows, f.ps, f);
+        for(const o of f.ns ? [f.ns] : psUsers.get(f.ps) || []) push(perShape, o, f);
+      }else if(f.ns){ push(shapes, f.ns, f); push(perShape, f.ns, f); }
+    }
+    return {rows, shapes, perShape, psUsers, checks: new Map(m.gaps.checks.map(k => [k.id, k]))};
+  }
+  // The node shape a finding opens: its own, or the first that lists its property shape.
+  const findingShape = f => f.ns && model.shapes.has(f.ns) ? f.ns : f.ps ? (gapIdx.psUsers.get(f.ps) || [])[0] || null : null;
+  const FINDINGS_SHOWN = 400;
+
+  function renderGapPanel(m){
+    const g = m.gaps, o = g.meta.ontology, r = g.meta.release, c = gapCompact(m.compact), fmt = n => n.toLocaleString('en-GB');
+    const releaseText = r
+      ? 'The latest release on GitLab is <b>' + esc(r.tag) + '</b>' + (r.name ? ' (' + esc(r.name) + (r.date ? ', ' + esc(r.date) : '') + ')' : '') + '.'
+      : g.meta.releasesChecked ? 'GitLab lists no release.' : 'GitLab couldn’t be reached, so the release wasn’t checked.';
+    $('gapHead').innerHTML = '<h2 id="gapTitle">OWL axioms against SHACL shapes — UAT release candidate</h2>' +
+      '<p>The ontology (<code>graph/ontology</code>: owl:versionInfo <b>' + esc(o.versionInfo || 'not given') + '</b>, ' +
+        fmt(o.classes) + ' classes, ' + fmt(o.objectProperties) + ' object and ' + fmt(o.datatypeProperties) + ' datatype properties, ' +
+        fmt(o.functional) + ' of them functional) and the shapes (<code>graph/shacl</code>: ' + fmt(g.meta.shapes.nodeShapes) + ' node shapes and ' +
+        fmt(g.meta.shapes.propertyShapes) + ' property shapes, of which ' + fmt(g.meta.shapes.judged) + ' are judged — the others are deactivated ' +
+        'or listed by no active node shape, so SHACL never applies them) of the UAT SPARQL endpoint. ' + releaseText + '</p>' +
+      '<p><b>BLOCKER</b>: OWL 2 DL tools reject the ontology, or data the shapes accept is inconsistent with it. ' +
+        '<b>MAJOR</b>: shapes and axioms disagree on what a term means or where it applies. <b>MINOR</b>: hygiene that misleads tools or readers. ' +
+        '<b>SUGGESTION</b>: completeness. SHACL stays the place for closed-world data rules: none of the fixes turns a validation rule into an OWL axiom.</p>';
+    const passed = g.checks.filter(k => k.status === 'pass').length;
+    $('gapTiles').innerHTML = SEVERITIES.map(s => {
+      const nChecks = g.checks.filter(k => k.status === 'fail' && k.severity === s).length;
+      return '<div class="sevTile ' + s + '"><b>' + fmt(g.counts[s]) + '</b><span>' + s + ' · ' + nChecks + ' check' + (nChecks === 1 ? '' : 's') + '</span></div>';
+    }).join('') + '<div class="sevTile pass"><b>' + passed + '</b><span>checks passed</span></div>';
+
+    const groupLabel = s => /^https?:/.test(s) ? '<code>' + esc(c(s)) + '</code>' : esc(s);
+    $('gapActions').innerHTML = g.actions.map(k => {
+      const terms = new Set(k.findings.map(f => f.term)).size;
+      return '<li class="action">' +
+        '<div class="aHead"><span class="sev ' + k.severity + '">' + k.severity + '</span><b>' + esc(k.title) + '</b>' +
+          '<span class="meta">' + fmt(k.findings.length) + ' finding' + (k.findings.length === 1 ? '' : 's') +
+          (terms !== k.findings.length ? ' · ' + fmt(terms) + ' term' + (terms === 1 ? '' : 's') : '') + ' · ' +
+          (k.action === 'decide' ? '<span class="decide">needs a decision</span>' : 'fix in the next candidate') + '</span></div>' +
+        '<p class="why">' + esc(k.why) + '</p>' +
+        '<p class="fix"><b>Fix:</b> ' + esc(k.fix) + '</p>' +
+        '<ul class="groups">' + k.groups.slice(0, 6).map(gr =>
+          '<li><span class="sev ' + gr.severity + '">' + gr.severity + '</span> ' + groupLabel(gr.group) + ' — ' + fmt(gr.count) +
+          (gr.note ? '<span class="note">' + esc(gr.note) + '</span>' : '') + '</li>').join('') +
+          (k.groups.length > 6 ? '<li class="meta">… and ' + (k.groups.length - 6) + ' more</li>' : '') + '</ul>' +
+        '<details class="fl" data-check="' + esc(k.id) + '"><summary>All ' + fmt(k.findings.length) + ' finding' + (k.findings.length === 1 ? '' : 's') + '</summary><div class="tableWrap"></div></details>' +
+      '</li>';
+    }).join('');
+
+    $('gapChecksSummary').textContent = 'All ' + g.checks.length + ' checks — ' + (g.checks.length - passed) + ' failing, ' + passed + ' passed';
+    $('gapChecks').innerHTML = '<table class="ftab"><thead><tr><th>Check</th><th>Area</th><th>Result</th><th>Findings</th></tr></thead><tbody>' +
+      g.checks.map(k => '<tr><td>' + esc(k.title) + '</td><td>' + esc(k.area) + '</td><td>' +
+        (k.status === 'pass' ? '<span class="sev pass">PASS</span>' : '<span class="sev ' + k.severity + '">' + k.severity + '</span>') +
+        '</td><td>' + fmt(k.findings.length) + '</td></tr>').join('') + '</tbody></table>';
+  }
+
+  function findingsTableHtml(k){
+    const c = gapCompact(model.compact);
+    const rows = k.findings.slice(0, FINDINGS_SHOWN).map(f => {
+      const sk = findingShape(f);
+      const shape = sk ? '<button type="button" class="chip" data-key="' + esc(sk) + '">' + esc(model.shapes.get(sk).name) + '</button>' : '';
+      return '<tr><td><span class="sev ' + f.severity + '">' + f.severity + '</span></td><td class="t">' + esc(f.term ? c(f.term) : '') +
+        '</td><td>' + shape + '</td><td class="d">' + esc(f.detail) + '</td></tr>';
+    }).join('');
+    const more = k.findings.length > FINDINGS_SHOWN
+      ? '<tr><td colspan="4" class="more">' + (k.findings.length - FINDINGS_SHOWN).toLocaleString('en-GB') + ' more — download the CSV for all of them.</td></tr>' : '';
+    return '<table class="ftab"><thead><tr><th>Severity</th><th>Term</th><th>Shape</th><th>Detail</th></tr></thead><tbody>' + rows + more + '</tbody></table>';
+  }
+  // Long finding tables are built when first opened ("toggle" doesn't bubble, so listen while capturing).
+  $('gapPanel').addEventListener('toggle', e => {
+    const d = e.target;
+    if(!d.matches || !d.matches('details.fl') || !d.open || !model || !model.gaps) return;
+    const box = d.querySelector('.tableWrap');
+    if(!box.innerHTML) box.innerHTML = findingsTableHtml(gapIdx.checks.get(d.dataset.check));
+  }, true);
+  $('gapPanel').addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    go(chip.dataset.key);
+    $('layout').scrollIntoView({behavior: 'smooth', block: 'start'});
+  });
+  function download(name, type, text){
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], {type}));
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+  const reportName = ext => 'era-owl-gaps-' + ((model.gaps.meta.release && model.gaps.meta.release.tag) || model.gaps.meta.ontology.versionInfo || 'uat')
+    .replace(/[^\w.-]+/g, '_') + '-' + new Date().toISOString().slice(0, 10) + '.' + ext;
+  $('gapMd').addEventListener('click', () => {
+    if(!model || !model.gaps) return;
+    download(reportName('md'), 'text/markdown;charset=utf-8', gapMarkdown(model.gaps, {
+      compact: gapCompact(model.compact), generated: new Date().toISOString().slice(0, 10),
+      tool: 'the ERA SHACL Shape Viewer (shapes.html, OWL gaps)',
+      ontologySource: 'UAT SPARQL endpoint graph.uat.data.test-era.europa.eu (ERA-Onto, graph/ontology)',
+      shapesSource: 'UAT SPARQL endpoint (ERA-Onto, graph/shacl)'}));
+  });
+  $('gapCsv').addEventListener('click', () => {
+    if(!model || !model.gaps) return;
+    download(reportName('csv'), 'text/csv;charset=utf-8', '﻿' + gapCsv(model.gaps, {compact: gapCompact(model.compact)}));
+  });
 
   /* ---- your own file ---- */
   $('fileIn').addEventListener('change', e => {
