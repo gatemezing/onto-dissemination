@@ -16,6 +16,7 @@ on:
       - 'scripts/assets/era-ask.html'
       - 'scripts/assets/era-eurostat-exporter.html'
       - 'scripts/assets/era-eradis-explorer.html'
+      - 'scripts/assets/era-eratv-explorer.html'
       - 'scripts/assets/era-shacl-viewer.html'
       - 'scripts/assets/era-skos-explorer.html'
       - 'scripts/assets/crd-rinf-comparison.html'
@@ -60,6 +61,7 @@ jobs:
           cp scripts/assets/era-ask.html _site/ask.html
           cp scripts/assets/era-eurostat-exporter.html _site/eurostat.html
           cp scripts/assets/era-eradis-explorer.html _site/eradis.html
+          cp scripts/assets/era-eratv-explorer.html _site/eratv.html
           cp scripts/assets/era-shacl-viewer.html _site/shapes.html
           cp scripts/assets/era-skos-explorer.html _site/skos.html
           cp scripts/assets/crd-rinf-comparison.html _site/crd-rinf.html
