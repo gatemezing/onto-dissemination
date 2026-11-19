@@ -28,6 +28,7 @@ searches a snapshot because its endpoint asks for a login (see
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
+| ERATV Explorer (authorised vehicle types with the ERATV advanced-search fields, live on the UAT ERATV-KG) | https://gatemezing.github.io/onto-dissemination/eratv.html |
 | Synthetic RINF and EVR Data (realistic synthetic Turtle from the UAT SHACL shapes with RDFGraphGen. RINF: tracks, sidings, platform edges and tunnels linked to their sections and stations with `era:hasPart`/`era:isPartOf`, on a map. EVR + ERATV: vehicles with valid EVNs, vehicle types with ERATV numbers, type authorisations with EINs, invented keepers, owners and ECMs, and the `vpa:` chain from type authorisation to registration; graph, checks and export) | https://gatemezing.github.io/onto-dissemination/synthetic.html |
 | SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, an OWL gap analysis of the UAT release candidate with the immediate actions to fix, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
@@ -35,8 +36,8 @@ searches a snapshot because its endpoint asks for a login (see
 | Slides: A Semantic Backbone for European Rail Data Exchange (KGSWC 2026) | https://gatemezing.github.io/onto-dissemination/kgswc-2026/ |
 
 The live-query tools link to each other in their footers. No other page links
-yet to the Holobox Frame, the ERADIS Explorer, the SHACL Shape Viewer or the
-two answer pages. Deployment is automatic:
+yet to the Holobox Frame, the ERATV Explorer, the SHACL Shape Viewer or the
+two answer pages, and only the ERATV Explorer links to the ERADIS Explorer. Deployment is automatic:
 [.github/workflows/pages.yml](.github/workflows/pages.yml) rebuilds and
 publishes GitHub Pages on every push to `main` that touches one of the tool
 files.
@@ -187,6 +188,29 @@ rather than recorded — "type of subsystem" (from the TSIs, through era-lex) an
 a certificate's validity (from its validity window) — see
 [eradis/README.md](eradis/README.md).
 
+**[era-eratv-explorer.html](scripts/assets/era-eratv-explorer.html)** —
+searches the authorised vehicle types in `ERATV-KG` on ERA's UAT server
+(`graph.uat.data.test-era.europa.eu`, anonymous and open to any origin) with
+the fields of the ERATV advanced search: Type ID or name, EIN, category and
+subcategory, manufacturer (by country, name or pick), conformity with TSI,
+EC certificate or declaration reference, Member State (including "authorised
+by ERA"), authorisation status, area of use, comments, authorisation date and
+last update. Opening the page loads an index of the 4,149 vehicle types (one
+per Type ID and Member State, as ERATV-KG publishes them) with seven queries in
+about 2 s; searches run on it in the browser. Every search is also shown as
+SPARQL, and "Run live" sends it and checks that it returns the same types.
+A row opens the full record, read live: the TSIs per configuration, the
+current authorisation and its `-Hn` history with EINs, certificates,
+restrictions and comments, and every technical characteristic in ERATV's
+numbering (`era:eratvIndex`). Results come with a per-year chart by category
+and CSV download. The data has gaps the page shows rather than fills: no type
+carries a type name (`rdfs:label`, ERATV 1.1), no authorisation holder resolves
+to an organisation, and the category concepts and most coded values have no
+label. Tested by
+[scripts/tests/eratv-explorer.test.js](scripts/tests/eratv-explorer.test.js)
+(`npm install --no-save sparqljs@3.7.3 && node --test scripts/tests/eratv-explorer.test.js`)
+and, against the live graph, `node scripts/tests/eratv-live-parity.js`.
+
 **[era-shacl-viewer.html](scripts/assets/era-shacl-viewer.html)** — shows
 what a SHACL shapes graph asks of the data. Each node shape is a card listing
 its property shapes (path in SPARQL property-path syntax, value type,
@@ -267,6 +291,10 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
 - `scripts/build-era-answers-pptx.py` — regenerates
   `interop-europe/ERA-ontology-reusability.pptx` from the answers (needs
   `python-pptx`).
+- `scripts/tests/` — `node --test` unit tests for the SHACL Shape Viewer's gap
+  analysis and the ERATV Explorer's search, and `eratv-live-parity.js`, which
+  runs 23 ERATV searches both in the page's matcher and as SPARQL against
+  ERATV-KG and fails on any difference.
 - `interop-europe/` — the assessment questions, drafted answers, and the
   extracted Data Stories query catalogue.
 - `eradis/` — the ERADIS-KG query set behind the ERADIS Explorer: the search
