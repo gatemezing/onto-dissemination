@@ -303,15 +303,17 @@
       <div class="row"><label for="cObject">Object of assessment</label><input type="text" id="cObject" placeholder="e.g. ETCS, Szajol, bogie"></div>
       <div class="row"><label>Validity today <span class="derived" title="Derived from the validity window and the recorded state">derived</span></label>
         <div class="inline" id="cValidity"></div>
-        <div class="hint">Taken from the certificate's validity window (<code>dct:valid</code>), with withdrawn and suspended as recorded. The recorded state alone is no guide: 42,088 of the current certificates say “amended” and only 12 say “in force”.</div></div>
+        <div class="hint">Taken from the certificate's validity window (<code>dct:valid</code>), with withdrawn and suspended as recorded. The recorded state alone is no guide: on 2026-11-19, 17,081 of the 41,101 current certificates recorded as “in force” were past the end of their window.</div></div>
     </section>
 
     <section>
       <h2>TSIs and interoperability constituents</h2>
-      <div class="row"><label for="cSubsystem">Subsystem <span class="derived" title="Derived from the TSIs cited">derived</span></label><select id="cSubsystem"></select>
-        <div class="hint">Derived from the TSIs the certificate cites, exactly as for declarations (era-lex titles and <code>eli:changes</code>).</div></div>
-      <div class="row"><label for="cTitle">Interoperability constituent</label><input type="text" id="cTitle" placeholder="e.g. Contact strips"></div>
-      <div class="row"><label for="cTsi">TSI(s) (including amendments) used</label><input type="text" id="cTsi" list="tsiList" placeholder="e.g. 2023/1695, or a word from the title"></div>
+      <div class="row"><label for="cSubsystem">Subsystem</label><select id="cSubsystem"></select>
+        <div class="hint">As the certificate records it (<code>dct:subject</code>), mapped onto the subsystems of Directive (EU) 2016/797 Annex II: on-board and trackside control-command and signalling both count as CCS, wagons and locomotives as rolling stock. A certificate can record several.</div></div>
+      <div class="row"><label for="cTitle">Interoperability constituent</label><input type="text" id="cTitle" placeholder="e.g. Wheel, Contact strips">
+        <div class="hint">Certificates cite the constituent as a part of a TSI (<code>…/reg/2013/321/WAG/3</code>); its name comes from the <code>era-lex</code> repository.</div></div>
+      <div class="row"><label for="cTsi">TSI(s) (including amendments) used</label><input type="text" id="cTsi" list="tsiList" placeholder="e.g. 2023/1695, or a word from the title">
+        <div class="hint">Matched by the act's number however the certificate cites it: the TSI part checked, the constituent, the amending act (CELEX number), or the note left where <code>era-lex</code> lacks the act.</div></div>
       <div class="row"><label for="cDir">Directives</label><input type="text" id="cDir" list="dirList" placeholder="e.g. 2016/797"></div>
     </section>
 
@@ -340,7 +342,7 @@
       <h2>Dates</h2>
       <div class="row"><label>Date of issue</label>
         <div class="pair"><input type="date" id="cFrom" aria-label="Date of issue from"><input type="date" id="cTo" aria-label="Date of issue to"></div>
-        <div class="hint">1,631 certificates carry more than one date of issue; a certificate matches when any of them falls in the range.</div></div>
+        <div class="hint">A certificate matches when a date of issue it records falls in the range (each records one since ERADIS-KG's November 2026 reload; 1,631 used to record several).</div></div>
       <div class="row"><label for="cValidOn">Valid on</label><input type="date" id="cValidOn" aria-label="Valid on date" style="max-width:220px">
         <div class="hint">The validity window covers this date.</div></div>
       <div class="row"><label for="cCited">Cited by an EC declaration</label><select id="cCited">
@@ -392,11 +394,12 @@
   <footer>
     Data: the <code>ERADIS-KG</code> repository on <code>graph.dev.data.test-era.europa.eu</code>, published graph
     <code>http://data.europa.eu/949/graph/eradis</code>, current version of each document. Declarations: in force / amended / revoked / suspended
-    (rejected ones and unpublished drafts are left out). Certificates: every current certificate except unpublished drafts. That endpoint sends no CORS
-    headers today, so a browser page on another site cannot read its answers; this page therefore searches a snapshot built by
+    (rejected ones and unpublished drafts are left out). Certificates: every current certificate except unpublished drafts. The endpoint is open
+    for anonymous reads and answers this page directly, so "Run live" and the full records query it; searches run on a snapshot built by
     <a href="https://github.com/gatemezing/onto-dissemination/tree/main/eradis">the same SPARQL queries</a>
-    (<code>scripts/build-eradis-snapshot.py</code>), and "Run live" tries the endpoint directly and explains the result if it is blocked.
-    Legal acts are resolved in the <code>era-lex</code> repository. The snapshot holds no signatory names or contact details.
+    (<code>scripts/build-eradis-snapshot.py</code>), which keeps the page working when the endpoint does not (it asked for a login from
+    2026-10-12 until November 2026). Legal acts and the names of interoperability constituents are resolved in the <code>era-lex</code>
+    repository. The snapshot holds no signatory names or contact details.
     <br>← Back to the <a href="./">ERA Graph Explorer</a>
     · <a href="./exporter.html">RDF Exporter</a>
     · <a href="./values.html">RINF Parameter Values</a>
@@ -416,7 +419,7 @@ const ERA = 'http://data.europa.eu/949/';
 const COUNTRY_BASE = 'http://publications.europa.eu/resource/authority/country/';
 const ERADIS_PAGE = 'https://eradis.era.europa.eu/interop_docs/ecDecl/view.aspx?id=';
 const ERADIS_CERT_PAGE = 'https://eradis.era.europa.eu/interop_docs/NoBoCert/view.aspx?id=';
-const CERT_BASE = ERA + 'evidence/cld/cld-NoBoCert/';
+const CERT_BASE = ERA + 'evidence/cld/';   // …/cld-NoBoCert/N until the November 2026 reload
 const PUBLISHED_DECL_STATES = ['inForce','amended','revoked','suspended'];
 const PAGE_SIZE = 50;
 const LIVE_CHUNK = 1000, LIVE_PARALLEL = 6;   // documents per fields query, queries in flight
@@ -476,7 +479,7 @@ async function describeFetchError(err, endpoint){
   if(reachable)
     return {
       title:'Blocked by your browser, not by you',
-      message:'The ERADIS-KG server responded, but didn’t grant this page permission to read its answers (it sends no CORS header). That’s a configuration on the endpoint’s side. Use “Open in GraphDB workbench” to run exactly the same query there.',
+      message:'The ERADIS-KG server responded, but didn’t grant this page permission to read its answers (no CORS header for this page’s origin). That’s a configuration on the endpoint’s side. Use “Open in GraphDB workbench” to run exactly the same query there, or “Search snapshot” for the same search offline.',
       detail:String((err && err.message) || err),
     };
   return {
@@ -561,6 +564,10 @@ async function loadSnapshot(){
   S.orgRegL = S.orgs.map(o => (o[2] || '').toLowerCase().replace(/[\s.-]/g, ''));
   S.orgNandoL = S.orgs.map(o => (o[3] || '').toLowerCase());
   S.subLabel = Object.fromEntries(S.subsystems);
+  // every act by its year/number ("2013/321"), the form certificates cite it in
+  S.actIdx = new Map();
+  for(const [kind, list] of [['tsi', S.tsis], ['dir', S.dirs]])
+    list.forEach(t => { if(t[6] && !S.actIdx.has(t[6])) S.actIdx.set(t[6], [kind, t]); });
   // declarations citing each certificate, by the certificate's key
   S.citing = new Map();
   // (a citation of an older version counts for every current certificate
@@ -585,13 +592,16 @@ function loadCerts(){
     const today = todayISO();
     data.byKey = new Map();
     for(const c of data.certs){
+      c.n = c.n || '';   // 7 certificates record no number
       c.mf = c.mf || []; c.mo = c.mo || []; c.ts = c.ts || []; c.di = c.di || []; c.ti = c.ti || []; c.pv = c.pv || []; c.ds = c.ds || [];
-      c.nl = (c.n + ' | ' + c.pv.join(' | ')).toLowerCase();
+      c.nl = [c.n, ...(c.na || []), ...c.pv].join(' | ').toLowerCase();
       c.xl = (c.x || '').toLowerCase();
       c.til = c.ti.join(' | ').toLowerCase();
-      c.subs = [...new Set(c.ts.map(i => S.subOf[i]).filter(Boolean))];
+      c.subs = c.sb || [];   // recorded (dct:subject), not derived
       c.dates = [c.d, ...c.ds].filter(Boolean);
     }
+    data.icByKey = new Map(data.ics.map(t => [t[0], t]));
+    data.subKey = new Map(data.subsystemConcepts);
     C = data;
     for(const c of C.certs){ c.val = validityOf(c.st.map(i => C.states[i]), c.vf, c.vu, today); C.byKey.set(c.k, c); }
     return C;
@@ -776,11 +786,11 @@ function orgPicker(items, orgsOf, cHost, oHost, onChange){
   cPick.reset = (base => () => { base(); refresh(); })(cPick.reset);
 }
 const resetPickers = form => form.querySelectorAll('.msel').forEach(h => PICK[h.id].reset());
-function subsystemOptions(sel, items, noun){
+function subsystemOptions(sel, items, noneLabel){
   const bySub = countOver(items, it => it.subs.length ? it.subs : ['—']);
   fillSelect(sel, [
     ...S.subsystems.filter(([k]) => bySub.has(k)).map(([k, l]) => [k, `${l} (${fmt(bySub.get(k))})`]),
-    ['—', `No subsystem derivable from the TSIs cited (${fmt(bySub.get('—') || 0)})`],
+    ['—', `${noneLabel} (${fmt(bySub.get('—') || 0)})`],
   ], 'Please select…');
 }
 function buildDeclForm(){
@@ -790,7 +800,7 @@ function buildDeclForm(){
     `<label><input type="checkbox" name="state" value="${i}"${i === 0 ? ' checked' : ''}> ${esc(l)}</label>`).join('');
   orgPicker(S.decls, d => d.a, $('fAppCountry'), $('fAppOrg'), updateQueryPanel);
   orgPicker(S.decls, d => d.r, $('fArCountry'), $('fArOrg'), updateQueryPanel);
-  subsystemOptions($('fSubsystem'), S.decls);
+  subsystemOptions($('fSubsystem'), S.decls, 'No subsystem derivable from the TSIs cited');
   $('tsiList').innerHTML = S.tsis.map(t => `<option value="${esc(t[0])}">${esc(t[1] ? actSubject(t[1]).slice(0, 120) : 'title not recorded')}</option>`).join('');
   $('dirList').innerHTML = S.dirs.map(t => `<option value="${esc(t[0])}">${esc(t[1] ? actSubject(t[1]).slice(0, 120) : '')}</option>`).join('');
 }
@@ -805,7 +815,7 @@ function buildCertForm(){
   orgPicker(C.certs, c => c.a, $('cAppCountry'), $('cAppOrg'), updateQueryPanel);
   orgPicker(C.certs, c => c.mf.length ? c.mf : null, $('cMfCountry'), $('cMfOrg'), updateQueryPanel);
   orgPicker(C.certs, c => c.nb, $('cNbCountry'), $('cNbOrg'), updateQueryPanel);
-  subsystemOptions($('cSubsystem'), C.certs);
+  subsystemOptions($('cSubsystem'), C.certs, 'No subsystem recorded');
 }
 
 /* Picked countries / organisations; an empty list means all. */
@@ -933,7 +943,7 @@ function rowFromCert(c){
   return {
     reg:'cld', key:c.k, number:c.n, type:c.ty === undefined ? '' : C.types[c.ty][1],
     modules:c.mo.map(i => C.modules[i]), states:c.st.map(i => C.states[i]), validity:c.val,
-    issued:c.d || '', issuedAll:c.dates, validFrom:c.vf || '', validUntil:c.vu || '', version:c.v,
+    issued:c.d || '', issuedAll:c.dates, validFrom:c.vf || '', validUntil:c.vu || '', version:c.v ?? '',
     page:ERADIS_CERT_PAGE + (c.p || c.k), uri:CERT_BASE + c.k,
     nobo:nb ? nb[0] : '', nando:nb ? nb[3] : '', noboCountry:nb ? nb[1] : '',
     applicant:a ? a[0] : '', applicantCountry:a ? a[1] : '',
@@ -1022,6 +1032,60 @@ function subsystemSparql(L, subject, want){
       `${TAB}FILTER EXISTS { ${subject} eli:id_local ?subTsi . VALUES ?subTsi { ${uris.join(' ')} } }`);
   }
 }
+/* Certificates cite an act four ways since the November 2026 reload, none of
+   them the declarations' eli:id_local: a TSI part checked, a constituent or
+   the act itself (…/requirements/reg/2013/321[/2019-06-16]/WAG[/3]), an
+   amending act by CELEX number (…/celex/32019R0776), or - when era-lex lacks
+   the act - only a skos:note naming its CELEX number. Each is reduced to the
+   act's year/number, as scripts/build-eradis-snapshot.py does. The regexes
+   use [0-9] and [(] rather than backslash escapes, so they read the same in
+   this file and in the query. The notes are @en: STR() drops the tag, or
+   the result ("2008/57"@en) would never equal the plain "2008/57". */
+const ACT_OF_PATH = v => `REPLACE(STR(?${v}), "^.*/legislation/requirements/[a-z_]+/([0-9]{4})/0*([0-9]+)(/.*)?$", "$1/$2")`;
+const ACT_OF_CELEX = v => `REPLACE(STR(?${v}), "^.*/celex/3([0-9]{4})[A-Z]0*([0-9]+)$", "$1/$2")`;
+const ACT_OF_NOTE = v => `REPLACE(STR(?${v}), "^.*[(]3([0-9]{4})[A-Z]0*([0-9]+)[)] *$", "$1/$2")`;
+const LEX_NOTE = 'Legislation reference not in era-lex';
+function certRefSparql(L, label, list, text, withTitle, v){
+  const idx = resolveRefs(list, text, withTitle);
+  if(!idx) return;
+  const acts = [...new Set(idx.map(i => list[i][6]).filter(Boolean))];
+  L.push(`${TAB}# ${label} matching "${text}": ${idx.map(i => list[i][0]).join(', ') || 'none'}`,
+    `${TAB}# - by year/number, from the TSI part checked, the constituent or act (dct:subject,`,
+    `${TAB}#   dct:source), the amending act (dct:references, CELEX) or the note left when`,
+    `${TAB}#   era-lex lacks the act`);
+  if(!acts.length){ L.push(`${TAB}FILTER(false)   # no act matches this text`); return; }
+  L.push(`${TAB}FILTER EXISTS {`,
+    `${TAB}${TAB}{ ?certificate (vpa:checkedCompliance/vpa:checkedRequirement)|dct:subject|dct:source ?${v}R . BIND(${ACT_OF_PATH(v + 'R')} AS ?${v}) }`,
+    `${TAB}${TAB}UNION { ?certificate dct:references ?${v}R . BIND(${ACT_OF_CELEX(v + 'R')} AS ?${v}) }`,
+    `${TAB}${TAB}UNION { ?certificate skos:note ?${v}R . FILTER(STRSTARTS(?${v}R, "${LEX_NOTE}")) BIND(${ACT_OF_NOTE(v + 'R')} AS ?${v}) }`,
+    `${TAB}${TAB}FILTER(?${v} IN (${acts.map(lit).join(', ')}))`,
+    `${TAB}}`);
+}
+/* A certificate records its subsystem (dct:subject), in a finer scheme than
+   Annex II: on-board and trackside CCS, wagons and locomotives. */
+function certSubsystemSparql(L, want){
+  if(!want) return;
+  const concepts = C.subsystemConcepts.filter(([, k]) => want === '—' || k === want).map(([c]) => `<${ERA}concepts/subsystems/${c}>`);
+  if(want === '—') L.push(`${TAB}# Type of subsystem: none recorded (dct:subject)`,
+    `${TAB}FILTER NOT EXISTS { ?certificate dct:subject ?subF . VALUES ?subF { ${valuesBlock(concepts, TAB)} } }`);
+  else L.push(`${TAB}# Type of subsystem "${S.subLabel[want]}" (Directive 2016/797 Annex II), as recorded (dct:subject)`,
+    `${TAB}?certificate dct:subject ?subF . VALUES ?subF { ${concepts.join(' ')} }`);
+}
+/* Interoperability constituent of a certificate: since the November 2026
+   reload a TSI subdivision (dct:subject …/reg/2013/321/WAG/3) whose name is in
+   era-lex, so the constituents whose name matches are listed from the
+   snapshot's table; or a blank node with eli:title when the loader could not
+   place it in a TSI. */
+function certTitleSparql(L, text){
+  if(!text) return;
+  const q = text.toLowerCase();
+  const ics = C.ics.filter(t => t[1].toLowerCase().includes(q));
+  L.push(`${TAB}# Interoperability constituent matching "${text}" - named in era-lex for the TSI subdivision`,
+    `${TAB}# the certificate cites (${ics.length ? ics.slice(0, 6).map(t => t[1]).join('; ') + (ics.length > 6 ? '; …' : '') : 'none'}), or on a blank node`,
+    `${TAB}FILTER EXISTS { ?certificate dct:subject ?icF .`);
+  if(ics.length) L.push(`${TAB}${TAB}{ VALUES ?icF { ${valuesBlock(ics.map(t => `<${S.refBase}${t[0]}>`), TAB + TAB)} } }`, `${TAB}${TAB}UNION`);
+  L.push(`${TAB}${TAB}{ ?icF eli:title ?icTitleF . FILTER(CONTAINS(LCASE(?icTitleF), ${lc(text)})) } }`);
+}
 /* Every search is built in two parts, the way "Run live" sends it:
    - the match: which current documents pass the form, as bare URIs;
    - the fields: what the results show for each of them, one UNION branch
@@ -1033,6 +1097,7 @@ function subsystemSparql(L, subject, want){
    alone, then the fields for 1,000 documents at a time, 6 in flight. */
 const ROLE = r => `<${ERA}concepts/organisation-roles/${r}>`;
 const LOCAL = 'local';   // keep only the URI's last segment: ECDoV, inForce, DEU, dec-2002-731…
+const REF = 'ref';       // keep the URI after …/legislation/requirements/: reg/2013/321/WAG/3
 const DECL_FIELDS = [
   ['id', 'dct:identifier ?id'],
   ['type', 'dct:type ?type', LOCAL],
@@ -1052,7 +1117,8 @@ const DECL_FIELDS = [
   ['title', 'eli:title_short ?title'],
   ['tsi', 'eli:id_local ?tsi', LOCAL],
   ['dir', 'dct:source ?dir', LOCAL],
-  ['restr', 'vpa:withRestriction ?restrF BIND(1 AS ?restr)'],
+  // on a vpa:checkedCompliance node since the November 2026 reload
+  ['restr', '(vpa:withRestriction|vpa:checkedCompliance/vpa:withRestriction) ?restrF BIND(1 AS ?restr)'],
 ];
 const CERT_FIELDS = [
   ['number', 'dct:identifier ?number'],
@@ -1073,16 +1139,21 @@ const CERT_FIELDS = [
   ['mfO', `dct:contributor ?mfRole . ?mfRole era:hasOrganisationRole ${ROLE('Manufacturer')} ; era:roleOf ?mfO`, LOCAL],
   ['mf', `dct:contributor ?mfRoleN . ?mfRoleN era:hasOrganisationRole ${ROLE('Manufacturer')} ; era:roleOf/foaf:name ?mf`],
   ['module', `dct:conformsTo ?module FILTER(STRSTARTS(STR(?module), "${ERA}concepts/cld-modules/"))`, LOCAL],
-  ['title', 'eli:title_short ?title'],
-  ['tsi', 'eli:id_local ?tsi', LOCAL],
-  ['dir', 'dct:source ?dir', LOCAL],
+  // acts as year/number (see certRefSparql), constituents, recorded subsystem
+  ['lex', `(vpa:checkedCompliance/vpa:checkedRequirement)|dct:subject|dct:source ?lexR FILTER(STRSTARTS(STR(?lexR), "${ERA}legislation/requirements/")) BIND(${ACT_OF_PATH('lexR')} AS ?lex)`],
+  ['celex', `dct:references ?celexR BIND(${ACT_OF_CELEX('celexR')} AS ?celex)`],
+  ['lexNote', `skos:note ?noteR FILTER(STRSTARTS(?noteR, "${LEX_NOTE}")) BIND(${ACT_OF_NOTE('noteR')} AS ?lexNote)`],
+  ['ic', `dct:subject ?ic FILTER(STRSTARTS(STR(?ic), "${ERA}legislation/requirements/"))`, REF],
+  ['icTitle', 'dct:subject/eli:title ?icTitle'],
+  ['sub', `dct:subject ?sub FILTER(STRSTARTS(STR(?sub), "${ERA}concepts/subsystems/"))`, LOCAL],
+  ['restr', 'vpa:checkedCompliance/vpa:withRestriction/era:nonCodedRestrictions ?restrF BIND(1 AS ?restr)'],
   // the table shows 120 characters and the detail 200 (after collapsing
   // whitespace, as the snapshot does); the full text is in the detail query
   ['object', 'dct:description ?objectF BIND(SUBSTR(?objectF, 1, 300) AS ?object)'],
 ];
 const SEP = '|';
 const fieldAggregates = fields => fields.map(([k, , kind]) =>
-  `${TAB}(GROUP_CONCAT(DISTINCT ${kind === LOCAL ? `REPLACE(STR(?${k}), "^.*/", "")` : `STR(?${k})`}; SEPARATOR="${SEP}") AS ?${k}_)`).join('\n');
+  `${TAB}(GROUP_CONCAT(DISTINCT ${kind === LOCAL ? `REPLACE(STR(?${k}), "^.*/", "")` : kind === REF ? `REPLACE(STR(?${k}), "^.*/legislation/requirements/", "")` : `STR(?${k})`}; SEPARATOR="${SEP}") AS ?${k}_)`).join('\n');
 const fieldBranches = (s, fields) => `${TAB}{ ${s} ${fields[0][1]} }\n` +
   fields.slice(1).map(([, p]) => `${TAB}UNION { ${s} ${p} }`).join('\n');
 const indent = lines => lines.map(l => TAB + l);
@@ -1146,7 +1217,9 @@ ${TAB}FILTER NOT EXISTS { ?declaration dct:isReplacedBy ?newer }   # current ver
   refSparql(L, 'EC directives', '?declaration', 'dct:source', S.dirs, f.dir, false, 'dirF');
   refSparql(L, 'TSIs', '?declaration', 'eli:id_local', S.tsis, f.tsi, true, 'tsiF');
   if(f.sigFirst || f.sigLast){
-    L.push(`${TAB}# Signatory (prov:wasAttributedTo a foaf:Person)`, `${TAB}?declaration prov:wasAttributedTo ?sigF .`);
+    L.push(`${TAB}# Signatory (prov:wasAttributedTo a foaf:Person). Since the November 2026 reload the ERADIS`,
+      `${TAB}# account that submitted the declaration is attributed too; it has a foaf:accountName.`,
+      `${TAB}?declaration prov:wasAttributedTo ?sigF . FILTER NOT EXISTS { ?sigF foaf:accountName ?accountF }`);
     if(f.sigFirst) L.push(`${TAB}?sigF foaf:givenName ?sigGivenF . FILTER(CONTAINS(LCASE(?sigGivenF), ${lc(f.sigFirst)}))`);
     if(f.sigLast) L.push(`${TAB}?sigF foaf:familyName ?sigFamilyF . FILTER(CONTAINS(LCASE(?sigFamilyF), ${lc(f.sigLast)}))`);
   }
@@ -1184,7 +1257,8 @@ ${TAB}${TAB}OPTIONAL { ?window time:hasBeginning/time:inXSDDate ?validFromF }
 ${TAB}${TAB}OPTIONAL { ?window time:hasEnd/time:inXSDDate ?validUntilF } }`);
   if(byValidity) L.push(
 `${TAB}# validity, derived: withdrawn / suspended as recorded, otherwise from the
-${TAB}# dct:valid window against today's date (the recorded state is mostly "amended")
+${TAB}# dct:valid window against today's date (the recorded state says "inForce" for
+${TAB}# certificates long expired)
 ${TAB}BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
 ${TAB}BIND(IF(EXISTS { ?certificate era:state ${STATE('withdrawn')} }, "withdrawn",
 ${TAB}     IF(EXISTS { ?certificate era:state ${STATE('suspended')} }, "suspended",
@@ -1196,14 +1270,14 @@ ${TAB}FILTER(?validity IN (${f.validity.map(lit).join(', ')}))`);
   if(f.type) L.push(`${TAB}?certificate dct:type <${ERA}concepts/cld-types/${C.types[+f.type][0]}> .`);
   if(f.module) L.push(`${TAB}?certificate dct:conformsTo <${ERA}concepts/cld-modules/${C.modules[+f.module]}> .`);
   if(f.object) L.push(`${TAB}FILTER EXISTS { ?certificate dct:description ?objectF . FILTER(CONTAINS(LCASE(?objectF), ${lc(f.object)})) }`);
-  subsystemSparql(L, '?certificate', f.subsystem);
-  if(f.title) L.push(`${TAB}FILTER EXISTS { ?certificate eli:title_short ?titleF . FILTER(CONTAINS(LCASE(?titleF), ${lc(f.title)})) }`);
-  refSparql(L, 'TSIs', '?certificate', 'eli:id_local', S.tsis, f.tsi, true, 'tsiF');
-  refSparql(L, 'Directives', '?certificate', 'dct:source', S.dirs, f.dir, false, 'dirF');
+  certSubsystemSparql(L, f.subsystem);
+  certTitleSparql(L, f.title);
+  certRefSparql(L, 'TSIs', S.tsis, f.tsi, true, 'tsiF');
+  certRefSparql(L, 'Directives', S.dirs, f.dir, false, 'dirF');
   if(f.nando) L.push(`${TAB}FILTER EXISTS { ?certificate dct:creator/era:roleOf/era:role/era:nandoCode ?nandoF . FILTER(CONTAINS(LCASE(?nandoF), ${lc(f.nando)})) }`);
   if(f.from || f.to){
     const conds = [f.from && `?issuedF >= ${lit(f.from)}^^xsd:date`, f.to && `?issuedF <= ${lit(f.to)}^^xsd:date`].filter(Boolean).join(' && ');
-    L.push(`${TAB}# any of its dates of issue in range (1,631 certificates have several)`, `${TAB}FILTER EXISTS { ?certificate dct:issued ?issuedF . FILTER(${conds}) }`);
+    L.push(`${TAB}# any of its dates of issue in range (one each since the November 2026 reload)`, `${TAB}FILTER EXISTS { ?certificate dct:issued ?issuedF . FILTER(${conds}) }`);
   }
   if(f.validOn) L.push(`${TAB}# validity window covers ${f.validOn}`,
     `${TAB}FILTER((!BOUND(?validFromF) || ?validFromF <= ${lit(f.validOn)}^^xsd:date) && (!BOUND(?validUntilF) || ?validUntilF >= ${lit(f.validOn)}^^xsd:date))`);
@@ -1225,7 +1299,8 @@ function buildCertSparql(f){
 # "Run live" sends the inner SELECT first, then the fields for 1,000 certificates
 # at a time (VALUES ?certificate { … }). Validity today is derived from ?state_,
 # ?validFrom_ and ?validUntil_: withdrawn / suspended as recorded, otherwise the
-# validity window against today's date (the recorded state is mostly "amended").`, '?certificate', certMatch(f), CERT_FIELDS);
+# validity window against today's date. Acts come back as year/number (?lex_,
+# ?celex_, ?lexNote_), constituents as TSI subdivisions named in era-lex (?ic_).`, '?certificate', certMatch(f), CERT_FIELDS);
 }
 
 /* Live answers come back as TSV, a third the size of SPARQL JSON: one
@@ -1297,25 +1372,54 @@ function rowsFromLiveDecls(recs){
     };
   });
 }
+/* The number shown, as scripts/build-eradis-snapshot.py picks it: ~1,600
+   certificates carry two or three spellings of their number since the
+   November 2026 reload. A spelling containing another whole goes; then plain
+   ASCII without spaces, the NoBo/type/module/year/… structure, most slashes,
+   shortest. */
+const CERT_NUMBER = /^\d{4}\/[\d.]+\/[A-Z0-9]+\/\d{4}\//;
+function bestNumber(numbers){
+  const nums = [...new Set(numbers.filter(Boolean))];
+  if(!nums.length) return '';
+  const pool = nums.filter(n => !nums.some(m => m !== n && m.trim() && n.includes(m)));
+  const rank = n => [/[^\x00-\x7f]|\s/.test(n) ? 1 : 0, CERT_NUMBER.test(n) ? 0 : 1, -(n.split('/').length - 1), n.length];
+  return (pool.length ? pool : nums).sort((a, b) => { const x = rank(a), y = rank(b);
+    for(let i = 0; i < x.length; i++) if(x[i] !== y[i]) return x[i] - y[i];
+    return a < b ? -1 : a > b ? 1 : 0; })[0];
+}
+/* Acts as year/number -> the snapshot's TSIs and directives; an act the
+   snapshot does not know is kept by its number rather than dropped. */
+function actsOf(b){
+  const tsi = [], dir = [], unknown = [];
+  for(const a of new Set([...parts(b.lex_), ...parts(b.celex_), ...parts(b.lexNote_)])){
+    const hit = S.actIdx.get(a);
+    if(!hit) unknown.push(a); else (hit[0] === 'tsi' ? tsi : dir).push(hit[1]);
+  }
+  return {tsi, dir, unknown};
+}
 function rowsFromLiveCerts(recs){
   const today = todayISO();
+  const order = S.subsystems.map(s => s[0]);
   return recs.map(b => {
-    const tsiKeys = parts(b.tsi_), refs = refsOf(S.tsis, tsiKeys);
+    const acts = actsOf(b), refs = acts.tsi;
     const states = parts(b.state_), validFrom = parts(b.validFrom_).sort()[0] || '', validUntil = newest(b.validUntil_);
+    const titles = [...new Set([...parts(b.ic_).map(k => C.icByKey.get(k)).filter(Boolean).map(t => t[1]),
+      ...parts(b.icTitle_).map(t => t.replace(/\s+/g, ' ').trim())])];
+    const subsystems = [...new Set(parts(b.sub_).map(c => C.subKey.get(c)).filter(Boolean))].sort((x, y) => order.indexOf(x) - order.indexOf(y));
     return {
-      reg:'cld', key:+b.certificate.replace(/^.*\//, ''), number:parts(b.number_)[0] || '', type:parts(b.type_)[0] || '',
+      reg:'cld', key:+b.certificate.replace(/^.*\//, ''), number:bestNumber(parts(b.number_)), type:parts(b.type_)[0] || '',
       modules:parts(b.module_), states, validity:validityOf(states, validFrom, validUntil, today),
       issued:primaryIssued(parts(b.issued_), validUntil, today), issuedAll:[...new Set(parts(b.issued_))].sort(), validFrom, validUntil,
-      version:Math.max(0, ...parts(b.ver_).map(Number)), page:parts(b.page_)[0] || '', uri:b.certificate,
+      version:parts(b.ver_).length ? Math.max(...parts(b.ver_).map(Number)) : '', page:parts(b.page_)[0] || '', uri:b.certificate,
       ...(nb => nb ? {nobo:orgName(nb[0]), nando:S.orgs[nb[0]][3], noboCountry:S.orgs[nb[0]][1]}
         : {nobo:parts(b.nb_)[0] || '', nando:parts(b.nando_)[0] || '', noboCountry:parts(b.nbC_)[0] || ''})(knownOrgs(b.nbO_)),
       ...(app => app ? {applicant:orgName(app[0]), applicantCountry:S.orgs[app[0]][1]}
         : {applicant:parts(b.app_)[0] || '', applicantCountry:parts(b.appC_)[0] || ''})(knownOrgs(b.appO_)),
       manufacturers:orgList(b.mfO_, b.mf_, orgName),
-      titles:parts(b.title_), object:[...(b.object_ || '').replace(/\s+/g, ' ')].slice(0, 200).join(''),   // code points, as the snapshot cuts
-      subsystems:[...new Set(refs.map(t => t[3]).filter(Boolean))],
-      tsis:tsiKeys.map(k => (refs.find(t => t[2] === k) || [k])[0]), tsiRefs:refs, dirRefs:refsOf(S.dirs, parts(b.dir_)),
-      previous:[], restr:false, cited:null,
+      titles, object:[...(b.object_ || '').replace(/\s+/g, ' ')].slice(0, 200).join(''),   // code points, as the snapshot cuts
+      subsystems,
+      tsis:[...refs.map(t => t[0]), ...acts.unknown], tsiRefs:refs, dirRefs:acts.dir,
+      previous:[], restr:!!b.restr_, cited:null,
     };
   });
 }
@@ -1543,7 +1647,7 @@ PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
-SELECT ?section ?value ?extra ?date
+SELECT ?section ?value ?extra ?date ?ref
 WHERE {
 	VALUES ?documentId { "DK/0000DK18632276/2022/000003" }
 	GRAPH <http://data.europa.eu/949/graph/eradis> { ?v a era:ECDeclaration }
@@ -1557,26 +1661,34 @@ WHERE {
 		BIND("version" AS ?section)
 	} UNION {
 		FILTER(?current)
-		?v dct:relation/rdfs:member ?c .
-		FILTER(STRSTARTS(STR(?c), "http://data.europa.eu/949/evidence/cld/cld-NoBoCert/"))
-		?c dct:identifier ?value .
-		OPTIONAL { ?c dct:type/skos:prefLabel ?extra }
-		OPTIONAL { ?c dct:issued ?date }
+		?v dct:relation/rdfs:member ?ref .
+		?ref a era:CertificationLevelDocument ;
+			dct:identifier ?value .   # not rdfs:label, which most certificates lack
+		OPTIONAL { ?ref dct:type/skos:prefLabel ?extra }
+		OPTIONAL { ?ref dct:issued ?date }
 		BIND("certificate" AS ?section)
 	} UNION {
 		FILTER(?current)
-		?v vpa:withRestriction/rdfs:comment ?value .
+		# on a vpa:checkedCompliance node since the November 2026 reload
+		?v (vpa:withRestriction|vpa:checkedCompliance/vpa:withRestriction)/(era:nonCodedRestrictions|rdfs:comment) ?value .
 		BIND("restriction" AS ?section)
 	} UNION {
 		FILTER(?current)
+		?v vpa:checkedCompliance ?derogation .
+		FILTER NOT EXISTS { ?derogation vpa:withRestriction ?r }
+		?derogation rdfs:comment ?value .
+		BIND("derogation" AS ?section)
+	} UNION {
+		FILTER(?current)
 		?v prov:wasAttributedTo ?p .
+		FILTER NOT EXISTS { ?p foaf:accountName ?account }
 		OPTIONAL { ?p foaf:givenName ?given } OPTIONAL { ?p foaf:familyName ?family } OPTIONAL { ?p foaf:name ?full }
 		BIND(COALESCE(?full, CONCAT(COALESCE(?given, ""), " ", COALESCE(?family, ""))) AS ?value)
 		BIND("signatory" AS ?section)
 	} UNION {
 		FILTER(?current)
 		?v dct:relation/rdfs:member ?doc .
-		FILTER(CONTAINS(STR(?doc), "/evidence/doc/"))
+		FILTER(CONTAINS(STR(?doc), "/doc/"))   # …/ecd/evidence/N/doc/… since the reload
 		?doc rdfs:comment ?value .
 		BIND("document" AS ?section)
 	} UNION {
@@ -1597,7 +1709,7 @@ PREFIX time: <http://www.w3.org/2006/time#>
 
 SELECT ?section ?value ?extra ?date
 WHERE {
-	VALUES ?certificate { <http://data.europa.eu/949/evidence/cld/cld-NoBoCert/49896> }
+	VALUES ?certificate { <http://data.europa.eu/949/evidence/cld/49896> }
 	{
 		?certificate dct:replaces* ?v .
 		?v dct:identifier ?number ; vpa:versionNumber ?value .
@@ -1615,8 +1727,13 @@ WHERE {
 		?certificate ?p ?value .
 		BIND("statement" AS ?section)
 	} UNION {
-		?certificate vpa:checkedCompliance/vpa:withRestriction/rdfs:comment ?value .
+		# era:nonCodedRestrictions since the November 2026 reload (rdfs:comment before)
+		?certificate vpa:checkedCompliance/vpa:withRestriction/(era:nonCodedRestrictions|rdfs:comment) ?value .
 		BIND("restriction" AS ?section)
+	} UNION {
+		?certificate era:hasDocumentFile/era:documentUrl ?value .
+		BIND(REPLACE(STR(?value), "^.*[?&]fname=", "") AS ?extra)
+		BIND("file" AS ?section)
 	} UNION {
 		# same scope as the declaration search: current version of each
 		# published declaration (rejected ones share the Document ID of the
@@ -1698,11 +1815,11 @@ function showCertDetail(r){
     ['Validity', `${VALIDITY_LABEL[r.validity]} — ${r.validFrom ? 'from ' + r.validFrom : 'no start date'}${r.validUntil ? ' until ' + r.validUntil : ', open-ended'}` +
       (r.states.length ? ` (state recorded: ${r.states.join(', ')})` : '')],
     ['Date of issue', (r.issued || '—') + ((r.issuedAll || []).length > 1 ? ` (also recorded: ${r.issuedAll.filter(d => d !== r.issued).join(', ')})` : '')],
-    ['Version', String(r.version) + (r.previous.length ? ` — earlier numbers: ${r.previous.join(', ')}` : '')],
+    ['Version', (r.version === '' ? 'not recorded' : String(r.version)) + (r.previous.length ? ` — earlier numbers: ${r.previous.join(', ')}` : '')],
     ['Notified body', r.nobo ? r.nobo + (r.nando ? ` — ${r.nando}` : '') + (r.noboCountry ? ` — ${countryName(r.noboCountry)}` : '') : '—'],
     ['Applicant', r.applicant ? r.applicant + (r.applicantCountry ? ` — ${countryName(r.applicantCountry)}` : '') : '—'],
     ['Manufacturer', r.manufacturers.join('; ') || '—'],
-    ['Subsystem (derived)', r.subsystems.map(k => S.subLabel[k]).join('; ') || 'not derivable from the TSIs cited'],
+    ['Subsystem', r.subsystems.map(k => S.subLabel[k]).join('; ') || 'none recorded'],
     ['Interoperability constituent', r.titles.join('; ') || '—'],
     ['Object of assessment', r.object ? r.object + (r.object.length >= 200 ? '…' : '') : '—'],
     ['Conditions / limits of use', r.restr ? 'recorded — see the full record' : (r.cited === null ? 'see the full record' : 'none recorded')],
@@ -1714,16 +1831,23 @@ function showCertDetail(r){
       (citing.length > 60 ? `<div class="sub">…and ${fmt(citing.length - 60)} more — the full record lists them all.</div>` : '')
     : 'none among the published declarations', true]);
   detailShell(r.number, r.uri, kv, r.page, 'Open on ERADIS', q,
-    'The full record — every version, the whole object of assessment, the result and validity statements, and the conditions of use — comes from ERADIS-KG live.');
+    'The full record — every version, the whole object of assessment, the result and validity statements, the conditions of use and the published files — comes from ERADIS-KG live.');
   $('loadFull').onclick = () => loadFull(q, renderCertFull);
   if(liveOk) loadFull(q, renderCertFull);
 }
+const safeDecode = t => { try { return decodeURIComponent(t); } catch { return t; } };
 const blk = (title, html) => `<div class="detailBlock"><h3 class="sectionTitle">${esc(title)}</h3>${html}</div>`;
 function renderDeclFull(by){
   const parts = [];
   if(by.version) parts.push(blk('Versions', '<ul>' + by.version.sort((a, b) => a.value - b.value).map(v => `<li>version ${esc(v.value)} — issued ${esc(v.date)} — ${esc(v.extra)}</li>`).join('') + '</ul>'));
-  if(by.certificate) parts.push(blk('Certificates', '<ul>' + by.certificate.map(c => `<li><code>${esc(c.value)}</code>${c.extra ? ' — ' + esc(c.extra) : ''}${c.date ? ' — issued ' + esc(c.date) : ''}</li>`).join('') + '</ul>'));
+  if(by.certificate){
+    // one row per spelling of a number: one entry per certificate
+    const byRef = new Map();
+    for(const c of by.certificate){ const k = c.ref || c.value; if(!byRef.has(k)) byRef.set(k, {...c, numbers:[]}); byRef.get(k).numbers.push(c.value); }
+    parts.push(blk('Certificates', '<ul>' + [...byRef.values()].map(c => `<li><code>${esc(bestNumber(c.numbers))}</code>${c.extra ? ' — ' + esc(c.extra) : ''}${c.date ? ' — issued ' + esc(c.date) : ''}</li>`).join('') + '</ul>'));
+  }
   if(by.restriction) parts.push(blk('Conditions of use and restrictions', by.restriction.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
+  if(by.derogation) parts.push(blk('Derogations', by.derogation.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
   if(by.signatory) parts.push(blk('Signatories', '<ul>' + by.signatory.map(x => `<li>${esc(x.value)}</li>`).join('') + '</ul>'));
   if(by.attachment) parts.push(blk('Published files', '<ul>' + by.attachment.map(x => `<li><a href="${esc(x.extra)}" target="_blank" rel="noopener">${esc(x.value)}</a></li>`).join('') + '</ul>'));
   if(by.document) parts.push(blk(`Technical file (${by.document.length} documents)`, '<ul>' + by.document.map(x => `<li>${esc(x.value)}</li>`).join('') + '</ul>'));
@@ -1735,6 +1859,7 @@ function renderCertFull(by){
   if(by.assessment) parts.push(blk('Object of assessment', by.assessment.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
   if(by.statement) parts.push(blk('Statements', by.statement.map(x => `<div class="sub" style="margin-top:6px">${esc(x.extra)}</div><pre>${esc(x.value)}</pre>`).join('')));
   if(by.restriction) parts.push(blk('Conditions and limits of use', by.restriction.map(x => `<pre>${esc(x.value)}</pre>`).join('')));
+  if(by.file) parts.push(blk('Published files', '<ul>' + by.file.map(x => `<li><a href="${esc(x.value)}" target="_blank" rel="noopener">${esc(safeDecode(x.extra || x.value))}</a></li>`).join('') + '</ul>'));
   if(by.declaration) parts.push(blk(`Cited by ${by.declaration.length} EC declarations`, '<ul>' + by.declaration.map(x => `<li><button type="button" class="xlink" data-decl="${esc(x.value)}">${esc(x.value)}</button> <span class="sub">${esc(x.date)} · ${esc(x.extra)}</span></li>`).join('') + '</ul>'));
   return parts.join('');
 }
@@ -1745,7 +1870,7 @@ async function loadFull(q, render){
     const json = await sparql(q, 30000);
     const by = {};
     for(const b of json.results.bindings){
-      (by[b.section.value] = by[b.section.value] || []).push({value:b.value ? b.value.value : '', extra:b.extra ? b.extra.value : '', date:b.date ? b.date.value : ''});
+      (by[b.section.value] = by[b.section.value] || []).push({value:b.value ? b.value.value : '', extra:b.extra ? b.extra.value : '', date:b.date ? b.date.value : '', ref:b.ref ? b.ref.value : ''});
     }
     box.innerHTML = render(by) || '<div class="sub" style="margin-top:10px;">ERADIS-KG returned nothing more for this record.</div>';
   } catch(err){
@@ -1912,7 +2037,7 @@ $('csvBtn').addEventListener('click', () => {
     ['date_of_issue', r => (r.issuedAll || [r.issued]).join('|')], ['version', r => r.version], ['earlier_numbers', r => r.previous.join('|')],
     ['notified_body', r => r.nobo], ['nando', r => r.nando], ['applicant', r => r.applicant], ['applicant_country', r => r.applicantCountry],
     ['manufacturers', r => r.manufacturers.join('|')], ['constituent', r => r.titles.join('|')], ['object_of_assessment', r => r.object],
-    ['subsystem_derived', r => r.subsystems.map(k => S.subLabel[k]).join('|')], ['tsis', r => r.tsis.join('|')],
+    ['subsystem', r => r.subsystems.map(k => S.subLabel[k]).join('|')], ['tsis', r => r.tsis.join('|')],
     ['cited_by_declarations', r => r.cited === null ? '' : r.cited], ['eradis_page', r => r.page],
   ];
   const cell = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };

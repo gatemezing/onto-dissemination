@@ -2,41 +2,52 @@
 # SPARQL behind one search of the "NoBo certificates" form: notified body in
 # Hungary, subsystem "Control-command and signalling", valid today.
 #
-# Measured 2026-10-01 against the dev endpoint: 78 certificates in 0.2 s, the
-# same 78 the page finds in its snapshot. Every match, no LIMIT: all 43,471
-# current certificates take ~10 s live (the match, then the fields 1,000 at a
-# time, 6 in flight); the old one-query shape needed 88 s for the first 500.
+# Measured 2026-11-19 against the dev endpoint: 77 certificates in 0.7 s, the
+# same 77 the page finds in its snapshot (78 on 2026-10-01, before the
+# reload). Every match, no LIMIT: all 43,615 current certificates take ~14 s
+# live (the match, then the fields 1,000 at a time, 6 in flight).
 #
 # Shape: the inner SELECT says which certificates match; the UNION branches
 # outside it fetch what the results show, one field per branch, so dates,
-# manufacturers, modules and TSIs never multiply each other before the
+# manufacturers, modules and acts never multiply each other before the
 # GROUP BY. Organisation filters come first, before the validity BIND.
 #
 # How the ERADIS certificate page maps onto ERADIS-KG
-# (era:CertificationLevelDocument, all under .../evidence/cld/cld-NoBoCert/):
-#   Certificate number ........ dct:identifier (earlier numbers: dct:replaces+/dct:identifier)
+# (era:CertificationLevelDocument, …/evidence/cld/N since the November 2026
+# reload, …/evidence/cld/cld-NoBoCert/N before):
+#   Certificate number ........ dct:identifier (two or three spellings on ~1,600;
+#                               earlier numbers: dct:replaces+/dct:identifier)
 #   Certificate type .......... dct:type -> cld-types, skos:prefLabel
-#   Module(s) applied ......... dct:conformsTo -> cld-modules (5,337 certificates
+#   Module(s) applied ......... dct:conformsTo -> cld-modules (some certificates
 #                               also point at Decision 2010/713, which is not a module)
 #   Object of assessment ...... dct:description
-#   TSI(s) / Directives ....... eli:id_local / dct:source
-#   Interoperability constituent  eli:title_short
-#   Subsystem ................. not in ERADIS-KG - derived from the TSIs, as for declarations
+#   Subsystem ................. dct:subject -> concepts/subsystems/… (recorded since
+#                               the reload; derived from the TSIs before)
+#   Interoperability constituent  dct:subject -> a TSI subdivision
+#                               (…/requirements/reg/2013/321/WAG/3), named in era-lex
+#                               (eli:title "Wheel"); or a blank node with eli:title
+#   TSI(s) / Directives ....... no longer eli:id_local: the act's year/number, from
+#                               vpa:checkedCompliance/vpa:checkedRequirement (the TSI
+#                               part checked), dct:subject, dct:source, dct:references
+#                               (CELEX, the amending acts), or a skos:note when era-lex
+#                               lacks the act ("… (32008L0057)")
 #   Applicant ................. dct:audience -> era:roleOf
 #   Manufacturer .............. dct:contributor (Manufacturer role) -> era:roleOf
 #   NoBo (name, NANDO) ........ dct:creator -> era:roleOf; era:role/era:nandoCode
-#   Date of issue ............. dct:issued (several on 1,631 certificates)
+#   Date of issue ............. dct:issued (one per certificate since the reload)
 #   Valid from / until ........ dct:valid -> time:hasBeginning / time:hasEnd -> time:inXSDDate
 #   Statements, conditions .... era:resultStatement, era:validityStatement,
 #                               era:sequenceStatement; vpa:checkedCompliance/
-#                               vpa:withRestriction/rdfs:comment (see cld-detail.rq)
+#                               vpa:withRestriction/era:nonCodedRestrictions (see cld-detail.rq)
+#   Published files ........... era:hasDocumentFile/era:documentUrl
 #
 # Validity is derived, not recorded: withdrawn and suspended as recorded in
 # era:state, otherwise from the validity window against today's date - in the
 # match when the form filters on it (as here), and by the page from ?state_,
-# ?validFrom_ and ?validUntil_ for display. The
-# recorded state alone says "amended" for 42,088 of the ~43,500 current
-# certificates and "inForce" for 12.
+# ?validFrom_ and ?validUntil_ for display. The recorded state alone is no
+# guide: on 2026-11-19, 17,081 of the 41,101 current certificates recorded as
+# "inForce" were past the end of their validity window.
+
 
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX dct:  <http://purl.org/dc/terms/>
@@ -71,9 +82,13 @@ SELECT ?certificate (MAX(?issued) AS ?lastIssued)
 	(GROUP_CONCAT(DISTINCT REPLACE(STR(?mfO), "^.*/", ""); SEPARATOR="|") AS ?mfO_)
 	(GROUP_CONCAT(DISTINCT STR(?mf); SEPARATOR="|") AS ?mf_)
 	(GROUP_CONCAT(DISTINCT REPLACE(STR(?module), "^.*/", ""); SEPARATOR="|") AS ?module_)
-	(GROUP_CONCAT(DISTINCT STR(?title); SEPARATOR="|") AS ?title_)
-	(GROUP_CONCAT(DISTINCT REPLACE(STR(?tsi), "^.*/", ""); SEPARATOR="|") AS ?tsi_)
-	(GROUP_CONCAT(DISTINCT REPLACE(STR(?dir), "^.*/", ""); SEPARATOR="|") AS ?dir_)
+	(GROUP_CONCAT(DISTINCT STR(?lex); SEPARATOR="|") AS ?lex_)
+	(GROUP_CONCAT(DISTINCT STR(?celex); SEPARATOR="|") AS ?celex_)
+	(GROUP_CONCAT(DISTINCT STR(?lexNote); SEPARATOR="|") AS ?lexNote_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?ic), "^.*/legislation/requirements/", ""); SEPARATOR="|") AS ?ic_)
+	(GROUP_CONCAT(DISTINCT STR(?icTitle); SEPARATOR="|") AS ?icTitle_)
+	(GROUP_CONCAT(DISTINCT REPLACE(STR(?sub), "^.*/", ""); SEPARATOR="|") AS ?sub_)
+	(GROUP_CONCAT(DISTINCT STR(?restr); SEPARATOR="|") AS ?restr_)
 	(GROUP_CONCAT(DISTINCT STR(?object); SEPARATOR="|") AS ?object_)
 WHERE {
 	# which documents match the form
@@ -88,15 +103,16 @@ WHERE {
 		OPTIONAL { ?window time:hasBeginning/time:inXSDDate ?validFromF }
 		OPTIONAL { ?window time:hasEnd/time:inXSDDate ?validUntilF } }
 		# validity, derived: withdrawn / suspended as recorded, otherwise from the
-	# dct:valid window against today's date (the recorded state is mostly "amended")
+	# dct:valid window against today's date (the recorded state says "inForce" for
+	# certificates long expired)
 	BIND(xsd:date(SUBSTR(STR(NOW()), 1, 10)) AS ?today)
 	BIND(IF(EXISTS { ?certificate era:state <http://data.europa.eu/949/concepts/evidence-document-states/withdrawn> }, "withdrawn",
 	     IF(EXISTS { ?certificate era:state <http://data.europa.eu/949/concepts/evidence-document-states/suspended> }, "suspended",
 	     IF(BOUND(?validUntilF) && ?validUntilF < ?today, "expired",
 	     IF(BOUND(?validFromF) && ?validFromF > ?today, "notyet", "valid")))) AS ?validity)
 	FILTER(?validity IN ("valid"))
-		# Type of subsystem "Control-command and signalling" (Directive 2016/797 Annex II), derived from the TSIs cited
-		FILTER EXISTS { ?certificate eli:id_local ?subTsi . VALUES ?subTsi { <http://data.europa.eu/949/legislation/requirements/dec-2002-731> <http://data.europa.eu/949/legislation/requirements/dec-2004-447> <http://data.europa.eu/949/legislation/requirements/dec-2006-679> <http://data.europa.eu/949/legislation/requirements/dec-2006-860> <http://data.europa.eu/949/legislation/requirements/dec-2007-153> <http://data.europa.eu/949/legislation/requirements/dec-2008-386> <http://data.europa.eu/949/legislation/requirements/dec-2009-561> <http://data.europa.eu/949/legislation/requirements/dec-2010-79> <http://data.europa.eu/949/legislation/requirements/dec-2012-463> <http://data.europa.eu/949/legislation/requirements/dec-2012-696> <http://data.europa.eu/949/legislation/requirements/dec-2012-88> <http://data.europa.eu/949/legislation/requirements/dec-2015-14> <http://data.europa.eu/949/legislation/requirements/reg-2016-919> <http://data.europa.eu/949/legislation/requirements/reg_impl-2020-420> <http://data.europa.eu/949/legislation/requirements/reg_impl-2023-1695> } }
+		# Type of subsystem "Control-command and signalling" (Directive 2016/797 Annex II), as recorded (dct:subject)
+		?certificate dct:subject ?subF . VALUES ?subF { <http://data.europa.eu/949/concepts/subsystems/OnboardControlCommandSignalling> <http://data.europa.eu/949/concepts/subsystems/TracksideControlCommandSignalling> }
 	} }
 	# what the results show - one field per branch, so they never multiply
 	{ ?certificate dct:identifier ?number }
@@ -117,9 +133,13 @@ WHERE {
 	UNION { ?certificate dct:contributor ?mfRole . ?mfRole era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/Manufacturer> ; era:roleOf ?mfO }
 	UNION { ?certificate dct:contributor ?mfRoleN . ?mfRoleN era:hasOrganisationRole <http://data.europa.eu/949/concepts/organisation-roles/Manufacturer> ; era:roleOf/foaf:name ?mf }
 	UNION { ?certificate dct:conformsTo ?module FILTER(STRSTARTS(STR(?module), "http://data.europa.eu/949/concepts/cld-modules/")) }
-	UNION { ?certificate eli:title_short ?title }
-	UNION { ?certificate eli:id_local ?tsi }
-	UNION { ?certificate dct:source ?dir }
+	UNION { ?certificate (vpa:checkedCompliance/vpa:checkedRequirement)|dct:subject|dct:source ?lexR FILTER(STRSTARTS(STR(?lexR), "http://data.europa.eu/949/legislation/requirements/")) BIND(REPLACE(STR(?lexR), "^.*/legislation/requirements/[a-z_]+/([0-9]{4})/0*([0-9]+)(/.*)?$", "$1/$2") AS ?lex) }
+	UNION { ?certificate dct:references ?celexR BIND(REPLACE(STR(?celexR), "^.*/celex/3([0-9]{4})[A-Z]0*([0-9]+)$", "$1/$2") AS ?celex) }
+	UNION { ?certificate skos:note ?noteR FILTER(STRSTARTS(?noteR, "Legislation reference not in era-lex")) BIND(REPLACE(STR(?noteR), "^.*[(]3([0-9]{4})[A-Z]0*([0-9]+)[)] *$", "$1/$2") AS ?lexNote) }
+	UNION { ?certificate dct:subject ?ic FILTER(STRSTARTS(STR(?ic), "http://data.europa.eu/949/legislation/requirements/")) }
+	UNION { ?certificate dct:subject/eli:title ?icTitle }
+	UNION { ?certificate dct:subject ?sub FILTER(STRSTARTS(STR(?sub), "http://data.europa.eu/949/concepts/subsystems/")) }
+	UNION { ?certificate vpa:checkedCompliance/vpa:withRestriction/era:nonCodedRestrictions ?restrF BIND(1 AS ?restr) }
 	UNION { ?certificate dct:description ?objectF BIND(SUBSTR(?objectF, 1, 300) AS ?object) }
 }
 GROUP BY ?certificate

@@ -1,0 +1,18 @@
+# ERADIS snapshot, lookup in era-lex - the interoperability constituents NoBo
+# certificates name, resolved to their title in the era-lex repository.
+#
+# Endpoint: https://graph.dev.data.test-era.europa.eu/repositories/era-lex
+# ##VALUES## is filled by scripts/build-eradis-snapshot.py with the
+# …/legislation/requirements/<act>/<TSI>/<n> URIs certificates cite with
+# dct:subject. Since the November 2026 reload ERADIS-KG records only that URI;
+# the name ("Wheel") and the TSI section it is listed in ("5.3.3") are in
+# era-lex, as an eli:LegalResourceSubdivision of the TSI.
+PREFIX eli:  <http://data.europa.eu/eli/ontology#>
+
+SELECT ?ic (SAMPLE(?t) AS ?title) (SAMPLE(?n) AS ?number)
+WHERE {
+	VALUES ?ic { ##VALUES## }
+	?ic eli:title ?t .
+	OPTIONAL { ?ic eli:number ?n }
+}
+GROUP BY ?ic

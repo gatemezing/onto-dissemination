@@ -12,6 +12,7 @@
 #   assessment   the object of assessment in full (dct:description)
 #   statement    result / validity / sequence statements and the documentation note
 #   restriction  conditions and limits of use
+#   file         the certificate's files published on ERADIS
 #   declaration  EC declarations citing any version of this certificate
 
 PREFIX era:  <http://data.europa.eu/949/>
@@ -22,7 +23,7 @@ PREFIX time: <http://www.w3.org/2006/time#>
 
 SELECT ?section ?value ?extra ?date
 WHERE {
-	VALUES ?certificate { <http://data.europa.eu/949/evidence/cld/cld-NoBoCert/49896> }
+	VALUES ?certificate { <http://data.europa.eu/949/evidence/cld/49896> }
 	{
 		?certificate dct:replaces* ?v .
 		?v dct:identifier ?number ; vpa:versionNumber ?value .
@@ -40,8 +41,13 @@ WHERE {
 		?certificate ?p ?value .
 		BIND("statement" AS ?section)
 	} UNION {
-		?certificate vpa:checkedCompliance/vpa:withRestriction/rdfs:comment ?value .
+		# era:nonCodedRestrictions since the November 2026 reload (rdfs:comment before)
+		?certificate vpa:checkedCompliance/vpa:withRestriction/(era:nonCodedRestrictions|rdfs:comment) ?value .
 		BIND("restriction" AS ?section)
+	} UNION {
+		?certificate era:hasDocumentFile/era:documentUrl ?value .
+		BIND(REPLACE(STR(?value), "^.*[?&]fname=", "") AS ?extra)
+		BIND("file" AS ?section)
 	} UNION {
 		# same scope as the declaration search: current version of each
 		# published declaration (rejected ones share the Document ID of the

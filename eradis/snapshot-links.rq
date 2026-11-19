@@ -6,9 +6,13 @@
 #   dir      EC directive / regulation cited  (dct:source)
 #   cert     NoBo certificate number (dct:identifier), with its issue date as
 #            ?extra and the certificate itself as ?ref - which may be an older
-#            version of the certificate (5,681 of 82,082 links); the build script
-#            maps it to the current version
-#   restr    1 when conditions of use / restrictions are recorded
+#            version of the certificate; the build script maps it to the current
+#            version. Since the November 2026 reload ~1,600 certificates carry
+#            two or three spellings of their number (one row each); the build
+#            script keeps one per certificate
+#   restr    1 when conditions of use / restrictions are recorded - since the
+#            November 2026 reload on a vpa:checkedCompliance node
+#            (…/ecd/clou-compliance/N), no longer directly on the declaration
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX dct:  <http://purl.org/dc/terms/>
 PREFIX vpa:  <https://w3id.org/vpa#>
@@ -41,8 +45,9 @@ WHERE {
 	UNION { ?declaration eli:id_local ?value . BIND("tsi" AS ?kind) }
 	UNION { ?declaration dct:source ?value . BIND("dir" AS ?kind) }
 	UNION { ?declaration dct:relation/rdfs:member ?cert .
-	        FILTER(STRSTARTS(STR(?cert), "http://data.europa.eu/949/evidence/cld/cld-NoBoCert/"))
-	        ?cert dct:identifier ?value . OPTIONAL { ?cert dct:issued ?extra }
+	        ?cert a era:CertificationLevelDocument ; dct:identifier ?value .
+	        OPTIONAL { ?cert dct:issued ?extra }
 	        BIND(?cert AS ?ref) BIND("cert" AS ?kind) }
-	UNION { FILTER EXISTS { ?declaration vpa:withRestriction ?r } BIND("1" AS ?value) BIND("restr" AS ?kind) }
+	UNION { FILTER EXISTS { ?declaration vpa:withRestriction|vpa:checkedCompliance/vpa:withRestriction ?r }
+	        BIND("1" AS ?value) BIND("restr" AS ?kind) }
 }

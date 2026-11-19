@@ -10,9 +10,15 @@
 #
 # Sections:
 #   version      one row per version: state, date issued, date accepted
-#   certificate  NoBo certificate number, certificate type (cld-types), date issued
+#   certificate  NoBo certificate number, certificate type (cld-types), date issued;
+#                ?ref is the certificate, which since the November 2026 reload can
+#                carry two or three spellings of its number (one row each)
 #   restriction  conditions of use / restrictions text (current version)
-#   signatory    signatory name (current version) - personal data, shown live only
+#   derogation   derogations from TSIs, recorded as legacy data (current version)
+#   signatory    signatory name (current version) - personal data, shown live only.
+#                The ERADIS account that submitted the declaration is attributed
+#                too since the reload (foaf:accountName, with e-mail and phone);
+#                it is left out
 #   document     technical-file documents listed (current version)
 #   attachment   the declaration's own files published on ERADIS (current version)
 
@@ -24,7 +30,7 @@ PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
-SELECT ?section ?value ?extra ?date
+SELECT ?section ?value ?extra ?date ?ref
 WHERE {
 	VALUES ?documentId { "DK/0000DK18632276/2022/000003" }
 	GRAPH <http://data.europa.eu/949/graph/eradis> { ?v a era:ECDeclaration }
@@ -38,26 +44,34 @@ WHERE {
 		BIND("version" AS ?section)
 	} UNION {
 		FILTER(?current)
-		?v dct:relation/rdfs:member ?c .
-		FILTER(STRSTARTS(STR(?c), "http://data.europa.eu/949/evidence/cld/cld-NoBoCert/"))
-		?c dct:identifier ?value .   # rdfs:label is only on 20,456 of 47,908 certificates
-		OPTIONAL { ?c dct:type/skos:prefLabel ?extra }
-		OPTIONAL { ?c dct:issued ?date }
+		?v dct:relation/rdfs:member ?ref .
+		?ref a era:CertificationLevelDocument ;
+			dct:identifier ?value .   # not rdfs:label, which most certificates lack
+		OPTIONAL { ?ref dct:type/skos:prefLabel ?extra }
+		OPTIONAL { ?ref dct:issued ?date }
 		BIND("certificate" AS ?section)
 	} UNION {
 		FILTER(?current)
-		?v vpa:withRestriction/rdfs:comment ?value .
+		# on a vpa:checkedCompliance node since the November 2026 reload
+		?v (vpa:withRestriction|vpa:checkedCompliance/vpa:withRestriction)/(era:nonCodedRestrictions|rdfs:comment) ?value .
 		BIND("restriction" AS ?section)
 	} UNION {
 		FILTER(?current)
+		?v vpa:checkedCompliance ?derogation .
+		FILTER NOT EXISTS { ?derogation vpa:withRestriction ?r }
+		?derogation rdfs:comment ?value .
+		BIND("derogation" AS ?section)
+	} UNION {
+		FILTER(?current)
 		?v prov:wasAttributedTo ?p .
+		FILTER NOT EXISTS { ?p foaf:accountName ?account }
 		OPTIONAL { ?p foaf:givenName ?given } OPTIONAL { ?p foaf:familyName ?family } OPTIONAL { ?p foaf:name ?full }
 		BIND(COALESCE(?full, CONCAT(COALESCE(?given, ""), " ", COALESCE(?family, ""))) AS ?value)
 		BIND("signatory" AS ?section)
 	} UNION {
 		FILTER(?current)
 		?v dct:relation/rdfs:member ?doc .
-		FILTER(CONTAINS(STR(?doc), "/evidence/doc/"))
+		FILTER(CONTAINS(STR(?doc), "/doc/"))   # …/ecd/evidence/N/doc/… since the reload
 		?doc rdfs:comment ?value .
 		BIND("document" AS ?section)
 	} UNION {

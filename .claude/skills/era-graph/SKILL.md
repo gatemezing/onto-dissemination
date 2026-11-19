@@ -343,14 +343,26 @@ does not publish it", and worth reporting separately.
 ## ERADIS-KG and era-lex — EC declarations and the acts they cite
 
 On the dev server (`graph.dev.data.test-era.europa.eu`); production `ERADIS-KG`
-answers 401. **Since 2026-10-12 the dev server answers 401 too** (anonymous
-access switched off; login is Entra ID or password). It now reflects the
-request's `Origin` in `Access-Control-Allow-Origin` with
-`Access-Control-Allow-Credentials: true` (measured 2026-10-20), so a cross-origin
-page gets the 401 rather than a CORS failure — but still no data.
-`era-eradis-explorer.html` searches a snapshot (`scripts/build-eradis-snapshot.py`)
-and emits the same search as SPARQL; the snapshot can't be rebuilt without
-credentials. Probe `…/rest/security/free-access` before debugging a query.
+answers 401. Dev access has flipped twice: anonymous until 2026-10-12, 401
+until November 2026, and **open again on 2026-11-19** (`rest/security/free-access`
+grants READ on ERADIS-KG, era-lex, OCR-KG, ERA-Onto, VKM-KG, rinf-plus). It
+reflects the request's `Origin` in `Access-Control-Allow-Origin` (with
+`Allow-Credentials: true`), preflight included, so a page on GitHub Pages reads
+it directly. `era-eradis-explorer.html` searches a snapshot
+(`scripts/build-eradis-snapshot.py`, ~1 min) and runs the same SPARQL live.
+Probe `…/rest/security/free-access` before debugging a query.
+
+**ERA reloaded ERADIS-KG in November 2026** and the certificate model changed
+(declarations barely did). Before trusting an older query, check:
+- certificates are `…/evidence/cld/N` (same `N`), no longer `…/cld-NoBoCert/N` — a
+  `STRSTARTS` on the old prefix silently drops every declaration → certificate link;
+- a declaration's restriction moved to `vpa:checkedCompliance/vpa:withRestriction`
+  (`era:nonCodedRestrictions`); a certificate's text is `era:nonCodedRestrictions`, not `rdfs:comment`;
+- `prov:wasAttributedTo` on a declaration now includes the submitting ERADIS
+  account (`…/person/eradis-user/N`, with `foaf:accountName`, mbox, phone) as
+  well as the signatories (`…/person/sig/…`): exclude `foaf:accountName` holders
+  for signatories;
+- `skos:note`s are `@en`: `REPLACE(?note, …)` keeps the tag, so compare `STR()`.
 
 - **Pin only the declaration to its graph.** Declarations are in
   `graph/eradis` (the draft graph holds 979 unpublished submissions), but
@@ -363,7 +375,7 @@ credentials. Probe `…/rest/security/free-access` before debugging a query.
   `dct:contributor` in the Manufacturer role, notified body = `dct:contributor`
   in the NOBO role, always via `era:roleOf`. The applicant's registration number
   is inside the Document ID (`CC/registration/year/seq`).
-- **No subsystem property.** Derive it from the TSIs cited (`eli:id_local`)
+- **No subsystem property on declarations.** Derive it from the TSIs cited (`eli:id_local`)
   resolved in **era-lex**, never from the ERADIS-KG labels alone: the
   most-cited amending regulations (2019/776, 2020/387, 2023/1695, …) have no
   title there.
@@ -375,16 +387,30 @@ credentials. Probe `…/rest/security/free-access` before debugging a query.
     `…(1)/oj` / `…(2)/oj`, where `(2)` is an EEA decision. ERADIS-KG's
     `owl:sameAs` points at a URI era-lex does not have.
 - **NoBo certificates are `era:CertificationLevelDocument`**
-  (`…/evidence/cld/cld-NoBoCert/N`, 47,908 of them).
+  (`…/evidence/cld/N`, 48,117 of them; 43,615 current and published on 2026-11-19).
   - Roles: notified body = `dct:creator`, applicant = `dct:audience`,
     manufacturer = `dct:contributor`.
-  - The certificate number is `dct:identifier`. Read it there, never from
-    `rdfs:label`, which only 20,456 certificates have.
-  - **Don't trust `era:state` for validity**: 42,088 current certificates say
-    "amended". Use the `dct:valid` window, with withdrawn and suspended as
-    recorded.
-  - `dct:issued` is multi-valued on 1,631 certificates, and sometimes holds the
-    validity end.
+  - The certificate number is `dct:identifier`, never `rdfs:label`. Since the
+    reload ~1,600 certificates carry two or three spellings (as typed, plus a
+    cleaned copy): pick one, search all.
+  - **Don't trust `era:state` for validity**: on 2026-11-19, 17,081 of the
+    41,101 current certificates saying "inForce" were past their window (before
+    the reload 42,088 said "amended"). Use the `dct:valid` window, with
+    withdrawn and suspended as recorded.
+  - **Subsystem is recorded** since the reload: `dct:subject` →
+    `concepts/subsystems/…` (finer than Annex II: on-board/trackside CCS,
+    wagons/locomotives), on 42,496 certificates.
+  - **Acts: no `eli:id_local` any more.** Reduce each to year/number from four
+    sources: `vpa:checkedCompliance/vpa:checkedRequirement` and `dct:subject`
+    (`…/requirements/reg/2013/321[/2019-06-16]/WAG[/3]`), `dct:source`
+    (`…/requirements/dir/2016/797` — slash form, unlike declarations' `dir-2016-797`),
+    `dct:references` (`…/celex/32019R0776`), and `skos:note "Legislation reference
+    not in era-lex: '2008/57/EC' (32008L0057)"` — the only trace of Directive
+    2008/57 (7,539 certificates), 2019/774 and 2020/700.
+  - **Constituents** are TSI subdivisions (`dct:subject …/reg/2013/321/WAG/3`)
+    whose name is only in **era-lex** (`eli:title "Wheel"`); unplaced ones are
+    blank nodes with `eli:title`.
+  - `dct:issued` is single-valued since the reload (1,631 had several before).
   - Replacement chains are open: an old version can lack `dct:isReplacedBy`.
     Count a citation for every current `?c dct:replaces* ?cited`.
 - **Query shape for "every match" (measured 2026-10-01):**
@@ -546,7 +572,7 @@ from the browser and share a dependency-free XLSX writer.
 | `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters, multi-country/multi-line with "Select all", plus a network map |
 | `era-route-book.html` | `/routebook.html` | TSI OPE Appendix D2 elements + coverage, multi-country/multi-line with "Select all", plus a network map |
 | `era-eurostat-exporter.html` | `/eurostat.html` | the two Eurostat CSV extracts (sections + track parameters with point positions, TEN-T flags), "no data" for missing values; queries generated by `scripts/build-eurostat-queries.py` |
-| `era-eradis-explorer.html` | `/eradis.html` | ERADIS-KG EC declarations and NoBo certificates with the ERADIS search forms, multi-country/multi-organisation pickers (nothing picked = all), over a snapshot, every search also as SPARQL |
+| `era-eradis-explorer.html` | `/eradis.html` | ERADIS-KG EC declarations and NoBo certificates with the ERADIS search forms, multi-country/multi-organisation pickers (nothing picked = all), over a snapshot, every search also as SPARQL and runnable live |
 | `era-shacl-viewer.html` | `/shapes.html` | ERA's SHACL shapes as navigable node-shape cards: PROD (live), UAT (published file), a PROD → UAT comparison, or the OWL gap analysis of the UAT release (axioms vs shapes, immediate actions, Markdown/CSV export); also any SHACL file dropped in |
 | `era-eratv-explorer.html` | `/eratv.html` | UAT ERATV-KG vehicle types with the ERATV advanced-search fields: an index loaded live (7 queries, ~2 s) searched in the page, every search also as SPARQL and checked live; full record with authorisation history and the technical characteristics in ERATV numbering |
 

@@ -1,8 +1,10 @@
-# ERADIS snapshot - the TSIs and directives cited by declarations and certificates, with the notation,
+# ERADIS snapshot - the TSIs and directives cited by declarations, with the notation,
 # title and owl:sameAs ELI that ERADIS-KG records. Titles and ELIs are
 # incomplete here (the most-cited amending regulations have neither), so the
 # build script resolves every act in the era-lex repository as well - see
-# snapshot-lex.rq.
+# snapshot-lex.rq. Certificates cite acts differently since the November 2026
+# reload (see snapshot-certificate-links.rq); the build script adds the acts
+# only certificates cite.
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX dct:  <http://purl.org/dc/terms/>
 PREFIX vpa:  <https://w3id.org/vpa#>
@@ -18,9 +20,7 @@ PREFIX owl:  <http://www.w3.org/2002/07/owl#>
 SELECT ?ref ?kind (SAMPLE(?n) AS ?notation) (SAMPLE(?l) AS ?label) (SAMPLE(?e) AS ?eli)
 WHERE {
 	{ SELECT DISTINCT ?ref ?kind WHERE {
-		# cited by a declaration or by a NoBo certificate
-		{ GRAPH <http://data.europa.eu/949/graph/eradis> { ?doc a era:ECDeclaration } }
-		UNION { GRAPH <http://data.europa.eu/949/graph/eradis> { ?doc a era:CertificationLevelDocument } }
+		GRAPH <http://data.europa.eu/949/graph/eradis> { ?doc a era:ECDeclaration }
 		{ ?doc eli:id_local ?ref BIND("tsi" AS ?kind) }
 		UNION { ?doc dct:source ?ref BIND("dir" AS ?kind) }
 	} }
