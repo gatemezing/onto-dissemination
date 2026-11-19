@@ -2,8 +2,11 @@
 # current version.
 # Endpoint: https://graph.dev.data.test-era.europa.eu/repositories/ERADIS-KG
 #
-# A certificate may carry several dct:issued dates (1,631 do) and several
-# era:state values (e.g. "amended" and "suspended"); both are concatenated.
+# A certificate may carry several dct:issued dates (1,631 do), several
+# era:state values, and - since the November 2026 reload - two or three
+# spellings of its number in dct:identifier (~1,600 do: the number as typed,
+# plus a cleaned copy). All three are concatenated; the build script picks the
+# number shown and keeps the others searchable.
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX dct:  <http://purl.org/dc/terms/>
 PREFIX vpa:  <https://w3id.org/vpa#>
@@ -12,23 +15,27 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX time: <http://www.w3.org/2006/time#>
 
-SELECT ?certificate ?certNumber ?type ?typeLabel ?version ?validFrom ?validUntil ?eradisPage
+SELECT ?certificate ?type ?typeLabel ?version ?validFrom ?validUntil ?eradisPage
        ?noboOrg ?applicantOrg ?description
+       (GROUP_CONCAT(DISTINCT STR(?num); SEPARATOR="|") AS ?certNumbers)
        (GROUP_CONCAT(DISTINCT STR(?st); SEPARATOR="|") AS ?states)
        (GROUP_CONCAT(DISTINCT STR(?iss); SEPARATOR="|") AS ?issued)
 WHERE {
 	# Current version of each NoBo certificate (era:CertificationLevelDocument).
 	# Only unpublished drafts are left out: a certificate whose only state is
-	# "draft". The recorded state is otherwise a poor guide to validity (42,088
-	# of the ~44,500 current certificates say "amended", 12 say "inForce"), so
-	# validity is judged from the dct:valid window - see the explorer.
+	# "draft". Validity is judged from the dct:valid window, with withdrawn and
+	# suspended as recorded - see the explorer. (Before the November 2026 reload
+	# 42,088 current certificates said "amended"; they now mostly say "inForce",
+	# whatever their window.)
 	GRAPH <http://data.europa.eu/949/graph/eradis> { ?certificate a era:CertificationLevelDocument }
 	FILTER NOT EXISTS { ?certificate dct:isReplacedBy ?newer }
 	FILTER EXISTS { ?certificate era:state ?publishedState
 		FILTER(?publishedState != <http://data.europa.eu/949/concepts/evidence-document-states/draft>) }
-	?certificate dct:identifier ?certNumber ;
-		vpa:versionNumber ?version ;
-		era:state ?st .
+	?certificate era:state ?st .
+	# optional since the November 2026 reload: 7 current certificates have no
+	# number and 50 no version number, and the live search keeps them too
+	OPTIONAL { ?certificate dct:identifier ?num }
+	OPTIONAL { ?certificate vpa:versionNumber ?version }
 	OPTIONAL { ?certificate dct:issued ?iss }
 	OPTIONAL { ?certificate dct:type ?type . OPTIONAL { ?type skos:prefLabel ?typeLabel } }
 	OPTIONAL { ?certificate dct:valid ?window .
@@ -39,4 +46,4 @@ WHERE {
 	OPTIONAL { ?certificate dct:audience/era:roleOf ?applicantOrg }  # applicant
 	OPTIONAL { ?certificate dct:description ?description }         # object of assessment
 }
-GROUP BY ?certificate ?certNumber ?type ?typeLabel ?version ?validFrom ?validUntil ?eradisPage ?noboOrg ?applicantOrg ?description
+GROUP BY ?certificate ?type ?typeLabel ?version ?validFrom ?validUntil ?eradisPage ?noboOrg ?applicantOrg ?description

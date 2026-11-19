@@ -2,13 +2,27 @@
 # (certificate, kind, value) rows:
 #   manu     manufacturer organisation         (dct:contributor, Manufacturer role)
 #   module   conformity assessment module      (dct:conformsTo, cld-modules only -
-#            5,337 certificates also point at Decision 2010/713, the modules
+#            some certificates also point at Decision 2010/713, the modules
 #            decision itself, which is not a module)
-#   tsi      TSI                               (eli:id_local)
-#   dir      directive                         (dct:source)
-#   title    interoperability constituent      (eli:title_short)
 #   prev     number of an earlier version      (dct:replaces+, dct:identifier)
 #   restr    1 when conditions / limits of use are recorded
+#            (vpa:checkedCompliance/vpa:withRestriction/era:nonCodedRestrictions)
+#   sub      subsystem, as recorded            (dct:subject, concepts/subsystems/…)
+# and the legal acts. Since the November 2026 reload a certificate no longer
+# cites its TSIs with eli:id_local; an act now comes four ways, and the build
+# script reduces each to the act's year and number:
+#   req      TSI part checked                  (vpa:checkedCompliance/vpa:checkedRequirement,
+#            …/requirements/reg/2013/321[/2019-06-16]/WAG)
+#   src      act cited                         (dct:source, …/requirements/dir/2016/797 -
+#            the directive, and for some certificates TSI regulations too)
+#   ic       interoperability constituent      (dct:subject, …/requirements/reg/2013/321/WAG/3 -
+#            its name, "Wheel", is in era-lex, not in ERADIS-KG)
+#   ictitle  constituent the loader could not place in a TSI (dct:subject on a
+#            blank node, era:InteroperabilityConstituent with eli:title)
+#   celex    amending act                      (dct:references, …/resource/celex/32019R0776)
+#   lexnote  act missing from era-lex, recorded only as a note
+#            (skos:note "Legislation reference not in era-lex: '2008/57/EC' (32008L0057)")
+
 PREFIX era:  <http://data.europa.eu/949/>
 PREFIX dct:  <http://purl.org/dc/terms/>
 PREFIX vpa:  <https://w3id.org/vpa#>
@@ -20,10 +34,7 @@ PREFIX time: <http://www.w3.org/2006/time#>
 SELECT ?certificate ?kind ?value
 WHERE {
 	# Current version of each NoBo certificate (era:CertificationLevelDocument).
-	# Only unpublished drafts are left out: a certificate whose only state is
-	# "draft". The recorded state is otherwise a poor guide to validity (42,088
-	# of the ~44,500 current certificates say "amended", 12 say "inForce"), so
-	# validity is judged from the dct:valid window - see the explorer.
+	# Only unpublished drafts are left out: a certificate whose only state is "draft".
 	GRAPH <http://data.europa.eu/949/graph/eradis> { ?certificate a era:CertificationLevelDocument }
 	FILTER NOT EXISTS { ?certificate dct:isReplacedBy ?newer }
 	FILTER EXISTS { ?certificate era:state ?publishedState
@@ -34,12 +45,22 @@ WHERE {
 	UNION { ?certificate dct:conformsTo ?value .
 	        FILTER(STRSTARTS(STR(?value), "http://data.europa.eu/949/concepts/cld-modules/"))
 	        BIND("module" AS ?kind) }
-	UNION { ?certificate eli:id_local ?value . BIND("tsi" AS ?kind) }
-	UNION { ?certificate dct:source ?value . BIND("dir" AS ?kind) }
-	UNION { ?certificate eli:title_short ?value . BIND("title" AS ?kind) }
 	UNION { ?certificate dct:replaces+ ?old . ?old dct:identifier ?value .
 	        FILTER NOT EXISTS { ?certificate dct:identifier ?value }
 	        BIND("prev" AS ?kind) }
-	UNION { FILTER EXISTS { ?certificate vpa:checkedCompliance/vpa:withRestriction/rdfs:comment ?r }
+	UNION { FILTER EXISTS { ?certificate vpa:checkedCompliance/vpa:withRestriction/era:nonCodedRestrictions ?r }
 	        BIND("1" AS ?value) BIND("restr" AS ?kind) }
+	UNION { ?certificate dct:subject ?value .
+	        FILTER(STRSTARTS(STR(?value), "http://data.europa.eu/949/concepts/subsystems/"))
+	        BIND("sub" AS ?kind) }
+	UNION { ?certificate vpa:checkedCompliance/vpa:checkedRequirement ?value . BIND("req" AS ?kind) }
+	UNION { ?certificate dct:source ?value . BIND("src" AS ?kind) }
+	UNION { ?certificate dct:subject ?value .
+	        FILTER(STRSTARTS(STR(?value), "http://data.europa.eu/949/legislation/requirements/"))
+	        BIND("ic" AS ?kind) }
+	UNION { ?certificate dct:subject ?ic . FILTER(isBlank(?ic)) ?ic eli:title ?value . BIND("ictitle" AS ?kind) }
+	UNION { ?certificate dct:references ?value . BIND("celex" AS ?kind) }
+	UNION { ?certificate skos:note ?value .
+	        FILTER(STRSTARTS(?value, "Legislation reference not in era-lex"))
+	        BIND("lexnote" AS ?kind) }
 }

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Build the ERADIS snapshot that era-eradis-explorer.html searches when it
-cannot query ERADIS-KG live.
+"""Build the ERADIS snapshot that era-eradis-explorer.html searches.
 
-The dev endpoint (graph.dev.data.test-era.europa.eu) sends no CORS headers, so
-a page served from GitHub Pages cannot read its answers; the production
-repository requires authentication. The explorer therefore tries the endpoint
-first and falls back to this snapshot, which is produced by the very queries in
-eradis/snapshot-*.rq - so the snapshot and a live answer come from the same
+The explorer searches this snapshot offline and can send the same search live
+to the dev endpoint (graph.dev.data.test-era.europa.eu), which is open for
+anonymous reads and answers browsers on any origin again since November 2026
+(it asked for a login from 2026-10-12, and sent no CORS headers before that;
+the production repository still asks for one). The snapshot keeps the page
+working whenever the endpoint doesn't, and it is produced by the very queries
+in eradis/snapshot-*.rq - so the snapshot and a live answer come from the same
 SPARQL.
 
 Deliberately NOT in the snapshot: signatory names (personal data - the
@@ -44,6 +45,9 @@ DEFAULT_LEX = "https://graph.dev.data.test-era.europa.eu/repositories/era-lex"
 ERA = "http://data.europa.eu/949/"
 COUNTRY = "http://publications.europa.eu/resource/authority/country/"
 ORG_BASE = ERA + "body/organisation/eradis/"
+REQ = ERA + "legislation/requirements/"
+CELEX = "http://publications.europa.eu/resource/celex/"
+SUBSYSTEM_SCHEME = ERA + "concepts/subsystems/"
 
 TYPES = {  # dct:type concepts carry no prefLabel in ERADIS-KG
     ERA + "concepts/ecd-types/ECDoV": ("V", "EC declaration of verification (subsystem)"),
@@ -86,6 +90,15 @@ SUBSYSTEMS = [  # (key, label, TSI families)
     ("TEL", "Telematics applications", {"TAF", "TAP"}),
 ]
 SUBSYSTEM_OF_FAMILY = {f: k for k, _, fams in SUBSYSTEMS for f in fams}
+# Certificates record their subsystem (dct:subject) since the November 2026
+# reload, in a finer scheme than Annex II; mapped onto the same keys.
+# Maintenance has no key here (no certificate names it).
+SUBSYSTEM_OF_CONCEPT = {
+    "Infrastructure": "INF", "Energy": "ENE",
+    "OnboardControlCommandSignalling": "CCS", "TracksideControlCommandSignalling": "CCS",
+    "RollingStock": "RST", "LocomotivePassengerRollingStock": "RST", "FreightWagon": "RST",
+    "OperationTrafficManagement": "OPE", "TelematicsApplications": "TEL",
+}
 AMENDING = re.compile(r"\b(amending|correcting|modifying)\b", re.I)
 ELI = "http://data.europa.eu/eli/"
 EEA_TREATY = "http://publications.europa.eu/resource/authority/treaty/EEA"
@@ -103,12 +116,63 @@ def run(endpoint, name, values=None):
     return rows
 
 
+# An act is identified by "year/number" ("2013/321", "2016/797"), whatever
+# form ERADIS-KG cites it in. Declarations cite acts by key
+# (…/requirements/reg-2013-321, dir-402-2013 = Regulation 402/2013). Since the
+# November 2026 reload certificates cite them by path
+# (…/requirements/reg/2013/321[/2019-06-16]/WAG[/3]), by CELEX number
+# (…/celex/32019R0776), or only in a skos:note when era-lex lacks the act. The
+# explorer's SPARQL reduces all of them the same way, with REPLACE.
+CELEX_TYPE = {"R": "reg", "L": "dir", "D": "dec"}
+
+
+def act_of_key(key):
+    """('2013/321', 'reg') for reg-2013-321 or reg/2013/321[/…]; None otherwise."""
+    m = re.match(r"([a-z_]+)-(\d+)-(\d+)$", key)
+    if m:
+        t, a, b = m.groups()
+        year, num = (a, b) if int(a) > 1900 else (b, a)
+        return f"{year}/{int(num)}", t
+    m = re.match(r"([a-z_]+)/(\d{4})/(\d+)(?:/|$)", key)
+    return (f"{m.group(2)}/{int(m.group(3))}", m.group(1)) if m else None
+
+
+def act_of_celex(code):
+    """('2019/776', 'reg') for 32019R0776."""
+    m = re.match(r"3(\d{4})([A-Z])0*(\d+)$", code)
+    return (f"{m.group(1)}/{m.group(3)}", CELEX_TYPE.get(m.group(2), "reg")) if m else None
+
+
+LEX_NOTE = re.compile(r"\((3\d{4}[A-Z]\d+)\)\s*$")
+
+
+CERT_NUMBER = re.compile(r"\d{4}/[\d.]+/[A-Z0-9]+/\d{4}/")
+
+
+def best_number(numbers):
+    """The certificate number shown, of the spellings ERADIS-KG now records
+    for ~1,600 certificates (the number as typed, e.g. "N°3017/6/SD/…/V01",
+    "1960_1_SB_…" or three numbers run together, plus a cleaned copy). A
+    spelling that contains another one whole is that one with something
+    around it, and goes; of the rest: plain ASCII without spaces, then the
+    NoBo/type/module/year/… structure, then most slashes, then shortest. The
+    others stay searchable."""
+    nums = [n for n in dict.fromkeys(numbers) if n]
+    if not nums:
+        return "", []
+    pool = [n for n in nums if not any(m != n and m.strip() and m in n for m in nums)] or nums
+    rank = lambda n: (not n.isascii() or any(c.isspace() for c in n),
+                      not CERT_NUMBER.match(n), -n.count("/"), len(n), n)
+    best = min(pool, key=rank)
+    return best, sorted(n for n in nums if n != best)
+
+
 def eli_candidates(key, same_as):
     """ELI URIs an ERADIS-KG act key (dec-2012-88, reg_impl-2019-776,
-    dir-402-2013) may have in era-lex. The key's type is not always right
-    (dir-402-2013 is Implementing Regulation 402/2013), and five decisions
-    only exist with a (1)/(2) suffix."""
-    t, a, b = re.match(r"([a-z_]+)-(\d+)-(\d+)$", key).groups()
+    dir-402-2013, reg/2014/1304) may have in era-lex. The key's type is not
+    always right (dir-402-2013 is Implementing Regulation 402/2013), and five
+    decisions only exist with a (1)/(2) suffix."""
+    t, a, b = re.match(r"([a-z_]+)[-/](\d+)[-/](\d+)$", key).groups()
     year, num = (a, b) if int(a) > 1900 else (b, a)
     out = [same_as] if same_as else []
     for typ in dict.fromkeys([t, "reg", "reg_impl", "dec", "dec_impl", "dir"]):
@@ -121,7 +185,7 @@ def resolve_in_lex(lex_endpoint, ref_rows):
     """Look every cited act up in era-lex, then follow eli:changes until the
     amendment chain closes, so each amending act's targets are known too."""
     acts, asked = {}, set()
-    todo = {c for r in ref_rows for c in eli_candidates(r["ref"].rsplit("/", 1)[-1], r["eli"])}
+    todo = {c for r in ref_rows for c in eli_candidates(r["ref"][len(REQ):], r["eli"])}
     for _ in range(6):
         todo -= asked
         if not todo:
@@ -143,7 +207,7 @@ def resolve_in_lex(lex_endpoint, ref_rows):
 
     chosen = {}
     for r in ref_rows:
-        found = [c for c in eli_candidates(r["ref"].rsplit("/", 1)[-1], r["eli"]) if c in acts]
+        found = [c for c in eli_candidates(r["ref"][len(REQ):], r["eli"]) if c in acts]
         # Of a (1)/(2) pair, drop the EEA Joint Committee decision; then prefer
         # the act most linked by amendment to the other acts found.
         found = [c for c in found if EEA_TREATY not in acts[c]["basedOn"]] or found
@@ -179,7 +243,7 @@ def subsystem_of(eli, acts, titles, seen=()):
 
 def notation_from_uri(uri):
     # .../dir-2016-797 -> 2016/797 ; .../reg_impl-2019-776 -> 2019/776 ; dir-402-2013 -> 402/2013
-    m = re.search(r"/[a-z_]+-(\d+)-(\d+)$", uri)
+    m = re.search(r"/[a-z_]+-(\d+)-(\d+)$", uri) or re.search(r"/[a-z_]+/(\d+)/(\d+)$", uri)
     return f"{m.group(1)}/{m.group(2)}" if m else uri.rsplit("/", 1)[-1]
 
 
@@ -208,13 +272,47 @@ def main():
         key = r["org"][len(ORG_BASE):] if r["org"].startswith(ORG_BASE) else r["org"]
         orgs.append([r["orgName"] or key, cc, r["registration"], r["nandoCode"], key])
 
+    # Acts the certificates cite (see snapshot-certificate-links.rq), each
+    # reduced to year/number. One no declaration cites gets a reference of its
+    # own, keyed the way declarations key theirs (reg-2025-675), so it is
+    # resolved in era-lex like the others.
+    def cert_act(r):
+        k, v = r["kind"], r["value"]
+        if k in ("req", "src", "ic") and v.startswith(REQ):
+            return act_of_key(v[len(REQ):])
+        if k == "celex" and v.startswith(CELEX):
+            return act_of_celex(v[len(CELEX):])
+        if k == "lexnote":
+            m = LEX_NOTE.search(v)
+            return act_of_celex(m.group(1)) if m else None
+        return None
+    act_of_ref = {r["ref"]: act_of_key(r["ref"][len(REQ):]) for r in ref_rows}
+    cert_acts, unparsed = {}, set()
+    for r in cert_link_rows:
+        if r["kind"] in ("req", "src", "ic", "celex", "lexnote"):
+            a = cert_act(r)
+            if a:
+                r["act"] = a[0]
+                cert_acts.setdefault(a[0], a[1])
+            else:
+                unparsed.add(r["value"][:80])
+    if unparsed:
+        print(f"  certificate legal references not understood: {sorted(unparsed)[:10]}", file=sys.stderr)
+    known = {a[0] for a in act_of_ref.values() if a}
+    for act, typ in sorted(cert_acts.items()):
+        if act not in known:
+            year, num = act.split("/")
+            uri = f"{REQ}{typ}-{year}-{num}"
+            ref_rows.append({"ref": uri, "kind": "dir" if typ == "dir" else "tsi", "notation": "", "label": "", "eli": ""})
+            act_of_ref[uri] = (act, typ)
+
     acts, chosen = resolve_in_lex(args.lex_endpoint, ref_rows)
     # ERADIS-KG's own title is the fallback for the (1)/(2) decisions, which
     # era-lex holds without an English title.
     own_title = lambda r: re.sub(r"\s+", " ", r["label"]) if r["label"] and not r["label"].startswith(("20", "19")) else ""
     titles = {chosen[r["ref"]]: acts[chosen[r["ref"]]]["title"] or own_title(r) for r in ref_rows if chosen[r["ref"]]}
     refs = {"tsi": [], "dir": []}
-    ref_idx = {}
+    ref_idx, act_idx = {}, {}
     unresolved = []
     for r in sorted(ref_rows, key=lambda r: notation_from_uri(r["ref"])):
         kind, uri = r["kind"], r["ref"]
@@ -226,15 +324,38 @@ def main():
         sub = ""
         if kind == "tsi":
             sub = subsystem_of(eli, acts, titles) if eli else SUBSYSTEM_OF_FAMILY.get(family_of_title(title), "")
-        # [notation, title, ERADIS-KG key, subsystem ("" = none), ELI in era-lex, in force]
+        # [notation, title, ERADIS-KG key (the URI after …/requirements/), subsystem
+        #  ("" = none), ELI in era-lex, in force, act as year/number]
+        act = (act_of_ref.get(uri) or ("",))[0]
         ref_idx[uri] = (kind, len(refs[kind]))
-        refs[kind].append([notation_from_uri(uri), title, uri.rsplit("/", 1)[-1], sub, eli, in_force])
+        if act in act_idx:
+            print(f"  {uri[len(REQ):]} is the same act as {refs[act_idx[act][0]][act_idx[act][1]][2]}; certificates count the first", file=sys.stderr)
+        else:
+            act_idx[act] = (kind, len(refs[kind]))
+        refs[kind].append([notation_from_uri(uri), title, uri[len(REQ):], sub, eli, in_force, act])
     if unresolved:
         print(f"  not found in era-lex: {', '.join(u.rsplit('/', 1)[-1] for u in unresolved)}", file=sys.stderr)
 
     versions = {r["documentId"]: int(r["versions"]) for r in ver_rows}
 
     # ---- NoBo certificates (era:CertificationLevelDocument) ----------------
+    # The constituents certificates name are TSI subdivisions whose name is in
+    # era-lex ("…/reg/2013/321/WAG/3" is "Wheel", section 5.3.3).
+    ic_uris = sorted({r["value"] for r in cert_link_rows if r["kind"] == "ic"})
+    ic_title = {}
+    for i in range(0, len(ic_uris), 300):
+        for r in run(args.lex_endpoint, "snapshot-lex-ic.rq", ic_uris[i:i + 300]):
+            ic_title[r["ic"]] = (re.sub(r"\s+", " ", r["title"]).strip(), r["number"])
+    missing = [u for u in ic_uris if u not in ic_title]
+    if missing:
+        print(f"  constituents not found in era-lex: {len(missing)}, e.g. {missing[:3]}", file=sys.stderr)
+    # [key after …/requirements/, title, TSI section] - the live search names
+    # constituents through this table, as it names organisations
+    ics = [[u[len(REQ):], *ic_title[u]] for u in ic_uris if u in ic_title]
+    unknown_subs = sorted({r["value"] for r in cert_link_rows if r["kind"] == "sub"
+                           and r["value"][len(SUBSYSTEM_SCHEME):] not in SUBSYSTEM_OF_CONCEPT})
+    if unknown_subs:
+        print(f"  subsystem concepts with no Annex II key: {unknown_subs}", file=sys.stderr)
     snapshot_day = datetime.date.today().isoformat()
     cert_key = lambda uri: int(uri.rsplit("/", 1)[-1])
     # Every current certificate whose dct:replaces chain reaches an older one.
@@ -270,10 +391,11 @@ def main():
         primary = past[-1] if past else (usable[0] if usable else "")
         issued = [d for d in issued if d != primary] + ([primary] if primary else [])
         m = re.search(r"id=(\d+)", r["eradisPage"] or "")
+        number, other_numbers = best_number(r["certNumbers"].split("|"))
         cert_idx[uri] = len(certs)
         certs.append({
-            "k": cert_key(uri), "n": r["certNumber"],
-            "ty": cert_type_idx.get(r["type"]), "v": int(r["version"]),
+            "k": cert_key(uri), "n": number, "na": other_numbers,
+            "ty": cert_type_idx.get(r["type"]), "v": int(r["version"]) if r["version"] else None,
             "st": [cert_states.index(st) for st in states],
             "d": issued[-1] if issued else "", "ds": issued[:-1],
             "vf": r["validFrom"], "vu": r["validUntil"],
@@ -283,7 +405,7 @@ def main():
             # object of assessment; the first 200 characters are what the
             # search and the table use - the full text is in the live record
             "x": re.sub(r"\s+", " ", r["description"] or "")[:200],
-            "mf": [], "mo": [], "ts": [], "di": [], "ti": [], "pv": [], "re": 0, "dc": 0,
+            "mf": [], "mo": [], "ts": [], "di": [], "ti": [], "sb": [], "pv": [], "re": 0, "dc": 0,
         })
     for r in cert_link_rows:
         i = cert_idx.get(r["certificate"])
@@ -299,14 +421,26 @@ def main():
                 modules.append(code)
             if module_idx[code] not in c["mo"]:
                 c["mo"].append(module_idx[code])
-        elif k in ("tsi", "dir") and v in ref_idx and ref_idx[v][1] not in c["ts" if k == "tsi" else "di"]:
-            c["ts" if k == "tsi" else "di"].append(ref_idx[v][1])
-        elif k == "title" and v not in c["ti"]:
-            c["ti"].append(v)
         elif k == "prev" and v not in c["pv"]:
             c["pv"].append(v)
         elif k == "restr":
             c["re"] = 1
+        elif k == "sub":
+            sub = SUBSYSTEM_OF_CONCEPT.get(v[len(SUBSYSTEM_SCHEME):])
+            if sub and sub not in c["sb"]:
+                c["sb"].append(sub)
+        elif k == "ictitle" and v.strip() not in c["ti"]:
+            c["ti"].append(re.sub(r"\s+", " ", v).strip())
+        if r.get("act") in act_idx:
+            kind, j = act_idx[r["act"]]
+            lst = c["ts" if kind == "tsi" else "di"]
+            if j not in lst:
+                lst.append(j)
+        if k == "ic" and v in ic_title and ic_title[v][0] not in c["ti"]:
+            c["ti"].append(ic_title[v][0])
+    order = [key for key, _, _ in SUBSYSTEMS]
+    for c in certs:
+        c["sb"].sort(key=order.index)
 
     decls, decl_idx = [], {}
     cited_by = {}   # certificate key -> declarations citing it (any version)
@@ -332,6 +466,7 @@ def main():
             "nb": [], "ti": [], "ts": [], "di": [], "ce": [], "re": 0,
         })
 
+    cited = {}   # (declaration, certificate) -> [numbers, date issued]
     for r in link_rows:
         i = decl_idx.get(r["declaration"])
         if i is None:
@@ -343,18 +478,25 @@ def main():
             d["ti"].append(v)
         elif k in ("tsi", "dir") and v in ref_idx and ref_idx[v][1] not in d["ts" if k == "tsi" else "di"]:
             d["ts" if k == "tsi" else "di"].append(ref_idx[v][1])
-        elif k == "cert" and v != "deleted" and v not in [c[0] for c in d["ce"]]:
-            # [certificate number, date issued, key of the current certificate
-            # to open (0 = none among the current published ones), further
-            # current certificates this one is an earlier version of]. Counted
-            # like the SPARQL "?certificate dct:replaces* ?cited".
-            targets = ([r["ref"]] if r["ref"] in cert_idx else []) + currents_of.get(r["ref"], [])
-            keys = list(dict.fromkeys(certs[cert_idx[t]]["k"] for t in targets if t in cert_idx))
-            d["ce"].append([v, r["extra"], keys[0] if keys else 0] + ([keys[1:]] if len(keys) > 1 else []))
-            for key in keys:
-                cited_by.setdefault(key, set()).add(i)
+        elif k == "cert" and v != "deleted":
+            # one row per spelling of the number; gathered below
+            cited.setdefault((i, r["ref"]), [[], r["extra"]])[0].append(v)
         elif k == "restr":
             d["re"] = 1
+    for (i, ref), (numbers, issued) in cited.items():
+        d = decls[i]
+        number = best_number(numbers)[0]
+        if number in [c[0] for c in d["ce"]]:
+            continue
+        # [certificate number, date issued, key of the current certificate
+        # to open (0 = none among the current published ones), further
+        # current certificates this one is an earlier version of]. Counted
+        # like the SPARQL "?certificate dct:replaces* ?cited".
+        targets = ([ref] if ref in cert_idx else []) + currents_of.get(ref, [])
+        keys = list(dict.fromkeys(certs[cert_idx[t]]["k"] for t in targets if t in cert_idx))
+        d["ce"].append([number, issued, keys[0] if keys else 0] + ([keys[1:]] if len(keys) > 1 else []))
+        for key in keys:
+            cited_by.setdefault(key, set()).add(i)
 
     # Drop empty keys to keep the file small; the page treats missing as empty.
     # Index 0 is a real organisation / type, so only the 0/1 flags drop at 0.
@@ -390,9 +532,13 @@ def main():
         compact(c)
     cert_snapshot = {
         "generated": snapshot["generated"],
+        "certBase": ERA + "evidence/cld/",
         "types": cert_types,
         "modules": modules,
         "states": cert_states,
+        # subsystems as recorded (dct:subject) -> the Annex II keys above
+        "subsystemConcepts": [[c, k] for c, k in SUBSYSTEM_OF_CONCEPT.items()],
+        "ics": ics,
         "certs": certs,
     }
     raw = json.dumps(cert_snapshot, ensure_ascii=False, separators=(",", ":")).encode()

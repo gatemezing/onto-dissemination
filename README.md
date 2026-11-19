@@ -11,9 +11,8 @@ results as CSV or Excel. The external code is Leaflet in the map tools and
 N3.js in the SHACL Shape Viewer, both pinned to a version and checked with
 SRI. The Synthetic RINF Data page also loads Pyodide 0.28.3 and vis-network 9.1.9
 (pinned, SRI-checked) and installs RDFGraphGen 1.2.0, rdflib 7.6.0 and exrex 0.12.0
-from PyPI at pinned versions. The one tool that doesn't query live is the ERADIS Explorer, which
-searches a snapshot because its endpoint asks for a login (see
-[Data snapshots](#data-snapshots)).
+from PyPI at pinned versions. The ERADIS Explorer searches a snapshot and runs
+the same search live on request (see [Data snapshots](#data-snapshots)).
 
 ## Live demos
 
@@ -49,8 +48,8 @@ the scripts that build each extract, so they stay current with the files.
 | Extract | Used by | Latest extraction | Built by |
 |---|---|---|---|
 | RINF parameter catalogue — every ERA property with a RINF index, with per-country coverage | RINF Parameter Values explorer | <!-- extract:rinf-catalog -->2026-11-19 — 294 properties (221 populated), 27 countries, 54 datasets<!-- /extract:rinf-catalog --> | `scripts/build-rinf-parameter-catalog.py`, checked nightly (see [below](#keeping-the-rinf-parameter-snapshot-fresh)) |
-| ERADIS EC declarations, organisations, TSIs and directives | ERADIS Explorer | <!-- extract:eradis-declarations -->2026-09-30 — 22,256 declarations<!-- /extract:eradis-declarations --> | `scripts/build-eradis-snapshot.py` |
-| ERADIS NoBo certificates | ERADIS Explorer | <!-- extract:eradis-certificates -->2026-09-30 — 43,471 certificates<!-- /extract:eradis-certificates --> | `scripts/build-eradis-snapshot.py` |
+| ERADIS EC declarations, organisations, TSIs and directives | ERADIS Explorer | <!-- extract:eradis-declarations -->2026-11-19 — 22,256 declarations<!-- /extract:eradis-declarations --> | `scripts/build-eradis-snapshot.py` |
+| ERADIS NoBo certificates | ERADIS Explorer | <!-- extract:eradis-certificates -->2026-11-19 — 43,615 certificates<!-- /extract:eradis-certificates --> | `scripts/build-eradis-snapshot.py` |
 
 Everything else — the Eurostat extracts included — is queried live when you run
 it, so it is always as current as the endpoint. The Eurostat query set was last
@@ -170,22 +169,24 @@ Every country and organisation field (applicant, authorised representative,
 manufacturer, notified body) takes several values or all: a searchable
 checkbox list, with the organisations narrowed to the countries picked.
 The two registers link to each other in both directions. Every search is shown
-as SPARQL, to run live or in the GraphDB workbench. While the dev endpoint
-allowed anonymous queries, "Run live" returned every match (all 43,471
-certificates in ~10 s) in two phases. Since 2026-10-12 it asks for a login, so
-"Run live" now reports that instead. Results come with a
+as SPARQL, to run live or in the GraphDB workbench. "Run live" returns every
+match in two phases (all 43,615 certificates in ~14 s). Results come with a
 per-year chart, CSV download, and a detail view with each cited TSI linked to
-its ELI in `era-lex`.
+its ELI in `era-lex`; the full record of a document is read live.
 
-The page can't query the dev endpoint anonymously from a browser: until
-October 2026 it sent no CORS headers, and it now asks for a login. So the page
-searches snapshots built by the same queries ([eradis/](eradis/),
+Searches run on snapshots built by the same queries ([eradis/](eradis/),
 `scripts/build-eradis-snapshot.py`), and the certificate snapshot loads only
-when its tab is opened. Rebuilding the snapshots now needs credentials for the
-dev endpoint, and `build-eradis-snapshot.py` can't pass any yet. Some values are derived
-rather than recorded — "type of subsystem" (from the TSIs, through era-lex) and
-a certificate's validity (from its validity window) — see
-[eradis/README.md](eradis/README.md).
+when its tab is opened. The dev endpoint is open for anonymous reads and
+answers browsers on any origin again (it sent no CORS headers until October
+2026, and asked for a login from 2026-10-12 until November 2026), so "Run live"
+works from GitHub Pages; the snapshot keeps the page working when it doesn't.
+On 2026-11-19 snapshot and live answers matched document for document and
+field by field. ERA reloaded ERADIS-KG in November 2026 with a new certificate
+model (new URIs, recorded subsystem, acts cited four ways, constituents named
+in era-lex); both the snapshot and the live queries follow it. Some values are
+derived rather than recorded — a declaration's "type of subsystem" (from its
+TSIs, through era-lex) and a certificate's validity (from its validity window)
+— see [eradis/README.md](eradis/README.md).
 
 **[era-shacl-viewer.html](scripts/assets/era-shacl-viewer.html)** — shows
 what a SHACL shapes graph asks of the data. Each node shape is a card listing
@@ -259,8 +260,8 @@ in [interop-europe/answers.md](interop-europe/answers.md)).
 - `scripts/build-rinf-parameter-catalog.py` — regenerates the parameter and
   country/dataset snapshot embedded in the Value Explorer; see below.
 - `scripts/build-eradis-snapshot.py` — rebuilds the two ERADIS snapshots
-  from ERADIS-KG and era-lex, with the queries in `eradis/`; it needs access to
-  the development endpoint.
+  from ERADIS-KG and era-lex, with the queries in `eradis/` (about a minute,
+  anonymous access to the development endpoint).
 - `scripts/build-eurostat-queries.py` — generates the optimised Eurostat
   queries in `eurostat/` and the copies embedded in the Eurostat Exporter, so
   the two never drift apart.
