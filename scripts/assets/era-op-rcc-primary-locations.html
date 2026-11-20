@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RCC at Primary Locations</title>
-<meta name="description" content="CSV extract of every RCC parameter (RINF 1.2) at the operational points of one national line that are linked to at least one TAF/TAP primary location, queried live from ERA's rinf-plus knowledge graph.">
+<title>Primary Locations in RINF</title>
+<meta name="description" content="CSV extract of the TAF/TAP primary locations (era:PrimaryLocation) published in RINF: every location of a country, or only those referenced by the operational points of chosen national lines, queried live from ERA's rinf-plus knowledge graph.">
 <style>
   :root{
     --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
@@ -109,7 +109,6 @@
   th{position:sticky;top:0;background:#141d33;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);z-index:2;}
   td.pos{font-family:"SF Mono",Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--teal);}
   td.ix{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--dim);}
-  td.val{max-width:320px;overflow:hidden;text-overflow:ellipsis;}
   td.nm{max-width:220px;overflow:hidden;text-overflow:ellipsis;}
   tbody tr:hover{background:rgba(255,255,255,.035);}
   .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
@@ -139,19 +138,21 @@
 <body>
 <div id="app">
   <header>
-    <h1>RCC Parameters at Primary Locations</h1>
-    <p>Pick a country and one or more of its national lines. The tool finds the operational points on those lines that are
-       linked to at least one TAF/TAP primary location (<code>era:primaryLocation</code>) and returns a CSV of every RINF parameter
-       flagged <code>era:usedInRCCCalculations</code> at those points (index&nbsp;1.2). That covers the point itself,
-       its running tracks and sidings, their contact-line, ETCS, train-detection and hot-axle-box sub-objects, and their
-       platform edges and tunnels. Each place keeps the validity window in force on the date you choose (today by default), and retired parameters are excluded.
+    <h1>Primary Locations in RINF</h1>
+    <p>Pick a country and get a CSV of every TAF/TAP primary location (<code>era:PrimaryLocation</code>) that RINF publishes for it:
+       the location code, name, infrastructure manager, passenger, freight, container-handling and hand-over flags, validity,
+       position, NUTS&nbsp;3 region, the dataset it comes from and the operational points that point to it. One row per
+       primary-location code; where a code is published more than once, the description in force on the date you choose (today by default) is kept.
+       To narrow the extract, optionally pick one or more of the country&rsquo;s national lines: you then get only the
+       primary locations referenced (<code>era:primaryLocation</code>) by the operational points on those lines.
+       No RCC parameters are exported; this is the list of the locations themselves.
        Queries go live from your browser to
        <a href="https://graph.data.era.europa.eu/repositories/rinf-plus" target="_blank" rel="noopener">graph.data.era.europa.eu</a>;
        nothing else is sent anywhere.</p>
   </header>
 
   <div class="panel">
-    <h2><span class="step">1</span> Country and lines</h2>
+    <h2><span class="step">1</span> Country, and optionally lines</h2>
     <div class="grid2">
       <div>
         <label class="fieldLabel" for="country">Country</label>
@@ -160,7 +161,7 @@
       </div>
       <div>
         <div class="fieldHead">
-          <label class="fieldLabel" for="lineSearch" id="lineSummary">National lines</label>
+          <label class="fieldLabel" for="lineSearch" id="lineSummary">National lines (optional)</label>
           <span class="quickActions">
             <button type="button" class="mini" id="lineAll" disabled>Select all</button>
             <button type="button" class="mini" id="lineNone" disabled>Clear</button>
@@ -177,30 +178,29 @@
       </div>
     </div>
     <div class="opts">
-      <label class="chk"><input type="checkbox" id="wantSidings" checked> Include sidings (RINF 1.2.2)</label>
       <label class="chk">Valid on <input type="date" id="asOf" style="width:auto;padding:5px 8px"></label>
     </div>
-    <div class="hint" id="asOfHint">Each point and track keeps the validity window in force on this date (today by default).</div>
-    <button class="btn primary" id="runBtn" disabled>Get RCC parameters</button>
+    <div class="hint" id="asOfHint">Each primary-location code keeps the validity window in force on this date (today by default).</div>
+    <button class="btn primary" id="runBtn" disabled>Get primary locations</button>
     <div id="statusArea" role="status" aria-live="polite"></div>
   </div>
 
   <div class="panel" id="resultPanel" hidden>
     <h2><span class="step">2</span> Results</h2>
     <div class="statGrid">
-      <div class="statTile"><div class="n" id="statOps">–</div><div class="l">Points with a PL</div></div>
-      <div class="statTile"><div class="n" id="statPls">–</div><div class="l">Primary locations</div></div>
-      <div class="statTile"><div class="n" id="statTracks">–</div><div class="l">Tracks &amp; sidings</div></div>
-      <div class="statTile"><div class="n" id="statParams">–</div><div class="l">Parameters</div></div>
-      <div class="statTile"><div class="n" id="statRows">–</div><div class="l">CSV rows</div></div>
+      <div class="statTile"><div class="n" id="statRows">–</div><div class="l">Codes (CSV rows)</div></div>
+      <div class="statTile"><div class="n" id="statIris">–</div><div class="l">Resources merged</div></div>
+      <div class="statTile"><div class="n" id="statMulti">–</div><div class="l">Codes on several resources</div></div>
+      <div class="statTile"><div class="n" id="statName">–</div><div class="l">With a name</div></div>
+      <div class="statTile"><div class="n" id="statPos">–</div><div class="l">With a position</div></div>
+      <div class="statTile"><div class="n" id="statIm">–</div><div class="l">With a manager</div></div>
       <div class="statTile"><div class="n" id="statTime">–</div><div class="l">Query time</div></div>
     </div>
     <ul class="notes" id="notes"></ul>
     <div class="tableWrap"><table id="resultTable"><thead></thead><tbody></tbody></table></div>
     <div class="moreNote" id="moreNote"></div>
     <div class="resultActions">
-      <button class="btn csv" id="csvLongBtn" title="One row per value: point, element, parameter">Download CSV — one row per value</button>
-      <button class="btn csv" id="csvWideBtn" title="One row per point, track or sub-element; one column per parameter">Download CSV — one column per parameter</button>
+      <button class="btn csv" id="csvBtn" title="One row per primary-location code">Download CSV</button>
       <span class="grow"></span>
       <button class="btn" id="linkBtn" title="Copy a link that reopens this exact extract">Copy shareable link</button>
     </div>
@@ -211,53 +211,46 @@
   </div>
 
   <footer>
-    <p><strong>Which operational points.</strong> A point qualifies when it is on a chosen line and carries at least
-      one <code>era:primaryLocation</code>. A point is on the line when it is positioned by a kilometric post on the
-      line's own linear positioning system (LPS), <em>or</em> when a section of the line names it as
-      <code>era:opStart</code>/<code>era:opEnd</code>. Both are needed: French line <code>830000-1</code> reaches 327
-      points one way and 603 the other way. A post counts when it belongs to the line's LPS, whether or not it gives
-      its kilometre: Luxembourg's posts carry <code>era:measuredDistance</code> instead of <code>era:kilometer</code>,
-      and requiring the latter used to lose every Luxembourg point. Norway hangs every kilometric post on one nationwide LPS rather than on its
-      lines, so its points are found only through section endpoints, and Croatia publishes no LPS coordinate at all.
-      RINF links points to primary locations only in this direction; the inverse <code>era:isPrimaryLocationOf</code>
-      is not used (measured 8 November 2026).</p>
-    <p><strong>Several lines at once.</strong> Pick as many lines as you need, or &ldquo;Select all&rdquo;. Each line is
-      resolved by its own query, six at a time. A point on more than one selected line, such as a junction station, is
-      looked up once, but its rows appear once per line, each with that line's kilometre position, so each line's slice of
-      the CSV is complete and can be filtered on the <code>line</code> column. Its validity window is chosen once across all
-      the selected lines, so a junction never mixes two descriptions. A shareable link lists every line as a repeated
-      <code>l=</code> parameter.</p>
-    <p><strong>Where the parameters sit.</strong> The 1.2 RCC parameters are published on several kinds of resource.
-      Measured across rinf-plus on 8 November 2026:</p>
-    <table>
-      <thead><tr><th>Published on</th><th>Reached from the point by</th><th>Example parameters</th></tr></thead>
-      <tbody>
-        <tr><td>the operational point</td><td>—</td><td><code>opTypeGaugeChangeover</code>, geometry</td></tr>
-        <tr><td>running tracks and sidings</td><td><code>era:isPartOf</code> / <code>era:hasPart</code></td><td>gauge, gauging profile, siding length, gradient, GSM-R coverage</td></tr>
-        <tr><td>contact line, ETCS, train detection, hot-axle-box detector</td><td>the track's <code>era:contactLineSystem</code>, <code>era:etcs</code>, <code>era:trainDetectionSystem</code>, <code>era:tracksideHabd</code></td><td><code>maxCurrentStandstillPantograph</code>, ETCS M_version, train-detection type</td></tr>
-        <tr><td>platform edges and tunnels</td><td>parts of the track</td><td>platform length (48,510 values there, 559 on tracks), platform height, tunnel length, fire category</td></tr>
-      </tbody>
-    </table>
-    <p><strong>Validity: the window in force on the chosen date, per place, never per line.</strong> Each point keeps
-      the resource whose validity window is in force on the &ldquo;Valid on&rdquo; date (today by default), chosen per
-      <code>era:uopid</code>. Each track and siding is chosen the same way, keyed by <code>era:trackId</code> or
-      <code>era:sidingId</code> within the point, never by the point's newest date: France dates each track by the day it
-      opened, and a per-point rule would drop older tracks that are still current. Simply taking the newest window is
-      wrong once a manager publishes ahead. DB InfraGO's points carry a 2026-01-01&nbsp;→&nbsp;2026-12-31 window and a
-      from-2027-01-01 window, and in the 2027 one about 3,150 primary-location links are missing (measured 8 November
-      2026). A place with no window in force uses its most recent window and is marked &ldquo;(ended)&rdquo;. A place
-      whose windows all lie in the future is left out and counted. Resources with no dated validity are always kept,
-      because ten countries publish none.</p>
-    <p><strong>The part-whole direction is probed once per run</strong>, because Croatia publishes only
-      <code>era:hasPart</code> and the train-detection parameters at points are reachable only that way. Asking for both
-      directions in one query is correct but makes the endpoint unusably slow.</p>
-    <p><strong>Values.</strong> Concepts are resolved to their English label where one exists. A code with no label
-      (for example a retired GSM-R version) is shown as its IRI, so a non-conformance stays visible. Geometries are given
-      as WKT. Several values for one parameter on one element are joined with &ldquo;&nbsp;|&nbsp;&rdquo;. A parameter
-      with several RINF numbers is given the number that matches where it was found: 1.2.0 on the point, 1.2.1 on a
-      running track and its parts, 1.2.2 on a siding and its parts. <code>position_km</code> is
-      <code>kilometer + offset/1000</code>; it is correct whether the publisher counts from the preceding kilometric post
-      or, like Norway, from the nearest one.</p>
+    <p><strong>What is exported.</strong> Every resource typed <code>era:PrimaryLocation</code> in rinf-plus (52,331 on 20&nbsp;November 2026,
+      under 48,824 distinct codes). A primary location is the TAF/TAP place code of a point of the network; RINF links
+      operational points to it with <code>era:primaryLocation</code> (only in that direction: the inverse
+      <code>era:isPrimaryLocationOf</code> is not used). Many managers publish only a stub (code, label, position), so the name, flags,
+      manager and validity columns are filled for a minority of codes in most countries.</p>
+    <p><strong>Which country.</strong> A resource belongs to the country named by its own <code>era:inCountry</code>. When it names none
+      (4,282 resources, 783 codes: Croatia, Lithuania and a few others), the ISO-2 prefix of the code decides (<code>HR</code>, <code>LT</code>…).
+      The &ldquo;EU&rdquo; codes have no country prefix; those without <code>era:inCountry</code> go to the country whose sections of line
+      share their dataset graph (the column <code>country_rule</code> says which rule applied). <code>era:inCountry</code> and the code prefix
+      disagree for one resource only: ES04313 carries both ESP and FRA as <code>era:inCountry</code>, so it appears in the Spanish and in the French extract
+      (in_country reads <code>ESP | FRA</code>); 3 resources name two countries. Danish codes are RINF&rsquo;s own and are not RNE codes; do not join them to CRD.</p>
+    <p><strong>One row per code.</strong> The key is the pair (country, <code>era:primaryLocationCode</code>), not the resource: 167 codes
+      are minted as several resources, and Lithuania publishes 3,700 resources for 201 codes. Resources of one code that pass the
+      validity rule are merged into the row; differing values are joined with &ldquo;&nbsp;|&nbsp;&rdquo; (for example a flag
+      <code>true | false</code>), and <code>primary_location_iris</code> lists them all.</p>
+    <p><strong>Validity: the window in force on the chosen date, per code.</strong> Managers republish, and some publish ahead. A
+      <em>point</em> of DB InfraGO carries a 2026-01-01&nbsp;→&nbsp;2026-12-31 window and a from-2027-01-01 window, so &ldquo;the newest window&rdquo; would pick data that is
+      not valid yet; the same rule is therefore applied to primary locations and to the points listed in <code>linked_op_*</code>. Per code, the
+      resources whose window contains the date are kept (the latest beginning wins); with none in force, the most recent window that has begun is used and the row says
+      <code>validity_status = ended</code>; a code whose windows all lie in the future is left out and counted. Resources with no dated
+      validity are always kept (<code>no dated validity</code>): most primary locations are undated (9,618 of 9,619 German ones). A bound published as
+      <code>time:inXSDDateTimeStamp</code> (four small Austrian managers) is read like <code>time:inXSDDate</code>. Dates are ISO&nbsp;8601; an open end reads
+      &ldquo;no data&rdquo;, and some managers use far-future ends such as 2382-01-01. Some datasets date every location with its publication date (all 582 Croatian ones begin
+      2026-10-16), so an earlier &ldquo;Valid on&rdquo; date gives no rows for them.</p>
+    <p><strong>Narrowing by line.</strong> With lines picked, each line is resolved to its operational points (by a kilometric post on
+      the line&rsquo;s own linear positioning system, <em>or</em> as the start or end of one of its sections; Norway&rsquo;s posts sit on one nationwide
+      system so its points are found through section endpoints, and Croatia publishes no kilometric coordinates at all). The points valid on
+      the chosen date are kept once per <code>era:uopid</code> (a point whose windows all lie in the future is ignored), and the primary locations they reference, restricted to the country&rsquo;s own, give the codes. The extract is then the
+      same rows as the whole-country extract for those codes, with <code>selected_lines</code> added. Several lines are resolved by one query each, six at a time.
+      A shareable link lists every line as a repeated <code>l=</code> parameter; nothing picked means the whole country. Lithuania links its locations from tracks and sidings rather than from points, so narrowing finds nothing there.</p>
+    <p><strong>Columns.</strong> <code>country</code>, <code>primary_location_code</code>, <code>country_rule</code>, <code>in_country</code>,
+      <code>name</code> (<code>era:primaryLocationName</code>, English first; when none is published, the <code>rdfs:label</code> with the code stripped out, unless only the code is left), <code>name_source</code>, <code>name_language</code>, <code>names_all</code> (every name as <code>text@lang</code>), <code>label</code> (every raw <code>rdfs:label</code>),
+      <code>infrastructure_manager_code</code> (the organisation code of <code>era:infrastructureManager</code>), <code>infrastructure_manager_name</code>
+      (from the Organisation Codes Register, joined on that code; RINF itself holds no names), the four flags <code>passenger_flag</code>,
+      <code>freight_flag</code>, <code>container_handling_flag</code>, <code>handover_point_flag</code>, <code>validity_begin</code>, <code>validity_end</code>, <code>validity_status</code>,
+      <code>position_wkt</code> (from <code>era:netReference/geo:hasGeometry/geo:asWKT</code>, else a direct <code>geo:hasGeometry</code>), <code>longitude</code>,
+      <code>latitude</code> (WGS&nbsp;84, from a <code>POINT(lon lat)</code>; a point from either source wins over a non-point geometry), <code>position_source</code>, <code>nuts3</code> (code, e.g. EL307), <code>operating_language</code>, <code>not_yet_available</code> and <code>not_applicable</code> (the properties the manager declares so with <code>era:notYetAvailable</code> / <code>era:notApplicable</code>), <code>dataset_graphs</code> (the RINF dataset graphs holding the code),
+      <code>linked_op_uopids</code> and <code>linked_op_names</code> (every operational point whose <code>era:primaryLocation</code> is this code, matched position by position,
+      one per <code>era:uopid</code>), <code>linked_op_count</code>, <code>primary_location_iris</code>, <code>iri_count</code> and, with lines, <code>selected_lines</code>.
+      <strong>A value the graph does not carry reads <code>no data</code>, never an empty cell</strong>, as in the Eurostat export; where the manager declares the property not yet available or not applicable, that cell reads <code>not yet available</code> or <code>not applicable</code> instead (names and NUTS&nbsp;3). Text that a spreadsheet could run as a formula is written with a leading apostrophe.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./rcc.html">RCC Parameters</a> ·
       <a href="./routebook.html">Route Book</a> · <a href="./values.html">RINF Parameter Values</a> ·
       <a href="./crd-rinf.html">CRD versus RINF</a></p>
@@ -266,13 +259,12 @@
 
 <script>
 /* ------------------------------------------------------------------ *
- * RCC parameters at operational points linked to a primary location
+ * Primary locations (era:PrimaryLocation) in RINF, per country, optionally narrowed by line
  * ------------------------------------------------------------------ */
 const ENDPOINT = 'https://graph.data.era.europa.eu/repositories/rinf-plus';
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => Number(n).toLocaleString('en-GB');
-const localName = u => String(u).replace(/^.*[\/#]/, '') || u;
 
 const COUNTRIES = [
   ['AUT','Austria'],['BEL','Belgium'],['BGR','Bulgaria'],['HRV','Croatia'],['CZE','Czechia'],
@@ -280,18 +272,17 @@ const COUNTRIES = [
   ['GRC','Greece'],['HUN','Hungary'],['IRL','Ireland'],['ITA','Italy'],['LVA','Latvia'],
   ['LTU','Lithuania'],['LUX','Luxembourg'],['NLD','Netherlands'],['NOR','Norway'],['POL','Poland'],
   ['PRT','Portugal'],['ROU','Romania'],['SVK','Slovakia'],['SVN','Slovenia'],['ESP','Spain'],
-  ['SWE','Sweden'],['CHE','Switzerland'],
+  ['SWE','Sweden'],['CHE','Switzerland'],['LIE','Liechtenstein'],
 ];
-/* Measured 2026-11-08: these datasets link no operational point to a primary location,
-   so every line returns an empty extract. Said up front rather than discovered after a run. */
-const NO_PL_LINKS = new Set(['PRT','IRL','LTU','EST']);
+/* Measured 2026-11-20: rinf-plus holds no primary location for these countries (by era:inCountry or by code prefix),
+   so every extract is empty. Said up front rather than discovered after a run. */
+const NO_PLS = new Set(['PRT','IRL','EST']);
 const COUNTRY_NOTES = {
   DNK: 'Banedanmark’s RINF primary-location codes do not identify the same places as RNE’s CRD codes '
      + '(e.g. RINF DK00010 is Høje Taastrup, CRD DK00005). The codes below are RINF’s; do not join them to CRD.',
-  NOR: 'Bane NOR hangs every kilometric post on one nationwide LPS, so points are found through section endpoints, '
-     + 'and offsets run from −500 to +500 m from the nearest post. Use position_km rather than post + offset.',
-  HRV: 'Croatia publishes no LPS coordinates for its points, so position is empty and those rows sort last.',
-  LUX: 'CFL’s kilometric posts carry era:measuredDistance instead of era:kilometer, in kilometres although ERA declares it in metres; positions are read as kilometres.',
+  NOR: 'Bane NOR hangs every kilometric post on one nationwide LPS, so, when you narrow by line, points are found through section endpoints.',
+  HRV: 'Croatia’s primary locations carry no era:inCountry; they are assigned by their HR code prefix (and, for the EU-prefixed ones, by dataset).',
+  LTU: 'Lithuania publishes 3,700 primary-location resources for 201 codes, none with era:inCountry (merged per code). It links them from tracks and sidings, not from operational points, so linked_op_* read no data and narrowing by line finds nothing.',
 };
 
 /* ------------------------------------------------------------------ *
@@ -330,6 +321,8 @@ async function describeFetchError(err){
     const k = KNOWN[code] || ['The endpoint returned an error', 'HTTP ' + code + ' — see technical detail.'];
     return {title:k[0], message:k[1], detail:err.message};
   }
+  if(!(err instanceof TypeError) || !/fetch|network|load failed|failed to/i.test(String((err && err.message) || '')))
+    return {title:'Unexpected error in this page', message:'This looks like a bug in the tool rather than a network problem.', detail:String((err && err.stack) || err)};
   let reachable = false;
   try{ await fetch(new URL(ENDPOINT).origin + '/', {mode:'no-cors', cache:'no-store'}); reachable = true; }catch{ reachable = false; }
   return reachable
@@ -349,8 +342,15 @@ const PREFIXES = [
 ].join('\n');
 
 function safeCountry(c){ if(!/^[A-Z]{3}$/.test(c)) throw new Error('Bad country code.'); return c; }
-function safeIri(u){ if(!/^https?:\/\/[^\s<>"{}|\\^`]+$/.test(u)) throw new Error('Unexpected IRI from the endpoint: ' + u); return u; }
-const iriValues = (v, xs) => `VALUES ?${v} { ${xs.map(u => '<' + safeIri(u) + '>').join(' ')} }`;
+const IRI_OK = /^https?:\/\/[^\s<>"{}|\\^`]+$/;
+/* An IRI that cannot be written between <…> is built from a string instead of being rejected. */
+function iriValues(v, xs){
+  const ok = xs.filter(u => IRI_OK.test(u)), bad = xs.filter(u => !IRI_OK.test(u));
+  const a = ok.length ? `VALUES ?${v} { ${ok.map(u => '<' + u + '>').join(' ')} }` : '';
+  if(!bad.length) return a;
+  const b = `VALUES ?${v}_s { ${bad.map(u => JSON.stringify(u)).join(' ')} } BIND(IRI(?${v}_s) AS ?${v})`;
+  return a ? `{ ${a} } UNION { ${b} }` : b;
+}
 
 /* National lines, keyed to their LPS resources: era:lineId for 9,543 of 9,642 LPS,
    the English rdfs:label for Croatia's and Norway's. A line id is unique only within
@@ -369,150 +369,37 @@ WHERE {
 GROUP BY ?line ?src ORDER BY ?line`;
 }
 
-/* Phase 1 — the points on the line, by kilometric post on the line's LPS or as a section
-   endpoint. ?hasPl flags the ones linked to a primary location; the rest are counted and
-   reported, not exported. Validity is resolved per uopid in the page. */
+/* A validity bound is published as time:inXSDDate by most managers, but as time:inXSDDateTimeStamp
+   (or inXSDDateTime) by some (four small Austrian IMs); all three are read as an ISO date. */
+const dateOf = (node, out) => `OPTIONAL { ?${node} time:inXSDDate ?${out}1 } OPTIONAL { ?${node} time:inXSDDateTimeStamp ?${out}2 } OPTIONAL { ?${node} time:inXSDDateTime ?${out}3 }
+  BIND(COALESCE(STR(?${out}1), SUBSTR(STR(?${out}2), 1, 10), SUBSTR(STR(?${out}3), 1, 10)) AS ?${out})`;
+
+/* The points on a line, by kilometric post on the line's LPS or as a section endpoint. Only membership
+   and validity are needed here (the primary locations are read afterwards), so no position is fetched.
+   ?hasPl flags the points linked to a primary location. Validity is resolved per uopid in the page. */
 function opsQuery(lps){
   return `${PREFIXES}
-SELECT DISTINCT ?op ?opid ?opName ?kp ?kpSrc ?off ?via ?ob ?oe ?nkp ?noff ?hasPl
+SELECT DISTINCT ?op ?opid ?ob ?oe ?hasPl
 WHERE {
   ${iriValues('lps', lps)}
   {
-    # On the line when its kilometric post belongs to the line's LPS. The kilometre and offset are
-    # optional: Luxembourg's 2,644 posts carry no era:kilometer, only era:measuredDistance (declared in
-    # metres, published in kilometres: 4.0 for "KP 4"), and requiring era:kilometer here used to drop
-    # every Luxembourg point, because the section-endpoint branch skips points with a post on the LPS.
-    ?op a era:OperationalPoint ; era:netReference/era:hasLrsCoordinate ?c .
-    ?c era:kmPost ?post . ?post era:hasLRS ?lps .
-    OPTIONAL { ?post era:kilometer ?k1 }
-    OPTIONAL { ?post era:measuredDistance ?k2 }
-    OPTIONAL { ?c era:offsetFromKilometricPost ?off }
-    BIND(COALESCE(?k1, ?k2) AS ?kp)
-    BIND(IF(!BOUND(?k1) && BOUND(?k2), "measuredDistance", "kilometer") AS ?kpSrc)
-    BIND("kilometric post" AS ?via)
+    # On the line when its kilometric post belongs to the line's LPS (Luxembourg's posts carry
+    # era:measuredDistance instead of era:kilometer, so the post alone is tested).
+    ?op a era:OperationalPoint ; era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS ?lps .
   } UNION {
     ?sol a era:SectionOfLine ; era:nationalLine ?lps .
-    { ?sol era:opStart ?op .
-      OPTIONAL { ?sol era:netReference/era:startsAt/era:hasLrsCoordinate
-                   [ era:kmPost/era:kilometer ?kp ; era:offsetFromKilometricPost ?off ] } }
-    UNION
-    { ?sol era:opEnd ?op .
-      OPTIONAL { ?sol era:netReference/era:endsAt/era:hasLrsCoordinate
-                   [ era:kmPost/era:kilometer ?kp ; era:offsetFromKilometricPost ?off ] } }
+    { ?sol era:opStart ?op } UNION { ?sol era:opEnd ?op }
     ?op a era:OperationalPoint .
-    FILTER NOT EXISTS { ?op era:netReference/era:hasLrsCoordinate/era:kmPost/era:hasLRS ?lps }
-    BIND("section endpoint" AS ?via)
   }
   ?op era:uopid ?opid .
-  OPTIONAL { ?op era:opName ?opName }
-  OPTIONAL { ?op era:validity ?ov . ?ov time:hasBeginning/time:inXSDDate ?ob .
-             OPTIONAL { ?ov time:hasEnd/time:inXSDDate ?oe } }
-  # Bane NOR positions its points only on one nationwide LPS that carries no era:lineId, and its
-  # sections have no start/end coordinate. Use that national chainage when nothing on the line binds;
-  # a coordinate on another line's LPS (one with a line id) is never used for this line.
-  OPTIONAL { FILTER(!BOUND(?kp))
-             ?op era:netReference/era:hasLrsCoordinate
-               [ era:kmPost [ era:kilometer ?nkp ; era:hasLRS ?nlps ] ; era:offsetFromKilometricPost ?noff ] .
-             FILTER NOT EXISTS { ?nlps era:lineId ?anyLineId } }
+  OPTIONAL { ?op era:validity ?ov . ?ov time:hasBeginning ?obn .
+             ${dateOf('obn', 'ob')}
+             OPTIONAL { ?ov time:hasEnd ?oen . ${dateOf('oen', 'oe')} } }
   BIND(EXISTS { ?op era:primaryLocation ?anyPl } AS ?hasPl)
 }`;
 }
 
-function plQuery(ops){
-  return `${PREFIXES}
-SELECT ?op ?pl ?code ?name WHERE {
-  ${iriValues('op', ops)}
-  ?op era:primaryLocation ?pl .
-  OPTIONAL { ?pl era:primaryLocationCode ?code }
-  OPTIONAL { ?pl era:primaryLocationName ?name FILTER(LANG(?name) = "" || LANGMATCHES(LANG(?name), "en")) }
-}`;
-}
-
-/* Every dataset publishes era:isPartOf except Croatia's (era:hasPart only). Asking for both
-   in one query is correct and ruinous for the optimiser, so the direction is probed once. */
-function partProbeQuery(ops){
-  return `${PREFIXES}
-SELECT ?t WHERE { ${iriValues('w', ops.slice(0, 50))} ?t era:isPartOf ?w } LIMIT 1`;
-}
-const part = (whole, p, dir) => dir === 'isPartOf' ? `?${p} era:isPartOf ?${whole} .` : `?${whole} era:hasPart ?${p} .`;
-
-function tracksQuery(ops, dir, sidings){
-  return `${PREFIXES}
-SELECT ?op ?track ?type ?label ?tid ?tb ?te WHERE {
-  ${iriValues('op', ops)}
-  VALUES ?type { era:RunningTrack${sidings ? ' era:Siding' : ''} }
-  ${part('op', 'track', dir)}
-  ?track a ?type .
-  OPTIONAL { ?track rdfs:label ?label }
-  OPTIONAL { ?track era:trackId ?t1 }
-  OPTIONAL { ?track era:sidingId ?t2 }
-  BIND(COALESCE(?t1, ?t2) AS ?tid)
-  OPTIONAL { ?track era:validity ?tv . ?tv time:hasBeginning/time:inXSDDate ?tb .
-             OPTIONAL { ?tv time:hasEnd/time:inXSDDate ?te } }
-}`;
-}
-
-function catalogueQuery(){
-  return `${PREFIXES}
-SELECT ?parameter ?rinfIndex ?label WHERE {
-  ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ; era:rinfIndex ?rinfIndex .
-  FILTER(STRSTARTS(?rinfIndex, "1.2"))
-  FILTER NOT EXISTS { ?parameter owl:deprecated true }
-  OPTIONAL { ?parameter rdfs:label ?label0 FILTER(LANG(?label0) = "" || LANGMATCHES(LANG(?label0), "en")) }
-  BIND(COALESCE(?label0, "") AS ?label)
-}`;
-}
-
-/* The RCC predicate set is bound in a subquery before the data is touched. */
-const PARAMS = `{ SELECT DISTINCT ?parameter WHERE {
-      ?parameter era:usedInRCCCalculations "true"^^xsd:boolean ; era:rinfIndex ?ri .
-      FILTER(STRSTARTS(?ri, "1.2"))
-      FILTER NOT EXISTS { ?parameter owl:deprecated true } } }`;
-const HOPS = ['contactLineSystem', 'etcs', 'trainDetectionSystem', 'tracksideHabd'];
-const HOP_KIND = {contactLineSystem:'Contact line system', etcs:'ETCS', trainDetectionSystem:'Train detection system', tracksideHabd:'Trackside hot axle box detector'};
-
-function directParamsQuery(subjects){
-  return `${PREFIXES}
-SELECT ?subject ?parameter ?value WHERE {
-  ${PARAMS}
-  ${iriValues('subject', subjects)}
-  ?subject ?parameter ?value .
-}`;
-}
-function hopParamsQuery(tracks){
-  return `${PREFIXES}
-SELECT ?subject ?hop ?element ?parameter ?value WHERE {
-  ${PARAMS}
-  ${iriValues('subject', tracks)}
-  VALUES ?hop { ${HOPS.map(h => 'era:' + h).join(' ')} }
-  ?subject ?hop ?element .
-  ?element ?parameter ?value .
-}`;
-}
-function partParamsQuery(tracks, dir){
-  return `${PREFIXES}
-SELECT ?subject ?element ?etype ?elabel ?parameter ?value WHERE {
-  ${PARAMS}
-  ${iriValues('subject', tracks)}
-  ${part('subject', 'element', dir)}
-  ?element ?parameter ?value .
-  OPTIONAL { ?element a ?etype FILTER(?etype IN (era:PlatformEdge, era:Tunnel)) }
-  OPTIONAL { ?element rdfs:label ?elabel }
-}`;
-}
-/* Labels in their own VALUES-bounded query: inline OPTIONAL labels cost ~5x. */
-function labelsQuery(iris){
-  return `${PREFIXES}
-SELECT ?v ?l ?wkt WHERE {
-  ${iriValues('v', iris)}
-  OPTIONAL { ?v skos:prefLabel ?s0 FILTER(LANG(?s0) = "" || LANGMATCHES(LANG(?s0), "en")) }
-  OPTIONAL { ?v rdfs:label ?l0 FILTER(LANG(?l0) = "" || LANGMATCHES(LANG(?l0), "en")) }
-  OPTIONAL { ?v geo:asWKT ?wkt }
-  BIND(COALESCE(?s0, ?l0) AS ?l)
-}`;
-}
-
-const CHUNK = 250, POOL = 6;
+const CHUNK = 250, POOL = 6;   // lines/points per query; queries in flight
 const chunk = (xs, n) => { const out = []; for(let i = 0; i < xs.length; i += n) out.push(xs.slice(i, i + n)); return out; };
 async function pooled(jobs, signal){
   const out = new Array(jobs.length); let next = 0;
@@ -525,9 +412,9 @@ async function pooled(jobs, signal){
   }));
   return out;
 }
-async function chunked(build, xs, signal, log, title){
+async function chunked(build, xs, signal, log, title, size = CHUNK){
   if(!xs.length) return [];
-  const parts = chunk(xs, CHUNK);
+  const parts = chunk(xs, size);
   log.push({title: title + (parts.length > 1 ? ` (1 of ${parts.length} chunks shown)` : ''), query: build(parts[0])});
   const res = await pooled(parts.map(p => () => sparql(build(p), signal)), signal);
   return res.flat();
@@ -553,7 +440,7 @@ async function setError(err, retry){
     '</div><details><summary>Technical detail</summary><code class="tech">' + esc(d.detail) + '</code></details></div>';
   if(retry) el.querySelector('.retryBtn').addEventListener('click', retry);
 }
-function updateRun(){ $('runBtn').disabled = !($('country').value && pickedLines.length); }
+function updateRun(){ $('runBtn').disabled = !$('country').value; }
 
 COUNTRIES.forEach(([c, n]) => {
   const o = document.createElement('option'); o.value = c; o.textContent = n + ' (' + c + ')'; $('country').appendChild(o);
@@ -571,9 +458,9 @@ async function onCountry(){
   pickedLines = []; lines = []; $('lineSearch').value = ''; closeList(); renderChips(); updateRun();
   $('countryHint').className = 'hint'; $('countryHint').textContent = '';
   if(!cc){ $('lineSearch').disabled = true; $('lineSearch').placeholder = 'Choose a country first…'; renderChips(); return; }
-  if(NO_PL_LINKS.has(cc)){
+  if(NO_PLS.has(cc)){
     $('countryHint').className = 'hint warn';
-    $('countryHint').textContent = 'This dataset links no operational point to a primary location (measured 8 Nov 2026), so every extract will be empty.';
+    $('countryHint').textContent = 'rinf-plus holds no primary location for this country (measured 20 Nov 2026), so the extract will be empty.';
   }else if(COUNTRY_NOTES[cc]){
     $('countryHint').textContent = COUNTRY_NOTES[cc];
   }
@@ -581,12 +468,13 @@ async function onCountry(){
   setStatus('Loading the national lines…', 'busy');
   try{
     lines = await loadLines(cc);
-    if($('country').value !== cc) return;
+    if($('country').value !== cc) return false;
     $('lineSearch').disabled = false;
     $('lineSearch').placeholder = 'Search ' + fmt(lines.length) + ' lines by identifier…';
     renderChips();
     setStatus('');
-  }catch(err){ setError(err, onCountry); $('lineSearch').placeholder = 'Lines could not be loaded'; }
+    return true;
+  }catch(err){ setError(err, onCountry); $('lineSearch').placeholder = 'Lines could not be loaded'; return false; }
 }
 $('country').addEventListener('change', onCountry);
 
@@ -635,13 +523,14 @@ function renderChips(){
   const hint = $('lineHint');
   hint.className = 'hint';
   if(!total){ hint.textContent = ''; return; }
+  if($('country').value === 'LTU'){ hint.className = 'hint warn'; hint.textContent = 'Lithuania links its primary locations from tracks and sidings, not from operational points, so narrowing by line finds nothing. Leave the lines empty for the whole country.'; return; }
   if(!n){
-    hint.textContent = fmt(total) + ' national lines — search and pick one or more' +
+    hint.textContent = fmt(total) + ' national lines — optional: pick some to narrow the extract to the locations their points reference; none means the whole country' +
       (lines.some(l => l.src === 'label') ? '. Some are identified by their LPS label, as this manager publishes no era:lineId' : '');
   }else{
     const sections = pickedLines.reduce((t, l) => t + l.sections, 0);
     hint.textContent = `${fmt(n)} of ${fmt(total)} lines, ${fmt(sections)} sections` +
-      (n > BIG_SELECTION ? ' — a large selection: one query per line, six at a time. For scale, all 1,496 German lines take about 50 s and give a 240,000-row (~110 MB) CSV.' : '');
+      (n > BIG_SELECTION ? ' — a large selection: one query per line, six at a time; picking every line is rarely what you want, since leaving the list empty gives the whole country faster.' : '');
     if(n > BIG_SELECTION) hint.className = 'hint warn';
   }
 }
@@ -668,17 +557,16 @@ document.addEventListener('click', e => { if(!e.target.closest('.comboWrap') && 
 /* ------------------------------------------------------------------ *
  * Run
  * ------------------------------------------------------------------ */
-const numOrNull = x => (x === undefined || x === null || x === '' || isNaN(+x)) ? null : +x;
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
-/* Validity on a reference date, per place (a uopid for points; a track or siding id within the
-   point for tracks). Never per line or per point: France dates each track by the day it opened.
+/* Validity on a reference date, per place (a code for primary locations, a uopid for points).
    - windows in force on the date win, the latest beginning among them;
    - otherwise the most recent window that has begun (kept, but flagged as ended);
    - a place whose every dated window lies in the future is not yet valid and is dropped;
-   - resources with no dated validity are always kept (ten countries publish none).
+   - resources with no dated validity are always kept (many datasets publish none).
    "Newest window" alone is wrong as soon as a manager publishes ahead: DB InfraGO's points carry
-   2026-01-01→2026-12-31 and from-2027-01-01 windows, and the 2027 one has lost ~3,150 PL links. */
+   2026-01-01→2026-12-31 and from-2027-01-01 windows, and the 2027 one has lost ~3,150 PL links.
+   Dropped resources are counted as "future" (every window begins after the date) or "superseded". */
 function pickValid(items, keyOf, asOf){
   const maxStr = xs => xs.reduce((m, x) => (x > m ? x : m), '');
   const inForceFrom = x => maxStr(x.windows.filter(w => w.b <= asOf && (!w.e || w.e >= asOf)).map(w => w.b));
@@ -703,220 +591,305 @@ function pickValid(items, keyOf, asOf){
       chosen.forEach(x => expired.add(x));
     }
     kept.push(...chosen);
-    dropped.superseded += dated.length - chosen.length;
+    for(const x of dated) if(!chosen.includes(x)){ if(x.windows.every(w => w.b > asOf)) dropped.future++; else dropped.superseded++; }
   }
   return {kept, dropped, expired};
 }
-const windowText = x => x.windows.length ? x.windows.map(w => w.b + ' → ' + (w.e || '…')).join(' | ') : '';
+
+
+/* ------------------------------------------------------------------ *
+ * Primary-location queries
+ * ------------------------------------------------------------------ */
+const ISO2 = {AUT:'AT',BEL:'BE',BGR:'BG',HRV:'HR',CZE:'CZ',DNK:'DK',EST:'EE',FIN:'FI',FRA:'FR',DEU:'DE',GRC:'GR',HUN:'HU',
+  IRL:'IE',ITA:'IT',LVA:'LV',LTU:'LT',LUX:'LU',NLD:'NL',NOR:'NO',POL:'PL',PRT:'PT',ROU:'RO',SVK:'SK',SVN:'SI',ESP:'ES',SWE:'SE',CHE:'CH',LIE:'LI'};
+const NO_DATA = 'no data';
+
+/* Phase 1 — which PL resources belong to the country, and by which rule. A PL belongs to the country
+   (1) named by its own era:inCountry; else (2) by the ISO-2 prefix of its code; else (3) when the code
+   has no known prefix (the "EU" codes), by the dataset graph it is published in, when that graph also
+   holds the country's sections of line. */
+function plCountryQuery(cc){
+  const iso = ISO2[cc];
+  return `${PREFIXES}
+SELECT DISTINCT ?pl ?code ?how WHERE {
+  {
+    ?pl a era:PrimaryLocation ; era:inCountry eu:${safeCountry(cc)} ; era:primaryLocationCode ?code .
+    BIND("era:inCountry" AS ?how)
+  } UNION {
+    ?pl a era:PrimaryLocation ; era:primaryLocationCode ?code .
+    FILTER(STRSTARTS(?code, "${iso}"))
+    FILTER NOT EXISTS { ?pl era:inCountry ?x }
+    BIND("code prefix" AS ?how)
+  } UNION {
+    ?pl a era:PrimaryLocation ; era:primaryLocationCode ?code .
+    FILTER NOT EXISTS { ?pl era:inCountry ?x }
+    FILTER(!REGEX(?code, "^(${Object.values(ISO2).join('|')})"))
+    GRAPH ?g { ?pl a era:PrimaryLocation }
+    { SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s a era:SectionOfLine ; era:inCountry eu:${cc} } } }
+    BIND("dataset" AS ?how)
+  }
+}`;
+}
+
+/* Phase 2 — the fields of the PL resources, pinned with VALUES. Each field family is its own UNION
+   branch with its own variables, so multi-valued fields never multiply one another. */
+function plFieldsQuery(pls){
+  return `${PREFIXES}
+SELECT ?pl ?k ?a ?b ?c ?d ?e WHERE {
+  ${iriValues('pl', pls)}
+  { ?pl era:primaryLocationName ?a BIND(LANG(?a) AS ?b) BIND("name" AS ?k) }
+  UNION { ?pl rdfs:label ?a BIND(LANG(?a) AS ?b) BIND("label" AS ?k) }
+  UNION { ?pl era:inCountry ?x BIND(STRAFTER(STR(?x), "country/") AS ?a) BIND("country" AS ?k) }
+  UNION { ?pl era:passengerFlag ?a BIND("passenger" AS ?k) }
+  UNION { ?pl era:freightFlag ?a BIND("freight" AS ?k) }
+  UNION { ?pl era:containerHandlingFlag ?a BIND("container" AS ?k) }
+  UNION { ?pl era:handoverPointFlag ?a BIND("handover" AS ?k) }
+  UNION { ?pl era:inNUTS3 ?x BIND(REPLACE(STR(?x), "^.*/", "") AS ?a) BIND("nuts3" AS ?k) }
+  UNION { ?pl era:operatingLanguage ?x BIND(REPLACE(STR(?x), "^.*/", "") AS ?a) BIND("oplang" AS ?k) }
+  UNION { ?pl era:notYetAvailable ?x BIND(REPLACE(STR(?x), "^.*[/#]", "") AS ?a) BIND("nya" AS ?k) }
+  UNION { ?pl era:notApplicable ?x BIND(REPLACE(STR(?x), "^.*[/#]", "") AS ?a) BIND("na" AS ?k) }
+  UNION { ?pl era:infrastructureManager ?im . ?im (era:organisationCode|era:roleOf/era:organisationCode) ?a BIND("im" AS ?k) }
+  UNION { ?pl era:validity ?v . ?v time:hasBeginning ?bn . ${dateOf('bn', 'a')}
+          OPTIONAL { ?v time:hasEnd ?en . ${dateOf('en', 'b')} } BIND("validity" AS ?k) }
+  UNION { ?pl era:netReference/geo:hasGeometry/geo:asWKT ?a BIND("wkt" AS ?k) }
+  UNION { ?pl geo:hasGeometry/geo:asWKT ?a BIND("wkt2" AS ?k) }
+  UNION { GRAPH ?g { ?pl a era:PrimaryLocation } BIND(STRAFTER(STR(?g), "graph/") AS ?a) BIND("graph" AS ?k) }
+  UNION { ?op era:primaryLocation ?pl ; era:uopid ?a . BIND(STR(?op) AS ?e) OPTIONAL { ?op era:opName ?b }
+          OPTIONAL { ?op era:validity ?ov . ?ov time:hasBeginning ?obn . ${dateOf('obn', 'c')}
+                     OPTIONAL { ?ov time:hasEnd ?oen . ${dateOf('oen', 'd')} } } BIND("op" AS ?k) }
+}`;
+}
+
+/* Which PLs the operational points on the chosen lines reference. */
+function opPlQuery(ops){
+  return `${PREFIXES}
+SELECT DISTINCT ?op ?pl WHERE { ${iriValues('op', ops)} ?op era:primaryLocation ?pl }`;
+}
+
+/* RINF bodies carry no names; OCR-KG does, keyed by era:organisationCode. */
+const OCR = 'https://graph.data.era.europa.eu/repositories/OCR-KG';
+function imNamesQuery(codes){
+  return `PREFIX era: <http://data.europa.eu/949/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+SELECT ?code (MIN(STR(?n)) AS ?name) WHERE {
+  VALUES ?code { ${codes.map(c => '"' + c.replace(/[^A-Za-z0-9_-]/g, '') + '"').join(' ')} }
+  ?o era:organisationCode ?code ; foaf:name ?n
+} GROUP BY ?code`;
+}
+async function sparqlAt(url, query, signal){
+  const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/sparql-query','Accept':'application/sparql-results+json'}, body:query, signal});
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return (await res.json()).results.bindings.map(b => { const o = {}; for(const k in b) o[k] = b[k].value; return o; });
+}
+
+/* ------------------------------------------------------------------ *
+ * Run
+ * ------------------------------------------------------------------ */
+const LANG_RANK = l => l === 'en' ? 0 : l === '' ? 1 : 2;
+const natural = (a, b) => String(a).localeCompare(String(b), 'en', {numeric:true});
+const uniq = xs => [...new Set(xs)];
+const orNo = v => (v === undefined || v === null || v === '') ? NO_DATA : v;
 
 async function run(){
   const cc = $('country').value, sel = pickedLines.slice();
-  if(!cc || !sel.length) return;
+  if(!cc) return;
   if(controller) controller.abort();
   controller = new AbortController();
   const signal = controller.signal, t0 = performance.now(), log = [];
-  const sidings = $('wantSidings').checked;
   const asOf = /^\d{4}-\d{2}-\d{2}$/.test($('asOf').value) ? $('asOf').value : todayIso();
   $('runBtn').disabled = true; $('resultPanel').hidden = true;
   try{
-    /* Phase 1 runs once per line: each line's LPS resources are pinned separately, and the
-       rows keep their line, because a point's position and how it was reached are per line. */
-    let done = 0;
-    const label = sel.length === 1 ? 'line ' + sel[0].line : fmt(sel.length) + ' lines';
-    setStatus('Finding the operational points on ' + label + '…', 'busy');
-    log.push({title:'1. Operational points on the line' + (sel.length > 1 ? ` (1 of ${sel.length} lines shown: ${sel[0].line})` : ''), query:opsQuery(sel[0].lps)});
-    const perLine = await pooled(sel.map(l => async () => {
-      const rows = await sparql(opsQuery(l.lps), signal);
-      done++; if(sel.length > 1) setStatus(`Finding the operational points — ${fmt(done)} of ${fmt(sel.length)} lines…`, 'busy');
-      return rows.map(r => Object.assign(r, {line:l.line}));
-    }), signal);
-    const opRows = perLine.flat();
-
-    /* One record per OP resource, with per-line position and route of discovery. Validity is
-       resolved per uopid across all the selected lines, so a junction gets one consistent window. */
-    const byOp = new Map();
-    for(const r of opRows){
-      let o = byOp.get(r.op);
-      if(!o) byOp.set(r.op, o = {op:r.op, opid:r.opid, name:'', perLine:new Map(), windows:[], hasPl:false});
-      if(r.opName && !o.name) o.name = r.opName;
-      let pl = o.perLine.get(r.line);
-      if(!pl) o.perLine.set(r.line, pl = {positions:new Map(), natPositions:new Map(), via:new Set()});
-      pl.via.add(r.via);
-      const ob = (r.ob || '').slice(0, 10), oe = (r.oe || '').slice(0, 10);
-      if(ob && !o.windows.some(w => w.b === ob && w.e === oe)) o.windows.push({b:ob, e:oe});
-      if(r.hasPl === 'true' || r.hasPl === '1') o.hasPl = true;
-      const kp = numOrNull(r.kp), off = numOrNull(r.off), nkp = numOrNull(r.nkp), noff = numOrNull(r.noff);
-      if(kp !== null) pl.positions.set(kp + '|' + (off ?? ''), {kp, off, md: r.kpSrc === 'measuredDistance'});
-      if(nkp !== null) pl.natPositions.set(nkp + '|' + (noff ?? ''), {kp:nkp, off:noff});
+    /* Phase 1: the country's PL resources. */
+    setStatus('Finding the primary locations of ' + cc + '…', 'busy');
+    log.push({title:'1. Primary-location resources of the country', query:plCountryQuery(cc)});
+    const base = await sparql(plCountryQuery(cc), signal);
+    const items = new Map();   // iri -> record
+    for(const r of base){
+      let x = items.get(r.pl);
+      if(!x) items.set(r.pl, x = {iri:r.pl, code:r.code, how:r.how, names:[], labels:[], oplang:new Set(), nya:new Set(), na:new Set(), countries:new Set(), flags:{passenger:new Set(), freight:new Set(), container:new Set(), handover:new Set()},
+        nuts:new Set(), im:new Set(), windows:[], wkt:new Set(), wkt2:new Set(), graphs:new Set(), ops:new Map()});
     }
-    const opPick = pickValid([...byOp.values()], o => o.opid, asOf);
-    const current = opPick.kept;
-    const withPl = current.filter(o => o.hasPl);
-    const opIndex = new Map(withPl.map(o => [o.op, o]));
+    const codeSet = new Set([...items.values()].map(x => x.code));
 
-    let pls = [], trackRows = [], dir = 'isPartOf', cat = [], A = [], B = [], C = [], D = [], labels = [];
-    if(withPl.length){
-      const opIris = withPl.map(o => o.op);
+    /* Optional narrowing: the PLs referenced by the points on the chosen lines. */
+    let wanted = null, narrow = null;
+    const linesOfCode = new Map();
+    if(sel.length){
+      let done = 0;
+      setStatus('Finding the operational points on ' + (sel.length === 1 ? 'line ' + sel[0].line : fmt(sel.length) + ' lines') + '…', 'busy');
+      log.push({title:'2. Operational points on the line' + (sel.length > 1 ? ` (1 of ${sel.length} lines shown: ${sel[0].line})` : ''), query:opsQuery(sel[0].lps)});
+      const perLine = await pooled(sel.map(l => async () => {
+        const rows = await sparql(opsQuery(l.lps), signal);
+        done++; if(sel.length > 1) setStatus(`Finding the operational points — ${fmt(done)} of ${fmt(sel.length)} lines…`, 'busy');
+        return rows.map(r => Object.assign(r, {line:l.line}));
+      }), signal);
+      const byOp = new Map();
+      for(const r of perLine.flat()){
+        let o = byOp.get(r.op);
+        if(!o) byOp.set(r.op, o = {op:r.op, opid:r.opid, lines:new Set(), windows:[], hasPl:false});
+        o.lines.add(r.line);
+        const ob = (r.ob || '').slice(0, 10), oe = (r.oe || '').slice(0, 10);
+        if(ob && !o.windows.some(w => w.b === ob && w.e === oe)) o.windows.push({b:ob, e:oe});
+        if(r.hasPl === 'true' || r.hasPl === '1') o.hasPl = true;
+      }
+      const opPick = pickValid([...byOp.values()], o => o.opid, asOf);
+      const withPl = opPick.kept.filter(o => o.hasPl);
       setStatus(`Reading the primary locations of ${fmt(withPl.length)} points…`, 'busy');
-      [pls, cat] = await Promise.all([
-        chunked(plQuery, opIris, signal, log, '2. Primary locations of those points'),
-        sparql(catalogueQuery(), signal),
-      ]);
-      log.push({title:'3. RCC parameter catalogue (RINF 1.2)', query:catalogueQuery()});
-      const probe = await sparql(partProbeQuery(opIris), signal);
-      dir = probe.length ? 'isPartOf' : 'hasPart';
-      log.push({title:'4. Part-whole direction probe → ' + dir, query:partProbeQuery(opIris)});
-      setStatus('Reading their tracks' + (sidings ? ' and sidings' : '') + '…', 'busy');
-      trackRows = await chunked(ops => tracksQuery(ops, dir, sidings), opIris, signal, log, '5. Tracks' + (sidings ? ' and sidings' : '') + ' of those points');
+      const links = await chunked(opPlQuery, withPl.map(o => o.op), signal, log, '3. Primary locations referenced by those points');
+      const opLines = new Map(withPl.map(o => [o.op, o.lines]));
+      wanted = new Set();
+      let foreign = new Set();
+      for(const r of links){
+        const x = items.get(r.pl);
+        if(!x){ foreign.add(r.pl); continue; }
+        wanted.add(x.code);
+        if(!linesOfCode.has(x.code)) linesOfCode.set(x.code, new Set());
+        opLines.get(r.op).forEach(l => linesOfCode.get(x.code).add(l));
+      }
+      narrow = {onLine:opPick.kept.length, withPl:withPl.length, foreign:foreign.size, opFuture:opPick.dropped.future, opExpired:opPick.expired.size};
+    }
+    const scope = wanted ? [...items.values()].filter(x => wanted.has(x.code)) : [...items.values()];
+    const scopeCodes = new Set(scope.map(x => x.code));
+
+    /* Phase 2: the fields. */
+    setStatus(`Reading ${fmt(scope.length)} primary-location resources…`, 'busy');
+    const fields = await chunked(plFieldsQuery, scope.map(x => x.iri), signal, log, '4. Fields of the primary locations', 500);
+    for(const r of fields){
+      const x = items.get(r.pl); if(!x) continue;
+      switch(r.k){
+        case 'name': x.names.push({text:r.a, lang:r.b || ''}); break;
+        case 'label': x.labels.push({text:r.a, lang:r.b || ''}); break;
+        case 'oplang': x.oplang.add(r.a); break;
+        case 'nya': x.nya.add(r.a); break;
+        case 'na': x.na.add(r.a); break;
+        case 'country': x.countries.add(r.a); break;
+        case 'passenger': case 'freight': case 'container': case 'handover': x.flags[r.k].add(r.a); break;
+        case 'nuts3': x.nuts.add(r.a); break;
+        case 'im': x.im.add(r.a); break;
+        case 'validity': { const b = (r.a || '').slice(0, 10), e = (r.b || '').slice(0, 10); if(b && !x.windows.some(w => w.b === b && w.e === e)) x.windows.push({b, e}); break; }
+        case 'wkt': x.wkt.add(r.a); break;
+        case 'wkt2': x.wkt2.add(r.a); break;
+        case 'graph': x.graphs.add(r.a); break;
+        case 'op': {
+          let o = x.ops.get(r.e);
+          if(!o) x.ops.set(r.e, o = {iri:r.e, id:r.a, name:'', windows:[]});
+          if(r.b && !o.name) o.name = r.b;
+          const b = (r.c || '').slice(0, 10), e = (r.d || '').slice(0, 10);
+          if(b && !o.windows.some(w => w.b === b && w.e === e)) o.windows.push({b, e});
+          break;
+        }
+      }
+    }
+    const imCodes = uniq(scope.flatMap(x => [...x.im]));
+    let imName = new Map(), imNote = '';
+    if(imCodes.length){
+      setStatus('Looking up infrastructure-manager names…', 'busy');
+      log.push({title:'5. Infrastructure-manager names (OCR-KG, joined on organisation code)', query:imNamesQuery(imCodes)});
+      try{
+        const rs = await sparqlAt(OCR, imNamesQuery(imCodes), signal);
+        imName = new Map(rs.map(r => [r.code, r.name]));
+      }catch(e){ if(e && e.name === 'AbortError') throw e; imNote = 'Infrastructure-manager names could not be read from OCR-KG, so that column reads “' + NO_DATA + '”.'; }
     }
 
-    const tracks = new Map();
-    for(const r of trackRows){
-      let t = tracks.get(r.track);
-      if(!t) tracks.set(r.track, t = {track:r.track, op:r.op, kind:localName(r.type), label:'', tid:'', windows:[]});
-      if(r.label && !t.label) t.label = r.label;
-      if(r.tid && !t.tid) t.tid = r.tid;
-      const tb = (r.tb || '').slice(0, 10), te = (r.te || '').slice(0, 10);
-      if(tb && !t.windows.some(w => w.b === tb && w.e === te)) t.windows.push({b:tb, e:te});
+    /* ---- assemble: one row per code, the window in force on the date ---- */
+    const pick = pickValid(scope, x => x.code, asOf);
+    const chosenWindow = x => {
+      const ws = x.windows.filter(w => w.b <= asOf && (!w.e || w.e >= asOf));
+      const pool = ws.length ? ws : x.windows.filter(w => w.b <= asOf);
+      return pool.reduce((m, w) => (!m || w.b > m.b ? w : m), null);
+    };
+    const groups = new Map();
+    for(const x of pick.kept){ if(!groups.has(x.code)) groups.set(x.code, []); groups.get(x.code).push(x); }
+    const rows = [];
+    let truncated = 0, opFutureDropped = 0;
+    for(const [code, xs] of groups){
+      xs.sort((a, b) => a.iri.localeCompare(b.iri));
+      /* Name: era:primaryLocationName when published; else the rdfs:label with the code stripped out of it
+         (Poland: "PL06419 Stary Łążek"; Austria: "PL_AT35048_AB CUT"; Luxembourg: "Name [LU66170]"),
+         unless nothing but the code remains (DB InfraGO's labels are just the code). */
+      const nameMap = new Map();
+      xs.forEach(x => x.names.forEach(n => nameMap.set(n.text + '@' + n.lang, n)));
+      const rank = (a, b) => LANG_RANK(a.lang) - LANG_RANK(b.lang) || a.lang.localeCompare(b.lang) || a.text.localeCompare(b.text);
+      let names = [...nameMap.values()].sort(rank), nameSource = names.length ? 'era:primaryLocationName' : '';
+      const labelMap = new Map();
+      xs.forEach(x => x.labels.forEach(n => labelMap.set(n.text + '@' + n.lang, n)));
+      const labels = [...labelMap.values()].sort(rank);
+      const strip = t => t.replace(new RegExp('^PL_' + code.replace(/[^A-Za-z0-9]/g, '') + '_'), '').replace(new RegExp('^' + code.replace(/[^A-Za-z0-9]/g, '') + '\\s+'), '')
+        .replace(new RegExp('\\s*\\[' + code.replace(/[^A-Za-z0-9]/g, '') + '\\]\\s*$'), '').trim();
+      if(!names.length){
+        const fromLabel = labels.map(l => ({text:strip(l.text), lang:l.lang})).filter(l => l.text && l.text !== code);
+        if(fromLabel.length){ names = fromLabel; nameSource = 'rdfs:label'; }
+      }
+      const wins = []; let ended = false, dated = false;
+      xs.forEach(x => { const w = chosenWindow(x); if(w){ dated = true; if(pick.expired.has(x)) ended = true; if(!wins.some(y => y.b === w.b && y.e === w.e)) wins.push(w); } });
+      wins.sort((a, b) => a.b.localeCompare(b.b));
+      /* Position: a plain POINT from either source (netReference first) wins over a non-point geometry,
+         which is kept only if nothing else exists and is cut to stay under Excel's 32,767-character cell limit. */
+      const wkts = uniq(xs.flatMap(x => [...x.wkt])).sort(), wkts2 = uniq(xs.flatMap(x => [...x.wkt2])).sort();
+      const isPt = w => /^\s*POINT\s*\(/i.test(w);
+      let wkt = '', posSrc = '';
+      if(wkts.some(isPt)){ wkt = wkts.find(isPt); posSrc = 'era:netReference'; }
+      else if(wkts2.some(isPt)){ wkt = wkts2.find(isPt); posSrc = 'geo:hasGeometry'; }
+      else if(wkts.length){ wkt = wkts[0]; posSrc = 'era:netReference'; }
+      else if(wkts2.length){ wkt = wkts2[0]; posSrc = 'geo:hasGeometry'; }
+      if(wkt.length > 32000){ wkt = wkt.slice(0, 32000); posSrc += ' (WKT truncated)'; truncated++; }
+      const m = /^\s*POINT\s*\(\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)\s*\)/i.exec(wkt);
+      /* Linked points: the same validity rule per uopid, on the chosen date. */
+      const opRes = new Map();
+      xs.forEach(x => x.ops.forEach((o, iri) => { if(!opRes.has(iri)) opRes.set(iri, o); }));
+      const opPickR = pickValid([...opRes.values()], o => o.id, asOf);
+      const ops = new Map();
+      opPickR.kept.forEach(o => { if(!ops.get(o.id)) ops.set(o.id, o.name); });
+      const opIds = [...ops.keys()].sort(natural);
+      opFutureDropped += opPickR.dropped.future;
+      const flag = k => uniq(xs.flatMap(x => [...x.flags[k]])).sort().reverse().join(' | ');
+      const decl = (set, ...props) => props.some(p => xs.some(x => x[set].has(p)));
+      const nya = uniq(xs.flatMap(x => [...x.nya])).sort(), na = uniq(xs.flatMap(x => [...x.na])).sort();
+      /* A property the manager declares not yet available / not applicable is said so in its own cell. */
+      const cell = (v, prop) => v ? v : decl('nya', prop) ? 'not yet available' : decl('na', prop) ? 'not applicable' : NO_DATA;
+      const ims = uniq(xs.flatMap(x => [...x.im])).sort(natural);
+      const how = uniq(xs.map(x => x.how));
+      rows.push({
+        country:cc, code, how:how.join(' | '), inCountry:orNo(uniq(xs.flatMap(x => [...x.countries])).sort().join(' | ')),
+        name:cell(names[0] && names[0].text, 'primaryLocationName'), nameLang:names[0] ? (names[0].lang || NO_DATA) : NO_DATA, nameSource:orNo(nameSource),
+        namesAll:orNo(names.map(n => n.text + (n.lang ? '@' + n.lang : '')).join(' | ')),
+        label:orNo(labels.map(n => n.text + (n.lang ? '@' + n.lang : '')).join(' | ')),
+        imCode:orNo(ims.join(' | ')), imName:orNo(ims.map(c => imName.get(c) || NO_DATA).join(' | ')),
+        passenger:orNo(flag('passenger')), freight:orNo(flag('freight')), container:orNo(flag('container')), handover:orNo(flag('handover')),
+        vBegin:wins.length ? wins.map(w => w.b).join(' | ') : NO_DATA,
+        vEnd:wins.length ? wins.map(w => w.e || NO_DATA).join(' | ') : NO_DATA,
+        vStatus:!dated ? 'no dated validity' : ended ? 'ended' : 'in force',
+        wkt:orNo(wkt), lon:m ? String(+m[1]) : NO_DATA, lat:m ? String(+m[2]) : NO_DATA, posSrc:orNo(posSrc),
+        nuts3:cell(uniq(xs.flatMap(x => [...x.nuts])).sort().join(' | '), 'inNUTS3'),
+        opLang:orNo(uniq(xs.flatMap(x => [...x.oplang])).sort().join(' | ')),
+        nya:orNo(nya.join(' | ')), na:orNo(na.join(' | ')),
+        datasets:orNo(uniq(xs.flatMap(x => [...x.graphs])).sort().join(' | ')),
+        opIds:orNo(opIds.join(' | ')), opNames:opIds.length ? opIds.map(i => ops.get(i) || NO_DATA).join(' | ') : NO_DATA, opCount:opIds.length,
+        lines:linesOfCode.has(code) ? [...linesOfCode.get(code)].sort(natural).join(' | ') : NO_DATA,
+        iris:xs.map(x => x.iri).join(' | '), iriCount:xs.length,
+      });
     }
-    const trPick = pickValid([...tracks.values()], t => opIndex.get(t.op).opid + '|' + t.kind + '|' + (t.tid || t.label || t.track), asOf);
-    const keptTracks = trPick.kept;
-    const trackIndex = new Map(keptTracks.map(t => [t.track, t]));
+    rows.sort((a, b) => natural(a.code, b.code));
+    const futureOnly = [...scopeCodes].filter(c => !groups.has(c)).length;
 
-    if(withPl.length){
-      setStatus(`Reading RCC parameters on ${fmt(withPl.length)} points and ${fmt(keptTracks.length)} tracks…`, 'busy');
-      const tIris = keptTracks.map(t => t.track);
-      [A, B, C, D] = await Promise.all([
-        chunked(directParamsQuery, withPl.map(o => o.op), signal, log, '6a. Parameters on the points themselves'),
-        chunked(directParamsQuery, tIris, signal, log, '6b. Parameters on tracks and sidings'),
-        chunked(hopParamsQuery, tIris, signal, log, '6c. Parameters on contact-line, ETCS, train-detection and HABD sub-objects'),
-        chunked(ts => partParamsQuery(ts, dir), tIris, signal, log, '6d. Parameters on platform edges and tunnels (parts of tracks)'),
-      ]);
-      const iris = [...new Set([...A, ...B, ...C, ...D].map(r => r.value).filter(v => /^https?:\/\//.test(v)))];
-      setStatus(`Resolving ${fmt(iris.length)} coded values…`, 'busy');
-      labels = await chunked(labelsQuery, iris, signal, log, '7. Labels and WKT for coded values');
-    }
-
-    /* ---- assemble ---- */
-    const catalogue = new Map();
-    for(const r of cat){
-      let p = catalogue.get(r.parameter);
-      if(!p) catalogue.set(r.parameter, p = {indices:new Set(), label:''});
-      p.indices.add(r.rinfIndex); if(r.label && !p.label) p.label = r.label;
-    }
-    const labelOf = new Map();
-    for(const r of labels){ const v = r.wkt || r.l; if(v && !labelOf.has(r.v)) labelOf.set(r.v, v); }
-    const plByOp = new Map();
-    for(const r of pls){
-      if(!plByOp.has(r.op)) plByOp.set(r.op, new Map());
-      const m = plByOp.get(r.op); if(!m.has(r.pl)) m.set(r.pl, {code:r.code || '', name:r.name || ''});
-      else { const x = m.get(r.pl); if(!x.code && r.code) x.code = r.code; if(!x.name && r.name) x.name = r.name; }
-    }
-
-    /* A value is exported only under a RINF index of the element it sits on: 1.2.0 for the point,
-       1.2.1 for a running track and its sub-objects, 1.2.2 for a siding and its sub-objects.
-       geo:hasGeometry, for one, is a 1.2 RCC parameter for points and running tracks but has no
-       siding index; such values are counted, not exported. */
-    const cells = new Map(), offIndex = new Map();
-    function add(op, elementIri, kind, track, elementName, ctx, parameter, value){
-      const p = catalogue.get(parameter);
-      const idx = p ? [...p.indices].filter(i => i.startsWith(ctx)) : [];
-      if(!idx.length){ const k = (p && p.label || localName(parameter)) + ' on ' + kind.toLowerCase(); offIndex.set(k, (offIndex.get(k) || 0) + 1); return; }
-      // The track is part of the key: one sub-object (e.g. a contact-line system) is often shared by
-      // every track at a point, and each track must get its own row.
-      const k = op.op + '\u0001' + (track ? track.track : '') + '\u0001' + elementIri + '\u0001' + parameter;
-      let c = cells.get(k);
-      if(!c) cells.set(k, c = {op, elementIri, kind, track, elementName, idx, parameter, values:new Set(), raws:new Set()});
-      c.values.add(/^https?:\/\//.test(value) ? (labelOf.get(value) || value) : value);
-      c.raws.add(value);
-    }
-    const ctxOf = t => t.kind === 'Siding' ? '1.2.2' : '1.2.1';
-    const trackKind = t => t.kind === 'Siding' ? 'Siding' : 'Running track';
-    for(const r of A){ const o = opIndex.get(r.subject); if(o) add(o, o.op, 'Operational point', null, o.name, '1.2.0', r.parameter, r.value); }
-    for(const r of B){ const t = trackIndex.get(r.subject); if(t) add(opIndex.get(t.op), t.track, trackKind(t), t, t.label, ctxOf(t), r.parameter, r.value); }
-    for(const r of C){ const t = trackIndex.get(r.subject); if(t) add(opIndex.get(t.op), r.element, HOP_KIND[localName(r.hop)] || localName(r.hop), t, '', ctxOf(t), r.parameter, r.value); }
-    for(const r of D){ const t = trackIndex.get(r.subject); if(t) add(opIndex.get(t.op), r.element, r.etype ? (localName(r.etype) === 'PlatformEdge' ? 'Platform edge' : 'Tunnel') : 'Part of track', t, r.elabel || '', ctxOf(t), r.parameter, r.value); }
-
-    /* Points linked to a primary location but carrying no RCC parameter still get one row, so the
-       CSV lists every qualifying point rather than silently dropping the bare ones. */
-    const withRows = new Set([...cells.values()].map(c => c.op.op));
-    const bare = withPl.filter(o => !withRows.has(o.op));
-
-    function position(pl){
-      const line = [...pl.positions.values()], nat = [...pl.natPositions.values()];
-      const src = line.length ? line : nat;
-      const p = src.sort((a, b) => a.kp - b.kp || (a.off ?? 0) - (b.off ?? 0))[0];
-      if(!p) return {km:null, post:'', ref:''};
-      return {
-        km: +(p.kp + (p.off ?? 0) / 1000).toFixed(3),
-        post: p.kp + (p.off !== null && p.off !== undefined ? (p.off >= 0 ? ' + ' : ' − ') + Math.abs(p.off) + ' m' : ''),
-        ref: line.length ? (p.md ? 'this line (era:measuredDistance read as km)' : 'this line') : 'national LPS (no line id)',
-      };
-    }
-    const lineOrder = new Map(sel.map((l, i) => [l.line, i]));
-    function opFields(o, lineName){
-      const pl = o.perLine.get(lineName), pos = position(pl), plm = plByOp.get(o.op) || new Map();
-      return {
-        country: cc, line: lineName, _line: lineOrder.get(lineName), uopid: o.opid, opName: o.name,
-        positionKm: pos.km, kmPost: pos.post, kmReference: pos.ref, via: [...pl.via].join(' | '),
-        opValidity: windowText(o) + (opPick.expired.has(o) ? ' (ended)' : ''),
-        plCodes: [...plm.values()].map(x => x.code).filter(Boolean).sort().join(' | '),
-        plNames: [...new Set([...plm.values()].map(x => x.name).filter(Boolean))].join(' | '),
-        opIri: o.op,
-      };
-    }
-    const linesOf = o => [...o.perLine.keys()].sort((a, b) => lineOrder.get(a) - lineOrder.get(b));
-    const out = [...cells.values()].flatMap(c => linesOf(c.op).map(lineName => ({
-      ...opFields(c.op, lineName),
-      kind: c.kind,
-      trackKind: c.track ? trackKind(c.track) : '',
-      trackId: c.track ? c.track.tid : '',
-      trackName: c.track ? c.track.label : '',
-      trackValidity: c.track ? windowText(c.track) + (trPick.expired.has(c.track) ? ' (ended)' : '') : '',
-      elementName: c.track && c.elementIri === c.track.track ? '' : c.elementName,
-      rinfIndex: c.idx.sort(natural).join(' / '),
-      parameter: (catalogue.get(c.parameter) || {}).label || localName(c.parameter),
-      parameterIri: c.parameter,
-      value: [...c.values].join(' | '),
-      valueRaw: [...c.raws].join(' | '),
-      elementIri: c.elementIri,
-      trackKey: c.track ? c.track.track : '',
-      _sub: c.track && c.elementIri !== c.track.track ? 1 : 0,
-      _op: c.kind === 'Operational point' ? 0 : 1,
-    }))).concat(bare.flatMap(o => linesOf(o).map(lineName => ({
-      ...opFields(o, lineName), kind:'Operational point', trackKind:'', trackId:'', trackName:'', trackValidity:'',
-      elementName:'', rinfIndex:'', parameter:'(no RCC parameter published at this point)', parameterIri:'',
-      value:'', valueRaw:'', elementIri:o.op, trackKey:'', _sub:0, _op:0,
-    }))));
-    out.sort((a, b) =>
-      a._line - b._line ||
-      (a.positionKm === null) - (b.positionKm === null) || (a.positionKm ?? 0) - (b.positionKm ?? 0) ||
-      a.uopid.localeCompare(b.uopid) || a.opIri.localeCompare(b.opIri) || a._op - b._op ||
-      natural(a.trackKind + ' ' + a.trackId + ' ' + a.trackName, b.trackKind + ' ' + b.trackId + ' ' + b.trackName) ||
-      a._sub - b._sub || a.elementIri.localeCompare(b.elementIri) || natural(a.rinfIndex, b.rinfIndex));
-
+    const has = f => rows.filter(r => r[f] !== NO_DATA).length;
     lastRun = {
-      cc, lines: sel.map(l => l.line), sidings, asOf, rows: out, log, dir,
-      stats: {
-        onLine: current.length, withPl: withPl.length, bare: bare.length,
-        opSuperseded: opPick.dropped.superseded, opFuture: opPick.dropped.future, opExpired: opPick.expired.size,
-        pls: new Set(pls.map(r => r.pl)).size,
-        tracks: keptTracks.length, trSuperseded: trPick.dropped.superseded, trFuture: trPick.dropped.future, trExpired: trPick.expired.size,
-        params: new Set(out.map(r => r.parameterIri).filter(Boolean)).size,
-        offIndex: [...offIndex.entries()].sort((a, b) => b[1] - a[1]),
-        national: withPl.filter(o => [...o.perLine.values()].some(pl => !pl.positions.size && pl.natPositions.size)).length,
-        multiLine: withPl.filter(o => o.perLine.size > 1).length,
-        measured: withPl.filter(o => [...o.perLine.values()].some(pl => [...pl.positions.values()].some(x => x.md))).length,
-        seconds: (performance.now() - t0) / 1000,
-        unresolved: out.filter(r => /^https?:\/\//.test(r.value)).length,
+      cc, lines:sel.map(l => l.line), asOf, rows, log, narrow, imNote, fetched:new Date().toISOString(),
+      stats:{
+        codesInCountry:codeSet.size, irisInCountry:items.size, scopeCodes:scopeCodes.size, rows:rows.length,
+        multiIri:rows.filter(r => r.iriCount > 1).length, superseded:pick.dropped.superseded, futureRes:pick.dropped.future, futureOnly, ended:rows.filter(r => r.vStatus === 'ended').length,
+        undated:rows.filter(r => r.vStatus === 'no dated validity').length,
+        name:rows.filter(r => r.nameSource !== NO_DATA).length, nameFromLabel:rows.filter(r => r.nameSource === 'rdfs:label').length, truncated, opFutureDropped,
+        earliest:scope.reduce((m, x) => x.windows.reduce((mm, w) => (!mm || w.b < mm ? w.b : mm), m), ''), pos:rows.filter(r => r.lon !== NO_DATA).length, wktOnly:rows.filter(r => r.wkt !== NO_DATA && r.lon === NO_DATA).length, im:has('imCode'), inCountry:has('inCountry'),
+        how:['era:inCountry', 'code prefix', 'dataset'].map(h => [h, rows.filter(r => r.how.includes(h)).length]),
+        conflicts:rows.filter(r => r.how.includes(' | ')).length,
+        seconds:(performance.now() - t0) / 1000,
       },
-      fetched: new Date().toISOString(),
     };
     render();
-    setStatus(out.length ? `Done — ${fmt(out.length)} rows in ${lastRun.stats.seconds.toFixed(1)} s.` :
-      'Done — nothing to export for this selection.', out.length ? 'success' : 'warn');
+    setStatus(rows.length ? `Done — ${fmt(rows.length)} primary locations in ${lastRun.stats.seconds.toFixed(1)} s.` : 'Done — nothing to export for this selection.', rows.length ? 'success' : 'warn');
     const h = new URLSearchParams({c:cc}); sel.forEach(l => h.append('l', l.line));
-    if(!sidings) h.set('sid', '0'); if($('asOf').value && $('asOf').value !== todayIso()) h.set('d', asOf);
+    if($('asOf').value && $('asOf').value !== todayIso()) h.set('d', asOf);
     history.replaceState(null, '', '#' + h.toString());
   }catch(err){
     if(err && err.name === 'AbortError') return;
@@ -927,78 +900,86 @@ async function run(){
 }
 $('runBtn').addEventListener('click', run);
 
-function natural(a, b){ return String(a).localeCompare(String(b), 'en', {numeric:true}); }
-
 /* ------------------------------------------------------------------ *
  * Render and export
  * ------------------------------------------------------------------ */
-const LONG_COLS = [
-  ['country','country'],['line','line'],['uopid','op_uopid'],['opName','op_name'],
-  ['positionKm','position_km'],['kmPost','km_post_offset'],['kmReference','km_reference'],['via','reached_via'],
-  ['opValidity','op_validity'],['plCodes','primary_location_codes'],['plNames','primary_location_names'],
-  ['kind','element_kind'],['trackKind','track_kind'],['trackId','track_id'],['trackName','track_name'],
-  ['trackValidity','track_validity'],['elementName','element_name'],
-  ['rinfIndex','rinf_index'],['parameter','parameter'],['value','value'],['valueRaw','value_raw'],
-  ['parameterIri','parameter_iri'],['opIri','op_iri'],['elementIri','element_iri'],
+const COLS = [
+  ['country','country'],['code','primary_location_code'],['how','country_rule'],['inCountry','in_country'],
+  ['name','name'],['nameSource','name_source'],['nameLang','name_language'],['namesAll','names_all'],['label','label'],
+  ['imCode','infrastructure_manager_code'],['imName','infrastructure_manager_name'],
+  ['passenger','passenger_flag'],['freight','freight_flag'],['container','container_handling_flag'],['handover','handover_point_flag'],
+  ['vBegin','validity_begin'],['vEnd','validity_end'],['vStatus','validity_status'],
+  ['wkt','position_wkt'],['lon','longitude'],['lat','latitude'],['posSrc','position_source'],['nuts3','nuts3'],['opLang','operating_language'],
+  ['nya','not_yet_available'],['na','not_applicable'],
+  ['datasets','dataset_graphs'],['opIds','linked_op_uopids'],['opNames','linked_op_names'],['opCount','linked_op_count'],
+  ['lines','selected_lines'],['iris','primary_location_iris'],['iriCount','iri_count'],
 ];
 function render(){
   const r = lastRun, s = r.stats;
-  $('statOps').textContent = fmt(s.withPl) + ' / ' + fmt(s.onLine);
-  $('statPls').textContent = fmt(s.pls);
-  $('statTracks').textContent = fmt(s.tracks);
-  $('statParams').textContent = fmt(s.params);
-  $('statRows').textContent = fmt(r.rows.length);
+  $('statRows').textContent = fmt(s.rows);
+  $('statIris').textContent = fmt(r.rows.reduce((t, x) => t + x.iriCount, 0));
+  $('statMulti').textContent = fmt(s.multiIri);
+  $('statName').textContent = fmt(s.name);
+  $('statPos').textContent = fmt(s.pos);
+  $('statIm').textContent = fmt(s.im);
   $('statTime').textContent = s.seconds.toFixed(1) + ' s';
 
   const warn = [], notes = [];
-  if(NO_PL_LINKS.has(r.cc)) warn.push('This dataset links no operational point to a primary location, so there is nothing to export.');
+  if(NO_PLS.has(r.cc)) warn.push('This dataset publishes no primary locations in rinf-plus, so there is nothing to export.');
   if(COUNTRY_NOTES[r.cc]) warn.push(esc(COUNTRY_NOTES[r.cc]));
-  const where = r.lines.length === 1 ? 'line <code>' + esc(r.lines[0]) + '</code>' : 'the ' + fmt(r.lines.length) + ' selected lines';
-  notes.push(`<b>${fmt(s.withPl)} of ${fmt(s.onLine)}</b> operational points on ${where} valid on ${esc(r.asOf)} ` +
-    `are linked to a primary location; the other ${fmt(s.onLine - s.withPl)} are not exported.` +
-    (s.bare ? ` ${fmt(s.bare)} of the linked points publish no RCC parameter; each appears once with empty parameter columns.` : ''));
+  if(r.imNote) warn.push(esc(r.imNote));
+  if(r.narrow){
+    const n = r.narrow, where = r.lines.length === 1 ? 'line <code>' + esc(r.lines[0]) + '</code>' : 'the ' + fmt(r.lines.length) + ' selected lines';
+    notes.push(`Narrowed to <b>${fmt(s.scopeCodes)}</b> primary-location codes referenced by the operational points on ${where}: ` +
+      `${fmt(n.withPl)} of the ${fmt(n.onLine)} points valid on ${esc(r.asOf)} carry <code>era:primaryLocation</code>, and ${fmt(s.scopeCodes)} of the country's ${fmt(s.codesInCountry)} codes are among their targets.` +
+      (n.foreign ? ` ${fmt(n.foreign)} referenced resources belong to another country by the country rule and are not exported.` : '') +
+      (n.opFuture ? ` ${fmt(n.opFuture)} point resources valid only after ${esc(r.asOf)} were ignored.` : '') +
+      (n.opExpired ? ` ${fmt(n.opExpired)} points have no window in force on that date and use their most recent one.` : ''));
+    if(!s.scopeCodes) notes.push(r.cc === 'LTU' ? 'Lithuania links its primary locations from tracks and sidings, not from operational points, so narrowing by line finds nothing for it. Leave the lines empty.' : 'No operational point on these lines is linked to a primary location of this country on that date.');
+  }else{
+    notes.push(`Whole country: <b>${fmt(s.codesInCountry)}</b> distinct primary-location codes on <b>${fmt(s.irisInCountry)}</b> resources in rinf-plus.`);
+  }
+  const how = s.how.filter(h => h[1]).map(h => `${fmt(h[1])} by ${h[0]}`).join(', ');
+  notes.push(`Country rule: ${how || 'none'}. ${s.inCountry < s.rows ? fmt(s.rows - s.inCountry) + ' of these codes carry no <code>era:inCountry</code> in the data.' : ''}`);
   const v = [];
-  if(s.opSuperseded) v.push(`${fmt(s.opSuperseded)} point resources describing another window of the same uopid`);
-  if(s.opFuture) v.push(`${fmt(s.opFuture)} point resources valid only after ${esc(r.asOf)}`);
-  if(s.trSuperseded) v.push(`${fmt(s.trSuperseded)} track or siding resources describing another window`);
-  if(s.trFuture) v.push(`${fmt(s.trFuture)} track or siding resources valid only after ${esc(r.asOf)}`);
-  if(v.length) notes.push('Dropped by the validity rule (window in force on ' + esc(r.asOf) + ', per place): ' + v.join('; ') + '.');
-  if(s.opExpired || s.trExpired) notes.push(`${fmt(s.opExpired)} points and ${fmt(s.trExpired)} tracks have no window in force on ${esc(r.asOf)}; their most recent window is used and marked “(ended)”.`);
-  if(s.measured) notes.push(`${fmt(s.measured)} points are positioned from <code>era:measuredDistance</code>, because their kilometric post has no <code>era:kilometer</code>. ERA declares that property in metres, but the values are kilometres (4.0 for &ldquo;KP 4&rdquo;), so they are read as kilometres (km_reference says so).`);
-  if(s.multiLine) notes.push(`${fmt(s.multiLine)} points lie on more than one selected line; their rows appear once per line, each with that line's position.`);
-  if(s.national) notes.push(`${fmt(s.national)} points are positioned on a national LPS rather than on this line (km_reference = national LPS).`);
-  if(r.dir === 'hasPart') notes.push('This dataset publishes the part-whole link only as <code>era:hasPart</code>; it was used for tracks and their parts.');
-  if(s.offIndex.length) notes.push('Not exported because the parameter has no RINF 1.2 index for that kind of element: ' +
-    s.offIndex.map(([k, n]) => esc(k) + ' (' + fmt(n) + ')').join('; ') + '.');
-  if(s.unresolved) notes.push(`${fmt(s.unresolved)} values are coded IRIs with no label anywhere (for example retired codes); they are exported as the IRI.`);
+  if(s.superseded) v.push(`${fmt(s.superseded)} resources describing another window of the same code`);
+  if(s.futureRes) v.push(`${fmt(s.futureRes)} resources beginning after ${esc(r.asOf)}` + (s.futureOnly ? ` (${fmt(s.futureOnly)} codes have nothing valid yet and are left out)` : ''));
+  if(v.length) notes.push('Dropped by the validity rule (window in force on ' + esc(r.asOf) + ', per code): ' + v.join('; ') + '.');
+  if(s.ended) notes.push(`${fmt(s.ended)} codes have no window in force on ${esc(r.asOf)}; their most recent window is used and validity_status says “ended”.`);
+  if(s.undated) notes.push(`${fmt(s.undated)} codes carry no dated validity (validity_status “no dated validity”).`);
+  if(s.nameFromLabel) notes.push(`${fmt(s.nameFromLabel)} names come from <code>rdfs:label</code> because no <code>era:primaryLocationName</code> is published (name_source says which); a label that is only the code is not used.`);
+  if(s.opFutureDropped) notes.push(`${fmt(s.opFutureDropped)} linked point resources valid only after ${esc(r.asOf)} are not listed in linked_op_*.`);
+  if(s.truncated) notes.push(`${fmt(s.truncated)} non-point geometries were cut to 32,000 characters (position_source says so).`);
+  if(!r.rows.length && s.futureOnly && s.earliest) notes.push(`Every primary location in this selection begins after ${esc(r.asOf)} (the earliest begins ${esc(s.earliest)}), so none is valid yet on that date. Choose a later date.`);
+  if(s.wktOnly) notes.push(`${fmt(s.wktOnly)} positions are not a plain point, so longitude and latitude read “${NO_DATA}”; the WKT is kept.`);
   $('notes').innerHTML = warn.map(w => '<li class="warn">' + w + '</li>').join('') + notes.map(n => '<li>' + n + '</li>').join('');
 
   const SHOW = 300;
-  const multi = r.lines.length > 1;
-  const head = [...(multi ? ['Line'] : []), 'Position (km)','uopid','Operational point','Primary location','Element','Track','RINF','Parameter','Value'];
+  const flagText = x => ['passenger','freight','container','handover'].map((k, i) => 'PFCH'[i] + ':' + (x[k] === 'true' ? '✓' : x[k] === 'false' ? '–' : '?')).join(' ');
+  const head = ['Code','Name','In country','Manager','Flags','Valid','Position','OPs'];
   $('resultTable').tHead.innerHTML = '<tr>' + head.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr>';
-  $('resultTable').tBodies[0].innerHTML = r.rows.slice(0, SHOW).map(x => '<tr>' + (multi ? `<td class="ix">${esc(x.line)}</td>` : '') +
-    `<td class="pos">${x.positionKm === null ? '—' : x.positionKm.toFixed(3)}</td>` +
-    `<td class="ix">${esc(x.uopid)}</td><td class="nm" title="${esc(x.opName)}">${esc(x.opName)}</td>` +
-    `<td class="ix">${esc(x.plCodes)}</td><td>${esc(x.kind)}${x.elementName ? ' — ' + esc(x.elementName) : ''}</td>` +
-    `<td class="nm" title="${esc(x.trackName)}">${esc(x.trackId || x.trackName)}</td>` +
-    `<td class="ix">${esc(x.rinfIndex)}</td><td class="nm" title="${esc(x.parameter)}">${esc(x.parameter)}</td>` +
-    `<td class="val" title="${esc(x.value.length > 600 ? x.value.slice(0, 600) + '…' : x.value)}">${esc(x.value.length > 120 ? x.value.slice(0, 120) + '…' : x.value)}</td></tr>`).join('');
+  $('resultTable').tBodies[0].innerHTML = r.rows.slice(0, SHOW).map(x =>
+    `<tr><td class="ix">${esc(x.code)}</td><td class="nm" title="${esc(x.namesAll)}">${esc(x.name)}</td><td class="ix">${esc(x.inCountry)}</td>` +
+    `<td class="ix" title="${esc(x.imName)}">${esc(x.imCode)}</td><td class="ix">${esc(flagText(x))}</td>` +
+    `<td class="ix">${esc(x.vBegin === NO_DATA ? NO_DATA : x.vBegin + ' → ' + (x.vEnd === NO_DATA ? '…' : x.vEnd))}</td>` +
+    `<td class="pos">${x.lon === NO_DATA ? esc(NO_DATA) : (+x.lat).toFixed(4) + ', ' + (+x.lon).toFixed(4)}</td><td class="ix" title="${esc(x.opNames)}">${fmt(x.opCount)}</td></tr>`).join('');
   $('moreNote').textContent = r.rows.length > SHOW ? `Showing the first ${fmt(SHOW)} of ${fmt(r.rows.length)} rows — the CSV has them all.` : '';
-  $('csvLongBtn').disabled = $('csvWideBtn').disabled = !r.rows.length;
+  $('csvBtn').disabled = !r.rows.length;
   $('sparqlOut').innerHTML = r.log.map(q => '<div class="qTitle">' + esc(q.title) + '</div><pre class="code">' + esc(q.query) + '</pre>').join('');
   $('resultPanel').hidden = false;
 }
 
 function csvCell(v){
-  const s = v === null || v === undefined ? '' : String(v);
+  let s = v === null || v === undefined ? '' : String(v);
+  /* Text a spreadsheet would run as a formula gets a leading apostrophe; numbers (a negative longitude) stay numbers. */
+  if(typeof v !== 'number' && (/^[=+@\t\r]/.test(s) || /^-(?!\d)/.test(s) || (/^-/.test(s) && !/^-\d+(\.\d+)?$/.test(s)))) s = "'" + s;
   return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
-const toCsv = rows => '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
-function fileBase(kind){
+const toCsv = rows => '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+function fileBase(){
   const r = lastRun;
-  const linePart = r.lines.length === 1 ? r.lines[0] : r.lines.length + 'lines';
-  return ('RINF_RCC_at_PL_' + r.cc + '_' + linePart + '_' + kind + '_' + r.fetched.slice(0, 10)).replace(/[^A-Za-z0-9._-]/g, '_');
+  const linePart = !r.lines.length ? 'all' : r.lines.length === 1 ? r.lines[0] : r.lines.length + 'lines';
+  return ('RINF_primary_locations_' + r.cc + '_' + linePart + '_' + r.fetched.slice(0, 10)).replace(/[^A-Za-z0-9._-]/g, '_');
 }
 function download(text, name){
   const url = URL.createObjectURL(new Blob([text], {type:'text/csv;charset=utf-8'}));
@@ -1006,25 +987,11 @@ function download(text, name){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
-function longCsv(){
-  return toCsv([LONG_COLS.map(c => c[1]), ...lastRun.rows.map(x => LONG_COLS.map(c => x[c[0]]))]);
+function csv(){
+  const cols = lastRun.lines.length ? COLS : COLS.filter(c => c[0] !== 'lines');
+  return toCsv([cols.map(c => c[1]), ...lastRun.rows.map(x => cols.map(c => x[c[0]]))]);
 }
-/* One row per point, track or sub-element; one column per "RINF index parameter". */
-function wideCsv(){
-  const baseCols = LONG_COLS.filter(c => !['rinfIndex','parameter','value','valueRaw','parameterIri'].includes(c[0]));
-  const base = baseCols.map(c => c[0]), baseHead = baseCols.map(c => c[1]);
-  const colKey = x => (x.rinfIndex ? x.rinfIndex + ' ' : '') + x.parameter;
-  const cols = [...new Set(lastRun.rows.filter(x => x.parameterIri).map(colKey))].sort(natural);
-  const rows = new Map();
-  for(const x of lastRun.rows){
-    const k = x.line + '\u0001' + x.opIri + '\u0001' + x.trackKey + '\u0001' + x.elementIri;
-    if(!rows.has(k)) rows.set(k, {base:base.map(b => x[b]), vals:new Map()});
-    if(x.parameterIri) rows.get(k).vals.set(colKey(x), x.value);
-  }
-  return toCsv([[...baseHead, ...cols], ...[...rows.values()].map(r => [...r.base, ...cols.map(c => r.vals.get(c) ?? '')])]);
-}
-$('csvLongBtn').addEventListener('click', () => lastRun && download(longCsv(), fileBase('long') + '.csv'));
-$('csvWideBtn').addEventListener('click', () => lastRun && download(wideCsv(), fileBase('wide') + '.csv'));
+$('csvBtn').addEventListener('click', () => lastRun && download(csv(), fileBase() + '.csv'));
 $('linkBtn').addEventListener('click', async () => {
   try{ await navigator.clipboard.writeText(location.href); $('linkBtn').textContent = 'Link copied'; }
   catch{ $('linkBtn').textContent = 'Copy the address bar'; }
@@ -1032,26 +999,25 @@ $('linkBtn').addEventListener('click', async () => {
 });
 
 /* ------------------------------------------------------------------ *
- * Shareable link: #c=FRA&l=830000-1[&sid=0][&run=1]
+ * Shareable link: #c=FRA[&l=830000-1&l=…][&d=2026-11-20][&run=1]
+ * An older link (with &sid=0) still loads; that option no longer exists and is ignored.
  * ------------------------------------------------------------------ */
 async function applyHash(){
   const p = new URLSearchParams(location.hash.replace(/^#/, ''));
   const cc = p.get('c');
   if(!cc || !COUNTRIES.some(c => c[0] === cc)) return;
   $('country').value = cc;
-  await onCountry();
-  /* Several lines are repeated l= parameters (#c=FRA&l=830000-1&l=752000-1), which survives line
-     identifiers containing commas or spaces. Unknown identifiers are reported, not silently dropped. */
-  const wanted = p.getAll('l');
-  const missing = [];
-  for(const id of wanted){ const l = lines.find(x => x.line === id); if(l) pick(l); else missing.push(id); }
-  if(missing.length){ $('lineHint').className = 'hint warn'; $('lineHint').textContent = 'Not a national line of ' + cc + ' in the endpoint: ' + missing.join(', '); }
-  $('wantSidings').checked = p.get('sid') !== '0';
+  const ok = await onCountry();
+  const wanted = p.getAll('l'), missing = [];
+  if(ok) for(const id of wanted){ const l = lines.find(x => x.line === id); if(l) pick(l); else missing.push(id); }
   $('asOf').value = /^\d{4}-\d{2}-\d{2}$/.test(p.get('d') || '') ? p.get('d') : todayIso();
   updateRun();
-  if(pickedLines.length && p.get('run') === '1') run();
+  /* A link that names lines must never silently become a whole-country run: if the lines could not be
+     loaded, or one of them is unknown, do not run, keep the address as it is and say why. */
+  if(wanted.length && !ok) return;   // onCountry has shown the error
+  if(missing.length){ $('lineHint').className = 'hint warn'; $('lineHint').textContent = 'Not a national line of ' + cc + ' in the endpoint: ' + missing.join(', ') + '. Nothing was run.'; return; }
+  if(p.get('run') === '1') run();
 }
-/* Pasting another shared link on an open page is a same-document navigation: reapply the form. */
 window.addEventListener('hashchange', () => { $('resultPanel').hidden = true; applyHash(); });
 $('asOf').value = todayIso();
 applyHash();
