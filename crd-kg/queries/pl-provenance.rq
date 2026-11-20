@@ -1,0 +1,14 @@
+PREFIX era: <http://data.europa.eu/949/>
+# Per dataset graph: primary locations, how many carry this CRD pipeline's validity IRIs
+# (temporalFeature/YYYYMMDD_None) and how many carry era:parameterApplicability (README section 4.2:
+# which RINF graphs are CRD-derived). Run against RINF; on CRD it describes CRD's own graphs.
+SELECT ?g (COUNT(DISTINCT ?pl) AS ?pls) (COUNT(DISTINCT ?crdStyle) AS ?crd_style_validity)
+       (COUNT(DISTINCT ?withPa) AS ?with_param_applicability) (SAMPLE(?v) AS ?example_validity)
+WHERE {
+  GRAPH ?g { ?pl a era:PrimaryLocation }
+  OPTIONAL { ?pl era:validity ?v }
+  OPTIONAL { ?pl era:validity ?v2 FILTER(REGEX(STR(?v2), "/temporalFeature/[0-9]{8}_None$")) BIND(?pl AS ?crdStyle) }
+  OPTIONAL { ?pl era:parameterApplicability ?pa BIND(?pl AS ?withPa) }
+}
+GROUP BY ?g
+ORDER BY DESC(?pls)

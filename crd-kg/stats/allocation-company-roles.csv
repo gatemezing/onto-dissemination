@@ -1,0 +1,35 @@
+organisation_code,name_in_ocr_kg,crd_role,ocr_kg_roles,crd_role_held_in_ocr_kg,sls
+3011,International Union of Railways,SB,IRO,no,18435
+0054,Sprava zeleznic,IM,IM|RU-1|RU-3,yes,12901
+0087,Sncf Réseau,IM,ECM|ECM-CB|IM|SP,yes,8704
+0080,DB InfraGO Aktiengesellschaft,IM,ECM|ECM-CB|IM|Keeper|Owner|RU,yes,7726
+0056,Železnice Slovenskej republiky,IM,ECM|ECM-CB|IM|ITI|RU-1|RU-3,yes,5547
+2181,Rail Cargo Austria AG,RU-3,Keeper|RU|RU-3,yes,4082
+2180,DB Cargo AG,RU-3,EC-DoV-IB|ECM|Keeper|Owner|RU|RU-3|RU-7,yes,3629
+2187,HEXAFRET,IM,EC-DoV-IB|ECM|IM|Keeper|Owner|REGB|RU-3,yes,3537
+2154,"ČD Cargo, a.s.",RU-3,ECM|Keeper|Owner|RU|RU-3,yes,3203
+0085,Swiss Federal Railways - Infrastructure,IM,IM,yes,2112
+0078,Hz Infrastruktura d.o.o.,IM,IM|NRE|PM,yes,1634
+2174,Green Cargo AB,IM,ECM|IM|Keeper|Owner|RU-3|SP,yes,1439
+0088,INFRABEL S.A./N.V.,IM,CIT|CONS|ECM|IM|Keeper|Owner|RC,yes,1371
+0084,ProRail,IM,CONS|IM|RB|RU,yes,769
+2185,SBB Cargo AG,RU-3,ECM|Keeper|Owner|RU-3|RU-7,yes,531
+2155,Rail Cargo Hungaria Zrt.,RU-3,ECM|Keeper|RU|RU-3,yes,520
+3620,Union Internationale pour le Transport Combiné Rail-Route,RU-3,Keeper|NRI|NRIA|RB|RCO|RU-3,yes,457
+0025,"Valsts akciju sabiedrība ""Latvijas dzelzceļš""",IM,ECM|IM|Keeper|Owner|RU-1|RU-3,yes,91
+2182,CFL Cargo SA,RU-3,ECM|Keeper|Owner|RU|RU-3,yes,34
+2143,Gysev Cargo Zrt.,RU-3,RU-3,yes,21
+3231,DB Cargo Hungária Kft.,RU-3,ECM|Keeper|Owner|RU|RU-3,yes,15
+0055,MAV Infrastructure Co. Ltd,IM,IM|Keeper,yes,7
+3810,Port Authority of Valencia,IM,IM|RU-3,yes,6
+1224,"AB ""LTG Infra""",IM,IM,yes,3
+0081,ÖBB-Infrastruktur AG,IM,IM|Keeper|Owner|RES|RU,yes,2
+5041,Container Terminal Wilhelmshaven JadeWeserPort-Marketing GmbH & Co. KG,IM,IM,yes,2
+0083,Rete Ferroviaria Italiana,IM,ADME|CIT|EC-DoV-IB|ECM|IM|Keeper|Owner|REGB|RU,yes,1
+0070,Network Rail Limited,IM,IM,yes,1
+3607,Albtal-Verkehrs-Gesellschaft mbH,IM,ECM|IM|Keeper|Owner|RU|RU-1,yes,1
+5517,Verkehrsbetriebe Extertal GmbH,IM,IM,yes,1
+4155,Ilmebahn GmbH,IM,IM|RU-3,yes,1
+4181,Norddeutsche Eisenbahn Niebüll GmbH,IM,ECM|Holder|IM|Keeper|Owner|RU|RU-1|RU-3,yes,1
+0026,Aktsiaselts Eesti Raudtee,IM,IM|RU-1|RU-3,yes,1
+5253,Rail&Sea Logistics GmbH,Keeper,Keeper|Owner,yes,1
