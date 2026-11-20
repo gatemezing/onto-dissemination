@@ -28,6 +28,7 @@ the same search live on request (see [Data snapshots](#data-snapshots)).
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
 | ERATV Explorer (authorised vehicle types with the ERATV advanced-search fields, live on the UAT ERATV-KG) | https://gatemezing.github.io/onto-dissemination/eratv.html |
+| Primary Locations in RINF (every `era:PrimaryLocation` of a country as CSV, optionally narrowed to national lines) | https://gatemezing.github.io/onto-dissemination/plc-extraction.html |
 | Synthetic RINF and EVR Data (realistic synthetic Turtle from the UAT SHACL shapes with RDFGraphGen. RINF: tracks, sidings, platform edges and tunnels linked to their sections and stations with `era:hasPart`/`era:isPartOf`, on a map. EVR + ERATV: vehicles with valid EVNs, vehicle types with ERATV numbers, type authorisations with EINs, invented keepers, owners and ECMs, and the `vpa:` chain from type authorisation to registration; graph, checks and export) | https://gatemezing.github.io/onto-dissemination/synthetic.html |
 | SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, an OWL gap analysis of the UAT release candidate with the immediate actions to fix, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
@@ -35,7 +36,7 @@ the same search live on request (see [Data snapshots](#data-snapshots)).
 | Slides: A Semantic Backbone for European Rail Data Exchange (KGSWC 2026) | https://gatemezing.github.io/onto-dissemination/kgswc-2026/ |
 
 The live-query tools link to each other in their footers. No other page links
-yet to the Holobox Frame, the ERATV Explorer, the SHACL Shape Viewer or the
+yet to the Holobox Frame, the ERATV Explorer, Primary Locations in RINF, the SHACL Shape Viewer or the
 two answer pages, and only the ERATV Explorer links to the ERADIS Explorer. Deployment is automatic:
 [.github/workflows/pages.yml](.github/workflows/pages.yml) rebuilds and
 publishes GitHub Pages on every push to `main` that touches one of the tool
@@ -211,6 +212,86 @@ label. Tested by
 [scripts/tests/eratv-explorer.test.js](scripts/tests/eratv-explorer.test.js)
 (`npm install --no-save sparqljs@3.7.3 && node --test scripts/tests/eratv-explorer.test.js`)
 and, against the live graph, `node scripts/tests/eratv-live-parity.js`.
+
+<a id="plc-extraction"></a>
+**[era-plc-extraction.html](scripts/assets/era-plc-extraction.html)** —
+Primary Locations in RINF (published as `/plc-extraction.html`; `/op-rcc.html`
+redirects to it). Pick a country and get a CSV of every TAF/TAP primary location
+(`era:PrimaryLocation`) that RINF publishes for it: code, name, infrastructure
+manager, the four TAF/TAP flags, validity, position, NUTS 3, operating language,
+the dataset it comes from and the operational points that point to it.
+Optionally pick national lines to narrow the extract. No RCC parameters are
+exported. The rules, as implemented:
+
+- **What is exported.** Every resource typed `era:PrimaryLocation` in rinf-plus
+  (52,331 on 2026-11-20, under 48,824 distinct codes). RINF links operational
+  points to a primary location with `era:primaryLocation`, only in that
+  direction (`era:isPrimaryLocationOf` is not used). Many managers publish only
+  a stub (code, label, position), so the name, flag, manager and validity
+  columns are filled for a minority of codes in most countries.
+- **Which country.** A resource belongs to the country of its own
+  `era:inCountry`. When it names none (4,282 resources, 783 codes: Croatia,
+  Lithuania and a few others), the ISO-2 prefix of the code decides. "EU" codes
+  without `era:inCountry` go to the country whose sections of line share their
+  dataset graph. The `country_rule` column says which rule applied.
+  `era:inCountry` and the prefix disagree for one resource: ES04313 carries both
+  ESP and FRA, so it appears in the Spanish and the French extract. Danish codes
+  are RINF's own, not RNE codes; do not join them to CRD.
+- **One row per code.** The key is (country, `era:primaryLocationCode`), not the
+  resource: 167 codes are minted as several resources, and Lithuania publishes
+  3,700 resources for 201 codes. Resources of one code that pass the validity
+  rule are merged; differing values are joined with ` | `, and
+  `primary_location_iris` lists them all.
+- **Validity: the window in force on the chosen date, per code.** Managers
+  republish, and some publish ahead (DB InfraGO's operational points carry a
+  2026 window and a from-2027 window), so "the newest window" would pick data
+  that is not valid yet. Per code, the resources whose window contains the
+  "Valid on" date are kept (the latest beginning wins). With none in force, the
+  most recent window that has begun is used and `validity_status` reads
+  `ended`. A code whose windows all lie in the future is left out and counted.
+  Resources with no dated validity are always kept; most primary locations are
+  undated (9,618 of 9,619 German ones). A bound published as
+  `time:inXSDDateTimeStamp` (four small Austrian managers) is read like
+  `time:inXSDDate`. Some datasets date every location with its publication date
+  (all 582 Croatian ones begin 2026-10-16), so an earlier date returns none of
+  them, and the page says so. The same rule picks the operational points listed
+  in `linked_op_*`.
+- **Narrowing by line.** Each line is resolved to its operational points, by a
+  kilometric post on the line's own linear positioning system *or* as the start
+  or end of one of its sections (Norway's posts sit on one nationwide system,
+  and Croatia publishes no kilometric coordinates). The points valid on the date
+  are kept once per `era:uopid`, and the primary locations they reference,
+  restricted to the country's own, give the codes. The rows are then the same
+  as the whole-country extract's for those codes, with `selected_lines` added.
+  Lines are resolved one query each, six at a time. Lithuania links its
+  locations from tracks and sidings rather than from points, so narrowing finds
+  nothing there.
+- **Shareable links** list the country, the date and every line as a repeated
+  `l=` parameter (`#c=FRA&l=830000-1&d=2026-11-20&run=1`). Nothing picked means
+  the whole country; a link whose lines do not resolve does not run.
+- **Columns.** `country`, `primary_location_code`, `country_rule`, `in_country`,
+  `name` (`era:primaryLocationName`, English first; when none is published, the
+  `rdfs:label` with the code stripped out, unless only the code is left),
+  `name_source`, `name_language`, `names_all` (every name as `text@lang`),
+  `label` (every raw `rdfs:label`), `infrastructure_manager_code` (the
+  organisation code of `era:infrastructureManager`),
+  `infrastructure_manager_name` (from OCR-KG, joined on that code; RINF holds no
+  names), `passenger_flag`, `freight_flag`, `container_handling_flag`,
+  `handover_point_flag`, `validity_begin`, `validity_end`, `validity_status`,
+  `position_wkt` (from `era:netReference/geo:hasGeometry/geo:asWKT`, else a
+  direct `geo:hasGeometry`; a `POINT` from either source wins), `longitude`,
+  `latitude`, `position_source`, `nuts3` (the code, e.g. `EL307`),
+  `operating_language`, `not_yet_available` and `not_applicable` (the
+  properties declared so with `era:notYetAvailable` / `era:notApplicable`),
+  `dataset_graphs`, `linked_op_uopids` and `linked_op_names` (one per
+  `era:uopid`), `linked_op_count`, `primary_location_iris`, `iri_count` and,
+  with lines, `selected_lines`.
+- **Empty values.** A value the graph does not carry reads `no data`, never an
+  empty cell, as in the Eurostat export. Where the manager declares the property
+  not yet available or not applicable, that cell reads `not yet available` or
+  `not applicable` instead (names and NUTS 3). Dates are ISO 8601; an open end
+  reads `no data`. Text that a spreadsheet could run as a formula gets a leading
+  apostrophe; numbers stay numbers.
 
 **[era-shacl-viewer.html](scripts/assets/era-shacl-viewer.html)** — shows
 what a SHACL shapes graph asks of the data. Each node shape is a card listing
