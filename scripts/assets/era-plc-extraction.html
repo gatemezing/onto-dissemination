@@ -125,8 +125,6 @@
   footer{font-size:11.5px;color:var(--muted);margin-top:24px;line-height:1.65;}
   footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11px;}
   footer p{margin:0 0 9px;max-width:100ch;}
-  footer table{font-size:11.5px;width:auto;margin:4px 0 12px;}
-  footer th,footer td{padding:4px 10px;position:static;}
   a{color:var(--blue);}
   @media (max-width:640px){
     #app{padding:20px 16px 44px;}
@@ -211,46 +209,8 @@
   </div>
 
   <footer>
-    <p><strong>What is exported.</strong> Every resource typed <code>era:PrimaryLocation</code> in rinf-plus (52,331 on 20&nbsp;November 2026,
-      under 48,824 distinct codes). A primary location is the TAF/TAP place code of a point of the network; RINF links
-      operational points to it with <code>era:primaryLocation</code> (only in that direction: the inverse
-      <code>era:isPrimaryLocationOf</code> is not used). Many managers publish only a stub (code, label, position), so the name, flags,
-      manager and validity columns are filled for a minority of codes in most countries.</p>
-    <p><strong>Which country.</strong> A resource belongs to the country named by its own <code>era:inCountry</code>. When it names none
-      (4,282 resources, 783 codes: Croatia, Lithuania and a few others), the ISO-2 prefix of the code decides (<code>HR</code>, <code>LT</code>…).
-      The &ldquo;EU&rdquo; codes have no country prefix; those without <code>era:inCountry</code> go to the country whose sections of line
-      share their dataset graph (the column <code>country_rule</code> says which rule applied). <code>era:inCountry</code> and the code prefix
-      disagree for one resource only: ES04313 carries both ESP and FRA as <code>era:inCountry</code>, so it appears in the Spanish and in the French extract
-      (in_country reads <code>ESP | FRA</code>); 3 resources name two countries. Danish codes are RINF&rsquo;s own and are not RNE codes; do not join them to CRD.</p>
-    <p><strong>One row per code.</strong> The key is the pair (country, <code>era:primaryLocationCode</code>), not the resource: 167 codes
-      are minted as several resources, and Lithuania publishes 3,700 resources for 201 codes. Resources of one code that pass the
-      validity rule are merged into the row; differing values are joined with &ldquo;&nbsp;|&nbsp;&rdquo; (for example a flag
-      <code>true | false</code>), and <code>primary_location_iris</code> lists them all.</p>
-    <p><strong>Validity: the window in force on the chosen date, per code.</strong> Managers republish, and some publish ahead. A
-      <em>point</em> of DB InfraGO carries a 2026-01-01&nbsp;→&nbsp;2026-12-31 window and a from-2027-01-01 window, so &ldquo;the newest window&rdquo; would pick data that is
-      not valid yet; the same rule is therefore applied to primary locations and to the points listed in <code>linked_op_*</code>. Per code, the
-      resources whose window contains the date are kept (the latest beginning wins); with none in force, the most recent window that has begun is used and the row says
-      <code>validity_status = ended</code>; a code whose windows all lie in the future is left out and counted. Resources with no dated
-      validity are always kept (<code>no dated validity</code>): most primary locations are undated (9,618 of 9,619 German ones). A bound published as
-      <code>time:inXSDDateTimeStamp</code> (four small Austrian managers) is read like <code>time:inXSDDate</code>. Dates are ISO&nbsp;8601; an open end reads
-      &ldquo;no data&rdquo;, and some managers use far-future ends such as 2382-01-01. Some datasets date every location with its publication date (all 582 Croatian ones begin
-      2026-10-16), so an earlier &ldquo;Valid on&rdquo; date gives no rows for them.</p>
-    <p><strong>Narrowing by line.</strong> With lines picked, each line is resolved to its operational points (by a kilometric post on
-      the line&rsquo;s own linear positioning system, <em>or</em> as the start or end of one of its sections; Norway&rsquo;s posts sit on one nationwide
-      system so its points are found through section endpoints, and Croatia publishes no kilometric coordinates at all). The points valid on
-      the chosen date are kept once per <code>era:uopid</code> (a point whose windows all lie in the future is ignored), and the primary locations they reference, restricted to the country&rsquo;s own, give the codes. The extract is then the
-      same rows as the whole-country extract for those codes, with <code>selected_lines</code> added. Several lines are resolved by one query each, six at a time.
-      A shareable link lists every line as a repeated <code>l=</code> parameter; nothing picked means the whole country. Lithuania links its locations from tracks and sidings rather than from points, so narrowing finds nothing there.</p>
-    <p><strong>Columns.</strong> <code>country</code>, <code>primary_location_code</code>, <code>country_rule</code>, <code>in_country</code>,
-      <code>name</code> (<code>era:primaryLocationName</code>, English first; when none is published, the <code>rdfs:label</code> with the code stripped out, unless only the code is left), <code>name_source</code>, <code>name_language</code>, <code>names_all</code> (every name as <code>text@lang</code>), <code>label</code> (every raw <code>rdfs:label</code>),
-      <code>infrastructure_manager_code</code> (the organisation code of <code>era:infrastructureManager</code>), <code>infrastructure_manager_name</code>
-      (from the Organisation Codes Register, joined on that code; RINF itself holds no names), the four flags <code>passenger_flag</code>,
-      <code>freight_flag</code>, <code>container_handling_flag</code>, <code>handover_point_flag</code>, <code>validity_begin</code>, <code>validity_end</code>, <code>validity_status</code>,
-      <code>position_wkt</code> (from <code>era:netReference/geo:hasGeometry/geo:asWKT</code>, else a direct <code>geo:hasGeometry</code>), <code>longitude</code>,
-      <code>latitude</code> (WGS&nbsp;84, from a <code>POINT(lon lat)</code>; a point from either source wins over a non-point geometry), <code>position_source</code>, <code>nuts3</code> (code, e.g. EL307), <code>operating_language</code>, <code>not_yet_available</code> and <code>not_applicable</code> (the properties the manager declares so with <code>era:notYetAvailable</code> / <code>era:notApplicable</code>), <code>dataset_graphs</code> (the RINF dataset graphs holding the code),
-      <code>linked_op_uopids</code> and <code>linked_op_names</code> (every operational point whose <code>era:primaryLocation</code> is this code, matched position by position,
-      one per <code>era:uopid</code>), <code>linked_op_count</code>, <code>primary_location_iris</code>, <code>iri_count</code> and, with lines, <code>selected_lines</code>.
-      <strong>A value the graph does not carry reads <code>no data</code>, never an empty cell</strong>, as in the Eurostat export; where the manager declares the property not yet available or not applicable, that cell reads <code>not yet available</code> or <code>not applicable</code> instead (names and NUTS&nbsp;3). Text that a spreadsheet could run as a formula is written with a leading apostrophe.</p>
+    <p>How the country, the validity window, the line narrowing and every CSV column are worked out is described in the
+      <a href="https://github.com/gatemezing/onto-dissemination/blob/main/README.md#plc-extraction" target="_blank" rel="noopener">README</a>.</p>
     <p>← Back to the <a href="./">ERA Graph Explorer</a> · <a href="./rcc.html">RCC Parameters</a> ·
       <a href="./routebook.html">Route Book</a> · <a href="./values.html">RINF Parameter Values</a> ·
       <a href="./crd-rinf.html">CRD versus RINF</a></p>
