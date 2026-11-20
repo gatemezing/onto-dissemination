@@ -169,10 +169,19 @@ with open(OUT / "pl-completeness.csv", "w", newline="") as fh:
 S["pl"]["completeness"] = {p: {"crd": a, "rinf": b} for p, (a, b) in comp.items()}
 
 # ---------- 4. value agreement on shared codes ---------------------------------------------
-# RINF graphs 0080 (DB InfraGO) and 0084 (ProRail) were loaded from the same CRD pipeline
-# (validity IRIs temporalFeature/YYYYMMDD_None, parameterApplicability IRIs), so agreement there is
-# not independent evidence. Every tally is kept for "all", "derived" and "independent".
-DERIVED_GRAPHS = {"0080", "0084"}
+# RINF graphs whose PLs carry this CRD pipeline's IRIs (validity temporalFeature/YYYYMMDD_None,
+# parameterApplicability) were loaded from CRD, so agreement there is not independent evidence. Every
+# tally is kept for "all", "derived" and "independent". The set is read from queries/pl-provenance.rq:
+# on 2026-11-03 it was 0080 (DB InfraGO) and 0084 (ProRail); on 2026-11-20 DB InfraGO's PLs had become
+# stubs (code, label, country, geometry) and only 0084 remained.
+prov = rows("rinf", "pl-provenance")
+DERIVED_GRAPHS = {r["g"].rsplit("/", 1)[-1] for r in prov if int(r["crd_style_validity"] or 0) > 0}
+with open(OUT / "rinf-pl-provenance-by-graph.csv", "w", newline="") as fh:
+    w = csv.writer(fh); w.writerow(["g", "pls", "crd_style_validity", "with_param_applicability", "example_validity"])
+    for r in prov:
+        w.writerow([r["g"], r["pls"], r["crd_style_validity"], r["with_param_applicability"], r["example_validity"]])
+S["pl"]["rinf_derived_graphs"] = sorted(DERIVED_GRAPHS)
+S["pl"]["rinf_graphs_with_pls"] = len(prov)
 def group_of(c):
     return "derived" if rinf[c]["graph"] <= DERIVED_GRAPHS else "independent"
 agree = collections.defaultdict(lambda: collections.OrderedDict())
@@ -287,6 +296,14 @@ def load_sl(ep):
     return rows(ep, "sl")
 csl, rsl = load_sl("crd"), load_sl("rinf")
 crd_pl_iris = crd_iris
+# Since the 2026-11-20 re-publication CRD SLs no longer carry era:inCountry (it fell outside UAT's
+# closed SubsidiaryLocationShape, finding F4). An SL's country is then its primary location's.
+for r in csl:
+    if r["country"]:
+        r["country_from"] = "inCountry"
+    else:
+        cs = sorted(crd.get(plcode(r["pl"]), {}).get("country") or [])
+        r["country"], r["country_from"] = "|".join(cs), ("linked PL" if cs else "none")
 sl_type = collections.Counter(r["type"] or "(none)" for r in csl)
 S["sl"] = {
     "crd": len(csl), "rinf": len(rsl),
@@ -300,6 +317,7 @@ S["sl"] = {
     "crd_names_with_whitespace_runs": sum(1 for r in csl if ws_issue(r["name"])),
     "crd_code_length_over_10": sum(1 for r in csl if len(r["code"]) > 10),
     "crd_by_country": collections.Counter(r["country"] for r in csl).most_common(),
+    "crd_country_from": collections.Counter(r["country_from"] for r in csl).most_common(),
     "rinf_by_graph": collections.Counter(r["g"].rsplit("/", 1)[-1] for r in rsl).most_common(),
     "rinf_with_type": sum(1 for r in rsl if r["type"]),
     "rinf_pl_link_resolves_to_typed_pl": sum(1 for r in rsl if r["pl"] in rinf_iris),

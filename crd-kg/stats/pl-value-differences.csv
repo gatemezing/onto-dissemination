@@ -28,11 +28,12 @@ name,AT03710,Hst ausser Betrieb,Wiesenau
 name,AT03824,St.Michael ob Bleiburg/Smihel nad Pliberkom,St.Michael ob Bleiburg
 name,AT03825,Bleiburg/Pliberk (in Ble),Bleiburg (in Ble)
 name,AT03826,Bleiburg Stadt/Pliberk mesto (in Ble),Bleiburg Stadt (in Ble)
+name,AT05004,Salzburg Ischlerbahnstrasse,Ischlerbahnstrasse
 name,AT05222,Freiland Lst,Freiland
 name,AT05369,Jedlersdorf-Gleisgr 300 (in J),Jedlersdorf-Gleisgr 300 (in F)
 name,AT05768,Bernschlag,Bernschlag Lst
 name,AT13479,Sbl J 2,Sbl F 2
-name,AT33212,Neufeld a.d.  Leitha,Neufeld an der Leitha
+name,AT33212,Neufeld a.d. Leitha,Neufeld an der Leitha
 name,AT33215,Drassburg,Drassburg Hst
 name,AT33216,Baumgarten-Schattendorf,Baumgarten
 name,AT34004,AB,AB Muellendorfer Industriezentrum
@@ -493,11 +494,14 @@ validity begin,AT03003,2025-12-14,2013-01-01
 validity begin,AT03005,2025-12-14,2013-01-01
 validity begin,AT03036,2025-12-14,2013-01-01
 validity begin,AT03188,2025-08-04,2025-12-14
+validity begin,AT03198,2026-11-05,2013-01-01
+validity begin,AT03199,2026-11-05,2013-01-01
 validity begin,AT03702,2025-12-14,2013-01-01
 validity begin,AT03710,2025-12-14,2013-01-01
 validity begin,AT03824,2025-12-14,2013-01-01
 validity begin,AT03825,2025-12-14,2023-12-10
 validity begin,AT03826,2025-12-14,2023-12-10
+validity begin,AT05004,2026-11-17,2022-12-11
 validity begin,AT05222,2025-12-14,2014-09-01
 validity begin,AT05369,2026-09-07,2014-09-01
 validity begin,AT05520,2025-08-04,2014-09-01
@@ -530,6 +534,8 @@ validity begin,AT90115,2025-08-04,2025-12-14
 validity begin,AT90131,2025-08-04,2025-12-14
 validity begin,AT90136,2025-08-04,2025-12-14
 validity begin,AT90137,2025-08-04,2025-12-14
+validity begin,AT90141,2026-11-05,2014-09-01
+validity begin,AT90142,2026-11-05,2014-09-01
 validity begin,AT90143,2025-08-04,2025-12-14
 validity begin,AT90144,2025-08-04,2025-12-14
 validity begin,AT90153,2025-08-04,2025-12-14
@@ -563,15 +569,33 @@ validity begin,AT90767,2026-09-07,2014-09-01
 validity begin,AT90768,2026-09-07,2014-09-01
 validity begin,AT90769,2026-09-07,2014-09-01
 validity begin,AT90955,2025-12-14,2014-09-01
+validity begin,AT90979,2026-11-05,2023-12-10
 validity begin,AT91013,2026-09-07,2015-12-13
 validity begin,AT91092,2025-08-04,2025-12-14
 validity begin,AT91130,2026-05-28,2020-12-12
 validity begin,AT91131,2026-05-28,2020-12-12
 validity begin,AT94102,2025-08-04,2025-12-14
 validity begin,AT94103,2025-08-04,2025-12-14
+validity begin,CZ30008,2017-07-01,2026-01-01
+validity begin,CZ33638,2017-07-01,2026-01-01
 validity begin,CZ37341,2018-12-09,2026-01-01
+validity begin,CZ38040,2017-07-01,2026-01-01
+validity begin,CZ38069,2017-07-01,2026-01-01
+validity begin,CZ38083,2017-07-01,2026-01-01
+validity begin,CZ38103,2017-07-01,2026-01-01
+validity begin,CZ38221,2017-07-01,2026-01-01
+validity begin,CZ50001,2017-07-01,2026-01-01
+validity begin,CZ50002,2017-07-01,2026-01-01
+validity begin,CZ50009,2017-07-01,2026-01-01
+validity begin,CZ50016,2025-12-14,2026-01-01
+validity begin,CZ50031,2017-07-01,2026-01-01
+validity begin,CZ53458,2017-07-01,2026-01-01
+validity begin,CZ53720,2017-07-01,2026-01-01
 validity begin,CZ53922,2025-12-14,2026-03-10
+validity begin,CZ54961,2017-07-01,2026-01-01
+validity begin,CZ74452,2017-07-01,2026-01-01
 validity begin,CZ78112,2017-07-01,2026-09-30
+validity begin,CZ78845,2018-10-12,2026-01-01
 validity begin,FR00001,2001-12-02,2025-08-29
 validity begin,FR00003,1998-01-01,2025-08-29
 validity begin,FR00009,1998-01-01,2025-08-29
@@ -2433,29 +2457,6 @@ validity begin,FR02772,2025-09-18,2025-10-23
 validity begin,FR02773,2025-09-18,2025-10-23
 validity begin,FR02774,2025-09-18,2025-10-23
 validity begin,FR02775,2025-09-18,2025-10-23
-validity begin,FR02776,2025-09-18,2025-10-23
-validity begin,FR02777,2025-09-19,2025-10-24
-validity begin,FR02778,2025-09-18,2025-10-23
-validity begin,FR02779,2010-12-12,2025-08-29
-validity begin,FR02780,2025-09-19,2025-10-24
-validity begin,FR02781,2025-09-18,2025-10-23
-validity begin,FR02782,2025-09-18,2025-10-23
-validity begin,FR02783,1998-01-01,2025-08-29
-validity begin,FR02785,1998-01-01,2025-08-29
-validity begin,FR02786,1998-01-01,2025-08-29
-validity begin,FR02787,1998-01-01,2025-08-29
-validity begin,FR02788,1998-01-01,2025-08-29
-validity begin,FR02789,1998-01-01,2025-08-29
-validity begin,FR02790,2025-09-18,2025-10-23
-validity begin,FR02791,1998-01-01,2025-08-28
-validity begin,FR02792,2025-09-18,2025-10-23
-validity begin,FR02793,2025-09-18,2025-10-23
-validity begin,FR02794,1998-01-01,2025-08-29
-validity begin,FR02795,1998-01-01,2025-08-28
-validity begin,FR02796,1998-01-01,2025-08-29
-validity begin,FR02797,1998-01-01,2025-08-28
-validity begin,FR02798,1998-01-01,2025-08-29
-validity begin,FR02799,2025-10-02,2025-10-24
 passenger,AT01046,false,true
 passenger,AT02769,false,true
 passenger,AT34004,true,false
@@ -2577,6 +2578,7 @@ passenger,NO21751,true,false
 passenger,NO23215,true,false
 passenger,NO23225,true,false
 passenger,NO92403,true,false
+im,AT05004,3487,0081
 freight,AT33020,true,false
 freight,AT33021,true,false
 freight,AT33022,true,false
