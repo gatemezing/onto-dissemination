@@ -11,7 +11,8 @@ results as CSV or Excel. The external code is Leaflet in the map tools and
 N3.js in the SHACL Shape Viewer, both pinned to a version and checked with
 SRI. The Synthetic RINF Data page also loads Pyodide 0.28.3 and vis-network 9.1.9
 (pinned, SRI-checked) and installs RDFGraphGen 1.2.0, rdflib 7.6.0 and exrex 0.12.0
-from PyPI at pinned versions. The ERADIS Explorer searches a snapshot and runs
+from PyPI at pinned versions. Ask the ERA Graph can load WebLLM 0.2.87 (pinned, with its
+SHA-384 hash in an import map) and an open-weights model from Hugging Face, only when asked. The ERADIS Explorer searches a snapshot and runs
 the same search live on request (see [Data snapshots](#data-snapshots)).
 
 ## Live demos
@@ -80,11 +81,24 @@ graphs.
 **[era-ask.html](scripts/assets/era-ask.html)** — ask about railway
 infrastructure, organisations and EU rail law in plain language, typed or
 spoken (via the browser's built-in speech recognition), in English, French,
-German, Spanish or Italian. A small keyword-matched vocabulary — not a
-language model — turns a recognised question into a live SPARQL query across
-three endpoints (`rinf-plus`, `OCR-KG`, `era-lex`); an unrecognised question
-gets pointed at the sample questions rather than a guess, and the generated
-query is always one click away.
+German, Spanish or Italian. A small open-source language model, Qwen2.5-1.5B-Instruct
+(Apache 2.0), runs in the browser through [WebLLM](https://github.com/mlc-ai/web-llm)
+on WebGPU and reads the question the way such models are trained to call
+functions: it fills in one typed form (question shape, count or list,
+country, a legislation topic in English, an organisation code or name), with
+decoding constrained to a JSON schema whose enums hold only values the page
+knows. The form selects one of the hand-written SPARQL queries across three
+endpoints (`rinf-plus`, `OCR-KG`, `era-lex`), so the model never writes a
+query; a code or a name it reports must occur in the question. Questions
+outside the fixed shapes (conditions, rankings, single named places) are
+declined, with keyword matching's reading offered as an alternative. The
+model is loaded on request (downloaded once from Hugging Face and cached by
+the browser, then reloaded automatically); without WebGPU, or before it is
+loaded, keyword matching reads the question as before. The form the model
+filled in and the query are always one click away.
+[scripts/tests/ask_llm_eval.py](scripts/tests/ask_llm_eval.py) scores both
+readings on the labelled questions in
+[scripts/tests/ask-questions.json](scripts/tests/ask-questions.json).
 
 **[era-holobox-frame.html](scripts/assets/era-holobox-frame.html)** — renders
 that same bubble-graph view natively on a single desktop stage, driven from one
