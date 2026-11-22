@@ -34,6 +34,7 @@ the same search live on request (see [Data snapshots](#data-snapshots)).
 | Interoperable Europe reusability answers | https://gatemezing.github.io/onto-dissemination/interopable-eu-portal-answers.html |
 | Connected by data — ERA's answers, Graphwise AI Summit 2026 panel | https://gatemezing.github.io/onto-dissemination/connected-by-data.html |
 | Slides: A Semantic Backbone for European Rail Data Exchange (KGSWC 2026) | https://gatemezing.github.io/onto-dissemination/kgswc-2026/ |
+| Slides: Build on the rail graph (FOSDEM 2027, Railways and Open Transport devroom) | https://gatemezing.github.io/onto-dissemination/carto-rinf-open-data/ |
 
 The live-query tools link to each other in their footers. No other page links
 yet to the Holobox Frame, the ERATV Explorer, Primary Locations in RINF, the SHACL Shape Viewer or the
