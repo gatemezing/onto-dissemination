@@ -110,6 +110,7 @@
   td.pos{font-family:"SF Mono",Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--teal);}
   td.ix{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--dim);}
   td.nm{max-width:220px;overflow:hidden;text-overflow:ellipsis;}
+  td.nd{font-style:italic;opacity:.75;}
   tbody tr:hover{background:rgba(255,255,255,.035);}
   .moreNote{font-size:11.5px;color:var(--muted);margin-top:9px;}
   .resultActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
@@ -563,6 +564,9 @@ function pickValid(items, keyOf, asOf){
 const ISO2 = {AUT:'AT',BEL:'BE',BGR:'BG',HRV:'HR',CZE:'CZ',DNK:'DK',EST:'EE',FIN:'FI',FRA:'FR',DEU:'DE',GRC:'GR',HUN:'HU',
   IRL:'IE',ITA:'IT',LVA:'LV',LTU:'LT',LUX:'LU',NLD:'NL',NOR:'NO',POL:'PL',PRT:'PT',ROU:'RO',SVK:'SK',SVN:'SI',ESP:'ES',SWE:'SE',CHE:'CH',LIE:'LI'};
 const NO_DATA = 'no data';
+/* The four TAF/TAP flags, as row keys, and how the table names them. */
+const FLAG_KEYS = ['passenger', 'freight', 'container', 'handover'];
+const FLAG_LABELS = {passenger:'passenger', freight:'freight', container:'container handling', handover:'hand-over point'};
 
 /* Phase 1 — which PL resources belong to the country, and by which rule. A PL belongs to the country
    (1) named by its own era:inCountry; else (2) by the ISO-2 prefix of its code; else (3) when the code
@@ -843,6 +847,8 @@ async function run(){
         earliest:scope.reduce((m, x) => x.windows.reduce((mm, w) => (!mm || w.b < mm ? w.b : mm), m), ''), pos:rows.filter(r => r.lon !== NO_DATA).length, wktOnly:rows.filter(r => r.wkt !== NO_DATA && r.lon === NO_DATA).length, im:has('imCode'), inCountry:has('inCountry'),
         how:['era:inCountry', 'code prefix', 'dataset'].map(h => [h, rows.filter(r => r.how.includes(h)).length]),
         conflicts:rows.filter(r => r.how.includes(' | ')).length,
+        noFlags:rows.filter(r => FLAG_KEYS.every(k => r[k] === NO_DATA)).length,
+        flagConflicts:rows.filter(r => FLAG_KEYS.some(k => r[k].includes(' | '))).length,
         seconds:(performance.now() - t0) / 1000,
       },
     };
@@ -912,15 +918,33 @@ function render(){
   if(s.truncated) notes.push(`${fmt(s.truncated)} non-point geometries were cut to 32,000 characters (position_source says so).`);
   if(!r.rows.length && s.futureOnly && s.earliest) notes.push(`Every primary location in this selection begins after ${esc(r.asOf)} (the earliest begins ${esc(s.earliest)}), so none is valid yet on that date. Choose a later date.`);
   if(s.wktOnly) notes.push(`${fmt(s.wktOnly)} positions are not a plain point, so longitude and latitude read “${NO_DATA}”; the WKT is kept.`);
+  const flagProps = '<code>era:passengerFlag</code>, <code>era:freightFlag</code>, <code>era:containerHandlingFlag</code> and <code>era:handoverPointFlag</code>';
+  if(s.rows && s.noFlags === s.rows) notes.push(`None of these primary locations is published with the passenger, freight, container-handling or hand-over flags (${flagProps}), so Flags and the four *_flag columns read “${NO_DATA}”. Only some managers publish them (France, Italy's RFI, Lithuania, Luxembourg, the Netherlands, Norway and a few Austrian managers, surveyed 2026-11).`);
+  else if(s.rows){
+    notes.push(`Flags lists the flags set to true; “none” means all published flags are false. Hover a cell for the four values.` +
+      (s.noFlags ? ` ${fmt(s.noFlags)} codes are published without any of the four flags (${flagProps}) and read “${NO_DATA}”.` : ''));
+  }
+  if(s.flagConflicts) notes.push(`${fmt(s.flagConflicts)} codes have resources that disagree on a flag: Flags says “differs”, and the CSV keeps both values.`);
   $('notes').innerHTML = warn.map(w => '<li class="warn">' + w + '</li>').join('') + notes.map(n => '<li>' + n + '</li>').join('');
 
   const SHOW = 300;
-  const flagText = x => ['passenger','freight','container','handover'].map((k, i) => 'PFCH'[i] + ':' + (x[k] === 'true' ? '✓' : x[k] === 'false' ? '–' : '?')).join(' ');
+  /* The flags set to true, in words; the four raw values (as in the CSV) on hover. */
+  const csvName = Object.fromEntries(COLS);
+  const flagCell = x => {
+    const tip = FLAG_KEYS.map(k => csvName[k] + ': ' + x[k]).join('\n');
+    const known = FLAG_KEYS.filter(k => x[k] !== NO_DATA);
+    if(!known.length) return `<td class="ix nd" title="${esc('None of the four flags is published for this location.\n' + tip)}">${esc(NO_DATA)}</td>`;
+    const shown = known.filter(k => x[k] !== 'false').map(k => FLAG_LABELS[k] + (x[k] === 'true' ? '' : ' (differs)'));
+    const missing = FLAG_KEYS.length - known.length;
+    const text = (shown.length ? shown.join(', ') : 'none') + (missing ? ` · ${missing} not published` : '');
+    return `<td class="ix" title="${esc(tip)}">${esc(text)}</td>`;
+  };
   const head = ['Code','Name','In country','Manager','Flags','Valid','Position','OPs'];
-  $('resultTable').tHead.innerHTML = '<tr>' + head.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr>';
+  const headTitle = {Flags:'Flags set to true: passenger, freight, container handling, hand-over point'};
+  $('resultTable').tHead.innerHTML = '<tr>' + head.map(h => '<th' + (headTitle[h] ? ` title="${esc(headTitle[h])}"` : '') + '>' + esc(h) + '</th>').join('') + '</tr>';
   $('resultTable').tBodies[0].innerHTML = r.rows.slice(0, SHOW).map(x =>
     `<tr><td class="ix">${esc(x.code)}</td><td class="nm" title="${esc(x.namesAll)}">${esc(x.name)}</td><td class="ix">${esc(x.inCountry)}</td>` +
-    `<td class="ix" title="${esc(x.imName)}">${esc(x.imCode)}</td><td class="ix">${esc(flagText(x))}</td>` +
+    `<td class="ix" title="${esc(x.imName)}">${esc(x.imCode)}</td>${flagCell(x)}` +
     `<td class="ix">${esc(x.vBegin === NO_DATA ? NO_DATA : x.vBegin + ' → ' + (x.vEnd === NO_DATA ? '…' : x.vEnd))}</td>` +
     `<td class="pos">${x.lon === NO_DATA ? esc(NO_DATA) : (+x.lat).toFixed(4) + ', ' + (+x.lon).toFixed(4)}</td><td class="ix" title="${esc(x.opNames)}">${fmt(x.opCount)}</td></tr>`).join('');
   $('moreNote').textContent = r.rows.length > SHOW ? `Showing the first ${fmt(SHOW)} of ${fmt(r.rows.length)} rows — the CSV has them all.` : '';
