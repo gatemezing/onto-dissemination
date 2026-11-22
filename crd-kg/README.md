@@ -1,12 +1,12 @@
 # CRD knowledge graph — review against the ERA ontology, ERA SHACL shapes and RINF
 
 **Reviewed endpoint:** <https://rinf-ris-alignment.com/repositories/CRD>
-(dataset `https://rinf-ris-alignment.com/graph/crd`, `dct:modified` 2026-11-20T01:01:52Z, generated from
-the CRD snapshot of 2026-11-20T01:00:05Z)
+(dataset `https://rinf-ris-alignment.com/graph/crd`, `dct:modified` 2026-11-22T01:01:50Z, generated from
+the CRD snapshot of 2026-11-22T01:00:05Z)
 **Reference data:** <https://graph.data.era.europa.eu/repositories/rinf-plus> (RINF)
 **Reference model:** ERA ontology v3.3.4 and ERA SHACL shapes, PROD (`ERA-Onto`, `graph/shacl`) and UAT
 (`https://rinf.uat.data.test-era.europa.eu/era-vocabulary/era-shapes`)
-**Measured:** 2026-11-20, a re-run of the 2026-11-03 review. Every number below comes from a query in
+**Measured:** 2026-11-20 and re-checked on 2026-11-22, a re-run of the 2026-11-03 review. Every number below comes from a query in
 [queries/](queries/) or from a script in [scripts/](scripts/) run over the extracts. Nothing is inferred
 from the ontology alone.
 
@@ -18,7 +18,7 @@ The CRD graph replicates RNE's Common Reference Data every day: TAF/TAP **primar
 (PLC) and **subsidiary locations** (SLC). It uses only ERA v3.3.4 terms, and every term it uses
 exists, undeprecated, in the PROD ontology. Its PLC structure is cleaner than RINF's: one IRI per
 code, every location named in English, flagged, dated and attributed to an IM, and a valid code
-pattern throughout. On the 44,443 PLCs found in both sources, country and IM agree 100 %, the
+pattern throughout. On the 44,441 PLCs found in both sources, country and IM agree 100 %, the
 four TAF/TAP flags ≥ 99 %, names 98 % and positions (≤ 1 km) 98 %. Against ERA's own SHACL shapes,
 CRD conforms better than RINF: under PROD only the NUTS vocabulary check (F10) fails, plus a geometry
 Warning for the 7,315 PLs that have no coordinates (§3.3).
@@ -28,7 +28,7 @@ Warning for the 7,315 PLs that have no coordinates (§3.3).
 The publisher re-published the graph and acted on most of the review: five findings are resolved
 (F1, F2, F4, F6, F9), one partly (F11), and F3 changed form.
 
-| # | Finding (2026-11-03) | Status on 2026-11-20 |
+| # | Finding (2026-11-03) | Status on 2026-11-22 |
 |---|---|---|
 | F1 | Allocation companies all typed with the IM role | **Resolved.** 33 of the 34 companies now carry a role OCR-KG lists for them. UIC is typed `SB` "Sector Organisation"; OCR-KG says `IRO`, a code ERA's role vocabulary does not define |
 | F2 | Great Britain PLCs at `POINT(0 0)` | **Resolved.** The 7,315 PLs without coordinates now carry no geometry |
@@ -36,11 +36,17 @@ The publisher re-published the graph and acted on most of the review: five findi
 | F4 | SL properties outside UAT's closed shape | **Resolved.** No SL carries `inCountry`, `infrastructureManager` or `operatingLanguage` |
 | F5 | Danish codes identify different places (RINF side) | Unchanged: 294 of 302 shared DK codes are > 10 km apart |
 | F6 | Ontology terms re-declared in the data graphs | **Resolved.** The data graphs hold none; a separate `graph/era/used-terms` lists the 37 terms used, as `rdf:type` statements only |
-| F7 | `wgs84:lat`/`lon` as plain strings | Unchanged (51,942 net references) |
-| F8 | Python `None` in IRIs | Unchanged (2,269 temporal features, 51,371 applicabilities) |
+| F7 | `wgs84:lat`/`lon` as plain strings | Unchanged (51,943 net references) |
+| F8 | Python `None` in IRIs | Unchanged (2,271 temporal features, 51,372 applicabilities) |
 | F9 | Whitespace runs in names | **Resolved** (0 names) |
 | F10 | NUTS IRIs differ by source | Unchanged in CRD; RINF itself now uses both forms |
 | F11 | Suggestions: provenance, SKOS, IRI governance | **Partly resolved.** The metadata now names RailNetEurope as publisher and links the CRD snapshot with its generation time, and the SKOS graph is PROD's (70,705 triples). Still missing: a licence |
+
+**Re-checked on 22 November.** The extracts, the comparison, the full-dataset checks and the OCR-KG role check
+were re-run on that day's replication (`dct:modified` 2026-11-22T01:01:50Z). No finding changed. CRD gained
+one primary location net (two in DE, one fewer in ES), RINF is unchanged, and ERA's PROD and UAT shapes are
+identical to those validated on 2026-11-20, so the SHACL results of §3.3 stand. Figures are those of
+2026-11-22, except the SHACL sample counts.
 
 RINF changed too. **DB InfraGO's 9,618 PLs in RINF are now stubs** (type, label, country, code and
 geometry only); on 3 November 9,166 of them carried names, flags, IMs and validity copied from CRD. Across
@@ -54,18 +60,18 @@ What still needs fixing before the graph can stand next to RINF:
 |---|---|---|---|
 | F3 | **MAJOR** | SL type codes `01`, `02`, `03`, `10`, `15` and `27` exist only in the **UAT** `SubsidiaryLocationTypes` scheme. CRD now drops the type instead of asserting it: the code survives only inside the SL's IRI (`…/subsidiaryLocation/CZ54100_5412_01_0054`). No SHACL shape notices: neither PROD nor UAT requires a type | 20,020 SLs (26.1 %), 99 % of them in CZ, SK and HR |
 | F5 | **MAJOR** (RINF side) | Danish codes identify **different places** in RINF and CRD. RINF/Banedanmark gives `DK00010` to Høje Taastrup, which CRD codes `DK00005` | 294 of 302 shared DK codes are > 10 km apart |
-| F7 | MINOR | `wgs84:lat`/`lon` are plain strings on `era:NetBasicReference`, which duplicates the WKT and puts the WGS84 vocabulary on a non-spatial-thing | 51,942 net references |
-| F8 | MINOR | IRIs leak Python's `None` (`temporalFeature/20170701_None`, `parameterApplicability/…_None`) | 2,269 temporal features, 51,371 applicabilities |
+| F7 | MINOR | `wgs84:lat`/`lon` are plain strings on `era:NetBasicReference`, which duplicates the WKT and puts the WGS84 vocabulary on a non-spatial-thing | 51,943 net references |
+| F8 | MINOR | IRIs leak Python's `None` (`temporalFeature/20170701_None`, `parameterApplicability/…_None`) | 2,271 temporal features, 51,372 applicabilities |
 | F10 | MINOR | `era:inNUTS3` IRIs differ by source. CRD uses `http://data.europa.eu/nuts/code/…`, as ERA's `graph/nuts` and now Greece's RINF do. Austria's RINF uses `https://publications.europa.eu/resource/authority/nuts/…`, the scheme the ontology names, which has no `skos:inScheme` members in ERA-Onto | 9,456 CRD PLs |
 | F11 | SUGGESTION | IRIs are minted under ERA's own namespace `http://data.europa.eu/949/…` by a third-party publisher, and the metadata states no licence | IRI governance |
 | F12 | SUGGESTION | UIC's allocation role: CRD says `SB` (in ERA's vocabulary), OCR-KG says `IRO` (not in it). One of the two registers should align | 18,435 SLs |
 
 What the comparison with RINF shows:
 
-* **Coverage.** CRD holds 59,257 PLCs, RINF 48,824 (in 52,331 IRIs). 44,443 are in both.
-  14,814 are in CRD only: GB 7,312, DE 2,036, FR 962, PT 825, PL 685, RS 682, …. 4,381 are in RINF only:
+* **Coverage.** CRD holds 59,258 PLCs, RINF 48,824 (in 52,331 IRIs). 44,441 are in both.
+  14,817 are in CRD only: GB 7,312, DE 2,038, FR 962, PT 825, PL 685, RS 682, …. 4,383 are in RINF only:
   DE 1,935, CH 922, IT 307, PL 271, NO 269, DK 216, EU 91, ….
-* **4,356 PLCs that RINF operational points reference are absent from CRD**, mostly DB InfraGO (1,934) and
+* **4,358 PLCs that RINF operational points reference are absent from CRD**, mostly DB InfraGO (1,934) and
   the Swiss graphs 0085 + 3915 (905). [stats/rinf-op-pl-missing-from-crd.csv](stats/rinf-op-pl-missing-from-crd.csv) lists them.
 * **RINF is partly CRD-derived.** ProRail's 780 PLs carry this pipeline's IRI fingerprints, so §4.3 reports
   them apart. Italy's RFI (2,845 shared codes) and Luxembourg's CFL (141) now agree with CRD on every field,
@@ -84,12 +90,12 @@ What the comparison with RINF shows:
 
 | | CRD | RINF (rinf-plus) |
 |---|---|---|
-| Statements | 2,593,035 | — |
-| Named graphs | `crd/primary-locations` 1,689,525 · `crd/subsidiary-locations` 817,760 · `era/skos` 70,705 · `era/ontology` 14,974 · `era/used-terms` 46 · `crd/metadata` 25 | one per IM (63 hold PLs) |
-| `era:PrimaryLocation` | 59,257 IRIs = 59,257 codes | 52,331 IRIs → 48,824 codes (167 codes with > 1 IRI; 3,400 codes in > 1 IM graph) |
+| Statements | 2,593,073 | — |
+| Named graphs | `crd/primary-locations` 1,689,563 · `crd/subsidiary-locations` 817,760 · `era/skos` 70,705 · `era/ontology` 14,974 · `era/used-terms` 46 · `crd/metadata` 25 | one per IM (63 hold PLs) |
+| `era:PrimaryLocation` | 59,258 IRIs = 59,258 codes | 52,331 IRIs → 48,824 codes (167 codes with > 1 IRI; 3,400 codes in > 1 IM graph) |
 | `era:SubsidiaryLocation` | 76,786 | 3,899 (`graph/0076`, Bane NOR only) |
 | PL IRI pattern | `http://data.europa.eu/949/primaryLocation/{PLC}` | same for 40,700; plus `…/functionalInfrastructure/primaryLocations/[AT/{IM}/]{PLC}` (6,317), `https://data.banenor.no/…` (717), `…/PrimaryLocation_{PLC}` (582), hashed IRIs (143) |
-| Same IRI for the same code | 36,676 of the 44,443 shared codes | |
+| Same IRI for the same code | 36,674 of the 44,441 shared codes | |
 | Ontology | v3.3.4, identical to PROD (see §3.1) | v3.3.4 |
 
 Metadata (`graph/crd/metadata`) describes the dataset in VoID/DCAT: `dct:title`, `dct:description`,
@@ -104,7 +110,7 @@ Metadata (`graph/crd/metadata`) describes the dataset in VoID/DCAT: `dct:title`,
 
 | Prefix | CRD | RINF | Both | CRD only | RINF only | Share of CRD found in RINF |
 |---|---:|---:|---:|---:|---:|---:|
-| DE | 9,720 | 9,619 | 7,684 | 2,036 | 1,935 | 79.1 % |
+| DE | 9,722 | 9,619 | 7,684 | 2,038 | 1,935 | 79.0 % |
 | FR | 9,036 | 8,074 | 8,074 | 962 | 0 | 89.4 % |
 | GB | 7,312 | 0 | 0 | 7,312 | 0 | — |
 | PL | 4,625 | 4,211 | 3,940 | 685 | 271 | 85.2 % |
@@ -112,7 +118,7 @@ Metadata (`graph/crd/metadata`) describes the dataset in VoID/DCAT: `dct:title`,
 | IT | 2,993 | 3,272 | 2,965 | 28 | 307 | 99.1 % |
 | AT | 2,712 | 2,647 | 2,624 | 88 | 23 | 96.8 % |
 | CH | 2,688 | 3,309 | 2,387 | 301 | 922 | 88.8 % |
-| ES | 2,506 | 2,282 | 2,226 | 280 | 56 | 88.8 % |
+| ES | 2,505 | 2,282 | 2,224 | 281 | 58 | 88.8 % |
 | RO | 2,331 | 2,174 | 2,140 | 191 | 34 | 91.8 % |
 | HU | 1,930 | 1,836 | 1,738 | 192 | 98 | 90.1 % |
 | BE | 1,371 | 1,325 | 1,324 | 47 | 1 | 96.6 % |
@@ -179,7 +185,7 @@ The allocation companies number 34 ([§5 F1](#f1--allocation-company-roles)), ch
   `graph/ontology` once CRLF line endings are normalised. 296 multi-line literals use `\r\n` where PROD
   uses `\n`. This is harmless, but it makes a naive diff report 296 changes.
 * **`ParameterApplicability`** is modelled correctly. The class is `rdfs:subClassOf era:TemporalFeature`,
-  so `time:hasBeginning` directly on it is right. Of 54,532 applicabilities, none contradicts the flag it
+  so `time:hasBeginning` directly on it is right. Of 54,533 applicabilities, none contradicts the flag it
   qualifies, and no PL holds two conflicting applicabilities for the same flag. RINF's CRD-derived graph
   (ProRail) models it identically.
 * **Used terms (F6, resolved).** On 3 November the two data graphs re-declared 37 ERA terms with their
@@ -198,6 +204,9 @@ The allocation companies number 34 ([§5 F1](#f1--allocation-company-roles)), ch
 Shapes as downloaded on 2026-11-20: PROD 7,569 triples, 76 node shapes (unchanged since 2026-10-20);
 UAT 15,200 triples, 161 node shapes (156 on 2026-10-20). One UAT change matters below: `HasTopoCoordinate`
 no longer requires exactly one `era:hasTopoCoordinate` on a `NetPointReference`; it now only checks its class.
+On 2026-11-22 both shape sets were downloaded again and are identical, and the full-dataset counts the
+CRD constraints fire on (9,456 NUTS values, 7,315 PLs without geometry, 98 bodies without a site) are
+unchanged, so the runs below were not repeated.
 
 ### 3.3 SHACL — results
 
@@ -305,7 +314,7 @@ These are defects or portability problems in ERA's shapes, independent of CRD:
 Each check counts distinct resources over the whole CRD graph; a check that matches nothing returns no
 row, shown here as 0.
 
-| Check | 2026-11-03 | 2026-11-20 |
+| Check | 2026-11-03 | 2026-11-22 |
 |---|---:|---:|
 | PL code not matching `^[A-Z]{2}[0-9]{5}$` | 0 | 0 |
 | PL or SL with two names in one language (`sh:uniqueLang`) | 0 | 0 |
@@ -320,8 +329,8 @@ row, shown here as 0.
 | SL without any `subsidiaryLocationType` (F3) | 0 | **20,020** |
 | SL with `inCountry`, `infrastructureManager` or `operatingLanguage` (F4) | **75,917** | 0 |
 | SL without geometry (allowed: no `minCount`) | 63,650 | 63,967 |
-| `NetBasicReference` with `wgs84:lat` as a plain string (F7) | 59,155 | 51,942 |
-| `TemporalFeature` IRI containing `None` (F8) | 2,235 | 2,269 |
+| `NetBasicReference` with `wgs84:lat` as a plain string (F7) | 59,155 | 51,943 |
+| `TemporalFeature` IRI containing `None` (F8) | 2,235 | 2,271 |
 | ERA ontology terms re-declared in the data graphs (F6) | 37 | 0 |
 
 The "without any type" count comes from [stats/summary.json](stats/summary.json)
@@ -371,7 +380,7 @@ DB InfraGO's PLs now carry `rdf:type`, `rdfs:label`, `era:inCountry`, `era:prima
 3 November), with validity IRIs of their own (`temporalFeature/0b326374d1`). They are most likely loaded
 from CRD too, but they carry no fingerprint, so they stay in the "independent" column below.
 
-### 4.3 Value agreement on the 44,443 shared codes
+### 4.3 Value agreement on the 44,441 shared codes
 
 Multi-valued RINF fields count as agreeing when CRD's value is among them. The "independent" column
 excludes the 780 codes published only in the CRD-derived graph (`0084`).
@@ -380,7 +389,7 @@ excludes the 780 codes published only in the CRD-derived graph (`0084`).
 
 | Field | Comparable (all) | Agree (all) | Comparable (independent) | Agree (independent) |
 |---|---:|---:|---:|---:|
-| country | 43,692 | 100 % | 42,912 | 100 % |
+| country | 43,690 | 100 % | 42,910 | 100 % |
 | IM organisation code | 15,062 | 100 % | 14,282 | 100 % (1 differs: `3487` → `0081`) |
 | passengerFlag | 12,512 | 99.0 % | 11,732 | 99.0 % (73 true→false, 48 false→true) |
 | freightFlag | 12,090 | 99.8 % | 11,310 | 99.8 % |
@@ -393,7 +402,7 @@ excludes the 780 codes published only in the CRD-derived graph (`0084`).
 
 * **Names.** Most mismatches are in GR (7.5 % agree), where RINF prefixes the name with the code number
   (`954-DILOFO`). That is a RINF naming convention, not a different place.
-* **Positions.** Median distance 2 m, p90 178 m, p99 3.7 km. 871 codes are > 1 km apart, 307 > 10 km and
+* **Positions.** Median distance 2 m, p90 178 m, p99 3.7 km. 867 codes are > 1 km apart, 307 > 10 km and
   183 > 100 km ([stats/pl-distance-outliers.csv](stats/pl-distance-outliers.csv)). 294 of the 307 > 10 km
   are Danish (F5). The rest look like single-record typos on one side, still uncorrected: DK00459 Hirtshals
   in CRD at `POINT(9.96 7.59)` (apparently 57.59 typed as 7.59), GR00757, PL08950 and FR08334, among others.
@@ -409,8 +418,8 @@ RINF links operational points to PLs with `era:primaryLocation`. 47,031 PL IRIs 
 referenced this way, and 6,844 of them by more than one OP. Every referenced IRI is typed
 `era:PrimaryLocation` and has a code.
 
-* **42,673 referenced codes exist in CRD.** CRD can enrich those OPs with names, flags and IMs by code.
-* **4,356 referenced codes are missing from CRD**: DB InfraGO (0080) 1,934; SBB Infrastructure +
+* **42,671 referenced codes exist in CRD.** CRD can enrich those OPs with names, flags and IMs by code.
+* **4,358 referenced codes are missing from CRD**: DB InfraGO (0080) 1,934; SBB Infrastructure +
   Schweizerische Trassenvergabestelle (0085 + 3915) 905; PKP PLK (0051) 306; Bane NOR (0076) 269;
   Banedanmark (0086) 218; FER (3525) 123; …. They are either retired from CRD after RINF was loaded or never
   allocated. Each row of [stats/rinf-op-pl-missing-from-crd.csv](stats/rinf-op-pl-missing-from-crd.csv)
@@ -488,10 +497,10 @@ catch this. The uopids Banedanmark uses in RINF are not the RNE PLCs, yet RINF l
 
 * **F6 resolved** — the data graphs no longer re-declare ontology terms (§3.1).
 * **F7 unchanged** — `era:NetBasicReference` carries `wgs84:lat`/`lon` as untyped strings next to a typed
-  `geo:wktLiteral` (51,942 references), and the geometry node is typed `wgs84:Point` with no lat/long of its
+  `geo:wktLiteral` (51,943 references), and the geometry node is typed `wgs84:Point` with no lat/long of its
   own. Drop the WGS84 triples; ERA reads positions through `netReference/geo:hasGeometry/geo:asWKT`.
-* **F8 unchanged** — `None` in IRIs (`temporalFeature/20170701_None`, `…_freight_19800101_None`): 2,269
-  temporal features and 51,371 of the 54,532 applicabilities. Apparently a Python `None` serialised into
+* **F8 unchanged** — `None` in IRIs (`temporalFeature/20170701_None`, `…_freight_19800101_None`): 2,271
+  temporal features and 51,372 of the 54,533 applicabilities. Apparently a Python `None` serialised into
   the IRI. Stable but unattractive, and it makes "no end date" look like a value. The same IRIs exist in
   RINF's ProRail graph, so renaming them breaks alignment. Change them only together with ERA.
 * **F9 resolved** — no PL or SL name carries a whitespace run any more (236 + 377 on 3 November).
@@ -510,7 +519,7 @@ memberships are loaded. ERA should pick one IRI form; CRD and RINF should follow
 ### F11 — suggestions
 
 * **IRI governance.** All CRD resources are minted under `http://data.europa.eu/949/` (ERA's namespace)
-  by a publisher at `rinf-ris-alignment.com`. For PLs this is deliberate and useful: 36,676 shared codes
+  by a publisher at `rinf-ris-alignment.com`. For PLs this is deliberate and useful: 36,674 shared codes
   have the same IRI in RINF, so the two graphs join without `owl:sameAs`. It also means CRD triples
   merge silently with ERA's own. Agree the pattern with ERA, or mint under a CRD namespace and link
   with `owl:sameAs`/`skos:exactMatch`.
@@ -520,7 +529,7 @@ memberships are loaded. ERA should pick one IRI form; CRD and RINF should follow
 * **SKOS — done.** `graph/era/skos` is now PROD's vocabulary (70,705 triples, the size of ERA-Onto's
   `graph/skos`), without the 293 UAT schemes it carried on 3 November. That is what turned F3 into dropped
   types.
-* **Validity.** CRD shows only currently valid codes: no end date before 2026-11-20 and no future start.
+* **Validity.** CRD shows only currently valid codes: no end date before 2026-11-22 and no future start.
   The 1,935 DE codes in RINF but not in CRD suggest CRD drops retired codes. If so, keep them with a
   closed validity window, so RINF's references to retired codes stay resolvable.
 
@@ -555,7 +564,7 @@ crd-kg/
 
 ```bash
 python3 -I scripts/fetch.py                # ~1 min, both endpoints (the two sample-*.rq need Turtle: see SHACL)
-python3 -I scripts/compare.py 2026-11-20   # as-of date for validity checks
+python3 -I scripts/compare.py 2026-11-22   # as-of date for validity checks
 python3 -I scripts/allocation_roles.py     # F1, CRD against OCR-KG
 cp data/raw/crd/crd-checks.csv stats/      # §3.5
 # SHACL (needs: pip install pyshacl). Inputs, all CONSTRUCTed or downloaded as described in §3.3:
@@ -578,6 +587,6 @@ Limits:
   counts in §3.5 wherever a constraint fired. Constraints that need a remote endpoint (`SERVICE`) were
   skipped, and pyshacl's SHACL 1.0 pre-binding restrictions were relaxed so ERA's `VALUES`/`MINUS`
   queries run as GraphDB runs them.
-* **OCR-KG.** F1 and F12 rely on OCR-KG's role list as of 2026-11-20.
+* **OCR-KG.** F1 and F12 rely on OCR-KG's role list as of 2026-11-22.
 * **History.** The 3 November figures quoted for comparison are those of the first review (git history of
   this file and of `stats/`).
