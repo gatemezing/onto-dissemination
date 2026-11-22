@@ -34,7 +34,7 @@ READ_JS = """async ({q, useLlm}) => {
   const out = {kw: sum(A.parseQuestion(q))};
   if(useLlm){
     const r = await A.llmRead(q);
-    out.llm = sum(A.intentToParsed(r.form, q)); out.form = r.form; out.seconds = r.seconds;
+    out.llm = sum(A.intentToParsed(r.form, q)); out.form = r.form; out.seconds = r.seconds; out.usage = r.usage;
   }
   return out;
 }"""
@@ -47,7 +47,10 @@ LEX_COUNT_JS = """async (topic) => {
 
 
 def correct(exp, got):
-    """Every field the label gives must match; nothing else is checked."""
+    """Every field the label gives must match; nothing else is checked. A label may list
+    alternative readings ("alt") for a question that honestly asks two things."""
+    if any(correct(dict(a, q=exp["q"]), got) for a in exp.get("alt", [])):
+        return True
     if got["entity"] != exp["entity"]:
         return False
     if exp["entity"] == "none":
@@ -93,10 +96,10 @@ def main():
                 print(f"{key}: model not ready ({state}): {page.inner_text('#llmNote')[:300]}")
                 continue
             load_s = time.time() - t0
-            rows, secs = [], []
+            rows, secs, usage = [], [], []
             for item in QUESTIONS:
                 r = page.evaluate(READ_JS, {"q": item["q"], "useLlm": True})
-                rows.append((item, r)); secs.append(r["seconds"])
+                rows.append((item, r)); secs.append(r["seconds"]); usage.append(r.get("usage") or {})
             ok_llm = [correct(i, r["llm"]) for i, r in rows]
             ok_kw = [correct(i, r["kw"]) for i, r in rows]
             # legislation: does the topic the reading produced find any act in era-lex?
@@ -118,6 +121,9 @@ def main():
                 "refusal_questions": len(refuse),
                 "legislation_topics_with_hits": {"llm": lex["llm"], "keywords": lex["kw"], "of": lex["n"]},
                 "seconds_per_question": {"median": sorted(secs)[len(secs) // 2], "max": max(secs)},
+                "tokens": {k: sorted(u.get(k) or 0 for u in usage)[len(usage) // 2] for k in ("prompt_tokens", "completion_tokens")},
+                "tokens_per_second": {k: round(sorted((u.get("extra") or {}).get(k) or 0 for u in usage)[len(usage) // 2], 1)
+                                      for k in ("prefill_tokens_per_s", "decode_tokens_per_s")},
                 "failures": [{"q": i["q"], "expected": {k: v for k, v in i.items() if k != "q"}, "model": r["llm"], "form": r["form"]}
                              for (i, r), ok in zip(rows, ok_llm) if not ok],
                 "keyword_failures": [{"q": i["q"], "keywords": r["kw"]} for (i, r), ok in zip(rows, ok_kw) if not ok],
@@ -126,7 +132,8 @@ def main():
             print(f"{key} ({m['model_id']}): model {m['llm_correct']}/{m['questions']}, keywords {m['keyword_correct']}/{m['questions']}; "
                   f"refusals {m['llm_refusals_right']}/{m['refusal_questions']} vs {m['keyword_refusals_right']}/{m['refusal_questions']}; "
                   f"legislation topics finding acts {lex['llm']}/{lex['n']} vs {lex['kw']}/{lex['n']}; "
-                  f"{m['seconds_per_question']['median']:.2f} s median, {m['seconds_per_question']['max']:.2f} s max; loaded in {m['load_seconds']} s")
+                  f"{m['seconds_per_question']['median']:.2f} s median, {m['seconds_per_question']['max']:.2f} s max; loaded in {m['load_seconds']} s; "
+                  f"tokens {m['tokens']}, speed {m['tokens_per_second']}")
             if SHOW_FAILURES:
                 for f in m["failures"]:
                     print("   model wrong:", f["q"], "| expected", f["expected"], "| got", f["model"])

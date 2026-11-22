@@ -723,7 +723,9 @@ const LLM_MODELS = {
   'gemma2-2b':    ['Gemma-2-2B-it',         'gemma-2-2b-it-q4f16_1-MLC',         'gemma-2-2b-it-q4f32_1-MLC',         '1.4 GB'],
 };
 const LLM_DEFAULT = 'qwen2.5-1.5b';
-const LLM_OFFERED = ['qwen2.5-1.5b', 'qwen2.5-0.5b'];   // in the picker; ?model= reaches the others
+// In the picker. Measured on scripts/tests/ask-questions.json (2026-11-22): Qwen2.5-1.5B reads 68/70
+// correctly, Qwen2.5-0.5B only 40/70, so only the 1.5B is offered; ?model= reaches the others for testing.
+const LLM_OFFERED = ['qwen2.5-1.5b'];
 
 // The form's question shapes, and the entity of this page each one selects.
 const LLM_ENTITIES = {
@@ -746,30 +748,29 @@ const INTENT_SCHEMA = {
   required:['entity', 'action', 'country', 'topic', 'org_code', 'org_name', 'language'],
   additionalProperties:false,
 };
-const LLM_SYSTEM = `You read a question about European railways and fill in a JSON form that selects one of a fixed set of database queries. You never answer the question yourself.
+const LLM_SYSTEM = `Fill in a JSON form that picks one of a fixed set of database queries for a question about European railways. Do not answer the question.
 
-entity: what the question asks about.
-- tunnels: railway tunnels (how many, or which)
-- tunnel_length_km: the total length or kilometres of tunnels
+entity:
+- tunnels
+- tunnel_length_km: total length of tunnels
 - freight_terminals: freight terminals, freight stations, goods yards
 - stations: railway stations
-- border_points: border points or border crossings
-- operational_points: operational points
-- sections_of_line: sections of line
-- railway_lines: railway lines
-- high_speed_line_km: kilometres or length of high-speed line
-- infrastructure_managers: organisations that manage railway infrastructure
-- railway_undertakings: railway undertakings, train operators, railway companies that run trains
-- organisation_lookup: the organisation that has a given organisation code, or the code of a named organisation
-- legislation: EU railway law (regulations, directives, decisions) on a topic
-- unsupported: anything else. That includes questions with a condition, a ranking or a superlative (longest, busiest, more than ...), questions about one particular named line, station or tunnel, about trains, timetables, tickets, prices or the weather, and questions that are not about railways.
-
-action: "count" for how many, number of, total, how long; "list" for which, list, show, give, find, who, what is. organisation_lookup and legislation are always "list"; tunnel_length_km and high_speed_line_km are always "count".
-country: the ISO 3166-1 alpha-3 code of the one country the question is limited to; "ALL" when it names no country or asks about Europe or all countries; "OTHER" for a country that is not in the list.
-topic: for legislation only, the subject in one or two lowercase English words as they would appear in the title of an EU act (for example "signalling", "safety", "interoperability", "noise", "tunnels"), translated into English. Otherwise "".
-org_code: for organisation_lookup only, the 4-character organisation code exactly as written in the question (for example "0088" or "LQB6"). Otherwise "".
-org_name: for organisation_lookup only, when the question gives a name instead of a code: the name exactly as written, without articles. Otherwise "".
-language: the language the question is written in.`;
+- border_points: border points, border crossings
+- operational_points
+- sections_of_line
+- railway_lines
+- high_speed_line_km: length of high-speed line
+- infrastructure_managers: who manages railway infrastructure
+- railway_undertakings: train operators, railway companies
+- organisation_lookup: the organisation with a given 4-character code, or the code of a named organisation
+- legislation: EU rail regulations, directives or decisions on a topic
+- unsupported: anything else (level crossings, bridges, signals, platforms, speeds, gauges, trains, timetables, tickets, prices, weather), one particular named line, station or tunnel, superlatives and conditions (longest, more than, maximum), and questions not about railways.
+action: "count" (how many, number of, total) or "list" (which, list, show, who).
+country: ISO 3166-1 alpha-3 code of the one country named; "ALL" for none, Europe or all countries; "OTHER" for a country not in the list.
+topic: legislation only: the subject in one or two lowercase English words as in the title of an EU act (signalling, safety, noise, interoperability), translated into English; else "".
+org_code: organisation_lookup only: a 4-character code that appears in the question, as written; never invent one; else "".
+org_name: organisation_lookup only, when a name is given instead of a code: the name as written; else "".
+language: the language of the question.`;
 // Worked examples, given as earlier turns of the conversation. Kept apart from the evaluation questions.
 const LLM_EXAMPLES = [
   ['Wie viele Tunnel hat die Schweiz?', {entity:'tunnels', action:'count', country:'CHE', language:'de'}],
@@ -778,11 +779,28 @@ const LLM_EXAMPLES = [
   ['¿Qué empresas ferroviarias operan en Portugal?', {entity:'railway_undertakings', action:'list', country:'PRT', language:'es'}],
   ['Quali regolamenti riguardano la sicurezza ferroviaria?', {entity:'legislation', action:'list', country:'ALL', topic:'safety', language:'it'}],
   ['Which organisation has the code 0084?', {entity:'organisation_lookup', action:'list', country:'ALL', org_code:'0084', language:'en'}],
-  ['What is the organisation code of ProRail?', {entity:'organisation_lookup', action:'list', country:'ALL', org_name:'ProRail', language:'en'}],
-  ['What is the longest tunnel in Austria?', {entity:'unsupported', action:'list', country:'AUT', language:'en'}],
-  ['How many trains run between Paris and Brussels every day?', {entity:'unsupported', action:'count', country:'ALL', language:'en'}],
+  ['Welchen Code hat die SBB?', {entity:'organisation_lookup', action:'list', country:'ALL', org_name:'SBB', language:'de'}],
+  ['How many bridges are there in Poland?', {entity:'unsupported', action:'count', country:'POL', language:'en'}],
   ['Total length of tunnels in Norway', {entity:'tunnel_length_km', action:'count', country:'NOR', language:'en'}],
-].map(([q, a]) => [q, {entity:a.entity, action:a.action, country:a.country, topic:a.topic || '', org_code:a.org_code || '', org_name:a.org_name || '', language:a.language}]);
+].map(([q, a]) => [q, {entity:a.entity, action:a.action, country:a.country, topic:a.topic || '', org_code:a.org_code || '',
+  org_name:a.org_name || '', language:a.language}]);
+
+/* What the rules decide rather than the model. A 1.5B model reads shapes and topics
+   well but is unreliable on closed-class cues, so these are checked with word lists
+   in the five languages (measured: scripts/tests/ask_llm_eval.py). */
+// Superlatives, comparisons and thresholds: the hand-written queries count or list everything.
+const CONDITION_WORDS = [
+  'longest','shortest','biggest','largest','smallest','busiest','highest','lowest','fastest','slowest','most','least',
+  'maximum','minimum','longer than','shorter than','more than','less than','fewer than','at least','at most','top \\d',
+  'le plus','la plus','les plus','plus long','plus longue','plus longs','plus longues','plus grand','plus grande','plus court','plus courte',
+  'plus de \\d','moins de \\d','au moins','maximal','maximale','minimal','minimale',
+  'längste','längsten','längster','größte','größten','kürzeste','kürzesten','meisten','mehr als','weniger als','mindestens','höchstens','maximale','minimale',
+  'más largo','más larga','más largos','más largas','mayor','menor','más de \\d','menos de \\d','al menos','máximo','máxima','mínimo','mínima',
+  'più lungo','più lunga','più lunghi','più lunghe','maggiore','il più','la più','più di \\d','meno di \\d','almeno','massimo','massima','minimo','minima',
+];
+const CONDITION_RE = new RegExp('(^|[^\\p{L}])(' + CONDITION_WORDS.join('|') + ')(?![\\p{L}])', 'iu');
+const asksCondition = text => CONDITION_RE.test(text);
+const ANY_COUNT = LANGS.flatMap(l => COUNT_TRIGGERS[l]), ANY_LIST = LANGS.flatMap(l => LIST_TRIGGERS[l]);
 function llmMessages(text){
   return [
     {role:'system', content:LLM_SYSTEM},
@@ -794,14 +812,18 @@ function llmMessages(text){
 /* The filled form, checked and turned into the same shape parseQuestion()
    returns, so everything downstream is shared. */
 function intentToParsed(form, text){
-  const lang = LANGS.includes(form && form.language) ? form.language : 'en';
+  const norm = normalize(text);
+  const lang = LANGS.includes(form && form.language) ? form.language : detectLanguage(norm);
   if(!form || form.entity === 'unsupported' || !LLM_ENTITIES[form.entity]) return {unsupported:true, lang};
   const entity = ENTITIES.find(e => e.id === LLM_ENTITIES[form.entity]);
   if(form.country === 'OTHER') return {unsupported:true, otherCountry:true, lang, entity};
+  if(entity.id !== 'legal' && entity.kind !== 'orgcode' && asksCondition(text)) return {unsupported:true, condition:true, lang, entity};
   const row = COUNTRIES.find(c => c[0] === form.country);
   const cc = row ? row[0] : null, countryLabel = row ? row[1] : null;
+  // Count or list: the trigger words when the question has them, else the model.
+  const action = anyMatch(norm, ANY_COUNT) ? 'count' : anyMatch(norm, ANY_LIST) ? 'list' : form.action;
   const intent = (entity.id === 'legal' || entity.kind === 'orgcode') ? 'list'
-    : entity.kind === 'measure' ? 'count' : (form.action === 'list' ? 'list' : 'count');
+    : entity.kind === 'measure' ? 'count' : (action === 'list' ? 'list' : 'count');
   const clean = s => String(s || '').replace(/^[\s"'“”«»]+|[\s"'“”«»?.!,;:]+$/g, '');
   if(entity.id === 'legal'){
     const topic = clean(form.topic).toLowerCase();
@@ -814,9 +836,15 @@ function intentToParsed(form, text){
     const inText = v => v && text.toLowerCase().includes(v.toLowerCase());
     const code = clean(form.org_code);
     const orgCode = /^[A-Za-z0-9]{4}$/.test(code) && /\d/.test(code) && inText(code) ? code.toUpperCase() : null;
-    const name = clean(form.org_name).replace(LEADING_ARTICLES, '');
+    // A name put in the code field ("ADIF") counts as the name when it is in the question.
+    const name = clean(form.org_name || (!orgCode && !/\d/.test(code) ? code : '')).replace(LEADING_ARTICLES, '');
     const orgName = !orgCode && inText(name) ? name : null;
-    if(!orgCode && !orgName) return {entity, lang, cc, countryLabel, intent, topic:null, noCode:true};
+    if(!orgCode && !orgName){
+      // The model found neither: fall back on the keyword extractors, which read "code for X" well.
+      const kwCode = extractCode(text, lang, entity), kwName = kwCode ? null : extractOrgName(text, lang, entity);
+      if(!kwCode && !kwName) return {entity, lang, cc, countryLabel, intent, topic:null, noCode:true};
+      return {entity, lang, cc, countryLabel, intent, topic:null, orgCode:kwCode, orgName:kwName};
+    }
     return {entity, lang, cc, countryLabel, intent, topic:null, orgCode, orgName};
   }
   return {entity, lang, cc, countryLabel, intent, topic:null};
@@ -1059,7 +1087,7 @@ function llmRead(text){
     if(/^Qwen3/.test(llm.id)) request.extra_body = {enable_thinking:false};
     const reply = await llm.engine.chat.completions.create(request);
     const raw = reply.choices[0].message.content;
-    return {form:JSON.parse(raw), raw, seconds:(performance.now() - t0) / 1000, model:LLM_MODELS[llm.key][0]};
+    return {form:JSON.parse(raw), raw, seconds:(performance.now() - t0) / 1000, model:LLM_MODELS[llm.key][0], usage:reply.usage || null};
   };
   const p = llm.queue.then(run, run);
   llm.queue = p.catch(() => {});
@@ -1183,6 +1211,7 @@ async function runQuery(rawText, opts = {}){
     const kw = describeParse(parseQuestion(text));
     answerArea.innerHTML = '<p class="moreNote">' + esc(by) + (parsed.otherCountry
       ? ' read this as a question about a country outside the 27 that publish RINF data here.'
+      : parsed.condition ? ' read this as a question with a condition or a ranking (longest, more than, maximum …), which the hand-written queries here do not handle: they count or list everything of one kind, in one country or in Europe.'
       : ' read this as a question this demo cannot answer: it covers counts and lists of tunnels, stations, freight terminals, border points, operational points, sections of line and railway lines, kilometres of tunnel or high-speed line, infrastructure managers, railway undertakings, organisation codes and EU rail legislation by topic — without conditions, rankings or single named places.') + '</p>' +
       (kw ? `<p class="moreNote">Keyword matching would read it as <b>${esc(kw)}</b>. <button type="button" class="suggest" id="runKeywords">Run it that way</button></p>` : '');
     const b = document.getElementById('runKeywords');
@@ -1291,7 +1320,7 @@ if(!SpeechRecognitionCtor){
 }
 
 // For scripts/tests/ask_llm_eval.py: the parsers, side by side.
-window.eraAsk = {parseQuestion, intentToParsed, describeParse, buildQuery, llmRead, loadLlm, llm, LLM_MODELS, llmStartup};
+window.eraAsk = {parseQuestion, intentToParsed, describeParse, buildQuery, asksCondition, llmRead, loadLlm, llm, LLM_MODELS, llmStartup};
 
 const initialQuestion = new URLSearchParams(location.search).get('q');
 if(initialQuestion){

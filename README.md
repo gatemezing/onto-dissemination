@@ -96,9 +96,17 @@ model is loaded on request (downloaded once from Hugging Face and cached by
 the browser, then reloaded automatically); without WebGPU, or before it is
 loaded, keyword matching reads the question as before. The form the model
 filled in and the query are always one click away.
+The model proposes and rules verify: count or list comes from the trigger
+words when the question has them, a five-language list of superlatives and
+thresholds declines the question, and the keyword extractors stand in when
+the model gives no usable organisation code or name.
 [scripts/tests/ask_llm_eval.py](scripts/tests/ask_llm_eval.py) scores both
-readings on the labelled questions in
-[scripts/tests/ask-questions.json](scripts/tests/ask-questions.json).
+readings on the 70 labelled questions in
+[scripts/tests/ask-questions.json](scripts/tests/ask-questions.json): on
+2026-11-22, on an Apple M1, Qwen2.5-1.5B read 68 correctly against 56 for
+keyword matching, declined 8 of the 9 out-of-scope questions (6), turned all
+7 legislation topics into English words that find acts in era-lex (3), and
+took 4.4 s per question; Qwen2.5-0.5B read only 40.
 
 **[era-holobox-frame.html](scripts/assets/era-holobox-frame.html)** — renders
 that same bubble-graph view natively on a single desktop stage, driven from one
