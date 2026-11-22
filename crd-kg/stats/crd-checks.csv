@@ -1,8 +1,8 @@
 check,n
-NetBasicReference: carries wgs84 lat/lon (not a wgs:SpatialThing in ERA),51942
-NetBasicReference: wgs84 lat as plain string,51942
-ParameterApplicability: time:hasBeginning asserted directly (no era:validity),54532
+NetBasicReference: carries wgs84 lat/lon (not a wgs:SpatialThing in ERA),51943
+NetBasicReference: wgs84 lat as plain string,51943
+ParameterApplicability: time:hasBeginning asserted directly (no era:validity),54533
 SL: no geometry,63967
 SL: no infrastructureManager,76786
 SL: no operatingLanguage,76786
-TemporalFeature IRI contains 'None',2269
+TemporalFeature IRI contains 'None',2271

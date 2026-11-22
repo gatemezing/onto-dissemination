@@ -1,8 +1,8 @@
 {
- "as_of": "2026-11-20",
+ "as_of": "2026-11-22",
  "pl": {
-  "crd_iris": 59257,
-  "crd_codes": 59257,
+  "crd_iris": 59258,
+  "crd_codes": 59258,
   "crd_iris_without_code": 0,
   "crd_codes_with_several_iris": 0,
   "rinf_iris": 52331,
@@ -10,10 +10,10 @@
   "rinf_iris_without_code": 0,
   "rinf_codes_with_several_iris": 167,
   "rinf_codes_in_several_graphs": 3400,
-  "codes_in_both": 44443,
-  "codes_crd_only": 14814,
-  "codes_rinf_only": 4381,
-  "same_iri_in_both": 36676,
+  "codes_in_both": 44441,
+  "codes_crd_only": 14817,
+  "codes_rinf_only": 4383,
+  "same_iri_in_both": 36674,
   "crd_codes_bad_pattern": 0,
   "rinf_codes_bad_pattern": 0,
   "rinf_codes_bad_pattern_examples": [],
@@ -24,47 +24,47 @@
     "rinf": 0
    },
    "country": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 48041
    },
    "im": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 15383
    },
    "name_en": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 19785
    },
    "names": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 19785
    },
    "passenger": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 12771
    },
    "freight": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 12100
    },
    "container": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 12093
    },
    "handover": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 12097
    },
    "point": {
-    "crd": 51942,
+    "crd": 51943,
     "rinf": 40089
    },
    "has_validity": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 19785
    },
    "begin": {
-    "crd": 59257,
+    "crd": 59258,
     "rinf": 15916
    },
    "end": {
@@ -81,14 +81,14 @@
   ],
   "rinf_graphs_with_pls": 63,
   "shared_codes_by_group": {
-   "independent": 43663,
+   "independent": 43661,
    "derived": 780
   },
   "agreement": {
    "all": {
     "country": {
-     "comparable": 43692,
-     "agree": 43692,
+     "comparable": 43690,
+     "agree": 43690,
      "agree_pct": 100.0
     },
     "im": {
@@ -128,7 +128,7 @@
     },
     "position within 1 km": {
      "comparable": 36789,
-     "agree": 35918,
+     "agree": 35922,
      "agree_pct": 97.6
     },
     "validity begin": {
@@ -139,8 +139,8 @@
    },
    "independent": {
     "country": {
-     "comparable": 42912,
-     "agree": 42912,
+     "comparable": 42910,
+     "agree": 42910,
      "agree_pct": 100.0
     },
     "im": {
@@ -180,7 +180,7 @@
     },
     "position within 1 km": {
      "comparable": 36009,
-     "agree": 35138,
+     "agree": 35142,
      "agree_pct": 97.6
     },
     "validity begin": {
@@ -246,11 +246,11 @@
    "comparable": 36789,
    "median": 0.002,
    "p90": 0.178,
-   "p99": 3.66,
+   "p99": 3.671,
    "max": 5467.9,
-   "within_100m": 31835,
-   "within_1km": 35918,
-   "over_1km": 871,
+   "within_100m": 31842,
+   "within_1km": 35922,
+   "over_1km": 867,
    "over_10km": 307,
    "over_100km": 183
   },
@@ -367,7 +367,7 @@
   "pl_validity_begin_year_hist": [
    [
     "2010s",
-    22744
+    22741
    ],
    [
     "2000s",
@@ -379,7 +379,7 @@
    ],
    [
     "2020s",
-    4226
+    4230
    ],
    [
     "1980s",
@@ -431,9 +431,9 @@
   "pl_iris_referenced_by_ops": 47031,
   "referenced_iris_untyped_or_without_code": 0,
   "referenced_codes": 47029,
-  "referenced_codes_in_crd": 42673,
-  "referenced_codes_missing_from_crd": 4356,
-  "crd_codes_referenced_by_a_rinf_op": 42673,
+  "referenced_codes_in_crd": 42671,
+  "referenced_codes_missing_from_crd": 4358,
+  "crd_codes_referenced_by_a_rinf_op": 42671,
   "pl_iris_referenced_by_more_than_one_op": 6844
  },
  "sl": {

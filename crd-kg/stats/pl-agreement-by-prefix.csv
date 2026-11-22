@@ -19,10 +19,10 @@ CZ,name,3612,3538,98.0
 CZ,position within 1 km,3611,3604,99.8
 CZ,validity begin,20,0,0.0
 DE,country,7684,7684,100.0
-DE,position within 1 km,7684,7622,99.2
+DE,position within 1 km,7684,7625,99.2
 DK,country,302,302,100.0
 DK,position within 1 km,302,1,0.3
-ES,country,2226,2226,100.0
+ES,country,2224,2224,100.0
 ES,position within 1 km,1,1,100.0
 FI,country,362,362,100.0
 FI,position within 1 km,362,357,98.6
@@ -74,7 +74,7 @@ LU,passenger,141,141,100.0
 LU,position within 1 km,141,141,100.0
 LU,validity begin,141,141,100.0
 LV,country,23,23,100.0
-LV,position within 1 km,23,23,100.0
+LV,position within 1 km,23,22,95.7
 NL,container,780,780,100.0
 NL,country,780,780,100.0
 NL,freight,780,780,100.0
@@ -90,7 +90,7 @@ NO,handover,4,4,100.0
 NO,im,448,448,100.0
 NO,name,448,412,92.0
 NO,passenger,427,352,82.4
-NO,position within 1 km,446,434,97.3
+NO,position within 1 km,446,436,97.8
 NO,validity begin,448,14,3.1
 PL,country,3940,3940,100.0
 PL,position within 1 km,3940,3906,99.1
