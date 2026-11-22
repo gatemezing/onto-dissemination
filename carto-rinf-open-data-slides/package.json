@@ -1,0 +1,20 @@
+{
+  "name": "carto-rinf-open-data",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build on the rail graph: Carto RINF and the ERA Knowledge Graph for open data developers - Slidev presentation",
+  "scripts": {
+    "dev": "slidev slides.md --open",
+    "build": "slidev build slides.md",
+    "export": "slidev export slides.md --output dist/carto-rinf-open-data.pdf"
+  },
+  "dependencies": {
+    "@slidev/cli": "53.1.0",
+    "@slidev/theme-default": "0.25.0",
+    "vue": "3.5.45"
+  },
+  "devDependencies": {
+    "playwright-chromium": "1.49.1"
+  },
+  "license": "EUPL-1.2"
+}
