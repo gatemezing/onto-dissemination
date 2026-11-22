@@ -110,7 +110,7 @@ Use this version for a seminar slot, side-event, or when someone at the booth wa
 **⚠️ Access note:** `data-interop.era.europa.eu` (and `era.europa.eu`) could not be fetched directly from this session — both domains are blocked by this environment's network egress policy (a 403-class organisational block, not a transient error). The table below is **reconstructed from the closest available public secondary source**: Vladimir Alexiev's *RailDataForum2025-SPARQL* tutorial, which explicitly states it works from **"RINF data stories represented as competency questions"** against the same `data-interop.era.europa.eu` SPARQL endpoint (ontology v3.0.1, presented at the 2025 Rail Data Forum). It is a strong proxy, not a verified transcript of the live "Data stories" page.
 
 **Before InnoTrans, someone with access must:**
-1. Open `data-interop.era.europa.eu` → **Data stories** section directly.
+1. Open the **Data stories** at `https://rinf.data.era.europa.eu/data-stories` directly.
 2. Confirm whether these 5 are indeed featured there (titles may differ) or swap in the site's actual top stories.
 3. Copy the *exact* SPARQL text and run it live against the endpoint at least once before the booth demo — do not present the illustrative queries below as verified.
 
@@ -272,7 +272,7 @@ Before this script is used live, it was reviewed against a **railway-expert pers
 - [ ] Fill in `[booth number]`, `[QR code]`, and `[contact]` placeholders once InnoTrans 2026 booth logistics are confirmed.
 - [ ] Confirm the exact GitLab/GitHub repository link to share with technical visitors (e.g., the ERA Ontology group repository).
 - [ ] Have a compliance-aware colleague sign off on the FAQ answer to "Is this mandatory?" — this is the question most likely to be pressed on by regulators/NSAs.
-- [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `data-interop.era.europa.eu` → Data stories (this session's network egress policy blocked that domain, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
+- [ ] Verify the Section 5 "Top 5" data stories and SPARQL text directly against `https://rinf.data.era.europa.eu/data-stories` (the session that wrote this could not reach ERA's site, then at `data-interop.era.europa.eu`, so Section 5 is currently a secondary-source reconstruction, not a verified transcript).
 - [x] Section 6's Oslo S worked example (hops 1–4 plus all three bonus finds) is now fetched and confirmed directly over HTTP from Bane NOR's Linked Data server and the ERA SPARQL endpoint, not from screenshots — done 2026-08-16.
 - [ ] `scripts/assets/era-follow-your-nose-demo.mp4` still depicts the *original* Brussels Airport walkthrough and has not been regenerated to match Oslo S — see the "Explainer video mockup" note in Section 6. Before using it publicly: either regenerate it against Oslo S (real screen-recorded footage or clicks), or present it explicitly as a separate Brussels-based example rather than implying it matches the app.
 - [x] `scripts/assets/era-graph-explorer-app.html`'s live SPARQL mode now points at `https://graph.data.era.europa.eu/repositories/rinf-plus`, verified end-to-end in a real browser (real data returned, CORS headers confirmed, multi-hop click-through tested) — done 2026-08-16. The offline demo mode (now Oslo S) is also tested end-to-end.
