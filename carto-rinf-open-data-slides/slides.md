@@ -547,7 +547,7 @@ layout: section
 ### What
 
 <div class="grid grid-cols-2 gap-3">
-<div class="prob"><h3>♿ Accessible journeys</h3>RINF platforms, plus wheelchair access and free Wi-Fi from Wikidata.</div>
+<div class="prob"><h3>♿ Accessible journeys</h3><a href="https://ersad.data.era.europa.eu/">ERSAD</a>'s station accessibility data, RINF platforms, plus wheelchair access and free Wi-Fi from Wikidata.</div>
 <div class="prob"><h3>🚚 Route checks</h3>RINF's gauge, energy, ETCS and speed against ERATV's vehicle types: "can this train run here?"</div>
 <div class="prob"><h3>🗺️ An open rail atlas</h3>Tunnels, bridges, opening dates, photos, for education and heritage.</div>
 <div class="prob"><h3>📊 Data-quality dashboards</h3>Missing positions, versions, scoping per provider. Send them back.</div>
@@ -561,7 +561,7 @@ layout: section
 <!--
 [11:25 → 12:55]
 Why build here? It's authoritative and backed by law. It's EU-wide by default, several registers under one model, so your second country costs almost nothing. No key, no account. It links to Wikidata, OSM and your own data. And it's cheap to run. You're not alone either: ERA's platform, RINF Atlas by Matdata, Carto RINF and the onto-dissemination tools all share the same identifiers.
-What to build? Six ideas, and you'll have better ones: an accessibility layer for journey planners; route checks that put RINF's track parameters against ERATV's vehicle types, which is what ERA's own route compatibility check does; an open atlas for education and heritage; data-quality dashboards per provider; AI agents that answer by writing SPARQL and cite the IRIs they used; and "who runs what", from ERADIS licences and safety certificates and the companies' telematics codes.
+What to build? Six ideas, and you'll have better ones: an accessibility layer for journey planners, from ERSAD, ERA's European Railway Station Accessibility Database (public, NeTEx, set up under Art. 7a of the PRM TSI, and itself a fork of Entur's open-source stop-place registry), with RINF's platforms and Wikidata's wheelchair access and free Wi-Fi; route checks that put RINF's track parameters against ERATV's vehicle types, which is what ERA's own route compatibility check does; an open atlas for education and heritage; data-quality dashboards per provider; AI agents that answer by writing SPARQL and cite the IRIs they used; and "who runs what", from ERADIS licences and safety certificates and the companies' telematics codes.
 -->
 ---
 
@@ -600,7 +600,7 @@ So: acknowledge the source, and ask for one machine-readable open licence, the s
 | | |
 |---|---|
 | SPARQL endpoint | `https://graph.data.era.europa.eu/repositories/rinf-plus` · also `OCR-KG`, `era-lex` |
-| The registers | <a href="https://eradis.era.europa.eu/">ERADIS</a> · <a href="https://eratv.era.europa.eu/Eratv">ERATV</a> · <a href="https://teleref.era.europa.eu/">telematics reference data</a> · <a href="https://rinf.data.era.europa.eu/">RINF platform</a> and <a href="https://rinf.data.era.europa.eu/data-stories">data stories</a> |
+| The registers | <a href="https://eradis.era.europa.eu/">ERADIS</a> · <a href="https://eratv.era.europa.eu/Eratv">ERATV</a> · <a href="https://ersad.data.era.europa.eu/">ERSAD</a> · <a href="https://teleref.era.europa.eu/">telematics reference data</a> · <a href="https://rinf.data.era.europa.eu/">RINF platform</a> and <a href="https://rinf.data.era.europa.eu/data-stories">data stories</a> |
 | The model | <a href="https://rinf.data.era.europa.eu/era-vocabulary/">ERA Ontology</a> · <a href="https://rinf.data.era.europa.eu/era-vocabulary/rinf-appGuide/">RINF application guide</a> · <a href="https://data.europa.eu/data/catalogues/era?locale=en">ERA's catalogue</a> |
 | ERA's public GitLab | <a href="https://gitlab.com/era-europa-eu/public">gitlab.com/era-europa-eu/public</a>: the ontology, KG mappings, data-quality scripts, and the <a href="https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/rail-data-forum-2025">Rail Data Forum 2025 masterclasses</a> (SPARQL, SHACL, RDF-isation, telematics) |
 | Example apps | <a href="https://github.com/gatemezing/SemanticsCartoTchoo">Carto RINF</a> (MIT) · <a href="https://rinf-atlas.matdata.eu/">RINF Atlas</a> · <a href="https://gatemezing.github.io/onto-dissemination/">onto-dissemination tools</a> |
@@ -858,6 +858,7 @@ The legal and catalogue sources behind the "Open by law" section.
 | ERADIS contents; "All data submitted to ERADIS is public and accessible without user credentials"; legal basis Directives (EU) 2016/797 and 2016/798, Regulation (EU) 2016/796 | <a href="https://eradis.era.europa.eu/">eradis.era.europa.eu</a> (v5.0.1), read 22 Nov 2026 |
 | ERATV: types of vehicle authorised by the Member States; public list of registered authorisations | <a href="https://eratv.era.europa.eu/Eratv">eratv.era.europa.eu</a> (v3.2.2), read 22 Nov 2026 |
 | Telematics reference data: organisation codes (Excel download) and primary location codes; Implementing Regulation (EU) 2026/253 | <a href="https://teleref.era.europa.eu/">teleref.era.europa.eu</a> (v2.1), read 22 Nov 2026 |
+| ERSAD: European Railway Station Accessibility Database, a public register in a web application; Art. 7a of Regulation (EU) No 1300/2014 (PRM TSI); NeTEx schema; "a fork of the ENTUR Stop Places registry" | <a href="https://www.era.europa.eu/domains/registers/ersad_en">ERA's ERSAD page</a> · <a href="https://ersad.data.era.europa.eu/">ersad.data.era.europa.eu</a>, read 25 Nov 2026 · GitLab <code>era-europa-eu/public/ersad</code> |
 | 5,659 organisation codes in <code>OCR-KG</code>; 7,317 legal resources in <code>era-lex</code> | live SPARQL on graph.data.era.europa.eu, 22 Nov 2026 |
 | ERA's public GitLab: 26 projects, including the Rail Data Forum 2025 masterclasses | GitLab API, group <code>era-europa-eu/public</code>, 22 Nov 2026 |
 | Rail Data Forum 2027: third edition, Mulhouse, 8–10 June 2027 | <a href="https://www.railwaygazette.com/agenda/3rd-rail-data-forum/">Railway Gazette agenda</a> · ERA's event listing |
