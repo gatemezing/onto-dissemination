@@ -20,6 +20,7 @@ on:
       - 'scripts/assets/era-shacl-viewer.html'
       - 'scripts/assets/era-skos-explorer.html'
       - 'scripts/assets/crd-rinf-comparison.html'
+      - 'scripts/assets/era-etcs-extension-review.html'
       - 'scripts/assets/era-plc-extraction.html'
       - 'scripts/assets/era-synthetic-rdf.html'
       - 'scripts/assets/era-eradis-snapshot.json.gz'
@@ -67,6 +68,7 @@ jobs:
           cp scripts/assets/era-shacl-viewer.html _site/shapes.html
           cp scripts/assets/era-skos-explorer.html _site/skos.html
           cp scripts/assets/crd-rinf-comparison.html _site/crd-rinf.html
+          cp scripts/assets/era-etcs-extension-review.html _site/etcs-extension-review.html
           cp scripts/assets/era-plc-extraction.html _site/plc-extraction.html
           # The page used to be /op-rcc.html: keep its shared links (#c=…&l=…) working.
           printf '%s\n' '<!doctype html><meta charset="utf-8"><title>Primary Locations in RINF</title>' \
