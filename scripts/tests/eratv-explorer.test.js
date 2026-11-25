@@ -1,13 +1,15 @@
 /* Tests for the ERATV Explorer (scripts/assets/era-eratv-explorer.html, served
    as eratv.html): the index built from the live queries, the in-browser search,
-   and the SPARQL it is checked against.
+   the SPARQL it is checked against, and the type view (one column per
+   configuration, comparison of two types, the snapshot's compact form).
 
    The page's pure functions are loaded from the HTML file itself; the page
    part of the script is skipped without a DOM. Every generated query is parsed
    with sparqljs, so a syntax error fails here rather than on the endpoint.
 
    Run:  npm install --no-save sparqljs@3.7.3 && node --test scripts/tests/eratv-explorer.test.js
-   The live check against ERATV-KG is separate: node scripts/tests/eratv-live-parity.js */
+   The live check against ERATV-KG is separate: node scripts/tests/eratv-live-parity.js,
+   and the page in a browser: python3 scripts/tests/eratv_viewer_check.py */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -16,7 +18,7 @@ const {Parser} = require('sparqljs');
 const html = fs.readFileSync(path.join(__dirname, '../assets/era-eratv-explorer.html'), 'utf8');
 const mod = {exports: {}};
 vm.runInContext([...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join('\n'),
-  vm.createContext({module: mod, console, URL}));
+  vm.createContext({module: mod, console, URL, URLSearchParams}));
 const V = mod.exports;
 const parse = q => new Parser().parse(q);
 
@@ -157,7 +159,9 @@ test('every generated query parses, with each field as its own clause', () => {
   for(const q of Object.values(V.INDEX_QUERIES)) parse(q);
   parse(V.COMMENTS_QUERY);
   parse(V.ONTOLOGY_QUERY);
-  parse(V.detailQuery(VT + '11-273-0001-8-001-DEU'));
+  parse(V.typeValuesQuery([VT + '11-273-0001-8-001-DEU']));
+  parse(V.typeValuesQuery([VT + '11-273-0001-8-001-DEU', VT + '51-445-0002-1-001-EU']));
+  parse(V.typeValuesQuery([VT + 'odd id-DEU']));            // an IRI SPARQL cannot write: compared as a string
   parse(V.conceptLabelQuery([ERA + 'concepts/temperature-ranges/10']));
 });
 
@@ -208,4 +212,153 @@ test('CSV cells are quoted when needed and never start a formula', () => {
   assert.equal(V.csvCell('-12.5'), '-12.5');    // a number stays a number
   assert.equal(V.csvCell('-cmd'), "'-cmd");
   assert.equal(V.csvCell(null), '');
+});
+
+/* ------------------------------------------------------------------ *
+ * The type view */
+const PS = VT + 'parameterSets/', CFG = VT + 'configurations/';
+const u = value => ({type: 'uri', value}), l = value => ({type: 'literal', value});
+/* Bindings as typeValuesQuery returns them for one type with three parameter sets:
+   two for one configuration (one per pantograph head), one for another. */
+const A_URI = VT + '11-273-0001-8-001-DEU';
+const BINDINGS = [
+  {vt: u(A_URI), p: u(ERA + 'maximumDesignSpeed'), o: l('200.0')},
+  {vt: u(A_URI), p: u(ERA + 'hasRegenerativeBrake'), o: l('true')},
+  {vt: u(A_URI), p: u(ERA + 'energySupplySystem'), o: u(ERA + 'concepts/energy-supply-systems/rinf/AC10')},
+  {vt: u(A_URI), p: u(ERA + 'energySupplySystem'), o: u(ERA + 'concepts/energy-supply-systems/rinf/DC30')},
+  // a nested object, two levels down for the braking profile
+  {vt: u(A_URI), p: u(ERA + 'hasBrakingPerformance'), o: u(ERA + 'brakingPerformance/1'),
+    p2: u(ERA + 'emergencyBrakeProfile'), o2: u(ERA + 'brakingProfile/1'), p3: u(ERA + 'speed'), o3: l('100')},
+  {vt: u(A_URI), p: u(ERA + 'hasBrakingPerformance'), o: u(ERA + 'brakingPerformance/1'), p2: u(ERA + 'brakeWeightPercentage'), o2: l('120')},
+  {vt: u(A_URI), ps: u(PS + '1'), cfg: u(CFG + '1'), cfgLabel: l('AC 15kV-16.7Hz'), p: u(ERA + 'vehiclePantographHead'), o: u(ERA + 'concepts/compliant-pantograph-heads/1600')},
+  {vt: u(A_URI), ps: u(PS + '1'), cfg: u(CFG + '1'), cfgLabel: l('AC 15kV-16.7Hz'), p: u('http://www.w3.org/2000/01/rdf-schema#label'), o: l('Noise TSI')},
+  {vt: u(A_URI), ps: u(PS + '2'), cfg: u(CFG + '1'), cfgLabel: l('AC 15kV-16.7Hz'), p: u(ERA + 'vehiclePantographHead'), o: u(ERA + 'concepts/compliant-pantograph-heads/1950')},
+  {vt: u(A_URI), ps: u(PS + '3'), cfg: u(CFG + '3'), cfgLabel: {type: 'literal', value: 'DC 3kV', 'xml:lang': 'en'}, p: u(ERA + 'maximumDesignSpeed'), o: l('160.0')},
+  {vt: u(A_URI), ps: u(PS + '3'), cfg: u(CFG + '3'), cfgLabel: {type: 'literal', value: 'CC 3kV', 'xml:lang': 'fr'}, p: u(ERA + 'maximumDesignSpeed'), o: l('160.0')},
+];
+const MODEL = V.typeModels(BINDINGS).get(A_URI);
+const LABELS = {[ERA + 'maximumDesignSpeed']: {label: 'Maximum design speed', index: ['4.12.1']},
+  [ERA + 'vehiclePantographHead']: {label: 'Pantograph head', index: ['4.9.3.2']},
+  [ERA + 'energySupplySystem']: {label: 'Energy supply system', index: ['4.9.1']},
+  [ERA + 'vehicleTypeNumber']: {label: 'Type number', index: ['0.1']}};
+const labels = p => LABELS[p] || null;
+
+test('the type model: values on the type, per parameter set, TSI labels and nested objects', () => {
+  assert.deepEqual(plain([...MODEL.direct.keys()]), [ERA + 'energySupplySystem', ERA + 'hasBrakingPerformance', ERA + 'hasRegenerativeBrake', ERA + 'maximumDesignSpeed']);
+  assert.deepEqual(plain(MODEL.direct.get(ERA + 'energySupplySystem')),
+    ['u:' + ERA + 'concepts/energy-supply-systems/rinf/AC10', 'u:' + ERA + 'concepts/energy-supply-systems/rinf/DC30']);
+  // the nested object is one value: its properties, the profile one level further down
+  const braking = MODEL.direct.get(ERA + 'hasBrakingPerformance');
+  assert.equal(braking.length, 1);
+  assert.deepEqual(JSON.parse(braking[0].slice(2)), [[ERA + 'brakeWeightPercentage', ['l:120']],
+    [ERA + 'emergencyBrakeProfile', ['o:' + JSON.stringify([[ERA + 'speed', ['l:100']]])]]]);
+  // sets in label order; a set's rdfs:label is its conformity with TSI; the English label wins
+  assert.deepEqual(plain(MODEL.sets.map(x => [x.ps, x.cfgLabel])), [[PS + '1', 'AC 15kV-16.7Hz'], [PS + '2', 'AC 15kV-16.7Hz'], [PS + '3', 'DC 3kV']]);
+  assert.deepEqual(plain(MODEL.sets[0].values.get(V.TSI_ROW)), ['l:Noise TSI']);
+  assert.equal(MODEL.sets[0].values.has('http://www.w3.org/2000/01/rdf-schema#label'), false);
+});
+
+test('the snapshot form of a type decodes to the same model', () => {
+  const enc = V.encodeTypes(new Map([[A_URI, MODEL]]), x => x.slice(VT.length));
+  assert.ok(enc.T['11-273-0001-8-001-DEU']);
+  const back = V.decodeType(enc, '11-273-0001-8-001-DEU', A_URI);
+  const flat = t => plain({direct: [...t.direct], sets: t.sets.map(x => ({...x, values: [...x.values]}))});
+  assert.deepEqual(flat(back), flat(MODEL));
+  assert.equal(V.decodeType(enc, 'unknown', VT + 'unknown'), null);
+});
+
+test('columns: all configurations, then one per parameter set, two sets of one configuration apart', () => {
+  const cols = V.typeColumns(MODEL);
+  assert.deepEqual(plain(cols.map(c => c.label)), ['All configurations', 'AC 15kV-16.7Hz (set 1 of 2)', 'AC 15kV-16.7Hz (set 2 of 2)', 'DC 3kV']);
+  assert.deepEqual(plain(cols.map(c => c.key)), ['all', CFG + '1#1', CFG + '1#2', CFG + '3']);
+  // a type without parameter sets has only "All configurations"
+  const bare = V.typeModels([{vt: u(VT + 'x-DEU'), p: u(ERA + 'maximumDesignSpeed'), o: l('100')}]).get(VT + 'x-DEU');
+  assert.deepEqual(plain(V.typeColumns(bare).map(c => c.label)), ['All configurations']);
+});
+
+test('rows: conformity with TSI first, then ERATV 4.x, then the other numbers, then the unnumbered', () => {
+  const extra = new Map(MODEL.direct); extra.set(ERA + 'vehicleTypeNumber', ['l:11-273-0001-8']);
+  const cols = V.typeColumns({...MODEL, direct: extra});
+  const rows = V.typeRows(cols, labels);
+  assert.deepEqual(plain(rows.map(r => [r.p.replace(ERA, ''), r.section])), [
+    ['#tsi', 'tsi'], ['energySupplySystem', '4.9'], ['vehiclePantographHead', '4.9'], ['maximumDesignSpeed', '4.12'],
+    ['vehicleTypeNumber', '0'], ['hasBrakingPerformance', 'none'], ['hasRegenerativeBrake', 'none']]);
+  assert.equal(V.sectionTitle('4.9'), 'ERATV 4.9');
+  assert.equal(V.sectionTitle('tsi'), 'Conformity with TSI');
+  assert.equal(V.sectionTitle('none'), 'Not numbered in ERATV');
+});
+
+test('comparison: columns paired by IRI, then by label; differences per cell and per row', () => {
+  const B_URI = VT + '11-273-0001-8-001-POL';
+  const other = V.typeModels([
+    {vt: u(B_URI), p: u(ERA + 'maximumDesignSpeed'), o: l('200.0')},
+    {vt: u(B_URI), p: u(ERA + 'hasRegenerativeBrake'), o: l('false')},
+    // the same configuration IRI, set 1 of 1 (A has two sets for it)
+    {vt: u(B_URI), ps: u(PS + '9'), cfg: u(CFG + '3'), cfgLabel: l('DC 3kV'), p: u(ERA + 'maximumDesignSpeed'), o: l('140.0')},
+    // another IRI with a label A uses
+    {vt: u(B_URI), ps: u(PS + '8'), cfg: u(CFG + '8'), cfgLabel: l('ac 15kV-16.7Hz  (set 1 of 2)'), p: u(ERA + 'vehiclePantographHead'), o: u(ERA + 'concepts/compliant-pantograph-heads/1600')},
+    {vt: u(B_URI), ps: u(PS + '7'), cfg: u(CFG + '7'), cfgLabel: l('Diesel'), p: u(ERA + 'maximumDesignSpeed'), o: l('120.0')},
+  ]).get(B_URI);
+  const a = V.typeColumns(MODEL), b = V.typeColumns(other);
+  assert.deepEqual(plain(b.map(c => c.label)), ['All configurations', 'ac 15kV-16.7Hz  (set 1 of 2)', 'DC 3kV', 'Diesel']);
+  const m = V.matchColumns(a, b);
+  assert.deepEqual(plain(m.partner), [0, 1, -1, 2]);        // all; label (case and spaces folded); none; IRI
+  assert.deepEqual(plain(m.how), ['all', 'label', '', 'iri']);
+  assert.deepEqual(plain(m.onlyA), [2]);
+  assert.deepEqual(plain(m.onlyB), [3]);
+  // the same value on both types: not a difference
+  const pantograph = V.rowDiff(ERA + 'vehiclePantographHead', a, b, m);
+  assert.deepEqual(plain(pantograph.pairs), []);
+  assert.equal(pantograph.differs, true);                   // A's second set has a value in a column B lacks
+  const speed = V.rowDiff(ERA + 'maximumDesignSpeed', a, b, m);
+  assert.deepEqual(plain(speed.pairs), [3]);                // 160 against 140 in DC 3kV
+  assert.equal(speed.differs, true);                        // and Diesel only in B
+  const brake = V.rowDiff(ERA + 'hasRegenerativeBrake', a, b, m);
+  assert.deepEqual(plain(brake.pairs), [0]);
+  const energy = V.rowDiff(ERA + 'energySupplySystem', a, b, m);
+  assert.deepEqual(plain(energy.pairs), [0]);               // a value against no value differs
+  const same = V.rowDiff(ERA + 'notThere', a, b, m);
+  assert.equal(same.differs, false);
+});
+
+test('values as text: literals, booleans, labelled IRIs and nested objects', () => {
+  const nameOf = x => x.endsWith('/AC10') ? 'AC 25 kV' : x.split('/').pop();
+  const propName = p => p.split('/').pop();
+  assert.equal(V.valueText('l:200.0', nameOf, propName), '200.0');
+  assert.equal(V.valueText('l:true', nameOf, propName), 'Yes');
+  assert.equal(V.valueText('l:false', nameOf, propName), 'No');
+  assert.equal(V.valueText('u:' + ERA + 'concepts/energy-supply-systems/rinf/AC10', nameOf, propName), 'AC 25 kV');
+  assert.equal(V.valueText(MODEL.direct.get(ERA + 'hasBrakingPerformance')[0], nameOf, propName), 'brakeWeightPercentage: 120; emergencyBrakeProfile: speed: 100');
+  assert.equal(V.valueText('o:not json', nameOf, propName), 'not json');
+});
+
+test('the page state lives in its URL', () => {
+  assert.deepEqual(plain(V.readState('?type=11-273-0001-8-001-DEU&compare=11-273-0001-8-001-The%2520Netherlands')),
+    {type: '11-273-0001-8-001-DEU', compare: '11-273-0001-8-001-The%20Netherlands'});
+  assert.equal(V.stateSearch('11-273-0001-8-001-DEU', '11-273-0001-8-001-The%20Netherlands'), '?type=11-273-0001-8-001-DEU&compare=11-273-0001-8-001-The%2520Netherlands');
+  assert.deepEqual(plain(V.readState(V.stateSearch('a b', 'c&d'))), {type: 'a b', compare: 'c&d'});
+  assert.equal(V.stateSearch('', 'x'), '');                 // no comparison without a type
+  assert.deepEqual(plain(V.readState('')), {type: '', compare: ''});
+});
+
+test('the snapshot index keeps the search fields and drops the holders', () => {
+  const packed = V.packIndex(RAW);
+  assert.ok(!packed.current.h.includes('holder'));
+  assert.equal(packed.current.r.length, RAW.current.length - 1);   // the holder-only row is gone
+  const back = V.buildIndex(V.unpackIndex(packed));
+  const view = idx => plain(idx.types.map(t => ({...t, holders: []})));
+  assert.deepEqual(view(back), view(X));
+  assert.ok(back.types.every(t => t.holders.length === 0));
+  assert.equal(JSON.stringify(packed).includes('41476_Manufacturer'), false);
+});
+
+test('notes, holders and structure are never values of a type', () => {
+  for(const p of ['http://www.w3.org/2000/01/rdf-schema#comment', 'http://www.w3.org/2000/01/rdf-schema#seeAlso',
+    'http://www.w3.org/2004/02/skos/core#editorialNote', ERA + 'vehicleTypeAuthorisationHolder', ERA + 'configDependentParameter'])
+    assert.ok(V.NOT_VALUES.includes(p), p);
+  const q = V.typeValuesQuery([A_URI]);
+  assert.match(q, /era:forConfiguration\|era:hasVehicleTypeConfiguration/);
+  assert.match(q, /\?g = <http:\/\/data\.europa\.eu\/949\/graph\/eratv>/);
+  for(const g of ['notes/', 'derived/', 'links/']) assert.ok(q.includes(`!STRSTARTS(STR(?g), "https://data.europa.eu/949/graph/eratv/${g}")`), g);
+  assert.equal((q.match(/NOT IN \(/g) || []).length, 3);   // on the type or set, and on both nested levels
 });

@@ -27,7 +27,7 @@ the same search live on request (see [Data snapshots](#data-snapshots)).
 | Route Book (TSI OPE Appendix D2) | https://gatemezing.github.io/onto-dissemination/routebook.html |
 | Eurostat Exporter (sections of line / TEN-T flags as CSV or Excel) | https://gatemezing.github.io/onto-dissemination/eurostat.html |
 | ERADIS Explorer (EC declarations and NoBo certificates, ERADIS search forms) | https://gatemezing.github.io/onto-dissemination/eradis.html |
-| ERATV Explorer (authorised vehicle types with the ERATV advanced-search fields, live on the UAT ERATV-KG) | https://gatemezing.github.io/onto-dissemination/eratv.html |
+| ERATV Explorer (authorised vehicle types: one column per configuration, two types compared, the ERATV advanced-search fields; UAT ERATV-KG, with a snapshot) | https://gatemezing.github.io/onto-dissemination/eratv.html |
 | Primary Locations in RINF (every `era:PrimaryLocation` of a country as CSV, optionally narrowed to national lines) | https://gatemezing.github.io/onto-dissemination/plc-extraction.html |
 | Synthetic RINF and EVR Data (realistic synthetic Turtle from the UAT SHACL shapes with RDFGraphGen. RINF: tracks, sidings, platform edges and tunnels linked to their sections and stations with `era:hasPart`/`era:isPartOf`, on a map. EVR + ERATV: vehicles with valid EVNs, vehicle types with ERATV numbers, type authorisations with EINs, invented keepers, owners and ECMs, and the `vpa:` chain from type authorisation to registration; graph, checks and export) | https://gatemezing.github.io/onto-dissemination/synthetic.html |
 | SHACL Shape Viewer (ERA's PROD and UAT validation shapes, a PROD → UAT comparison, an OWL gap analysis of the UAT release candidate with the immediate actions to fix, or your own SHACL file, as a navigable diagram) | https://gatemezing.github.io/onto-dissemination/shapes.html |
@@ -53,6 +53,7 @@ the scripts that build each extract, so they stay current with the files.
 | RINF parameter catalogue — every ERA property with a RINF index, with per-country coverage | RINF Parameter Values explorer | <!-- extract:rinf-catalog -->2026-11-25 — 293 properties (221 populated), 27 countries, 71 datasets<!-- /extract:rinf-catalog --> | `scripts/build-rinf-parameter-catalog.py`, checked nightly (see [below](#keeping-the-rinf-parameter-snapshot-fresh)) |
 | ERADIS EC declarations, organisations, TSIs and directives | ERADIS Explorer | <!-- extract:eradis-declarations -->2026-11-19 — 22,256 declarations<!-- /extract:eradis-declarations --> | `scripts/build-eradis-snapshot.py` |
 | ERADIS NoBo certificates | ERADIS Explorer | <!-- extract:eradis-certificates -->2026-11-19 — 43,615 certificates<!-- /extract:eradis-certificates --> | `scripts/build-eradis-snapshot.py` |
+| ERATV vehicle types: the search index and every type's values per configuration, with property names and ERATV numbers from the ERA ontology release | ERATV Explorer, when ERATV-KG cannot be read | <!-- extract:eratv -->2026-11-25, 4,149 vehicle types<!-- /extract:eratv --> | `scripts/build-eratv-snapshot.js` |
 
 Everything else — the Eurostat extracts included — is queried live when you run
 it, so it is always as current as the endpoint. The Eurostat query set was last
@@ -192,27 +193,52 @@ TSIs, through era-lex) and a certificate's validity (from its validity window)
 — see [eradis/README.md](eradis/README.md).
 
 **[era-eratv-explorer.html](scripts/assets/era-eratv-explorer.html)** —
-searches the authorised vehicle types in `ERATV-KG` on ERA's UAT server
-(`graph.uat.data.test-era.europa.eu`, anonymous and open to any origin) with
-the fields of the ERATV advanced search: Type ID or name, EIN, category and
-subcategory, manufacturer (by country, name or pick), conformity with TSI,
-EC certificate or declaration reference, Member State (including "authorised
-by ERA"), authorisation status, area of use, comments, authorisation date and
-last update. Opening the page loads an index of the 4,149 vehicle types (one
-per Type ID and Member State, as ERATV-KG publishes them) with seven queries in
-about 2 s; searches run on it in the browser. Every search is also shown as
-SPARQL, and "Run live" sends it and checks that it returns the same types.
-A row opens the full record, read live: the TSIs per configuration, the
-current authorisation and its `-Hn` history with EINs, certificates,
-restrictions and comments, and every technical characteristic in ERATV's
-numbering (`era:eratvIndex`). Results come with a per-year chart by category
-and CSV download. The data has gaps the page shows rather than fills: no type
-carries a type name (`rdfs:label`, ERATV 1.1), no authorisation holder resolves
-to an organisation, and the category concepts and most coded values have no
-label. Tested by
-[scripts/tests/eratv-explorer.test.js](scripts/tests/eratv-explorer.test.js)
-(`npm install --no-save sparqljs@3.7.3 && node --test scripts/tests/eratv-explorer.test.js`)
-and, against the live graph, `node scripts/tests/eratv-live-parity.js`.
+opens an authorised vehicle type from `ERATV-KG` on ERA's UAT server
+(`graph.uat.data.test-era.europa.eu`, anonymous and open to any origin) and
+shows its values in one table: ERATV's numbering (`era:eratvIndex`) down the
+side, the technical characteristics (4.x) first, and across, "All
+configurations" (the values stated on the type) and then one column per
+configuration (one per parameter set, so two sets of one configuration get a
+column each), with the conformity with TSI of each. A second type can be put
+beside it: columns are paired by configuration IRI, then by configuration
+label, and a differing cell is marked with a visible "≠", bold text, a light
+background and hidden text for screen readers ("differs from …"); "Show only
+differences" hides the equal rows, and the address (`?type=…&compare=…`)
+keeps both choices for sharing. The pickers search by Type ID, platform or
+alternative name. To find types, the ERATV advanced-search fields are there
+too: Type ID or name, EIN, category and subcategory, manufacturer (by
+country, name or pick), conformity with TSI, EC certificate or declaration
+reference, Member State (including "authorised by ERA"), authorisation
+status, area of use, comments, authorisation date and last update, with a
+per-year chart by category and CSV download. Every search is shown as SPARQL,
+and "Run live" sends it and checks that it returns the same types.
+
+The page opens on a snapshot, `era-eratv-snapshot.json.gz` (1.1 MB), so it
+works from any static host even when ERATV-KG cannot be read: the search
+index and every type's values per configuration, built by
+[scripts/build-eratv-snapshot.js](scripts/build-eratv-snapshot.js) with the
+page's own queries (`npm install --no-save n3@2.13.12 && node
+scripts/build-eratv-snapshot.js`). Parameter names and ERATV numbers come
+from the ERA ontology release (`--tag`, default `v4.0.0`) and its SKOS, then
+from ERATV-KG's own ontology and SKOS graphs, so the page needs no ontology at
+run time. A type's values are queried live whenever ERATV-KG answers; the
+comments field always is, because the snapshot carries no authorisation
+holders, comments or notes. The page sends no credentials. The ERATV+ server
+(`graph.tst.data.test-era.europa.eu`) answers 401 to anonymous queries
+(measured 2026-11-25), so the page does not use it yet; its type query
+already reads that layout (graphs under `https://data.europa.eu/949/graph/eratv/`
+except `notes/`, `derived/` and `links/`, and `era:hasVehicleTypeConfiguration`).
+The data has gaps the page shows rather than fills: no type carries a type
+name (`rdfs:label`, ERATV 1.1), no authorisation holder resolves to an
+organisation, ERATV-KG mints a configuration IRI per parameter set (so two
+different types are compared on configuration labels), and only 71 of the 456
+coded values it uses have a label, in ERATV-KG or in the v4.0.0 SKOS. Tested
+by [scripts/tests/eratv-explorer.test.js](scripts/tests/eratv-explorer.test.js)
+(`npm install --no-save sparqljs@3.7.3 && node --test scripts/tests/eratv-explorer.test.js`),
+against the live graph by `node scripts/tests/eratv-live-parity.js` (the 23
+searches both ways, and the snapshot against live answers), and in a browser
+by `python3 scripts/tests/eratv_viewer_check.py` (the type view's acceptance
+checks, from the snapshot alone and live, in both colour schemes).
 
 <a id="plc-extraction"></a>
 **[era-plc-extraction.html](scripts/assets/era-plc-extraction.html)** —

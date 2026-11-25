@@ -24,6 +24,7 @@ on:
       - 'scripts/assets/era-synthetic-rdf.html'
       - 'scripts/assets/era-eradis-snapshot.json.gz'
       - 'scripts/assets/era-eradis-certificates.json.gz'
+      - 'scripts/assets/era-eratv-snapshot.json.gz'
       - 'graphwiseAI-summit2026/connected-by-data-answers.html'
       - 'kgswc-2026-slides/**'
       - 'carto-rinf-open-data-slides/**'
@@ -75,6 +76,7 @@ jobs:
           cp scripts/assets/era-synthetic-rdf.html _site/synthetic.html
           cp scripts/assets/era-eradis-snapshot.json.gz _site/era-eradis-snapshot.json.gz
           cp scripts/assets/era-eradis-certificates.json.gz _site/era-eradis-certificates.json.gz
+          cp scripts/assets/era-eratv-snapshot.json.gz _site/era-eratv-snapshot.json.gz
           cp graphwiseAI-summit2026/connected-by-data-answers.html _site/connected-by-data.html
 
       # The Slidev decks, built as static sites: KGSWC 2026 under /kgswc-2026/, FOSDEM 2027 under
