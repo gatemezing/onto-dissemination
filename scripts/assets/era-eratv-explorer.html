@@ -14,6 +14,29 @@
        validated as a stacked-bar set against this page's panel surface #141c30. */
     --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
     --surface:#141c30;
+    --tint:rgba(255,255,255,.06); --tint2:rgba(255,255,255,.04); --tintHover:rgba(255,255,255,.09);
+    --rowline:rgba(255,255,255,.07); --headBg:#101829; --popBg:#0f1729; --codeBg:#050810; --codeInk:#b9c6ea;
+    --btnA:#2a3a5c; --btnB:#1c2740; --btnHoverA:#33456b; --btnHoverB:#22304d; --btnInk:#eef2ff;
+    --title:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f); --diffBg:rgba(240,168,58,.16); --stickyBg:#141c30;
+    color-scheme:dark;
+  }
+  /* Light scheme. Chart series 1-3 use the light steps of the same reference palette
+     (validated on #ffffff); slot 4's light step is a darker amber chosen for >= 3:1
+     against white and not run through the palette validator. */
+  @media (prefers-color-scheme:light){
+    :root{
+      --bg1:#eef2f8; --bg2:#ffffff; --accent:#c2412d;
+      --blue:#1f5fbf; --green:#2e7d32; --teal:#0f766e; --orange:#9a5b00;
+      --paper:#172033; --panel:rgba(255,255,255,.97); --line:rgba(16,24,40,.16);
+      --muted:#4d5a72; --danger:#b42318;
+      --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#b47800;
+      --surface:#ffffff;
+      --tint:rgba(16,24,40,.04); --tint2:rgba(16,24,40,.03); --tintHover:rgba(16,24,40,.07);
+      --rowline:rgba(16,24,40,.09); --headBg:#eef2f8; --popBg:#ffffff; --codeBg:#f4f6fb; --codeInk:#24324d;
+      --btnA:#f3f6fb; --btnB:#e4e9f2; --btnHoverA:#e9eef7; --btnHoverB:#d9e0ec; --btnInk:#172033;
+      --title:linear-gradient(90deg,#0f766e,#1f5fbf,#c2412d); --diffBg:rgba(154,91,0,.12); --stickyBg:#ffffff;
+      color-scheme:light;
+    }
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;min-height:100%;
@@ -22,7 +45,7 @@
   #app{max-width:1180px;margin:0 auto;padding:28px 20px 60px;}
 
   header h1{font-size:22px;margin:0 0 6px;font-weight:700;
-    background:linear-gradient(90deg,#8fe3c7,#8fb3ff,#e8604f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+    background:var(--title);-webkit-background-clip:text;background-clip:text;color:transparent;}
   header p{margin:0 0 18px;color:var(--muted);font-size:13.5px;line-height:1.5;max-width:90ch;}
 
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;
@@ -47,31 +70,30 @@
   .inline{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:12.5px;}
   .inline label{display:flex;align-items:center;gap:6px;cursor:pointer;}
   .inline .n{color:var(--muted);font-size:11px;}
-  input[type=text],input[type=date],select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);
+  input[type=text],input[type=date],select{width:100%;background:var(--tint);border:1px solid var(--line);
     color:var(--paper);padding:8px 10px;border-radius:7px;font-size:13px;font-family:inherit;min-width:0;}
   input[type=text]:disabled{opacity:.55;cursor:not-allowed;}
-  input[type=date]{color-scheme:dark;}
   input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
-  option{background:#111a2e;color:var(--paper);}
+  option{background:var(--popBg);color:var(--paper);}
   .gap{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--orange);
     border:1px solid rgba(240,168,58,.5);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px;white-space:nowrap;}
   .derived{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--teal);
     border:1px solid rgba(95,208,174,.5);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px;white-space:nowrap;}
 
   .formActions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center;}
-  button.btn{background:linear-gradient(180deg,#2a3a5c,#1c2740);border:1px solid var(--line);color:var(--paper);
+  button.btn{background:linear-gradient(180deg,var(--btnA),var(--btnB));border:1px solid var(--line);color:var(--btnInk);
     padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;}
-  button.btn:hover:not(:disabled){background:linear-gradient(180deg,#33456b,#22304d);}
+  button.btn:hover:not(:disabled){background:linear-gradient(180deg,var(--btnHoverA),var(--btnHoverB));}
   button.btn:disabled{opacity:.5;cursor:not-allowed;}
-  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);}
+  button.btn.primary{background:linear-gradient(180deg,#3f7bd1,#2c5aa3);color:#fff;}
   button.btn.primary:hover:not(:disabled){background:linear-gradient(180deg,#4a89e0,#3568b3);}
-  button.btn.secondary{background:linear-gradient(180deg,#2f6b52,#1f4a38);}
+  button.btn.secondary{background:linear-gradient(180deg,#2f6b52,#1f4a38);color:#fff;}
   button.btn.secondary:hover:not(:disabled){background:linear-gradient(180deg,#37805f,#255a43);}
   button.btn.mini{padding:5px 11px;font-size:11.5px;font-weight:600;}
   button:focus-visible,a:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
   a.btnLink{display:inline-block;padding:5px 11px;font-size:11.5px;font-weight:600;border:1px solid var(--line);
-    border-radius:8px;color:var(--paper);text-decoration:none;background:rgba(255,255,255,.04);}
-  a.btnLink:hover{background:rgba(255,255,255,.09);}
+    border-radius:8px;color:var(--paper);text-decoration:none;background:var(--tint2);}
+  a.btnLink:hover{background:var(--tintHover);}
   .sortBox{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-left:auto;}
   .sortBox select{width:auto;}
 
@@ -89,11 +111,11 @@
   .fetchErr details{margin-top:5px;}
   .fetchErr summary{cursor:pointer;font-size:11px;color:var(--muted);}
   .fetchErr .tech{display:block;margin-top:4px;font-size:11px;font-family:"SF Mono",Consolas,monospace;
-    color:var(--muted);white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.25);
+    color:var(--muted);white-space:pre-wrap;word-break:break-word;background:var(--tint);
     padding:6px 8px;border-radius:6px;}
 
   .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
-  .statTile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+  .statTile{background:var(--tint2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
   .statTile .n{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}
   .statTile .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
   .srcTag{font-size:11px;color:var(--muted);margin:-6px 0 12px;line-height:1.5;}
@@ -110,10 +132,10 @@
   #chartWrap{position:relative;overflow-x:auto;}
   #chart{display:block;width:100%;min-width:560px;height:auto;}
   #chart text{font-size:11px;fill:var(--muted);font-family:inherit;}
-  #chart .grid{stroke:rgba(255,255,255,.08);stroke-width:1;}
+  #chart .grid{stroke:var(--rowline);stroke-width:1;}
   #chart .hit{fill:transparent;cursor:default;}
   #chart .seg.dim{opacity:.35;}
-  #tip{position:absolute;pointer-events:none;background:#050810;border:1px solid var(--line);border-radius:7px;
+  #tip{position:absolute;pointer-events:none;background:var(--codeBg);border:1px solid var(--line);border-radius:7px;
     padding:7px 9px;font-size:12px;line-height:1.45;color:var(--paper);white-space:nowrap;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,.45);}
   #tip .k{color:var(--muted);}
   #tip i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:6px;}
@@ -126,11 +148,11 @@
   /* results table */
   .tableWrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:640px;}
   table.results{width:100%;border-collapse:collapse;font-size:12px;}
-  table.results th,table.results td{text-align:left;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top;}
+  table.results th,table.results td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--rowline);vertical-align:top;}
   table.results th{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600;
-    position:sticky;top:0;background:#101829;z-index:1;}
+    position:sticky;top:0;background:var(--headBg);z-index:1;}
   table.results tbody tr[data-i]{cursor:pointer;}
-  table.results tbody tr[data-i]:hover{background:rgba(255,255,255,.04);}
+  table.results tbody tr[data-i]:hover{background:var(--tint2);}
   table.results tbody tr.sel{background:rgba(91,155,213,.12);}
   table.results td.id{font-family:"SF Mono",Consolas,monospace;font-size:11px;white-space:nowrap;}
   table.results td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
@@ -143,49 +165,33 @@
   .pager{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;font-size:12px;color:var(--muted);}
   .resultActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
 
-  /* detail */
-  #detail h3{margin:0 0 4px;font-size:15px;}
-  #detail .meta{font-size:12px;color:var(--muted);margin-bottom:12px;word-break:break-all;}
-  dl.kv{display:grid;grid-template-columns:220px minmax(0,1fr);gap:6px 14px;font-size:12.5px;margin:0;}
-  dl.kv dt{color:var(--muted);}
-  dl.kv dd{margin:0;line-height:1.45;word-break:break-word;}
-  .detailBlock{margin-top:14px;}
-  .detailBlock ul{margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.5;}
-  .detailBlock pre{white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.5;background:rgba(0,0,0,.2);
-    border:1px solid var(--line);border-radius:8px;padding:10px;margin:6px 0 0;max-height:280px;overflow:auto;}
-  table.params{width:100%;border-collapse:collapse;font-size:12px;}
-  table.params th,table.params td{text-align:left;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top;}
-  table.params th{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600;}
-  table.params td.ix{font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
-  .paramWrap{max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
-
   details{margin-top:12px;}
   summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
-  pre.code{background:#050810;border:1px solid var(--line);border-radius:8px;padding:12px;
+  pre.code{background:var(--codeBg);border:1px solid var(--line);border-radius:8px;padding:12px;
     font-size:11px;font-family:"SF Mono",Consolas,monospace;white-space:pre;word-break:normal;
-    max-height:460px;overflow:auto;margin-top:10px;color:#b9c6ea;}
+    max-height:460px;overflow:auto;margin-top:10px;color:var(--codeInk);}
   table.small{border-collapse:collapse;font-size:11.5px;margin-top:8px;}
-  table.small th,table.small td{padding:3px 10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:right;font-variant-numeric:tabular-nums;}
+  table.small th,table.small td{padding:3px 10px;border-bottom:1px solid var(--rowline);text-align:right;font-variant-numeric:tabular-nums;}
   table.small th:first-child,table.small td:first-child{text-align:left;}
 
   /* multi-pick: a <select>-like button opening a searchable checkbox list */
   .msel{position:relative;min-width:0;}
-  .mselBtn{width:100%;display:flex;align-items:center;gap:8px;text-align:left;background:rgba(255,255,255,.06);
+  .mselBtn{width:100%;display:flex;align-items:center;gap:8px;text-align:left;background:var(--tint);
     border:1px solid var(--line);color:var(--paper);padding:8px 10px;border-radius:7px;font:inherit;font-size:13px;cursor:pointer;min-width:0;}
-  .mselBtn:hover{background:rgba(255,255,255,.09);}
+  .mselBtn:hover{background:var(--tintHover);}
   .mselBtn:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
   .mselBtn[aria-expanded="true"]{border-color:var(--blue);}
   .mselText{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .mselText .sub{font-size:12px;}
-  .mselBadge{flex:none;font-size:11px;font-weight:700;color:#0b1220;background:var(--teal);border-radius:9px;padding:0 7px;line-height:18px;}
+  .mselBadge{flex:none;font-size:11px;font-weight:700;color:var(--bg1);background:var(--teal);border-radius:9px;padding:0 7px;line-height:18px;}
   .mselCaret{flex:none;color:var(--muted);font-size:11px;}
-  .mselPop{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;background:#0f1729;border:1px solid var(--line);
+  .mselPop{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;background:var(--popBg);border:1px solid var(--line);
     border-radius:9px;box-shadow:0 14px 34px rgba(0,0,0,.55);padding:8px;}
   .mselTools{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:8px 2px 6px;font-size:11.5px;color:var(--muted);}
   .mselTools .grow{flex:1;}
   .mselList{max-height:300px;overflow:auto;border-top:1px solid var(--line);padding-top:4px;}
   .mselList label{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:12.5px;cursor:pointer;line-height:1.3;}
-  .mselList label:hover{background:rgba(255,255,255,.06);}
+  .mselList label:hover{background:var(--tint);}
   .mselList label:focus-within{background:rgba(91,155,213,.14);}
   .mselList input{flex:none;margin:0;accent-color:var(--teal);}
   .mselList .nm{flex:1;min-width:0;overflow-wrap:anywhere;}
@@ -194,17 +200,61 @@
   .mselList .more{padding:6px;font-size:11.5px;color:var(--muted);}
   .mselFoot{display:flex;justify-content:flex-end;margin-top:6px;}
   footer{font-size:11.5px;color:var(--muted);margin-top:22px;line-height:1.6;}
-  footer code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;}
+  footer code{background:var(--tint);padding:1px 5px;border-radius:4px;}
   footer ul{margin:4px 0 8px;padding-left:18px;}
   a{color:var(--blue);}
 
+  /* the type view: one column per configuration */
+  #typePanelTitle{font-size:15px;font-weight:700;margin:0 0 12px;}
+  #typePanel .pickers{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:10px 14px;align-items:end;}
+  #typePanel .pick label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;}
+  #typePanel .pick .with{display:flex;gap:6px;}
+  #typePanel .opts{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:12.5px;margin-top:10px;}
+  #typePanel .opts label{display:flex;align-items:center;gap:7px;cursor:pointer;}
+  #typePanel .opts input:disabled + span{opacity:.55;}
+  #viewMsg{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
+  #viewMsg.error{color:var(--danger);}
+  #viewMsg:empty{display:none;}
+  .typeHead{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 18px;margin-top:14px;}
+  .typeCard{border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:var(--tint2);font-size:12.5px;line-height:1.5;}
+  .typeCard h3{margin:0 0 4px;font-size:14.5px;}
+  .typeCard .meta{color:var(--muted);word-break:break-all;}
+  .viewSource{font-size:11.5px;color:var(--muted);margin:12px 0 8px;line-height:1.5;}
+  .viewSource.warn{color:var(--orange);}
+  /* position:relative makes the wrapper the containing block of the visually hidden texts, so they scroll with the table */
+  .vtWrap{position:relative;overflow:auto;max-height:72vh;border:1px solid var(--line);border-radius:8px;}
+  table.vt{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%;}
+  table.vt caption{caption-side:top;text-align:left;font-size:12px;color:var(--muted);padding:8px 10px;line-height:1.5;}
+  table.vt th,table.vt td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid var(--rowline);border-right:1px solid var(--rowline);}
+  table.vt td{min-width:150px;max-width:300px;overflow-wrap:anywhere;}
+  table.vt thead th{position:sticky;top:0;z-index:3;background:var(--headBg);font-size:11px;font-weight:600;color:var(--paper);min-width:120px;}
+  table.vt thead tr.r2 th{top:var(--h1, 0px);}
+  table.vt thead th.grp{text-align:left;font-family:"SF Mono",Consolas,monospace;font-size:11.5px;}
+  /* where the second type's columns begin */
+  table.vt .b0{border-left:2px solid var(--muted);}
+  table.vt thead th .sub{display:block;font-weight:400;margin-top:2px;word-break:break-all;}
+  table.vt thead th .only{display:inline-block;margin-top:3px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--orange);border:1px solid currentColor;border-radius:4px;padding:0 4px;}
+  table.vt .ix{position:sticky;left:0;z-index:2;background:var(--stickyBg);width:72px;min-width:72px;max-width:72px;
+    font-family:"SF Mono",Consolas,monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
+  table.vt th[scope=row]{position:sticky;left:72px;z-index:2;background:var(--stickyBg);min-width:190px;max-width:240px;font-weight:600;}
+  table.vt th[scope=row] .sub{display:block;font-weight:400;}
+  table.vt thead th.ix,table.vt thead th.prop{z-index:4;}
+  table.vt thead th.prop{left:72px;min-width:190px;}
+  table.vt tr.secRow th{position:sticky;left:0;background:var(--surface);font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--teal);padding-top:12px;}
+  table.vt td ul{margin:0;padding-left:16px;}
+  table.vt td.diff{background:var(--diffBg);font-weight:700;}
+  table.vt td.diff .neq{display:inline-block;margin-right:5px;color:var(--orange);}
+  .vh{position:absolute !important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  #viewQuery pre.code{max-height:320px;}
+
   @media (max-width:760px){
     #app{padding:20px 14px 40px;}
+    #typePanel .pickers{grid-template-columns:1fr;}
     .row{grid-template-columns:1fr;}
     .row .hint{grid-column:1;}
     .pair{grid-template-columns:1fr;}
-    dl.kv{grid-template-columns:1fr;}
-    dl.kv dt{margin-top:6px;}
     .statGrid{grid-template-columns:repeat(2,1fr);}
     .sortBox{margin-left:0;}
   }
@@ -214,14 +264,48 @@
 <div id="app">
   <header>
     <h1>ERA ERATV Explorer</h1>
-    <p>Search the authorised vehicle types in ERA's ERATV knowledge graph (<code>ERATV-KG</code> on the UAT server) with the fields of the ERATV advanced search: Type ID or name, authorisation document reference (EIN), category, manufacturer, conformity with TSI, Member State, status and dates. Each vehicle type opens with its authorisations and its technical characteristics, numbered as in ERATV. Every search is also written out as SPARQL, which you can read, copy, run live, or open in GraphDB.</p>
+    <p>Open an authorised vehicle type from ERA's ERATV knowledge graph (<code>ERATV-KG</code> on the UAT server) and read its values with one column per configuration, numbered as in ERATV, or put it next to a second type to see what differs. Find types with the fields of the ERATV advanced search: Type ID or name, authorisation document reference (EIN), category, manufacturer, conformity with TSI, Member State, status and dates. The page works from a snapshot when ERATV-KG cannot be read, and every query is written out as SPARQL, which you can read, copy, run live, or open in GraphDB.</p>
   </header>
 
   <div id="sourceBar" class="panel">
-    <div class="src"><span class="dot wait" id="idxDot"></span><span><span class="srcLabel">Index</span> <span id="idxText">loading from ERATV-KG…</span></span></div>
+    <div class="src"><span class="dot wait" id="idxDot"></span><span><span class="srcLabel">Index</span> <span id="idxText">loading the snapshot…</span></span></div>
     <div class="src"><span class="dot wait" id="liveDot"></span><span><span class="srcLabel">Live ERATV-KG</span> <span id="liveText">checking…</span></span></div>
     <div id="liveDiag"></div>
   </div>
+
+  <section id="typePanel" class="panel" aria-labelledby="typePanelTitle">
+    <h2 id="typePanelTitle">Vehicle type, one column per configuration</h2>
+    <form id="typeForm" autocomplete="off">
+      <div class="pickers">
+        <div class="pick"><label for="typeInput">Vehicle type: Type ID, platform or alternative name</label>
+          <input type="text" id="typeInput" list="typeList" placeholder="e.g. 11-042-0002-5-002-SVK, Vectron" disabled></div>
+        <div class="pick"><label for="compareInput">Compare with <span class="sub">(optional)</span></label>
+          <div class="with"><input type="text" id="compareInput" list="typeList" placeholder="a second vehicle type" disabled>
+            <button type="button" class="btn mini" id="clearCompare" aria-label="Remove the comparison" disabled>×</button></div></div>
+        <div><button type="submit" class="btn primary" id="openBtn" disabled>Show</button></div>
+      </div>
+      <datalist id="typeList"></datalist>
+      <div class="opts">
+        <label><input type="checkbox" id="diffOnly" disabled><span>Show only differences</span></label>
+        <span class="sub">Pick a type from the list or the search results below; the address of the page keeps your choice for sharing.</span>
+      </div>
+    </form>
+    <div id="viewMsg" role="status" aria-live="polite"></div>
+    <div id="viewer" hidden>
+      <div class="typeHead" id="typeHead"></div>
+      <div class="viewSource" id="viewSource"></div>
+      <div class="vtWrap" id="vtWrap"></div>
+      <details id="viewQuery">
+        <summary>See the SPARQL for these values</summary>
+        <div class="resultActions" style="margin-top:12px;">
+          <button id="copyViewQuery" class="btn mini" type="button">Copy query</button>
+          <a id="viewWorkbench" class="btnLink" href="#" target="_blank" rel="noopener">Open in GraphDB workbench ↗</a>
+          <span id="viewCopyHint" style="font-size:11.5px;color:var(--teal);"></span>
+        </div>
+        <pre class="code" id="viewQueryText"></pre>
+      </details>
+    </div>
+  </section>
 
   <form id="searchForm" class="panel" autocomplete="off">
     <section>
@@ -240,7 +324,7 @@
       <div class="row"><label for="vMfOrg">Manufacturer</label><div id="vMfOrg"></div></div>
       <div class="row"><label for="vMfName"><span class="sub">…or part of the name</span></label><input type="text" id="vMfName" placeholder="e.g. Siemens"></div>
       <div class="row"><label for="vHolder">Authorisation holder <span class="gap">not in the data</span></label><input type="text" id="vHolder" disabled placeholder="not searchable">
-        <div class="hint" id="holderHint">Every authorisation names its holder as an organisation role, <code>…/organisationRoles/&lt;number&gt;_Manufacturer</code>, that is described nowhere: not in ERATV-KG, nor in OCR-KG (UAT, PROD and dev) or ERADIS-KG (UAT and dev). So no holder has a name. The detail view shows the role number.</div></div>
+        <div class="hint" id="holderHint">Every authorisation names its holder as an organisation role, <code>…/organisationRoles/&lt;number&gt;_Manufacturer</code>, that is described nowhere: not in ERATV-KG, nor in OCR-KG (UAT, PROD and dev) or ERADIS-KG (UAT and dev). So no holder has a name; the page does not show holders, and its snapshot carries none.</div></div>
     </section>
 
     <section>
@@ -260,7 +344,7 @@
         <div class="hint">The status of the current authorisation record. Its <code>-Hn</code> history entries, which carry the EINs, point back to it with <code>era:canonicalUri</code>.</div></div>
       <div class="row"><label for="vArea">Area of use</label><input type="text" id="vArea" placeholder="e.g. DE(Germany), RFI"></div>
       <div class="row"><label for="vComments">Comments</label><input type="text" id="vComments" placeholder="any word of the authorisation comments">
-        <div class="hint">Searches <code>rdfs:comment</code> and <code>rdfs:seeAlso</code> of every authorisation of the type. The comments are fetched the first time this field is used.</div></div>
+        <div class="hint">Searches <code>rdfs:comment</code> and <code>rdfs:seeAlso</code> of every authorisation of the type, live: the comments are not in the snapshot, so this field needs ERATV-KG. They are fetched the first time it is used.</div></div>
     </section>
 
     <section>
@@ -301,15 +385,13 @@
     <div id="chartNote"></div>
     <details><summary>View the chart as a table</summary><div id="chartTable"></div></details>
 
-    <h3 class="sectionTitle">Vehicle types <span class="sub" style="text-transform:none;letter-spacing:0;">— one row per type and Member State; click a row for the full record</span></h3>
+    <h3 class="sectionTitle">Vehicle types <span class="sub" style="text-transform:none;letter-spacing:0;">— one row per type and Member State; click a row to open its values</span></h3>
     <div class="resultActions">
       <button type="button" class="btn mini" id="csvBtn">Download results as CSV</button>
     </div>
     <div class="tableWrap"><table class="results" id="resultsTable"></table></div>
     <div class="pager" id="pager"></div>
   </div>
-
-  <div id="detail" class="panel" hidden></div>
 
   <details id="queryDetails" class="panel" style="margin-top:0;">
     <summary>See the SPARQL query for this search</summary>
@@ -323,13 +405,19 @@
 
   <footer>
     Data: the <code>ERATV-KG</code> repository on <code>graph.uat.data.test-era.europa.eu</code> (ERA's UAT server, which answers
-    anonymous queries from any web page), graph <code>http://data.europa.eu/949/graph/eratv</code>; parameter names and ERATV numbers come
-    from its <code>graph/ontology</code>, coded values from <code>graph/skos</code>. Opening the page loads an index of every vehicle type
-    (seven queries, about 6 MB) and searches it in the browser; “Run live” sends the SPARQL shown below and checks that it returns the same types.
-    The full record of a type is always queried live. What the data does not say, the page does not invent:
+    anonymous queries from any web page), graph <code>http://data.europa.eu/949/graph/eratv</code>. The page opens on a snapshot,
+    <code>era-eratv-snapshot.json.gz</code>, built by <code>scripts/build-eratv-snapshot.js</code> with the page's own queries: the
+    search index and every type's values per configuration, without authorisation holders, comments or notes. The search runs
+    in the browser over it; “Run live” sends the SPARQL shown below to ERATV-KG and checks that it returns the same types. A
+    vehicle type's values are queried live whenever ERATV-KG can be read, and come from the snapshot otherwise. Parameter names
+    and ERATV numbers (<code>era:eratvIndex</code>) come from the ERA ontology release named in the source bar, then from
+    ERATV-KG's <code>graph/ontology</code>; coded values from the release's SKOS, then <code>graph/skos</code>. The ERATV+ server
+    (<code>graph.tst.data.test-era.europa.eu</code>) asks for a login, so the page does not use it yet; the type query already
+    reads its graph layout and its <code>era:hasVehicleTypeConfiguration</code>. What the data does not say, the page does not invent:
     <ul>
       <li>no vehicle type carries a type name (<code>rdfs:label</code>, ERATV 1.1), and no authorisation holder resolves to an organisation;</li>
-      <li>the category and subcategory concepts, and most of the coded technical values, have no <code>skos:prefLabel</code>: they are shown by their URI;</li>
+      <li>the category and subcategory concepts, and most of the coded technical values, have no <code>skos:prefLabel</code>, in ERATV-KG or in the ontology release: they are shown by the end of their URI;</li>
+      <li>a parameter set's <code>rdfs:label</code> records its conformity with TSI, and is shown as such; ERATV-KG mints a configuration IRI per parameter set, so when two types are compared their configurations are paired by IRI where they share one (the Member-State copies of one Type ID) and by label otherwise;</li>
       <li>the VPA properties are published in <code>http://w3id.org/vpa#</code> while the VPA classes are in <code>https://w3id.org/vpa#</code>, and addresses use <code>http://w3.org/ns/locn#</code>; the queries use the namespaces as published.</li>
     </ul>
     <a href="https://eratv.era.europa.eu/Eratv">ERATV</a> itself remains the register of record.
@@ -371,6 +459,7 @@ PREFIX org:  <http://www.w3.org/ns/org#>
 # the LOCN namespace as ERA mints it (not www.w3.org)
 PREFIX locn: <http://w3.org/ns/locn#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX time: <http://www.w3.org/2006/time#>`;
 
 /* ERATV's own names for the four categories; the concepts have no label. */
@@ -659,41 +748,218 @@ ${L.map(l => '    ' + l).join('\n')}
 }
 
 /* ------------------------------------------------------------------ *
- * The full record of one type, live: its own statements, its parameter
- * sets per configuration, the sub-objects (braking performance, axle
- * spacing, permissible payload), the authorisation cases and records with
- * their validity, restrictions and certificates. JSON results, because some
- * IRIs contain spaces and a TSV writer then prints them as strings. */
-const SUB_OBJECTS = ['hasBrakingPerformance', 'axleSpacingDistance', 'permissiblePayloadForLineCategory'];
-function detailQuery(vtUri){
+ * The type view: the values of one vehicle type, one column per
+ * configuration. Live, from typeValuesQuery; offline, from the snapshot,
+ * which scripts/build-eratv-snapshot.js builds with the same query and the
+ * same typeModels(). Either way a type is
+ *   {uri, direct: Map(property -> sorted value keys), sets: [{ps, cfg, cfgLabel, values: Map}]}
+ * where "direct" holds the values stated on the type itself (all
+ * configurations). A value key is "l:" + a literal, "u:" + an IRI, or
+ * "o:" + the JSON of a nested object's [[property, [value keys]], ...]
+ * (braking performance, axle spacing, permissible payload, certificate). */
+const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+const RDFS_LABEL = 'http://www.w3.org/2000/01/rdf-schema#label';
+const TSI_ROW = '#tsi';   // a parameter set's rdfs:label is its conformity with TSI, not a name
+/* UAT links a parameter set to its configuration with era:forConfiguration;
+   ontology 4.0 also defines era:hasVehicleTypeConfiguration for it */
+const CONFIG_LINKS = ['forConfiguration', 'hasVehicleTypeConfiguration'];
+const NESTED = ['hasBrakingPerformance', 'axleSpacingDistance', 'permissiblePayloadForLineCategory', 'certificate'];
+const NESTED2 = ['emergencyBrakeProfile', 'serviceBrakingProfile'];
+/* Structure, authorisation links, holders and free-text notes: not values of the type */
+const NOT_VALUES = [RDF_TYPE, ...['configDependentParameter', 'configDependentCompliance', ...CONFIG_LINKS, 'vehicleTypeAuthorisationHolder'].map(p => ERA + p),
+  'http://w3id.org/vpa#definesCase', 'http://www.w3.org/2000/01/rdf-schema#comment', 'http://www.w3.org/2000/01/rdf-schema#seeAlso',
+  'http://www.w3.org/2004/02/skos/core#note', 'http://www.w3.org/2004/02/skos/core#editorialNote', 'http://www.w3.org/2004/02/skos/core#scopeNote'];
+/* The graphs that hold vehicle types: graph/eratv on UAT; in the ERATV+ layout, every
+   graph under https://data.europa.eu/949/graph/eratv/ except notes/, derived/ and links/
+   (the shared configuration graph is http://…/graph/eratv/configuration/ and holds no types) */
+const ERATV_PLUS = 'https://data.europa.eu/949/graph/eratv/';
+const TYPE_GRAPHS = `FILTER(?g = <${GRAPH}> || (STRSTARTS(STR(?g), "${ERATV_PLUS}")
+    && !STRSTARTS(STR(?g), "${ERATV_PLUS}notes/") && !STRSTARTS(STR(?g), "${ERATV_PLUS}derived/")
+    && !STRSTARTS(STR(?g), "${ERATV_PLUS}links/")))`;
+function typeValuesQuery(uris){
+  const notValues = NOT_VALUES.map(iri).join(', ');
+  const pin = uris.every(writableIri) ? `VALUES ?vt { ${uris.map(iri).join(' ')} }`
+    : `?vt a era:VehicleType . FILTER(STR(?vt) IN (${uris.map(lit).join(', ')}))`;
   return `${PREFIXES}
 
-# Everything ERATV-KG records about one vehicle type (era-eratv-explorer.html)
-SELECT ?part ?s ?p ?o ?ctx WHERE {
-  GRAPH <${GRAPH}> {
-    VALUES ?vt { <${vtUri}> }
-    { BIND("type" AS ?part) ?vt ?p ?o BIND(?vt AS ?s) }
-    UNION { BIND("set" AS ?part) ?vt era:configDependentParameter ?s . ?s ?p ?o
-            OPTIONAL { ?s era:forConfiguration/rdfs:label ?ctx } }
-    UNION { BIND("sub" AS ?part) ?vt ?link ?s . VALUES ?link { ${SUB_OBJECTS.map(p => 'era:' + p).join(' ')} }
-            ?s ?p ?o BIND(STR(?link) AS ?ctx) }
-    UNION { BIND("sub" AS ?part) ?vt era:configDependentParameter/era:axleSpacingDistance ?s . ?s ?p ?o
-            BIND(STR(era:axleSpacingDistance) AS ?ctx) }
-    UNION { BIND("sub" AS ?part) ?vt era:hasBrakingPerformance ?braking . ?braking ?profileLink ?s .
-            VALUES ?profileLink { era:emergencyBrakeProfile era:serviceBrakingProfile }
-            ?s ?p ?o BIND(STR(?profileLink) AS ?ctx) }
-    UNION { BIND("typecert" AS ?part) ?vt era:certificate ?s . ?s dct:identifier ?o BIND(dct:identifier AS ?p) }
-    UNION { BIND("case" AS ?part) ?s vpa:concerns ?vt ; ?p ?o }
-    UNION { BIND("auth" AS ?part) ?case vpa:concerns ?vt ; vpa:constitutes ?s . ?s ?p ?o BIND(STR(?case) AS ?ctx) }
-    UNION { BIND("validity" AS ?part) ?case vpa:concerns ?vt ; vpa:constitutes ?s .
-            ?s vpa:valid/time:hasBeginning/time:inXSDDateTimeStamp ?o BIND(time:hasBeginning AS ?p) }
-    UNION { BIND("cert" AS ?part) ?case vpa:concerns ?vt ; vpa:constitutes ?auth . ?auth era:certificate ?s .
-            ?s dct:identifier ?o BIND(dct:identifier AS ?p) BIND(STR(?auth) AS ?ctx) }
-    UNION { BIND("restriction" AS ?part) ?case vpa:concerns ?vt ; era:configDependentCompliance/vpa:withRestriction ?s .
-            ?s era:nonCodedRestrictions ?o BIND(era:nonCodedRestrictions AS ?p) BIND(STR(?case) AS ?ctx) }
-  }
+# The values of ${uris.length === 1 ? 'one vehicle type' : uris.length + ' vehicle types'}: those stated on the type itself (all
+# configurations) and those of each configuration parameter set (era-eratv-explorer.html)
+SELECT ?vt ?ps ?cfg ?cfgLabel ?p ?o ?p2 ?o2 ?p3 ?o3 WHERE {
+  ${pin}
+  { GRAPH ?g { ?vt ?p ?o } }
+  UNION
+  { GRAPH ?g { ?vt era:configDependentParameter ?ps . ?ps ?p ?o }
+    OPTIONAL { ?ps era:forConfiguration|era:hasVehicleTypeConfiguration ?cfg
+      OPTIONAL { ?cfg rdfs:label|skos:prefLabel ?cfgLabel } } }
+  ${TYPE_GRAPHS}
+  # not values: structure, authorisation links, holders, notes
+  FILTER(?p NOT IN (${notValues}))
+  # nested objects, one level down (two for the braking profiles), without notes either
+  OPTIONAL { FILTER(?p IN (${NESTED.map(p => 'era:' + p).join(', ')}))
+    ?o ?p2 ?o2 FILTER(?p2 NOT IN (${notValues}))
+    OPTIONAL { FILTER(?p2 IN (${NESTED2.map(p => 'era:' + p).join(', ')}))
+      ?o2 ?p3 ?o3 FILTER(?p3 NOT IN (${notValues})) } }
 }`;
 }
+/* SPARQL JSON bindings of typeValuesQuery -> Map(type IRI -> type) */
+function typeModels(bindings){
+  const key = t => !t ? '' : t.type === 'uri' ? 'u:' + t.value : 'l:' + t.value;
+  const put = (m, p, v) => { if(!m.has(p)) m.set(p, new Set()); m.get(p).add(v); };
+  const objs = new Map();   // nested object IRI -> Map(property -> Set(value key))
+  for(const b of bindings){
+    if(!b.p2) continue;
+    const o = objs.get(b.o.value) || new Map(); objs.set(b.o.value, o);
+    if(b.p3){
+      const o2 = objs.get(b.o2.value) || new Map(); objs.set(b.o2.value, o2);
+      put(o2, b.p3.value, key(b.o3));
+    }
+    put(o, b.p2.value, key(b.o2));
+  }
+  const objKey = (iri, depth) => {
+    const o = objs.get(iri);
+    if(!o || depth > 2) return 'u:' + iri;
+    const parts = [...o.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1)
+      .map(([p, vs]) => [p, [...vs].map(v => v.startsWith('u:') && objs.has(v.slice(2)) ? objKey(v.slice(2), depth + 1) : v).sort()]);
+    return 'o:' + JSON.stringify(parts);
+  };
+  const out = new Map();
+  for(const b of bindings){
+    const vt = b.vt.value;
+    let t = out.get(vt);
+    if(!t){ t = {uri:vt, direct:new Map(), sets:new Map()}; out.set(vt, t); }
+    const v = b.o.type === 'uri' && objs.has(b.o.value) ? objKey(b.o.value, 0) : key(b.o);
+    if(!b.ps){ put(t.direct, b.p.value, v); continue; }
+    let s = t.sets.get(b.ps.value);
+    if(!s){ s = {ps:b.ps.value, cfg:'', labels:new Set(), values:new Map()}; t.sets.set(b.ps.value, s); }
+    if(b.cfg) s.cfg = b.cfg.value;
+    if(b.cfgLabel && (!b.cfgLabel['xml:lang'] || /^en\b/i.test(b.cfgLabel['xml:lang']))) s.labels.add(b.cfgLabel.value);
+    put(s.values, b.p.value === RDFS_LABEL ? TSI_ROW : b.p.value, v);
+  }
+  const sorted = m => new Map([...m.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([p, vs]) => [p, [...vs].sort()]));
+  for(const t of out.values()){
+    t.direct = sorted(t.direct);
+    t.sets = [...t.sets.values()].map(s => ({ps:s.ps, cfg:s.cfg, cfgLabel:[...s.labels].sort()[0] || '', values:sorted(s.values)}))
+      .sort((a, b) => cmpLabel(a.cfgLabel, b.cfgLabel) || a.ps.localeCompare(b.ps, 'en', {numeric:true}));
+  }
+  return out;
+}
+/* Configuration labels: natural order, unlabelled last */
+const cmpLabel = (a, b) => !a || !b ? (a ? -1 : b ? 1 : 0) : a.localeCompare(b, 'en', {numeric:true, sensitivity:'base'});
+
+/* The snapshot's compact form of types: property and value dictionaries,
+   and per type [[property, value, value...], ...] for the type and each set. */
+function encodeTypes(models, keyOf){
+  const P = [], V = [], pi = new Map(), vi = new Map();
+  const id = (arr, map, x) => { if(!map.has(x)){ map.set(x, arr.length); arr.push(x); } return map.get(x); };
+  const enc = m => [...m.entries()].map(([p, vs]) => [id(P, pi, p), ...vs.map(v => id(V, vi, v))]);
+  const T = {};
+  for(const t of models.values()) T[keyOf(t.uri)] = {d:enc(t.direct), s:t.sets.map(s => [s.ps, s.cfg, s.cfgLabel, enc(s.values)])};
+  return {P, V, T};
+}
+function decodeType(snap, key, uri){
+  const e = snap.T[key];
+  if(!e) return null;
+  const dec = rows => new Map(rows.map(([p, ...vs]) => [snap.P[p], vs.map(v => snap.V[v])]));
+  return {uri, direct:dec(e.d), sets:e.s.map(([ps, cfg, cfgLabel, rows]) => ({ps, cfg, cfgLabel, values:dec(rows)}))};
+}
+
+/* The columns of a type: "All configurations", then one per parameter set;
+   two sets of one configuration get a column each. */
+function typeColumns(t){
+  const cols = [{key:'all', cfg:'', ps:'', label:'All configurations', values:t.direct}];
+  const total = new Map(), seen = new Map();
+  for(const s of t.sets) total.set(s.cfg || s.ps, (total.get(s.cfg || s.ps) || 0) + 1);
+  for(const s of t.sets){
+    const k = s.cfg || s.ps, n = (seen.get(k) || 0) + 1;
+    seen.set(k, n);
+    const base = s.cfgLabel || (s.cfg ? 'Configuration ' + safeDecode(localName(s.cfg)) : 'Parameter set ' + safeDecode(localName(s.ps)));
+    cols.push({key:total.get(k) > 1 ? `${k}#${n}` : k, cfg:s.cfg, ps:s.ps, base,
+      label:total.get(k) > 1 ? `${base} (set ${n} of ${total.get(k)})` : base, values:s.values});
+  }
+  return cols;
+}
+/* Columns of two types matched one to one: "All configurations" together,
+   then by configuration IRI (and set number), then by label. */
+function matchColumns(a, b){
+  const used = new Set(), pairs = [[0, 0]];
+  used.add(0);
+  const partner = new Array(a.length).fill(-1);
+  partner[0] = 0;
+  const how = new Array(a.length).fill('');
+  how[0] = 'all';
+  const norm = s => low(s).replace(/\s+/g, ' ').trim();
+  for(const [rule, test] of [['iri', (x, y) => x.cfg && x.key === y.key], ['label', (x, y) => x.label && norm(x.label) === norm(y.label)]])
+    a.forEach((x, i) => {
+      if(i === 0 || partner[i] >= 0) return;
+      const j = b.findIndex((y, k) => k > 0 && !used.has(k) && test(x, y));
+      if(j > 0){ partner[i] = j; used.add(j); how[i] = rule; pairs.push([i, j]); }
+    });
+  return {partner, how, onlyA:a.map((x, i) => i).filter(i => partner[i] < 0), onlyB:b.map((x, j) => j).filter(j => !used.has(j))};
+}
+/* Rows: every property any column carries, the conformity with TSI first,
+   then ERATV's numbering with the technical characteristics (4.x) first,
+   then the other numbers, then the unnumbered ones. */
+const indexOf = (p, labels) => ((labels(p) || {}).index || [])[0] || '';
+function sectionOf(p, ix){
+  if(p === TSI_ROW) return 'tsi';
+  if(!ix) return 'none';
+  const parts = ix.split('.');
+  return parts[0] === '4' ? parts.slice(0, 2).join('.') : parts[0];
+}
+function sectionRank(sec){ return sec === 'tsi' ? 0 : sec.startsWith('4.') ? 1 : sec === 'none' ? 3 : 2; }
+function typeRows(columns, labels){
+  const props = new Set();
+  for(const c of columns) for(const p of c.values.keys()) props.add(p);
+  const name = p => (labels(p) || {}).label || safeDecode(localName(p));
+  return [...props].map(p => { const ix = indexOf(p, labels); return {p, ix, section:sectionOf(p, ix), name:name(p)}; })
+    .sort((x, y) => sectionRank(x.section) - sectionRank(y.section) || compareIndex(x.ix, y.ix) || x.name.localeCompare(y.name));
+}
+const sectionTitle = sec => sec === 'tsi' ? 'Conformity with TSI' : sec === 'none' ? 'Not numbered in ERATV' : `ERATV ${sec}`;
+/* A cell's values as one comparable string */
+const cellKey = vs => (vs || []).join('\u0001');
+/* Which rows and cells differ between two types: a matched pair of cells
+   with different values, or a value in a column the other type lacks. */
+function rowDiff(p, a, b, m){
+  const pairs = [];
+  m.partner.forEach((j, i) => { if(j >= 0 && cellKey(a[i].values.get(p)) !== cellKey(b[j].values.get(p))) pairs.push(i); });
+  const lone = m.onlyA.some(i => a[i].values.has(p)) || m.onlyB.some(j => b[j].values.has(p));
+  return {pairs, differs:pairs.length > 0 || lone};
+}
+/* A value key as text: literals as published (booleans as Yes/No), IRIs by
+   nameOf (labels, organisation names) and nested objects as "property: value; …" */
+function valueText(key, nameOf, propName){
+  if(key.startsWith('l:')){ const v = key.slice(2); return v === 'true' ? 'Yes' : v === 'false' ? 'No' : v; }
+  if(key.startsWith('u:')) return nameOf(key.slice(2));
+  if(key.startsWith('o:')){
+    let parts;
+    try{ parts = JSON.parse(key.slice(2)); } catch{ return key.slice(2); }
+    return parts.map(([p, vs]) => `${propName(p)}: ${vs.map(v => valueText(v, nameOf, propName)).join(', ')}`).join('; ');
+  }
+  return key;
+}
+/* The page's state in its URL: ?type=<type key>&compare=<type key> */
+function readState(search){
+  const u = new URLSearchParams(search || '');
+  return {type:u.get('type') || '', compare:u.get('compare') || ''};
+}
+function stateSearch(type, compare){
+  const u = new URLSearchParams();
+  if(type) u.set('type', type);
+  if(type && compare) u.set('compare', compare);
+  const s = u.toString();
+  return s ? '?' + s : '';
+}
+/* The snapshot's index: the rows of INDEX_QUERIES as columns and rows,
+   without authorisation holders (the snapshot carries no holder data). */
+function packIndex(raw){
+  const out = {};
+  for(const [name, rows] of Object.entries(raw)){
+    const h = rows.length ? Object.keys(rows[0]).filter(c => c !== 'holder') : [];
+    out[name] = {h, r:rows.filter(r => h.some(c => c !== 'vt' && c !== 'role' && r[c])).map(r => h.map(c => r[c] || ''))};
+  }
+  return out;
+}
+const unpackIndex = packed => Object.fromEntries(Object.entries(packed).map(([n, {h, r}]) => [n, r.map(row => Object.fromEntries(h.map((c, i) => [c, row[i]])))]));
 /* Parameter names and ERATV numbers, read once from the ontology graph. */
 const ONTOLOGY_QUERY = `${PREFIXES}
 SELECT ?p ?label ?index WHERE {
@@ -746,7 +1012,9 @@ function parseTsv(text){
 
 if(typeof module !== 'undefined') module.exports = {ENDPOINT, GRAPH, PREFIXES, INDEX_QUERIES, COMMENTS_QUERY, STATUSES, NO_STATUS,
   msOf, msLabel, catKey, catLabel, subLabel, statusLabel, roleNumber, lit, writableIri, buildIndex, addComments, matches, matchSparql,
-  validateForm, emptyForm, needsComments, detailQuery, ONTOLOGY_QUERY, conceptLabelQuery, compareIndex, csvCell, parseTsv};
+  validateForm, emptyForm, needsComments, ONTOLOGY_QUERY, conceptLabelQuery, compareIndex, csvCell, parseTsv,
+  TSI_ROW, NOT_VALUES, typeValuesQuery, typeModels, encodeTypes, decodeType, typeColumns, matchColumns, typeRows, sectionTitle,
+  cellKey, rowDiff, valueText, readState, stateSearch, packIndex, unpackIndex, VT_BASE};
 
 /* ================================================================== *
  * Page part
@@ -759,9 +1027,10 @@ const types = n => `${fmt(n)} vehicle type${n === 1 ? '' : 's'}`;
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dash = '<span class="sub">—</span>';
 let X = null;            // the index
-let loadedAt = '';
+let S = null;            // the snapshot, when it loaded
+let loadedAt = '';       // where the index comes from, for the notes
 let current = null, page = 0, selected = null, liveOk = false;
-let searchSeq = 0, detailSeq = 0;   // a newer search or detail makes an older answer stale
+let searchSeq = 0, viewSeq = 0;   // a newer search or type view makes an older answer stale
 const httpOnly = u => /^https?:\/\//i.test(u) ? u : '#';
 /* GraphDB refuses a workbench URL much above 8 KB (HTTP 400). */
 function setWorkbenchLink(a, q, label){
@@ -821,7 +1090,8 @@ async function sparql(query, timeoutMs, tsv){
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try{
-    const res = await fetch(ENDPOINT, {method:'POST', signal:ctrl.signal,
+    // a form-encoded POST is a CORS "simple request"; no credentials are ever sent
+    const res = await fetch(ENDPOINT, {method:'POST', signal:ctrl.signal, credentials:'omit',
       headers:{'Content-Type':'application/x-www-form-urlencoded', 'Accept':tsv ? 'text/tab-separated-values' : 'application/sparql-results+json'},
       body:'infer=false&query=' + encodeURIComponent(query)});
     if(!res.ok){ const body = await res.text().catch(() => ''); throw new Error(`HTTP ${res.status}${body ? ' — ' + body.slice(0, 200) : ''}`); }
@@ -1027,7 +1297,6 @@ const SORTS = {
 };
 function showResults(res){
   current = res; page = 0; selected = null;
-  $('detail').hidden = true; detailSeq++;
   current.rows.sort(SORTS[$('vSort').value] || SORTS.id);
   const rows = res.rows;
   const uniq = key => new Set(rows.flatMap(r => [].concat(key(r))).filter(Boolean)).size;
@@ -1081,12 +1350,11 @@ $('resultsTable').addEventListener('click', e => {
   selected = +tr.dataset.i;
   document.querySelectorAll('#resultsTable tr.sel').forEach(t => t.classList.remove('sel'));
   tr.classList.add('sel');
-  showDetail(current.rows[selected]);
+  showView(current.rows[selected].key, $('compareInput').value.trim() ? (resolveType($('compareInput').value).t || {}).key : '', {scroll:true});
 });
 $('vSort').addEventListener('change', () => {
   if(!current) return;
   current.rows.sort(SORTS[$('vSort').value]); page = 0; selected = null;
-  $('detail').hidden = true; detailSeq++;
   renderPage();
 });
 
@@ -1170,8 +1438,23 @@ function niceStep(raw){
 }
 
 /* ------------------------------------------------------------------ *
- * Detail */
-let ONT = null;           // property -> {label, index}
+ * The type view: a vehicle type's values, one column per configuration,
+ * optionally next to a second type. Values come live from ERATV-KG when it
+ * can be read, from the snapshot otherwise; names and ERATV numbers from the
+ * snapshot's label table (the ontology release), then the live ontology. */
+const SNAPSHOT_URL = 'era-eratv-snapshot.json.gz';
+async function fetchJsonGz(url){
+  const res = await fetch(url, {cache:'no-cache'});
+  if(!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  const buf = await res.arrayBuffer(), b = new Uint8Array(buf);
+  // GitHub Pages serves the .gz as it is; a proxy may already have decompressed it
+  const text = b[0] === 0x1f && b[1] === 0x8b
+    ? await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text()
+    : new TextDecoder().decode(b);
+  return JSON.parse(text);
+}
+const snapDate = () => S ? S.generated.slice(0, 10) : '';
+let ONT = null;           // property -> {label, index}, from the live ontology graph
 async function ontology(){
   if(ONT) return ONT;
   const rows = await sparql(ONTOLOGY_QUERY, 30000, true);
@@ -1185,179 +1468,276 @@ async function ontology(){
   for(const e of m.values()) e.index.sort(compareIndex);
   return (ONT = m);
 }
-const kvList = kv => `<dl class="kv">${kv.map(([k, v, html]) => `<dt>${esc(k)}</dt><dd${html ? '' : ' style="white-space:pre-line"'}>${html ? v : esc(v)}</dd>`).join('')}</dl>`;
-const blk = (title, html) => `<div class="detailBlock"><h3 class="sectionTitle">${esc(title)}</h3>${html}</div>`;
-function showDetail(r){
-  const q = detailQuery(r.uri);
-  const kv = [
-    ['Type ID', r.id + (r.num ? ` — type number ${r.num}` : '') + (r.vv ? `, versions/variant ${r.vv}` : '')],
-    ['Alternative type name', r.alts.join('; ') || '—'],
-    ['Platform', r.platform.join('; ') || '—'],
-    ['Category / subcategory', `${r.cats.map(catLabel).join('; ') || '—'} / ${r.subs.map(subLabel).join('; ') || '—'}`],
-    ['Manufacturer', r.manus.map(m => manuLabel(m) + (orgCountries(X, m).length ? ` — ${orgCountries(X, m).map(countryName).join(', ')}` : '')).join('\n') || '—'],
-    ['Member State', msLabel(r.ms)],
-    ['Authorisation status', r.status.map(statusLabel).join(', ') || 'no current authorisation record'],
-    ['Authorisation date', r.issued.join(', ') || '—'],
-    ['Last update', r.modified.join(', ') || '—'],
-    ['Area of use', r.area.join('\n') || '—'],
-    ['EIN', r.eins.join('\n') || '—'],
-  ];
-  const el = $('detail');
-  el.innerHTML = `<h3>${esc(r.id)} — ${esc(msLabel(r.ms))}</h3>` +
-    `<div class="meta"><a href="${esc(httpOnly(r.uri))}" target="_blank" rel="noopener">${esc(r.uri)}</a></div>` + kvList(kv) +
-    `<div class="resultActions" style="margin-top:14px;">` +
-      `<a class="btnLink" href="${esc(ERATV_PAGE + encodeURIComponent(r.id))}" target="_blank" rel="noopener">Open in ERATV ↗</a>` +
-      `<button type="button" class="btn mini secondary" id="loadFull">Load the full record live</button>` +
-      `<a class="btnLink" id="detailWorkbench" target="_blank" rel="noopener"></a>` +
-    `</div><div id="fullRecord"><div class="sub" style="margin-top:10px;">The conformity with TSIs per configuration, the authorisation history with its EINs, restrictions and certificates, and the technical characteristics come from ERATV-KG live.</div></div>`;
-  setWorkbenchLink($('detailWorkbench'), q, 'Open the detail query in GraphDB ↗');
-  el.hidden = false;
-  el.scrollIntoView({behavior:'smooth', block:'start'});
-  $('loadFull').onclick = () => loadFull(r, q);
-  if(liveOk) loadFull(r, q);
+function propInfo(p){
+  if(p === TSI_ROW) return {label:'Conformity with TSI (the label of the configuration’s parameter set)', index:[]};
+  const e = S && S.L.p[p];
+  const o = ONT && ONT.get(p);
+  if(e && e[0] && e[1].length) return {label:e[0], index:e[1]};
+  if(e || o) return {label:(e && e[0]) || (o && o.label) || '', index:(e && e[1].length ? e[1] : (o && o.index) || [])};
+  return null;
 }
-async function loadFull(r, q){
-  const my = ++detailSeq;
-  const box = $('fullRecord');
-  box.innerHTML = '<div style="display:flex;gap:10px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--muted)"><span class="spinner"></span>Querying ERATV-KG…</div>';
-  try{
-    const [json, ont] = await Promise.all([sparql(q, 45000), ontology()]);
-    const rows = json.results.bindings.map(b => ({part:b.part.value, s:b.s ? b.s.value : '', p:b.p ? b.p.value : '', o:b.o || {type:'literal', value:''}, ctx:b.ctx ? b.ctx.value : ''}));
-    const concepts = [...new Set(rows.filter(x => x.o.type === 'uri' && x.o.value.startsWith(ERA + 'concepts/') && writableIri(x.o.value)).map(x => x.o.value))];
-    const labels = new Map();
-    if(concepts.length){
-      try{
-        for(const l of await sparql(conceptLabelQuery(concepts), 30000, true))
-          if(!labels.has(l.c) || l.lang === 'en' || l.lang === '') labels.set(l.c, l.label);
-      } catch{ /* labels are a nicety: fall back to the URI */ }
-    }
-    if(my !== detailSeq) return;   // another record was opened, or the list changed, meanwhile
-    box.innerHTML = renderFull(r, rows, ont, labels) || '<div class="sub" style="margin-top:10px;">ERATV-KG returned nothing more for this vehicle type.</div>';
-  } catch(err){
-    const diag = await describeFetchError(err);
-    if(my !== detailSeq) return;
-    box.innerHTML = '<div class="fullErr" style="margin-top:12px;font-size:12.5px;color:var(--danger)"></div>';
-    renderFetchError(box.querySelector('.fullErr'), diag, () => loadFull(r, q));
-  }
+const propName = p => (propInfo(p) || {}).label || safeDecode(localName(p));
+const liveConcepts = new Map();   // concept labels looked up live, for concepts the snapshot does not label
+function nameOf(u){
+  if(S && S.L.c[u]) return S.L.c[u];
+  if(liveConcepts.get(u)) return liveConcepts.get(u);
+  if(u.startsWith(CAT_BASE)) return /^\d+$/.test(catKey(u)) ? catLabel(u) : subLabel(u);
+  if(/\/organisationRoles\//.test(u)) return manuLabel(u);
+  return safeDecode(localName(u)) || u;
 }
-const P = {
-  type:'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', label:'http://www.w3.org/2000/01/rdf-schema#label',
-  comment:'http://www.w3.org/2000/01/rdf-schema#comment', seeAlso:'http://www.w3.org/2000/01/rdf-schema#seeAlso',
-  id:'http://purl.org/dc/terms/identifier', issued:'http://purl.org/dc/terms/issued', modified:'http://purl.org/dc/terms/modified',
-  replaces:'http://purl.org/dc/terms/replaces', vpa:'http://w3id.org/vpa#',
-};
-/* Shown in the general section, or structure rather than characteristics */
-const NOT_A_PARAMETER = new Set([P.type, P.id, ...['vehicleTypeNumber', 'includedVersionsVariant', 'vehicleTypePlatform', 'alternativeTypeName',
-  'vehicleCategory', 'vehicleSubCategory', 'vehicleTypeManufacturer', 'certificate', 'configDependentParameter', 'forConfiguration',
-  'emergencyBrakeProfile', 'serviceBrakingProfile', ...SUB_OBJECTS].map(p => ERA + p), P.vpa + 'definesCase', P.label]);
-function valueText(o, labels){
-  if(o.type !== 'uri') return o.value === 'true' ? 'Yes' : o.value === 'false' ? 'No' : o.value;
-  return labels.get(o.value) || safeDecode(localName(o.value)) || o.value;
+
+/* The picker: every type of the index, by its key (Type ID-Member State) */
+function fillTypeList(){
+  const frag = document.createDocumentFragment();
+  for(const t of X.types){
+    const o = document.createElement('option');
+    o.value = t.key;
+    o.label = [msLabel(t.ms), ...t.platform, ...t.alts].filter(Boolean).join(' · ');
+    frag.appendChild(o);
+  }
+  $('typeList').replaceChildren(frag);
+  for(const id of ['typeInput', 'compareInput', 'openBtn']) $(id).disabled = false;
 }
-function renderFull(r, rows, ont, labels){
-  const by = {};
-  rows.forEach(x => (by[x.part] = by[x.part] || []).push(x));
-  const name = p => (ont.get(p) || {}).label || localName(p);
-  const out = [];
+function resolveType(text){
+  const q = String(text || '').trim();
+  if(!q || !X) return {t:null, n:0};
+  const exact = X.types.find(t => t.key === q) || X.types.find(t => low(t.key) === low(q)) || X.types.find(t => low(safeDecode(t.key)) === low(q));
+  if(exact) return {t:exact, n:1};
+  const hits = X.types.filter(t => anyContains([t.key, safeDecode(t.key), ...t.ids, t.num, ...t.alts, ...t.platform].filter(Boolean), low(q)));
+  return {t:hits.length === 1 ? hits[0] : null, n:hits.length};
+}
 
-  // 2. Conformity with TSI, per configuration
-  const sets = new Map();
-  for(const x of by.set || []){
-    const s = sets.get(x.s) || {cfg:new Set(), tsis:new Set()};
-    if(x.ctx) s.cfg.add(x.ctx);
-    if(x.p === P.label) s.tsis.add(x.o.value);
-    sets.set(x.s, s);
+/* One type's model: live when ERATV-KG can be read, else from the snapshot */
+const models = new Map();
+async function loadModel(t){
+  if(models.has(t.key)) return models.get(t.key);
+  await liveProbe;
+  let res = null, liveErr = null;
+  if(liveOk){
+    try{
+      const j = await sparql(typeValuesQuery([t.uri]), 45000);
+      res = {model:typeModels(j.results.bindings).get(t.uri) || {uri:t.uri, direct:new Map(), sets:[]}, source:'live',
+        at:new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})};
+    } catch(err){ liveErr = err; }
   }
-  if(sets.size) out.push(blk(`Conformity with TSI — ${sets.size} configuration${sets.size > 1 ? 's' : ''}`,
-    '<ul>' + [...sets.values()].map(s => `<li><b>${esc([...s.cfg].join(' / ') || 'configuration')}</b>: ${s.tsis.size ? esc([...s.tsis].join('; ')) : '<span class="sub">no TSI recorded</span>'}</li>`).join('') + '</ul>'));
-
-  // 3. Authorisations: the current record first, then its history, newest first
-  const auths = new Map();
-  const authOf = s => { if(!auths.has(s)) auths.set(s, {uri:s, f:{}, certs:new Set(), valid:new Set()}); return auths.get(s); };
-  for(const x of by.auth || []){
-    const a = authOf(x.s); a.case = x.ctx;
-    // a literal era:certificate is the reference itself; an IRI's dct:identifier arrives as part "cert"
-    if(x.p === ERA + 'certificate'){ if(x.o.type !== 'uri') a.certs.add(x.o.value.trim()); continue; }
-    (a.f[x.p] = a.f[x.p] || new Set()).add(valueText(x.o, labels));
-  }
-  for(const x of by.cert || []) authOf(x.ctx).certs.add(x.o.value.trim());
-  for(const x of by.validity || []) authOf(x.s).valid.add(x.o.value.slice(0, 10));
-  const cases = new Map();
-  for(const x of by.case || []){ const c = cases.get(x.s) || {}; (c[x.p] = c[x.p] || new Set()).add(valueText(x.o, labels)); cases.set(x.s, c); }
-  const hist = a => +((a.uri.match(/-H(\d+)-[^-]+$/) || [])[1] || 0);
-  const list = [...auths.values()].sort((a, b) => (hist(a) === 0 ? -1 : hist(b) === 0 ? 1 : hist(b) - hist(a)));
-  const fv = (a, p) => [...(a.f[p] || [])];
-  if(list.length){
-    const head = '<thead><tr><th>Record</th><th>EIN</th><th>Status</th><th>Issued</th><th>Valid from</th><th>Updated</th><th>Holder</th><th>Certificates / declarations</th></tr></thead>';
-    const body = list.map(a => {
-      const certs = [...a.certs].filter(Boolean);
-      const holders = fv(a, ERA + 'vehicleTypeAuthorisationHolder').map(h => `no. ${roleNumber(h)}`);
-      return `<tr><td>${hist(a) ? `history H${hist(a)}` : '<b>current</b>'}</td><td class="id">${esc(fv(a, P.id).join(', ')) || dash}</td>` +
-        `<td>${fv(a, P.vpa + 'status').map(s => `<span class="pill ${STATUS_CLASS[s] || ''}">${esc(statusLabel(s))}</span>`).join(' ') || dash}</td>` +
-        `<td class="num">${esc(fv(a, P.issued).map(d => d.slice(0, 10)).join(', ')) || dash}</td>` +
-        `<td class="num">${esc([...a.valid].join(', ')) || dash}</td>` +
-        `<td class="num">${esc(fv(a, P.modified).map(d => d.slice(0, 10)).join(', ')) || dash}</td>` +
-        `<td title="The holder's organisation role is not described in ERATV-KG">${esc(holders.join(', ')) || dash}</td>` +
-        `<td>${esc([...new Set(certs)].join('\n')).replace(/\n/g, '<br>') || dash}</td></tr>`;
-    }).join('');
-    const noteRecords = new Map();   // text -> the records carrying it, in table order
-    for(const a of list) for(const t of [...fv(a, P.comment), ...fv(a, P.seeAlso)]){
-      const k = noteRecords.get(t) || []; k.push(hist(a) ? `H${hist(a)}` : 'current'); noteRecords.set(t, k);
-    }
-    const uniqNotes = [...noteRecords.entries()].map(([t, k]) => [k.join(', '), t]);
-    const caseInfo = [...cases.values()].flatMap(c => [...(c[ERA + 'areaOfUse'] || [])]);
-    out.push(blk(`Authorisations — ${list.length} record${list.length > 1 ? 's' : ''}`,
-      `<div class="tableWrap" style="max-height:360px"><table class="results">${head}<tbody>${body}</tbody></table></div>` +
-      (caseInfo.length ? `<div class="sub" style="margin-top:8px">Area of use: ${esc([...new Set(caseInfo)].join('; '))}</div>` : '') +
-      (uniqNotes.length ? uniqNotes.slice(0, 12).map(([k, t]) => `<div class="sub" style="margin-top:8px">Comment (${esc(k)})</div><pre>${esc(t)}</pre>`).join('') +
-        (uniqNotes.length > 12 ? `<div class="sub">…and ${fmt(uniqNotes.length - 12)} more comments.</div>` : '') : '')));
-  }
-  const restr = [...new Set((by.restriction || []).flatMap(x => x.o.value.split('|')).map(s => s.trim()).filter(Boolean))];
-  if(restr.length) out.push(blk('Restrictions (not coded), from all authorisation records', '<ul>' + restr.map(s => `<li>${esc(s)}</li>`).join('') + '</ul>'));
-  const typeCerts = [...new Set((by.typecert || []).map(x => x.o.value.trim()).filter(v => v && !/^(-+|n\/?a|not applicable|none)$/i.test(v)))];
-  if(typeCerts.length) out.push(blk('EC type examination certificates', '<ul>' + typeCerts.map(c => `<li><code>${esc(c)}</code></li>`).join('') + '</ul>'));
-
-  // 4. Technical characteristics, in ERATV's numbering
-  const params = new Map();
-  const addParam = (p, value, where) => {
-    const e = params.get(p) || {values:new Map()};
-    const set = e.values.get(value) || new Set();
-    if(where) set.add(where);
-    e.values.set(value, set); params.set(p, e);
+  if(!res && S) res = {model:decodeType(S, t.key, t.uri) || {uri:t.uri, direct:new Map(), sets:[]}, source:'snapshot', liveErr};
+  if(!res) throw liveErr || new Error('ERATV-KG cannot be read from this page, and the snapshot did not load.');
+  models.set(t.key, res);
+  return res;
+}
+/* Labels the snapshot lacks, looked up live once per view (when ERATV-KG answers) */
+async function topUpLabels(cols){
+  if(!liveOk) return false;
+  let changed = false;
+  const props = new Set(), concepts = new Set();
+  const walk = v => {
+    if(v.startsWith('u:')){ const u = v.slice(2); if(u.startsWith(ERA + 'concepts/') && !u.startsWith(CAT_BASE) && !(S && S.L.c[u]) && !liveConcepts.has(u) && writableIri(u)) concepts.add(u); }
+    else if(v.startsWith('o:')){ try{ for(const [p, vs] of JSON.parse(v.slice(2))){ props.add(p); vs.forEach(walk); } } catch{} }
   };
-  for(const x of by.type || []) if(!NOT_A_PARAMETER.has(x.p)) addParam(x.p, valueText(x.o, labels), '');
-  const multi = sets.size > 1;
-  const setCfg = new Map([...sets.entries()].map(([s, v]) => [s, [...v.cfg].join(' / ')]));
-  for(const x of by.set || []) if(!NOT_A_PARAMETER.has(x.p)) addParam(x.p, valueText(x.o, labels), multi ? setCfg.get(x.s) : '');
-  const plist = [...params.entries()].map(([p, e]) => ({p, e, ix:((ont.get(p) || {}).index || [])[0] || ''}))
-    .sort((a, b) => compareIndex(a.ix, b.ix) || name(a.p).localeCompare(name(b.p)));
-  if(plist.length) out.push(blk(`Technical characteristics — ${plist.length} parameters`,
-    '<div class="paramWrap"><table class="params"><thead><tr><th>ERATV</th><th>Parameter</th><th>Value</th></tr></thead><tbody>' +
-    plist.map(({p, e, ix}) => `<tr><td class="ix">${esc(ix) || '—'}</td><td>${esc(name(p))}<div class="sub">${esc(p.startsWith(ERA) ? 'era:' + p.slice(ERA.length) : p)}</div></td><td>` +
-      [...e.values.entries()].map(([v, where]) => esc(v) + (where.size ? ` <span class="sub">(${esc([...where].join('; '))})</span>` : '')).join('<br>') + '</td></tr>').join('') +
-    '</tbody></table></div>' +
-    ((by.sub || []).some(x => x.ctx === ERA + 'permissiblePayloadForLineCategory')
-      ? '<div class="sub" style="margin-top:6px">Permissible payload: ERATV-KG puts all line categories and all masses of a type on one resource, as two unordered sets, so which mass belongs to which line category cannot be read from the graph; some of its “line categories” are concepts of other schemes (CLD modules, end-coupling types).</div>' : '') +
-    '<div class="sub" style="margin-top:6px">Numbers and names from <code>era:eratvIndex</code> and <code>rdfs:label</code> in ERATV-KG’s ontology graph. Coded values without a <code>skos:prefLabel</code> are shown by the end of their URI.</div>'));
-
-  // Structured values: braking performance and its profiles, axle spacings, permissible payload - one row per object
-  const objs = new Map();
-  for(const x of by.sub || []){
-    if(NOT_A_PARAMETER.has(x.p)) continue;
-    const o = objs.get(x.s) || {ctx:x.ctx, props:new Map()};
-    const vals = o.props.get(x.p) || new Set();
-    vals.add(valueText(x.o, labels)); o.props.set(x.p, vals); objs.set(x.s, o);
+  for(const c of cols) for(const [p, vs] of c.values){ props.add(p); vs.forEach(walk); }
+  if(!ONT && [...props].some(p => p !== TSI_ROW && !(S && S.L.p[p] && S.L.p[p][0]))){
+    try{ await ontology(); changed = true; } catch{ /* names are a nicety */ }
   }
-  const ixOf = p => ((ont.get(p) || {}).index || [])[0] || '';
-  const olist = [...objs.entries()].sort((a, b) => compareIndex(ixOf(a[1].ctx), ixOf(b[1].ctx)) || name(a[1].ctx).localeCompare(name(b[1].ctx)) || a[0].localeCompare(b[0], 'en', {numeric:true}));
-  if(olist.length) out.push(blk(`Structured values — ${olist.length}`,
-    '<div class="paramWrap"><table class="params"><thead><tr><th>ERATV</th><th>Object</th><th>Values</th></tr></thead><tbody>' +
-    olist.map(([s, o]) => `<tr><td class="ix">${esc(ixOf(o.ctx)) || '—'}</td><td>${esc(name(o.ctx))}<div class="sub">${esc(safeDecode(localName(s)))}</div></td><td>` +
-      [...o.props.entries()].sort((a, b) => compareIndex(ixOf(a[0]), ixOf(b[0])) || name(a[0]).localeCompare(name(b[0])))
-        .map(([p, vals]) => `<span class="sub">${esc(name(p))}:</span> ${esc([...vals].join(', '))}`).join('<br>') + '</td></tr>').join('') +
-    '</tbody></table></div>'));
-  return out.join('');
+  if(concepts.size){
+    for(const u of concepts) liveConcepts.set(u, '');
+    try{
+      for(const l of await sparql(conceptLabelQuery([...concepts]), 30000, true))
+        if(!liveConcepts.get(l.c) || l.lang === 'en' || l.lang === '') liveConcepts.set(l.c, l.label);
+      changed = true;
+    } catch{ /* fall back to the end of the URI */ }
+  }
+  return changed;
 }
+
+const el = (tag, cls, text) => { const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; };
+function cellNode(vals, diff, other){
+  const td = el('td');
+  if(diff){
+    td.className = 'diff';
+    const m = el('span', 'neq', '≠'); m.setAttribute('aria-hidden', 'true'); td.append(m);
+    td.append(el('span', 'vh', `differs from ${other}: `));
+  }
+  if(!vals || !vals.length){ if(diff) td.append(el('span', 'sub', 'no value')); return td; }
+  const texts = [...new Set(vals.map(v => valueText(v, nameOf, propName)))].sort((x, y) => x.localeCompare(y, 'en', {numeric:true}));
+  if(texts.length === 1) td.append(el('span', '', texts[0]));
+  else { const ul = el('ul'); for(const x of texts) ul.append(el('li', '', x)); td.append(ul); }
+  return td;
+}
+function colHeader(c, only){
+  const th = el('th');
+  th.scope = 'col';
+  th.append(el('span', '', c.label));
+  if(c.cfg){
+    const a = el('a', 'sub', safeDecode(localName(c.cfg)));
+    a.href = httpOnly(c.cfg); a.target = '_blank'; a.rel = 'noopener'; a.title = c.cfg;
+    th.append(a);
+  } else if(c.key === 'all') th.append(el('span', 'sub', 'stated on the type'));
+  if(only){ th.append(el('span', 'only', `only in ${only}`)); }
+  return th;
+}
+function buildTable(A, colsA, B, colsB, m){
+  const table = el('table', 'vt');
+  const aId = A.key, bId = B ? B.key : '';
+  const cap = el('caption');
+  cap.textContent = B
+    ? `Values of ${aId} and ${bId}, one column per configuration; “All configurations” holds the values stated on the type itself. ` +
+      `Columns are paired by configuration IRI, then by configuration label; a cell marked ≠ differs from its pair.`
+    : `Values of ${aId}, one column per configuration; “All configurations” holds the values stated on the type itself.`;
+  table.append(cap);
+  // B's columns in the order of A's pairs, then those only B has
+  const orderB = B ? [0, ...m.partner.slice(1).filter(j => j >= 0), ...m.onlyB] : [];
+  const thead = el('thead');
+  const r1 = el('tr', 'r1');
+  const ix = el('th', 'ix', 'Index'), prop = el('th', 'prop', 'Property');
+  ix.scope = 'col'; prop.scope = 'col';
+  if(B){ ix.rowSpan = 2; prop.rowSpan = 2; }
+  r1.append(ix, prop);
+  if(B){
+    const g1 = el('th', 'grp', aId), g2 = el('th', 'grp b0', bId);
+    g1.scope = 'colgroup'; g1.colSpan = colsA.length; g2.scope = 'colgroup'; g2.colSpan = colsB.length;
+    r1.append(g1, g2);
+    const r2 = el('tr', 'r2');
+    colsA.forEach((c, i) => r2.append(colHeader(c, m.partner[i] < 0 ? aId : '')));
+    orderB.forEach((j, k) => { const th = colHeader(colsB[j], m.onlyB.includes(j) ? bId : ''); if(!k) th.classList.add('b0'); r2.append(th); });
+    thead.append(r1, r2);
+  } else {
+    colsA.forEach(c => r1.append(colHeader(c, '')));
+    thead.append(r1);
+  }
+  table.append(thead);
+  const rows = typeRows(B ? [...colsA, ...colsB] : colsA, propInfo);
+  const width = 2 + colsA.length + (B ? colsB.length : 0);
+  let sec = null, tbody = null, differing = 0;
+  for(const r of rows){
+    if(r.section !== sec){
+      sec = r.section; tbody = el('tbody'); table.append(tbody);
+      const tr = el('tr', 'secRow'), th = el('th', '', sectionTitle(sec));
+      th.scope = 'rowgroup'; th.colSpan = width; tr.append(th); tbody.append(tr);
+    }
+    const tr = el('tr');
+    const d = B ? rowDiff(r.p, colsA, colsB, m) : null;
+    if(d){ tr.dataset.differs = d.differs ? '1' : '0'; if(d.differs) differing++; }
+    tr.append(el('td', 'ix', r.ix || '—'));
+    const th = el('th', '', r.name); th.scope = 'row';
+    th.append(el('span', 'sub', r.p === TSI_ROW ? 'rdfs:label of the parameter set' : r.p.startsWith(ERA) ? 'era:' + r.p.slice(ERA.length) : r.p));
+    tr.append(th);
+    colsA.forEach((c, i) => tr.append(cellNode(c.values.get(r.p), !!d && d.pairs.includes(i), bId)));
+    orderB.forEach((j, k) => {
+      const i = m.partner.indexOf(j), td = cellNode(colsB[j].values.get(r.p), !!d && i >= 0 && d.pairs.includes(i), aId);
+      if(!k) td.classList.add('b0');
+      tr.append(td);
+    });
+    tbody.append(tr);
+  }
+  return {table, rows:rows.length, differing};
+}
+function applyDiffFilter(){
+  const only = $('diffOnly').checked && !$('diffOnly').disabled;
+  const table = $('vtWrap').querySelector('table.vt');
+  if(!table) return;
+  for(const tb of table.tBodies){
+    let shown = 0;
+    for(const tr of tb.rows){
+      if(tr.classList.contains('secRow')) continue;
+      tr.hidden = only && tr.dataset.differs === '0';
+      if(!tr.hidden) shown++;
+    }
+    tb.hidden = shown === 0;
+  }
+}
+function stickHeader(){
+  const table = $('vtWrap').querySelector('table.vt'), r1 = table && table.tHead && table.tHead.rows[0];
+  if(r1) table.style.setProperty('--h1', r1.getBoundingClientRect().height + 'px');
+}
+function typeCard(t, res){
+  const card = el('div', 'typeCard');
+  card.append(el('h3', '', `${t.id} — ${msLabel(t.ms)}`));
+  const lines = [
+    [t.num ? `Type number ${t.num}` : '', t.vv ? `versions/variant ${t.vv}` : ''].filter(Boolean).join(', '),
+    [t.cats.map(catLabel).join('; '), t.subs.map(subLabel).join('; ')].filter(Boolean).join(' / '),
+    [...t.platform, ...t.alts].length ? `Platform / alternative name: ${[...t.platform, ...t.alts].join('; ')}` : '',
+    t.manus.length ? `Manufacturer: ${t.manus.map(manuLabel).join('; ')}` : '',
+    `Authorisation: ${t.status.map(statusLabel).join(', ') || 'no current record'}${t.issued.length ? `, issued ${t.issued.join(', ')}` : ''}`,
+    t.area.length ? `Area of use: ${t.area.join('; ')}` : '',
+    `${res.model.sets.length} configuration parameter set${res.model.sets.length === 1 ? '' : 's'}`,
+  ].filter(Boolean);
+  for(const l of lines) card.append(el('div', '', l));
+  const meta = el('div', 'meta');
+  const a = el('a', '', t.uri); a.href = httpOnly(t.uri); a.target = '_blank'; a.rel = 'noopener';
+  const e = el('a', '', 'Open in ERATV ↗'); e.href = ERATV_PAGE + encodeURIComponent(t.id); e.target = '_blank'; e.rel = 'noopener';
+  meta.append(a, document.createTextNode(' · '), e);
+  card.append(meta);
+  return card;
+}
+function sourceNote(results){
+  const live = results.filter(r => r.source === 'live'), snap = results.filter(r => r.source === 'snapshot');
+  const parts = [];
+  if(live.length) parts.push(`Values queried live from ERATV-KG (UAT) at ${live[0].at}.`);
+  if(snap.length){
+    const which = live.length ? `the values of ${snap.map(r => localName(r.model.uri)).join(' and ')}` : 'the values';
+    const why = snap.some(r => r.liveErr) ? 'ERATV-KG did not answer this query' : 'ERATV-KG cannot be read from this page';
+    parts.push(`${why}, so ${which} come from the snapshot of ${snapDate()}, built with the same query.`);
+  }
+  parts.push(`Names and ERATV numbers: ERA ontology ${S ? S.ontology.tag : 'graph of ERATV-KG'}${S && ONT ? ', and ERATV-KG’s ontology graph for the rest' : ''}. Coded values without a skos:prefLabel are shown by the end of their URI.`);
+  return {text:parts.join(' '), warn:snap.some(r => r.liveErr)};
+}
+let lastView = null;
+function renderView(){
+  if(!lastView) return;
+  const {A, ra, B, rb} = lastView;
+  const colsA = typeColumns(ra.model), colsB = B ? typeColumns(rb.model) : null;
+  const m = B ? matchColumns(colsA, colsB) : null;
+  const {table, rows, differing} = buildTable(A, colsA, B, colsB, m);
+  $('typeHead').replaceChildren(typeCard(A, ra), ...(B ? [typeCard(B, rb)] : []));
+  const note = sourceNote(B ? [ra, rb] : [ra]);
+  const byLabel = m ? m.how.filter(h => h === 'label').length : 0;
+  $('viewSource').className = 'viewSource' + (note.warn ? ' warn' : '');
+  $('viewSource').textContent = note.text + (B ? ` ${fmt(rows)} properties, ${fmt(differing)} differ.` +
+    (byLabel ? ` ${byLabel} configuration column${byLabel === 1 ? ' is' : 's are'} paired by label: UAT mints a configuration IRI per parameter set, so two different types never share one.` : '') : ` ${fmt(rows)} properties.`);
+  $('vtWrap').replaceChildren(table);
+  stickHeader();
+  applyDiffFilter();
+  const q = typeValuesQuery(B ? [A.uri, B.uri] : [A.uri]);
+  $('viewQueryText').textContent = q;
+  setWorkbenchLink($('viewWorkbench'), q, 'Open in GraphDB workbench ↗');
+  $('viewer').hidden = false;
+}
+async function showView(aKey, bKey, opts = {}){
+  const msg = $('viewMsg');
+  const A = (resolveType(aKey)).t, B = bKey ? (resolveType(bKey)).t : null;
+  if(!A){ msg.className = 'error'; msg.textContent = aKey ? `No vehicle type matches “${aKey}”${resolveType(aKey).n > 1 ? ` uniquely: ${fmt(resolveType(aKey).n)} do — pick one from the list` : ''}.` : 'Pick a vehicle type.'; return; }
+  if(bKey && !B){ msg.className = 'error'; msg.textContent = `No vehicle type matches “${bKey}” uniquely — pick one from the list to compare with.`; return; }
+  if(B && B.key === A.key){ msg.className = 'error'; msg.textContent = 'Pick a different vehicle type to compare with.'; return; }
+  const my = ++viewSeq;
+  $('typeInput').value = A.key; $('compareInput').value = B ? B.key : '';
+  $('diffOnly').disabled = !B; $('clearCompare').disabled = !B;
+  try{ history.replaceState(null, '', location.pathname + stateSearch(A.key, B ? B.key : '') + location.hash); } catch{ /* file:// pages */ }
+  msg.className = ''; msg.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:-2px;margin-right:8px"></span>' + esc(`Loading ${A.key}${B ? ' and ' + B.key : ''}…`);
+  if(opts.scroll) $('typePanel').scrollIntoView({behavior:'smooth', block:'start'});
+  try{
+    const [ra, rb] = await Promise.all([loadModel(A), B ? loadModel(B) : null]);
+    if(my !== viewSeq) return;   // another type was opened meanwhile
+    lastView = {A, ra, B, rb};
+    msg.textContent = '';
+    renderView();
+    if(await topUpLabels(typeColumns(ra.model).concat(B ? typeColumns(rb.model) : [])) && my === viewSeq) renderView();
+  } catch(err){
+    if(my !== viewSeq) return;
+    msg.className = 'error'; msg.textContent = '';
+    renderFetchError(msg, await describeFetchError(err), () => showView(aKey, bKey, opts));
+  }
+}
+$('typeForm').addEventListener('submit', e => { e.preventDefault(); showView($('typeInput').value, $('compareInput').value); });
+for(const id of ['typeInput', 'compareInput'])
+  $(id).addEventListener('change', () => { if($('typeInput').value.trim()) showView($('typeInput').value, $('compareInput').value); });
+$('clearCompare').addEventListener('click', () => { $('compareInput').value = ''; showView($('typeInput').value, ''); });
+$('diffOnly').addEventListener('change', applyDiffFilter);
+window.addEventListener('resize', stickHeader);
+$('copyViewQuery').addEventListener('click', async () => {
+  try{ await navigator.clipboard.writeText($('viewQueryText').textContent); $('viewCopyHint').textContent = 'Copied.'; }
+  catch{ $('viewCopyHint').textContent = 'Copy failed — select the text instead.'; }
+  setTimeout(() => $('viewCopyHint').textContent = '', 2500);
+});
 
 /* ------------------------------------------------------------------ *
  * Searching */
@@ -1382,7 +1762,7 @@ async function runSearch(){
   catch(err){ const d = await describeFetchError(err); if(my !== searchSeq) return; const el = $('statusArea'); el.className = 'error'; renderFetchError(el, d, runSearch); return; }
   if(my !== searchSeq) return;   // a newer search was started meanwhile
   const rows = localSearch(f);
-  showResults({rows, note:`Searched in the page over the index of ${fmt(X.types.length)} vehicle types loaded live from ERATV-KG at ${loadedAt}. The same search as SPARQL is below; “Run live” checks it.`});
+  showResults({rows, note:`Searched in the page over ${fmt(X.types.length)} vehicle types from ${loadedAt}. The same search as SPARQL is below; “Run live” sends it to ERATV-KG and checks it.`});
   setStatus(`${types(rows.length)} (type × Member State) ${rows.length === 1 ? 'matches' : 'match'}.`, rows.length ? 'success' : '');
 }
 async function runLive(){
@@ -1409,7 +1789,7 @@ async function runLive(){
     showResults({rows, warn:!same, note:`Live answer from ERATV-KG in ${seconds.toFixed(1)} s: ${types(uris.length)}. ` + (same
       ? 'The same types as the search in the page.'
       : `It differs from the search in the page: ${fmt(onlyLive)} only live, ${fmt(onlyPage)} only in the page` +
-        (unknown ? ` (${fmt(unknown)} are newer than the index loaded at ${loadedAt} and are not listed — reload the page)` : '') + '.')});
+        (unknown ? ` (${fmt(unknown)} are newer than ${loadedAt} and are not listed)` : '') + '.')});
     setStatus(`${types(uris.length)} from ERATV-KG.`, uris.length ? 'success' : '');
   } catch(err){
     const d = await describeFetchError(err);
@@ -1444,7 +1824,7 @@ $('csvBtn').addEventListener('click', () => {
     ['authorisation_status', r => r.status.map(statusLabel).join('|')], ['authorisation_date', r => r.issued.join('|')],
     ['last_update', r => r.modified.join('|')], ['ein', r => r.eins.join('|')], ['area_of_use', r => r.area.join('|')],
     ['conformity_with_tsi', r => r.tsis.join('|')], ['certificates_declarations', r => r.refs.map(s => s.trim()).join('|')],
-    ['authorisation_holder_role', r => r.holders.map(roleNumber).join('|')], ['uri', r => r.uri], ['eratv_page', r => ERATV_PAGE + encodeURIComponent(r.id)],
+    ['uri', r => r.uri], ['eratv_page', r => ERATV_PAGE + encodeURIComponent(r.id)],
   ];
   const csv = [cols.map(c => c[0]).join(','), ...current.rows.map(r => cols.map(c => csvCell(c[1](r))).join(','))].join('\n');
   const url = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8'}));
@@ -1455,16 +1835,40 @@ $('csvBtn').addEventListener('click', () => {
 });
 
 /* ------------------------------------------------------------------ *
- * Start: probe the endpoint and load the index in parallel. */
+ * Start: the snapshot gives the index at once; the endpoint is probed in
+ * parallel. Without a snapshot the index is loaded live, as before. */
 function setLive(ok, detail){
   liveOk = ok;
   $('liveDot').className = 'dot ' + (ok ? 'ok' : 'bad');
-  $('liveText').textContent = ok ? 'reachable — “Run live” and the full records query it directly' : 'not readable from this page';
+  $('liveText').textContent = ok ? 'reachable — the type view, “Run live” and the comments field query it directly'
+    : 'not readable from this page — the type view and the search use the snapshot';
   $('liveDiag').innerHTML = detail || '';
 }
 async function probeLive(){
   try{ await sparql('ASK { ?s ?p ?o }', 10000); setLive(true, ''); }
   catch(err){ const d = await describeFetchError(err); setLive(false, `<b>${esc(d.title)}.</b> ${esc(d.message)}`); }
+}
+function indexReady(){
+  buildForm();
+  fillTypeList();
+  $('searchBtn').disabled = false; $('liveBtn').disabled = false;
+  runSearch();
+  const st = readState(location.search);
+  if(st.type) showView(st.type, st.compare);
+}
+async function loadSnapshotIndex(){
+  try{
+    S = await fetchJsonGz(SNAPSHOT_URL);
+    X = buildIndex(unpackIndex(S.index));
+  } catch(err){
+    S = null;
+    $('idxText').textContent = 'no snapshot — loading from ERATV-KG…';
+    return loadIndex();
+  }
+  loadedAt = `the snapshot of ${snapDate()}`;
+  $('idxDot').className = 'dot ok';
+  $('idxText').textContent = `snapshot of ${snapDate()} — ${fmt(X.types.length)} vehicle types (${fmt(new Set(X.types.map(t => t.id)).size)} Type IDs); names and ERATV numbers from ERA ontology ${S.ontology.tag}`;
+  indexReady();
 }
 async function loadIndex(){
   $('idxDot').className = 'dot wait'; $('idxText').textContent = 'loading from ERATV-KG…';
@@ -1474,20 +1878,18 @@ async function loadIndex(){
     const names = Object.keys(INDEX_QUERIES);
     const results = await Promise.all(names.map(n => sparql(INDEX_QUERIES[n], 90000, true)));
     X = buildIndex(Object.fromEntries(names.map((n, i) => [n, results[i]])));
-    loadedAt = new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    loadedAt = 'ERATV-KG, loaded at ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
     $('idxDot').className = 'dot ok';
-    $('idxText').textContent = `${fmt(X.types.length)} vehicle types (${fmt(new Set(X.types.map(t => t.id)).size)} Type IDs) — loaded at ${loadedAt} in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
-    buildForm();
-    $('searchBtn').disabled = false; $('liveBtn').disabled = false;
-    runSearch();
+    $('idxText').textContent = `${fmt(X.types.length)} vehicle types (${fmt(new Set(X.types.map(t => t.id)).size)} Type IDs) — loaded live in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+    indexReady();
   } catch(err){
     $('idxDot').className = 'dot bad'; $('idxText').textContent = 'could not be loaded';
     const el = $('statusArea'); el.className = 'error';
     renderFetchError(el, await describeFetchError(err), loadIndex);
   }
 }
-probeLive();
-loadIndex();
+const liveProbe = probeLive();
+loadSnapshotIndex();
 })();
 </script>
 </body>

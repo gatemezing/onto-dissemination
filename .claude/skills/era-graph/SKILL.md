@@ -464,7 +464,27 @@ in `graph/skos`. Send `infer=false`.
   A query in the "right" namespace returns nothing.
 - **Conformity with TSI** is the `rdfs:label` of the type's
   `era:configDependentParameter` sets (74 wordings), and the configuration's
-  name is `era:forConfiguration/rdfs:label`.
+  name is `era:forConfiguration/rdfs:label`. Ontology 4.0 also defines
+  `era:hasVehicleTypeConfiguration` for that link; UAT uses only
+  `era:forConfiguration` (measured 2026-11-25), so query both.
+- **Configurations are minted per parameter set**
+  (`…/vehicleTypes/configurations/<n>` = the set's number), 1 to 58 per type;
+  2,726 have no label. A set shared by one Type ID's Member-State copies keeps
+  its IRI, so those copies pair by IRI; two different types never share one, so
+  compare them on the configuration label. Values sit both on the type ("all
+  configurations": `maximumDesignSpeed` on 493 types) and on its sets (on
+  15,916 sets).
+- **Coded values use concept IRIs the official SKOS doesn't define**
+  (`energy-supply-systems/rinf/AC10`, `train-detection/rinf/30`, …): 71 of the
+  456 concepts used on types and sets have a `skos:prefLabel`, in
+  `graph/skos` or in the v4.0.0 release alike. Seven properties used on types
+  (`hasEddyCurrentBrakingFitted`, `hasEnergyMeterInstalled`, …) have no label
+  in v4.0.0 or in `graph/ontology`.
+- **ERATV+ (`graph.tst.data.test-era.europa.eu/repositories/ERATV-KG`) answers
+  401** to anonymous queries, though it sends CORS headers (measured
+  2026-11-25). Its layout, per the viewer's design: types in graphs under
+  `https://data.europa.eu/949/graph/eratv/` (not `notes/`, `derived/`, `links/`),
+  shared configurations in `http://data.europa.eu/949/graph/eratv/configuration/`.
 - **Gaps — report them, don't fill them:**
   - no type has a type name (`rdfs:label`, which the ontology maps to ERATV 1.1);
   - the authorisation holders (`…/organisationRoles/<n>_Manufacturer`, 9,392)
@@ -478,7 +498,9 @@ in `graph/skos`. Send `infer=false`.
     categories" are concepts of other schemes (`cld-modules/D`,
     `end-coupling-type/eratv/C`).
 - `scripts/tests/eratv-live-parity.js` runs 23 searches in the page's matcher
-  and as SPARQL; rerun it after a data reload.
+  and as SPARQL, and checks the explorer's snapshot against live answers; rerun
+  it after a data reload, and rebuild the snapshot
+  (`node scripts/build-eratv-snapshot.js`) when it reports a difference.
 
 ## ERA's SHACL shapes — PROD and UAT
 
@@ -575,7 +597,7 @@ from the browser and share a dependency-free XLSX writer.
 | `era-eradis-explorer.html` | `/eradis.html` | ERADIS-KG EC declarations and NoBo certificates with the ERADIS search forms, multi-country/multi-organisation pickers (nothing picked = all), over a snapshot, every search also as SPARQL and runnable live |
 | `era-shacl-viewer.html` | `/shapes.html` | ERA's SHACL shapes as navigable node-shape cards: PROD (live), UAT (published file), a PROD → UAT comparison, or the OWL gap analysis of the UAT release (axioms vs shapes, immediate actions, Markdown/CSV export); also any SHACL file dropped in |
 | `era-plc-extraction.html` | `/plc-extraction.html` | every `era:PrimaryLocation` of a country as CSV (one row per code, window in force on a date, country from `era:inCountry` else code prefix), optionally narrowed to the PLs referenced by the OPs on chosen national lines; `/op-rcc.html` redirects to it |
-| `era-eratv-explorer.html` | `/eratv.html` | UAT ERATV-KG vehicle types with the ERATV advanced-search fields: an index loaded live (7 queries, ~2 s) searched in the page, every search also as SPARQL and checked live; full record with authorisation history and the technical characteristics in ERATV numbering |
+| `era-eratv-explorer.html` | `/eratv.html` | UAT ERATV-KG vehicle types: one column per configuration in ERATV numbering, a second type compared (≠ marks, "only differences", `?type=&compare=`), and the ERATV advanced-search fields; opens on a snapshot (`scripts/build-eratv-snapshot.js`), values live when ERATV-KG answers, every search also as SPARQL and checked live |
 
 Verified query sets with measurements live in `scripts/assets/rcc/` and
 `scripts/assets/routebook/`. `scripts/build-rinf-parameter-catalog.py` refreshes

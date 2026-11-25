@@ -2,15 +2,18 @@
    loads the index from ERATV-KG exactly as the page does, then runs a set of
    searches both ways - in the page's own matcher over the index, and as the
    SPARQL the page generates - and fails on any difference in the vehicle
-   types returned. Needs network access to graph.uat.data.test-era.europa.eu.
+   types returned. Then it checks the snapshot the page falls back on
+   (scripts/assets/era-eratv-snapshot.json.gz) against live answers: the same
+   types in the index, and the same values per configuration for a sample of
+   types. Needs network access to graph.uat.data.test-era.europa.eu.
 
    Run:  node scripts/tests/eratv-live-parity.js        (Node 18 or later) */
-const fs = require('fs'), path = require('path'), vm = require('vm');
+const fs = require('fs'), path = require('path'), vm = require('vm'), zlib = require('zlib');
 
 const html = fs.readFileSync(path.join(__dirname, '../assets/era-eratv-explorer.html'), 'utf8');
 const mod = {exports: {}};
 vm.runInContext([...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join('\n'),
-  vm.createContext({module: mod, console, URL}));
+  vm.createContext({module: mod, console, URL, URLSearchParams}));
 const V = mod.exports;
 
 async function sparql(query){
@@ -74,14 +77,26 @@ const form = over => Object.assign(V.emptyForm(), over);
       (onlyLive.length ? `\n     only live: ${onlyLive.slice(0, 3).join(' ')}` : '') + (onlyPage.length ? `\n     only in the page: ${onlyPage.slice(0, 3).join(' ')}` : '') +
       (!local.size ? '\n     (no match: the case tests nothing)' : ''));
   }
-  // one detail query, which the page sends as JSON
-  const one = X.types.find(t => t.tsis.length > 2 && t.eins.length);
+  // the snapshot: the same types as the live index, and the same values for a sample of types
+  const snap = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(__dirname, '../assets/era-eratv-snapshot.json.gz'))));
+  const SX = V.buildIndex(V.unpackIndex(snap.index));
+  const liveKeys = new Set(X.types.map(t => t.key)), snapKeys = new Set(SX.types.map(t => t.key));
+  const newer = [...liveKeys].filter(k => !snapKeys.has(k)), gone = [...snapKeys].filter(k => !liveKeys.has(k));
+  console.log(`snapshot of ${snap.generated.slice(0, 10)} (ontology ${snap.ontology.tag}): ${SX.types.length} types; ` +
+    `${newer.length} live types not in it, ${gone.length} in it no longer live`);
+  const flat = t => JSON.stringify({direct: [...t.direct], sets: t.sets.map(x => ({...x, values: [...x.values]}))});
+  const pick = [X.types.find(t => t.tsis.length > 2), X.types.find(t => t.key.includes('The%20Netherlands')), ...X.types.filter((t, i) => i % 400 === 7)]
+    .filter((t, i, all) => t && snapKeys.has(t.key) && all.findIndex(x => x && x.key === t.key) === i);
   const res = await fetch(V.ENDPOINT, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/sparql-results+json'},
-    body: 'infer=false&query=' + encodeURIComponent(V.detailQuery(one.uri))});
-  const parts = {};
-  for(const b of (await res.json()).results.bindings) parts[b.part.value] = (parts[b.part.value] || 0) + 1;
-  console.log(`detail of ${one.key}: ${JSON.stringify(parts)}`);
-  if(!parts.type || !parts.auth || !parts.set){ failed++; console.log('FAIL the detail query misses a part'); }
+    body: 'infer=false&query=' + encodeURIComponent(V.typeValuesQuery(pick.map(t => t.uri)))});
+  const liveModels = V.typeModels((await res.json()).results.bindings);
+  let differ = 0;
+  for(const t of pick){
+    const a = flat(liveModels.get(t.uri) || {direct: new Map(), sets: []}), b = flat(V.decodeType(snap, t.key, t.uri) || {direct: new Map(), sets: []});
+    if(a !== b){ differ++; console.log(`     values differ for ${t.key}`); }
+  }
+  console.log(`${differ ? 'FAIL' : 'ok  '} the snapshot's values of ${pick.length} types match a live query` + (differ ? ` except ${differ} (rebuild the snapshot if the data changed)` : ''));
+  if(differ) failed++;
   console.log(failed ? `${failed} FAILED` : 'all searches agree');
   process.exit(failed ? 1 : 0);
 })().catch(err => { console.error(err); process.exit(2); });
