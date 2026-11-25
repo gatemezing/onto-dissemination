@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ask the ERA Graph</title>
+<!-- WebLLM runs the optional language model on the GPU (WebGPU). It is fetched only when the
+     model is loaded; the version is pinned and the file checked against its SHA-384 hash. -->
+<script type="importmap">
+{
+  "imports": {"web-llm": "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.87/lib/index.js"},
+  "integrity": {"https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.87/lib/index.js": "sha384-BQFxeqYn6R1HO0vdIfH+y2gBCt0R+U5E6Ke4p20a48S4GbBXJ+AKDNQy/CD5uRsq"}
+}
+</script>
 <style>
   :root{
     --bg1:#0b1220; --bg2:#111a2e; --accent:#e8604f;
@@ -53,6 +61,19 @@
   #micHint{font-size:11.5px;color:var(--dim);margin-top:8px;min-height:15px;}
   #micHint.err{color:var(--danger);}
 
+  .llmBar{margin-top:14px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03);
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:12.5px;}
+  .llmState{display:flex;align-items:center;gap:8px;flex:1 1 300px;min-width:0;color:var(--muted);line-height:1.45;}
+  .llmState b{color:var(--paper);font-weight:600;}
+  .llmDot{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:none;}
+  .llmDot.ok{background:var(--green);} .llmDot.busy{background:var(--orange);} .llmDot.bad{background:var(--danger);}
+  .llmActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .llmActions select{padding:7px 9px;font-size:12.5px;}
+  .llmProgress{flex-basis:100%;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;}
+  .llmProgress[hidden]{display:none;}
+  .llmProgress .fill{height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--blue));transition:width .25s;}
+  .llmNote{flex-basis:100%;font-size:11.5px;color:var(--dim);line-height:1.5;}
+  .llmNote:empty{display:none;}
   .sampleRow{margin-top:16px;}
   .sampleLabel{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;
     display:block;margin-bottom:8px;}
@@ -100,6 +121,8 @@
   summary{cursor:pointer;font-size:12.5px;color:var(--muted);}
   summary:hover{color:var(--paper);}
   #queryMeta{font-size:11.5px;color:var(--dim);margin-top:8px;}
+  .readBy{font-size:11.5px;color:var(--dim);margin-top:12px;}
+  .suggest{background:none;border:none;color:var(--blue);text-decoration:underline;cursor:pointer;font:inherit;padding:0;}
   pre.code{background:#050810;border:1px solid var(--line);border-radius:8px;padding:12px;
     font-size:11px;font-family:"SF Mono",Consolas,monospace;white-space:pre-wrap;word-break:break-word;
     max-height:320px;overflow:auto;margin:6px 0 0;color:#b9c6ea;}
@@ -129,9 +152,10 @@
     <p>Ask about railway infrastructure, organisations and EU rail law in plain language — type it or speak it —
        and this tool turns the question into a live SPARQL query across three ERA endpoints:
        <code>rinf-plus</code> (infrastructure), <code>OCR-KG</code> (organisations) and <code>era-lex</code>
-       (EU rail legislation). It recognises a fixed set of question shapes by keyword matching, in English,
-       French, German, Spanish or Italian — not a general language model — so an unrecognised question gets a
-       nudge toward the sample questions below rather than a guess.</p>
+       (EU rail legislation). A small open-source language model, <b>Qwen2.5</b>, runs in your browser and reads
+       the question into one of a fixed set of question shapes; each shape has a SPARQL query written and checked
+       by hand, so the model never writes a query itself. Without a WebGPU browser, or until you load the model,
+       keyword matching in English, French, German, Spanish and Italian does the same job.</p>
   </header>
 
   <div class="panel">
@@ -149,6 +173,16 @@
       <button type="button" id="askBtn" class="btn primary">Ask</button>
     </div>
     <div id="micHint"></div>
+
+    <div class="llmBar" id="llmBar">
+      <div class="llmState"><span class="llmDot" id="llmDot"></span><span id="llmText">Questions are read by <b>keyword matching</b>.</span></div>
+      <div class="llmActions">
+        <select id="llmModel" aria-label="Language model to load"></select>
+        <button type="button" class="btn" id="llmLoad" disabled>Load the language model</button>
+      </div>
+      <div class="llmProgress" id="llmProgress" hidden><div class="fill" id="llmFill"></div></div>
+      <div class="llmNote" id="llmNote"></div>
+    </div>
 
     <div class="sampleRow">
       <span class="sampleLabel">Try asking</span>
@@ -168,12 +202,18 @@
       <summary>Show the SPARQL query</summary>
       <div id="queryMeta"></div>
       <pre class="code" id="sparqlText"></pre>
+      <div class="readBy" id="intentMeta" hidden></div>
+      <pre class="code" id="intentText" hidden></pre>
     </details>
   </div>
 
   <footer>
     <p>Every answer is a live SPARQL query run from your browser — nothing is sent anywhere else, and the exact
-       query is always one click away under &ldquo;Show the SPARQL query&rdquo;. Voice input uses your browser's
+       query is always one click away under &ldquo;Show the SPARQL query&rdquo;. The language model is downloaded
+       once from Hugging Face (about 1&nbsp;GB, then cached by your browser) and runs on your own GPU through
+       <a href="https://github.com/mlc-ai/web-llm">WebLLM</a>; your questions never leave the page. It only fills in
+       a typed form &mdash; which question shape, which country, which topic &mdash; constrained to a JSON schema, and the
+       form it filled is shown under the SPARQL. Voice input uses your browser's
        own speech recognition (Chrome/Edge); it is not supported in every browser. This is a demo of a small,
        fixed vocabulary — tunnels and tunnel length, freight terminals, stations, border points, operational
        points, sections of line, railway lines, high-speed line kilometres, infrastructure managers, railway
@@ -660,6 +700,157 @@ function buildQuery(entity, cc, topic, orgCode, orgName){
 }
 
 /* ------------------------------------------------------------------ *
+ * Reading the question with a small open-source language model.
+ *
+ * The architecture small open models are trained for: function calling
+ * with constrained decoding. The model reads the question and fills one
+ * typed form (INTENT_SCHEMA): which question shape, count or list, which
+ * country, a legislation topic in English, an organisation code or name.
+ * WebLLM constrains decoding to that JSON schema, so the model can only
+ * produce values this page knows. The form then picks one of the
+ * hand-written queries in buildQuery(): the model never writes SPARQL.
+ * Values the model claims to have read (a code, a name) must occur in the
+ * question, or they are refused.
+ * ------------------------------------------------------------------ */
+const LLM_MODELS = {
+  // key: [label, model id with 16-bit shaders, model id without, approximate download]
+  'qwen2.5-1.5b': ['Qwen2.5-1.5B-Instruct', 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC', '1.0 GB'],
+  'qwen2.5-0.5b': ['Qwen2.5-0.5B-Instruct', 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC', '0.3 GB'],
+  'qwen2.5-3b':   ['Qwen2.5-3B-Instruct',   'Qwen2.5-3B-Instruct-q4f16_1-MLC',   'Qwen2.5-3B-Instruct-q4f32_1-MLC',   '1.8 GB'],
+  'qwen3-1.7b':   ['Qwen3-1.7B',            'Qwen3-1.7B-q4f16_1-MLC',            'Qwen3-1.7B-q4f32_1-MLC',            '1.1 GB'],
+  'qwen3-0.6b':   ['Qwen3-0.6B',            'Qwen3-0.6B-q4f16_1-MLC',            'Qwen3-0.6B-q4f32_1-MLC',            '0.4 GB'],
+  'llama3.2-1b':  ['Llama-3.2-1B-Instruct', 'Llama-3.2-1B-Instruct-q4f16_1-MLC', 'Llama-3.2-1B-Instruct-q4f32_1-MLC', '0.7 GB'],
+  'gemma2-2b':    ['Gemma-2-2B-it',         'gemma-2-2b-it-q4f16_1-MLC',         'gemma-2-2b-it-q4f32_1-MLC',         '1.4 GB'],
+};
+const LLM_DEFAULT = 'qwen2.5-1.5b';
+// In the picker. Measured on scripts/tests/ask-questions.json (2026-11-22): Qwen2.5-1.5B reads 68/70
+// correctly, Qwen2.5-0.5B only 40/70, so only the 1.5B is offered; ?model= reaches the others for testing.
+const LLM_OFFERED = ['qwen2.5-1.5b'];
+
+// The form's question shapes, and the entity of this page each one selects.
+const LLM_ENTITIES = {
+  tunnels:'tunnel', tunnel_length_km:'tunnellength', freight_terminals:'freight', stations:'station',
+  border_points:'border', operational_points:'oppoint', sections_of_line:'section', railway_lines:'line',
+  high_speed_line_km:'highspeed', infrastructure_managers:'im', railway_undertakings:'ru',
+  organisation_lookup:'orgcode', legislation:'legal',
+};
+const INTENT_SCHEMA = {
+  type:'object',
+  properties:{
+    entity:{type:'string', enum:[...Object.keys(LLM_ENTITIES), 'unsupported']},
+    action:{type:'string', enum:['count', 'list']},
+    country:{type:'string', enum:[...COUNTRIES.map(c => c[0]), 'ALL', 'OTHER']},
+    topic:{type:'string'},
+    org_code:{type:'string'},
+    org_name:{type:'string'},
+    language:{type:'string', enum:['en', 'fr', 'de', 'es', 'it', 'other']},
+  },
+  required:['entity', 'action', 'country', 'topic', 'org_code', 'org_name', 'language'],
+  additionalProperties:false,
+};
+const LLM_SYSTEM = `Fill in a JSON form that picks one of a fixed set of database queries for a question about European railways. Do not answer the question.
+
+entity:
+- tunnels
+- tunnel_length_km: total length of tunnels
+- freight_terminals: freight terminals, freight stations, goods yards
+- stations: railway stations
+- border_points: border points, border crossings
+- operational_points
+- sections_of_line
+- railway_lines
+- high_speed_line_km: length of high-speed line
+- infrastructure_managers: who manages railway infrastructure
+- railway_undertakings: train operators, railway companies
+- organisation_lookup: the organisation with a given 4-character code, or the code of a named organisation
+- legislation: EU rail regulations, directives or decisions on a topic
+- unsupported: anything else (level crossings, bridges, signals, platforms, speeds, gauges, trains, timetables, tickets, prices, weather), one particular named line, station or tunnel, superlatives and conditions (longest, more than, maximum), and questions not about railways.
+action: "count" (how many, number of, total) or "list" (which, list, show, who).
+country: ISO 3166-1 alpha-3 code of the one country named; "ALL" for none, Europe or all countries; "OTHER" for a country not in the list.
+topic: legislation only: the subject in one or two lowercase English words as in the title of an EU act (signalling, safety, noise, interoperability), translated into English; else "".
+org_code: organisation_lookup only: a 4-character code that appears in the question, as written; never invent one; else "".
+org_name: organisation_lookup only, when a name is given instead of a code: the name as written; else "".
+language: the language of the question.`;
+// Worked examples, given as earlier turns of the conversation. Kept apart from the evaluation questions.
+const LLM_EXAMPLES = [
+  ['Wie viele Tunnel hat die Schweiz?', {entity:'tunnels', action:'count', country:'CHE', language:'de'}],
+  ['Show me the freight terminals in Poland', {entity:'freight_terminals', action:'list', country:'POL', language:'en'}],
+  ['Combien de kilomètres de lignes à grande vitesse compte la France ?', {entity:'high_speed_line_km', action:'count', country:'FRA', language:'fr'}],
+  ['¿Qué empresas ferroviarias operan en Portugal?', {entity:'railway_undertakings', action:'list', country:'PRT', language:'es'}],
+  ['Quali regolamenti riguardano la sicurezza ferroviaria?', {entity:'legislation', action:'list', country:'ALL', topic:'safety', language:'it'}],
+  ['Which organisation has the code 0084?', {entity:'organisation_lookup', action:'list', country:'ALL', org_code:'0084', language:'en'}],
+  ['Welchen Code hat die SBB?', {entity:'organisation_lookup', action:'list', country:'ALL', org_name:'SBB', language:'de'}],
+  ['How many bridges are there in Poland?', {entity:'unsupported', action:'count', country:'POL', language:'en'}],
+  ['Total length of tunnels in Norway', {entity:'tunnel_length_km', action:'count', country:'NOR', language:'en'}],
+].map(([q, a]) => [q, {entity:a.entity, action:a.action, country:a.country, topic:a.topic || '', org_code:a.org_code || '',
+  org_name:a.org_name || '', language:a.language}]);
+
+/* What the rules decide rather than the model. A 1.5B model reads shapes and topics
+   well but is unreliable on closed-class cues, so these are checked with word lists
+   in the five languages (measured: scripts/tests/ask_llm_eval.py). */
+// Superlatives, comparisons and thresholds: the hand-written queries count or list everything.
+const CONDITION_WORDS = [
+  'longest','shortest','biggest','largest','smallest','busiest','highest','lowest','fastest','slowest','most','least',
+  'maximum','minimum','longer than','shorter than','more than','less than','fewer than','at least','at most','top \\d',
+  'le plus','la plus','les plus','plus long','plus longue','plus longs','plus longues','plus grand','plus grande','plus court','plus courte',
+  'plus de \\d','moins de \\d','au moins','maximal','maximale','minimal','minimale',
+  'längste','längsten','längster','größte','größten','kürzeste','kürzesten','meisten','mehr als','weniger als','mindestens','höchstens','maximale','minimale',
+  'más largo','más larga','más largos','más largas','mayor','menor','más de \\d','menos de \\d','al menos','máximo','máxima','mínimo','mínima',
+  'più lungo','più lunga','più lunghi','più lunghe','maggiore','il più','la più','più di \\d','meno di \\d','almeno','massimo','massima','minimo','minima',
+];
+const CONDITION_RE = new RegExp('(^|[^\\p{L}])(' + CONDITION_WORDS.join('|') + ')(?![\\p{L}])', 'iu');
+const asksCondition = text => CONDITION_RE.test(text);
+const ANY_COUNT = LANGS.flatMap(l => COUNT_TRIGGERS[l]), ANY_LIST = LANGS.flatMap(l => LIST_TRIGGERS[l]);
+function llmMessages(text){
+  return [
+    {role:'system', content:LLM_SYSTEM},
+    ...LLM_EXAMPLES.flatMap(([q, a]) => [{role:'user', content:q}, {role:'assistant', content:JSON.stringify(a)}]),
+    {role:'user', content:text},
+  ];
+}
+
+/* The filled form, checked and turned into the same shape parseQuestion()
+   returns, so everything downstream is shared. */
+function intentToParsed(form, text){
+  const norm = normalize(text);
+  const lang = LANGS.includes(form && form.language) ? form.language : detectLanguage(norm);
+  if(!form || form.entity === 'unsupported' || !LLM_ENTITIES[form.entity]) return {unsupported:true, lang};
+  const entity = ENTITIES.find(e => e.id === LLM_ENTITIES[form.entity]);
+  if(form.country === 'OTHER') return {unsupported:true, otherCountry:true, lang, entity};
+  if(entity.id !== 'legal' && entity.kind !== 'orgcode' && asksCondition(text)) return {unsupported:true, condition:true, lang, entity};
+  const row = COUNTRIES.find(c => c[0] === form.country);
+  const cc = row ? row[0] : null, countryLabel = row ? row[1] : null;
+  // Count or list: the trigger words when the question has them, else the model.
+  const action = anyMatch(norm, ANY_COUNT) ? 'count' : anyMatch(norm, ANY_LIST) ? 'list' : form.action;
+  const intent = (entity.id === 'legal' || entity.kind === 'orgcode') ? 'list'
+    : entity.kind === 'measure' ? 'count' : (action === 'list' ? 'list' : 'count');
+  const clean = s => String(s || '').replace(/^[\s"'“”«»]+|[\s"'“”«»?.!,;:]+$/g, '');
+  if(entity.id === 'legal'){
+    const topic = clean(form.topic).toLowerCase();
+    if(!topic) return {entity, lang, cc, countryLabel, intent, topic:null, noTopic:true};
+    return {entity, lang, cc, countryLabel, intent, topic};
+  }
+  if(entity.kind === 'orgcode'){
+    // A code or a name the model reports must be in the question: a small
+    // model can otherwise "remember" a code that was never asked about.
+    const inText = v => v && text.toLowerCase().includes(v.toLowerCase());
+    const code = clean(form.org_code);
+    const orgCode = /^[A-Za-z0-9]{4}$/.test(code) && /\d/.test(code) && inText(code) ? code.toUpperCase() : null;
+    // A name put in the code field ("ADIF") counts as the name when it is in the question.
+    const name = clean(form.org_name || (!orgCode && !/\d/.test(code) ? code : '')).replace(LEADING_ARTICLES, '');
+    const orgName = !orgCode && inText(name) ? name : null;
+    if(!orgCode && !orgName){
+      // The model found neither: fall back on the keyword extractors, which read "code for X" well.
+      const kwCode = extractCode(text, lang, entity), kwName = kwCode ? null : extractOrgName(text, lang, entity);
+      if(!kwCode && !kwName) return {entity, lang, cc, countryLabel, intent, topic:null, noCode:true};
+      return {entity, lang, cc, countryLabel, intent, topic:null, orgCode:kwCode, orgName:kwName};
+    }
+    return {entity, lang, cc, countryLabel, intent, topic:null, orgCode, orgName};
+  }
+  return {entity, lang, cc, countryLabel, intent, topic:null};
+}
+
+/* ------------------------------------------------------------------ *
  * SPARQL fetch + the same CORS/reachability diagnosis used by the
  * other live-query tools in this repo (see the era-graph skill).
  * ------------------------------------------------------------------ */
@@ -749,14 +940,15 @@ function resultRows(result){
 /* ------------------------------------------------------------------ *
  * Rendering
  * ------------------------------------------------------------------ */
-function renderUnderstood(el, {entity, intent, countryLabel, repo, lang, topic, orgCode, orgName}){
+function renderUnderstood(el, {entity, intent, countryLabel, repo, lang, topic, orgCode, orgName, by}){
   let what = entity.displayName, scope = countryLabel ? ' in ' + esc(countryLabel) : ' across Europe', verb = intent === 'count' ? 'how many ' : 'list of ';
   if(entity.id === 'legal'){ what = `legislation mentioning “${topic}”`; scope = ''; verb = 'list of '; }
   else if(entity.kind === 'orgcode'){ what = orgCode ? `the organisation with code “${orgCode}”` : `the organisation named “${orgName}”`; scope = ''; verb = ''; }
   else if(entity.kind === 'measure'){ verb = 'total kilometres of '; }
   el.hidden = false;
   el.innerHTML = 'Understood as <b>' + verb + esc(what) + '</b>' +
-    scope + ' — querying <b>' + esc(REPO_LABEL[repo]) + '</b> (' + LANG_NAME[lang] + ' detected).';
+    scope + ' — querying <b>' + esc(REPO_LABEL[repo]) + '</b> (' + LANG_NAME[lang] + ' detected' +
+    (by ? ', read by ' + esc(by) : '') + ').';
 }
 function renderMeasure(el, totalKm, n, entity, countryLabel){
   const unitSingular = entity.countUnit ? entity.countUnit[0] : 'section of line';
@@ -823,6 +1015,127 @@ const resultActions = document.getElementById('resultActions');
 const downloadCsvBtn = document.getElementById('downloadCsvBtn');
 const copyLinkBtn = document.getElementById('copyLinkBtn');
 
+/* ---- The language model: WebGPU check, loading, one request at a time ---- */
+const llmDot = document.getElementById('llmDot');
+const llmText = document.getElementById('llmText');
+const llmModelSel = document.getElementById('llmModel');
+const llmLoadBtn = document.getElementById('llmLoad');
+const llmProgress = document.getElementById('llmProgress');
+const llmFill = document.getElementById('llmFill');
+const llmNote = document.getElementById('llmNote');
+const intentMeta = document.getElementById('intentMeta');
+const intentText = document.getElementById('intentText');
+const LLM_REMEMBER = 'era-ask-model';   // set once a model loaded, so the next visit reloads it from the cache
+const llm = {state:'off', engine:null, key:null, id:null, f16:true, loading:null, fromCache:false, queue:Promise.resolve()};
+const pageParams = new URLSearchParams(location.search);
+const askedModel = LLM_MODELS[pageParams.get('model')] ? pageParams.get('model') : null;
+llmModelSel.innerHTML = [...new Set([askedModel, ...LLM_OFFERED].filter(Boolean))]
+  .map(k => `<option value="${k}">${esc(LLM_MODELS[k][0])} · ${esc(LLM_MODELS[k][3])}</option>`).join('');
+llmModelSel.value = askedModel || LLM_DEFAULT;
+const remember = {
+  get(){ try{ return localStorage.getItem(LLM_REMEMBER); } catch{ return null; } },
+  set(v){ try{ localStorage.setItem(LLM_REMEMBER, v); } catch{} },
+};
+function llmStatus(state, html, note){
+  llm.state = state;
+  llmDot.className = 'llmDot' + ({ready:' ok', loading:' busy', error:' bad', unavailable:' bad'}[state] || '');
+  llmText.innerHTML = html;
+  if(note !== undefined) llmNote.innerHTML = note;
+}
+const llmModelId = key => LLM_MODELS[key][llm.f16 ? 1 : 2];
+async function webgpuAdapter(){
+  if(!('gpu' in navigator)) return null;
+  try{ return await navigator.gpu.requestAdapter(); } catch{ return null; }
+}
+function loadLlm(key, fromCache){
+  if(llm.loading) return llm.loading;
+  const [label] = LLM_MODELS[key];
+  llm.fromCache = !!fromCache;
+  llm.loading = (async () => {
+    llmLoadBtn.disabled = true; llmModelSel.disabled = true;
+    llmProgress.hidden = false; llmFill.style.width = '0%';
+    llmStatus('loading', `Loading <b>${esc(label)}</b>${fromCache ? ' from your browser’s cache' : ''}…`, '');
+    try{
+      const webllm = await import('web-llm');
+      if(llm.engine){ await llm.engine.unload(); llm.engine = null; }
+      const id = llmModelId(key);
+      llm.engine = await webllm.CreateMLCEngine(id, {initProgressCallback: r => {
+        llmFill.style.width = Math.round(100 * (r.progress || 0)) + '%';
+        llmNote.textContent = r.text || '';
+      }});
+      llm.key = key; llm.id = id;
+      remember.set(key);
+      llmStatus('ready', `Questions are read by <b>${esc(label)}</b>, running on your GPU.`,
+        `<code>${esc(id)}</code> through WebLLM 0.2.87. It fills in a form constrained to a JSON schema; the queries are hand-written. Keyword matching stays the fallback.`);
+      llmLoadBtn.textContent = 'Load another model';
+    } catch(err){
+      llm.engine = null; llm.key = llm.id = null;
+      llmStatus('error', 'The language model could not be loaded, so questions are read by <b>keyword matching</b>.',
+        esc(String((err && err.message) || err).slice(0, 300)));
+    } finally {
+      llmProgress.hidden = true; llmLoadBtn.disabled = false; llmModelSel.disabled = false; llm.loading = null;
+    }
+  })();
+  return llm.loading;
+}
+function llmRead(text){
+  // WebLLM serves one request at a time: chain the calls.
+  const run = async () => {
+    const t0 = performance.now();
+    const request = {messages:llmMessages(text), temperature:0, max_tokens:200,
+      response_format:{type:'json_object', schema:JSON.stringify(INTENT_SCHEMA)}};
+    if(/^Qwen3/.test(llm.id)) request.extra_body = {enable_thinking:false};
+    const reply = await llm.engine.chat.completions.create(request);
+    const raw = reply.choices[0].message.content;
+    return {form:JSON.parse(raw), raw, seconds:(performance.now() - t0) / 1000, model:LLM_MODELS[llm.key][0], usage:reply.usage || null};
+  };
+  const p = llm.queue.then(run, run);
+  llm.queue = p.catch(() => {});
+  return p;
+}
+const llmStartup = (async () => {
+  const adapter = await webgpuAdapter();
+  if(!adapter){
+    llmModelSel.disabled = true;
+    llmStatus('unavailable', 'Questions are read by <b>keyword matching</b>: this browser has no WebGPU, which the language model needs.',
+      'Recent Chrome and Edge have it; Safari and Firefox are adding it.');
+    return;
+  }
+  llm.f16 = adapter.features.has('shader-f16');
+  llmLoadBtn.disabled = false;
+  llmStatus('off', 'Questions are read by <b>keyword matching</b>. Load the language model to read them with Qwen2.5 instead.',
+    'It is downloaded once from Hugging Face and then cached by your browser. It runs on your GPU, and your questions stay on this page.');
+  // Reload without asking only a model this browser already holds: never start a download unasked.
+  const key = askedModel || remember.get();
+  if(!LLM_MODELS[key]) return;
+  llmModelSel.value = key;
+  try{
+    const webllm = await import('web-llm');
+    if(await webllm.hasModelInCache(llmModelId(key))) loadLlm(key, true);
+  } catch{}
+})();
+llmLoadBtn.addEventListener('click', () => loadLlm(llmModelSel.value, false));
+
+function showReading(reading){
+  if(reading && reading.form){
+    intentMeta.hidden = intentText.hidden = false;
+    intentMeta.textContent = `How ${reading.model} filled in the form (${reading.seconds.toFixed(1)} s), before it was checked:`;
+    intentText.textContent = JSON.stringify(reading.form, null, 2);
+  } else {
+    intentMeta.hidden = !reading || !reading.error;
+    intentMeta.textContent = reading && reading.error ? 'The language model failed on this question (' + reading.error + '), so keyword matching read it.' : '';
+    intentText.hidden = true;
+  }
+}
+function describeParse(p){
+  if(!p || p.noTopic || p.noCode) return null;
+  const where = p.countryLabel ? ' in ' + p.countryLabel : '';
+  if(p.entity.id === 'legal') return `legislation mentioning “${p.topic}”`;
+  if(p.entity.kind === 'orgcode') return p.orgCode ? `the organisation with code ${p.orgCode}` : `the organisation named “${p.orgName}”`;
+  if(p.entity.kind === 'measure') return 'total kilometres of ' + p.entity.displayName + where;
+  return (p.intent === 'count' ? 'how many ' : 'list of ') + p.entity.displayName + where;
+}
+
 const SAMPLES = [
   {tag:'rinf-plus', q:'Give me all the tunnels in Europe'},
   {tag:'rinf-plus', q:'How many freight terminals are there across all countries?'},
@@ -858,18 +1171,55 @@ function showResultActions(result){
   lastResult = result;
   resultActions.hidden = false;
 }
-async function runQuery(rawText){
+async function runQuery(rawText, opts = {}){
   const text = (rawText != null ? rawText : qInput.value).trim();
   if(!text) return;
   const reqId = ++requestId;
   resultPanel.hidden = false;
   understoodEl.hidden = true;
   sparqlDetails.hidden = true;
+  showReading(null);
   clearResultActions();
   answerArea.innerHTML = '<div id="spinner"><span class="spin"></span> Thinking…</div>';
   try{ history.replaceState(null, '', shareUrl(text)); } catch{}
 
-  const parsed = parseQuestion(text);
+  // Read the question: with the language model when it is ready (waiting for
+  // it only while it loads from the cache, which takes seconds), else by keywords.
+  await llmStartup;
+  if(llm.state === 'loading' && llm.fromCache) await llm.loading;
+  if(reqId !== requestId) return;
+  let parsed, reading = null;
+  if(llm.state === 'ready' && !opts.keywords){
+    answerArea.innerHTML = `<div id="spinner"><span class="spin"></span> Reading the question with ${esc(LLM_MODELS[llm.key][0])}…</div>`;
+    try{
+      reading = await llmRead(text);
+      if(reqId !== requestId) return;
+      parsed = intentToParsed(reading.form, text);
+    } catch(err){
+      if(reqId !== requestId) return;
+      reading = {error:String((err && err.message) || err).slice(0, 200)};
+      parsed = parseQuestion(text);
+    }
+  } else {
+    parsed = parseQuestion(text);
+  }
+  const by = reading && reading.form ? reading.model : 'keyword matching';
+
+  if(parsed && parsed.unsupported){
+    // The model judged the question outside this demo. Keyword matching may still
+    // see a shape in it: offer that reading, never run it unasked.
+    const kw = describeParse(parseQuestion(text));
+    answerArea.innerHTML = '<p class="moreNote">' + esc(by) + (parsed.otherCountry
+      ? ' read this as a question about a country outside the 27 that publish RINF data here.'
+      : parsed.condition ? ' read this as a question with a condition or a ranking (longest, more than, maximum …), which the hand-written queries here do not handle: they count or list everything of one kind, in one country or in Europe.'
+      : ' read this as a question this demo cannot answer: it covers counts and lists of tunnels, stations, freight terminals, border points, operational points, sections of line and railway lines, kilometres of tunnel or high-speed line, infrastructure managers, railway undertakings, organisation codes and EU rail legislation by topic — without conditions, rankings or single named places.') + '</p>' +
+      (kw ? `<p class="moreNote">Keyword matching would read it as <b>${esc(kw)}</b>. <button type="button" class="suggest" id="runKeywords">Run it that way</button></p>` : '');
+    const b = document.getElementById('runKeywords');
+    if(b) b.addEventListener('click', () => runQuery(text, {keywords:true}));
+    sparqlDetails.hidden = false; queryMeta.textContent = 'No query was run.'; sparqlText.textContent = '';
+    showReading(reading);
+    return;
+  }
   if(!parsed){ renderUnrecognized(answerArea, false); return; }
   if(parsed.noTopic){ renderUnrecognized(answerArea, true); return; }
   if(parsed.noCode){ renderUnrecognized(answerArea, false, true); return; }
@@ -878,7 +1228,8 @@ async function runQuery(rawText){
   const built = buildQuery(entity, cc, topic, orgCode, orgName);
   if(!built){ renderUnrecognized(answerArea, entity.id === 'legal'); return; }
 
-  renderUnderstood(understoodEl, {entity, intent, countryLabel, repo: built.repo, lang, topic, orgCode, orgName});
+  renderUnderstood(understoodEl, {entity, intent, countryLabel, repo: built.repo, lang, topic, orgCode, orgName, by});
+  showReading(reading);
   sparqlDetails.hidden = false;
   queryMeta.textContent = 'Endpoint: ' + REPO_LABEL[built.repo];
   sparqlText.textContent = entity.kind === 'measure' ? built.measureQuery : (intent === 'count' ? built.countQuery : built.listQuery);
@@ -967,6 +1318,9 @@ if(!SpeechRecognitionCtor){
     try{ recognizer.start(); } catch(err){ micHint.className='err'; micHint.textContent = 'Could not start voice input: ' + err.message; }
   });
 }
+
+// For scripts/tests/ask_llm_eval.py: the parsers, side by side.
+window.eraAsk = {parseQuestion, intentToParsed, describeParse, buildQuery, asksCondition, llmRead, loadLlm, llm, LLM_MODELS, llmStartup};
 
 const initialQuestion = new URLSearchParams(location.search).get('q');
 if(initialQuestion){

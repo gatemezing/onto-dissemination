@@ -588,7 +588,7 @@ from the browser and share a dependency-free XLSX writer.
 |---|---|---|
 | `era-graph-explorer-app.html` | `/` | bubble-graph "follow your nose" demo |
 | `era-holobox-frame.html` | `/holobox.html` | the same bubble graph, natively rendered (no iframe — see Rule 6), in a single desktop view since commit `27ab948` (the 4-face pyramid layout was removed), with an Expand-to-next-bubble control |
-| `era-ask.html` | `/ask.html` | plain-language or voice questions (EN/FR/DE/ES/IT), keyword-matched into live SPARQL across `rinf-plus`, `OCR-KG` and `era-lex` |
+| `era-ask.html` | `/ask.html` | plain-language or voice questions (EN/FR/DE/ES/IT): an in-browser open LLM (Qwen2.5-1.5B via WebLLM/WebGPU) fills a JSON-schema-constrained intent that selects hand-written SPARQL across `rinf-plus`, `OCR-KG` and `era-lex`; keyword matching without WebGPU; evaluated by `scripts/tests/ask_llm_eval.py` |
 | `era-rdf-exporter.html` | `/exporter.html` | export any resource URI as RDF/XML |
 | `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country, plus a network map |
 | `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters, multi-country/multi-line with "Select all", plus a network map |
