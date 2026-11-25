@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCS/TMS extension review</title>
+<meta name="description" content="Review of the ERA Ontology CCS/TMS (ETCS) extension on the ext-ccstms branch, its release v1.1.1 and its SKOS vocabularies, against the core release v4.0.0, the extension governance framework, the ERA principles and live RINF data. Measured 22 November 2026, re-checked against v4.0.0 on 25 November.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+  :root{
+    --ground:#f6f7f9; --surface:#ffffff; --sunken:#eef1f5;
+    --ink:#10161f; --muted:#535e6d; --faint:#7b8695; --rule:#d7dde5;
+    --rail:#2b4a6f; --rail-soft:#e5ecf4;
+    --signal:#8a5610; --signal-soft:#fbf1e0;
+    --verify:#255c45; --verify-soft:#e6f0eb;
+    --alarm:#9b2c2c; --alarm-soft:#f9e7e7;
+    --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+    --sans:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Consolas,monospace;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0e1319; --surface:#151c25; --sunken:#111821;
+      --ink:#e7ecf3; --muted:#a3aebd; --faint:#7d8899; --rule:#28323f;
+      --rail:#8fb5dd; --rail-soft:#1a2634;
+      --signal:#e0a955; --signal-soft:#2a2113;
+      --verify:#7ec9a6; --verify-soft:#132520;
+      --alarm:#f08f8f; --alarm-soft:#2c1717;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1319; --surface:#151c25; --sunken:#111821;
+    --ink:#e7ecf3; --muted:#a3aebd; --faint:#7d8899; --rule:#28323f;
+    --rail:#8fb5dd; --rail-soft:#1a2634;
+    --signal:#e0a955; --signal-soft:#2a2113;
+    --verify:#7ec9a6; --verify-soft:#132520;
+    --alarm:#f08f8f; --alarm-soft:#2c1717;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px;}
+  @media (max-width:560px){ .wrap{padding:0 16px 72px;} }
+  a{color:var(--rail);text-underline-offset:2px;}
+  code{font-family:var(--mono);font-size:.86em;background:var(--sunken);padding:.08em .32em;border-radius:3px;overflow-wrap:anywhere;}
+  strong{font-weight:600;}
+
+  header.mast{padding:52px 0 36px;border-bottom:2px solid var(--ink);}
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--rail);margin:0 0 18px;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.1rem,5vw,3.3rem);line-height:1.06;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance;}
+  .standfirst{font-family:var(--serif);font-size:clamp(1.05rem,2vw,1.27rem);line-height:1.5;color:var(--muted);margin:0;max-width:66ch;}
+  dl.ident{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px 28px;margin:32px 0 0;padding:22px 0 0;border-top:1px solid var(--rule);}
+  dl.ident div{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  dl.ident dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);}
+  dl.ident dd{margin:0;font-size:14px;line-height:1.45;overflow-wrap:anywhere;}
+
+  nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;padding:16px 0;border-bottom:1px solid var(--rule);font-size:14px;}
+  nav.toc a{text-decoration:none;color:var(--muted);}
+  nav.toc a:hover{color:var(--rail);}
+  nav.toc span{font-family:var(--mono);font-size:11px;color:var(--faint);margin-right:5px;}
+
+  section{padding:48px 0 8px;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(1.55rem,3vw,2rem);line-height:1.15;margin:0 0 6px;}
+  h2 .num{font-family:var(--mono);font-size:.5em;font-weight:500;color:var(--faint);vertical-align:.45em;margin-right:10px;letter-spacing:.06em;}
+  h3{font-family:var(--serif);font-weight:600;font-size:1.22rem;margin:34px 0 10px;}
+  p{margin:0 0 14px;max-width:76ch;}
+  .lede{color:var(--muted);margin-bottom:22px;}
+  ul.points,ol.points{margin:0 0 16px;padding-left:22px;max-width:82ch;}
+  ul.points li,ol.points li{margin:0 0 9px;}
+
+  .verdict{display:grid;grid-template-columns:auto 1fr;gap:6px 22px;align-items:start;background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--alarm);border-radius:0 6px 6px 0;padding:20px 22px;margin:22px 0 8px;}
+  .verdict .stamp{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.08em;color:var(--surface);background:var(--alarm);padding:6px 10px;border-radius:3px;white-space:nowrap;}
+  .verdict p{margin:0 0 8px;max-width:none;}
+  .verdict p:last-child{margin-bottom:0;}
+  @media (max-width:560px){ .verdict{grid-template-columns:1fr;} .verdict .stamp{justify-self:start;} }
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0 8px;}
+  .tile{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:16px 18px 14px;}
+  .tile .v{font-family:var(--serif);font-weight:700;font-size:2rem;line-height:1.05;font-variant-numeric:tabular-nums;}
+  .tile .l{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.4;}
+
+  .note{background:var(--rail-soft);border-left:3px solid var(--rail);padding:14px 18px;border-radius:0 6px 6px 0;margin:18px 0;font-size:15px;max-width:none;}
+  .note.warn{background:var(--signal-soft);border-left-color:var(--signal);}
+  .note.good{background:var(--verify-soft);border-left-color:var(--verify);}
+  .note p:last-child{margin-bottom:0;}
+
+  .tablewrap{overflow-x:auto;margin:12px 0 20px;border:1px solid var(--rule);border-radius:6px;background:var(--surface);}
+  table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.45;}
+  th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule);}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--sunken);white-space:nowrap;}
+  tbody tr:last-child td{border-bottom:0;}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .tablewrap table{min-width:640px;}
+  td.nw{white-space:nowrap;}
+
+  .sev{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;border:1px solid currentColor;}
+  .sev.blocker{color:var(--surface);background:var(--alarm);border-color:var(--alarm);}
+  .sev.major{color:var(--alarm);background:var(--alarm-soft);}
+  .sev.minor{color:var(--signal);background:var(--signal-soft);}
+  .sev.sugg{color:var(--rail);background:var(--rail-soft);}
+  .sev.ok{color:var(--verify);background:var(--verify-soft);}
+  .kind{font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.05em;text-transform:uppercase;}
+
+  .finding{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px 20px 6px;margin:14px 0;}
+  .finding h4{margin:0 0 10px;font-size:16px;line-height:1.4;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;}
+  .finding h4 .id{font-family:var(--mono);font-size:12px;color:var(--faint);}
+  .finding p{max-width:none;font-size:15px;}
+  .finding .lab{font-weight:600;}
+  .fix{color:var(--muted);}
+  .fix::before{content:"Action: ";font-weight:600;color:var(--ink);}
+
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.5;background:var(--sunken);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;overflow-x:auto;margin:8px 0 16px;}
+  pre .c{color:var(--faint);}
+  footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);font-size:13px;color:var(--muted);}
+  footer p{max-width:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Ontology review · measured 22 November 2026 · re-checked against v4.0.0 on 25 November</p>
+  <h1>The CCS/TMS extension, checked against ERA Ontology v4.0.0</h1>
+  <p class="standfirst">The <code>ext-ccstms</code> branch adds 1,177 ETCS, TMS and infrastructure-engineering terms to the <code>era:</code> namespace. This review checks the branch, its last release v1.1.1 and its SKOS vocabularies against the core release v4.0.0, ERA's extension governance framework, the ERA principles and live RINF data.</p>
+  <dl class="ident">
+    <div><dt>Reviewed</dt><dd>Branch <a href="https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology/-/tree/ext-ccstms"><code>ext-ccstms</code></a>, head <code>e1cc7dd6c7</code> (2026-11-20, "minor updates"): <code>ontology.ttl</code>, <code>era-skos/</code>, <code>era-shacl/</code>; and <code>releases/v1.1.1/Ontology/ccstms.ttl</code></dd></div>
+    <div><dt>Target</dt><dd>Tag <code>v4.0.0</code> (2026-11-23): <code>ontology.ttl</code>, <code>era-skos/</code>, <code>era-shacl/</code>; first measured on its candidate <code>v4.0.0-rc.5</code> (2026-11-18)</dd></div>
+    <div><dt>Base of the branch</dt><dd>Core <code>v3.3.3</code> (tag of 2026-07-28), named in the branch's own ontology header</dd></div>
+    <div><dt>Rules applied</dt><dd><code>governance/Framework-extensions-management.md</code>, <code>governance/era-principles.md</code> (v2.0), OWL 2 DL; live data from <a href="https://graph.data.era.europa.eu/repositories/rinf-plus"><code>rinf-plus</code></a></dd></div>
+  </dl>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#summary"><span>1</span>Verdict</a>
+  <a href="#scope"><span>2</span>What was reviewed</a>
+  <a href="#governance"><span>3</span>Governance criteria</a>
+  <a href="#findings"><span>4</span>Findings</a>
+  <a href="#skos"><span>5</span>Vocabularies</a>
+  <a href="#shacl"><span>6</span>Shapes &amp; validator</a>
+  <a href="#works"><span>7</span>What works</a>
+  <a href="#path"><span>8</span>Path to v4.0.0</a>
+  <a href="#method"><span>9</span>Method &amp; limits</a>
+</nav>
+
+<!-- ============================== 1 ============================== -->
+<section id="summary">
+  <h2><span class="num">01</span>Verdict</h2>
+
+  <div class="verdict">
+    <span class="stamp">NOT READY</span>
+    <div>
+      <p><strong>The extension cannot be aligned with v4.0.0 as it stands.</strong> On its own it is consistent, well documented in purpose and largely clean against live RINF data. Merged with v4.0.0, it breaks in three ways.</p>
+      <p><strong>Data that matches either side makes the merged ontology inconsistent.</strong> The branch and v4.0.0 define <code>era:x</code>, <code>era:y</code>, <code>era:z</code> and <code>era:offset</code> separately, with ranges no literal can satisfy at once. HermiT proves this with a single value, and the control runs beside it stay consistent.</p>
+      <p><strong>Three IRIs are both object and datatype properties.</strong> OWL 2 DL forbids this.</p>
+      <p><strong>The branch is a copy of core v3.3.3, not a module on top of the core.</strong> It carries the same ontology IRI and calls itself "ERA Ontology v3.3.3". v4.0.0 has moved on from that base.</p>
+      <p>Behind these: the only release, v1.1.1, makes 6,480 live RINF operational points inconsistent, 302 released terms were dropped without deprecation, and the hosted validator applies shapes (v1.3, v1.4.0) that the repository does not hold.</p>
+    </div>
+  </div>
+
+  <div class="note good">
+    <p><strong>Re-checked against v4.0.0.</strong> The review was first measured on 22 November against the candidate release <code>v4.0.0-rc.5</code>. ERA tagged <code>v4.0.0</code> on 23 November. Between the two tags, <code>ontology.ttl</code> changes only its <code>owl:versionInfo</code> and <code>owl:versionIRI</code> (47,693 triples each), all 425 <code>era-skos/</code> files are byte-identical, and <code>era-shacl/</code> is untouched. The extension governance framework changes only one URL, and the <code>ext-ccstms</code> branch has not moved. Every term check and all 16 reasoner runs were repeated with v4.0.0 as the target, with the same results. The findings therefore apply to v4.0.0 unchanged.</p>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="v">1,177</div><div class="l">terms the branch head adds to <code>era:</code>: 305 classes, 462 object, 404 datatype, 6 annotation properties</div></div>
+    <div class="tile"><div class="v">13</div><div class="l">of them already defined by v4.0.0, separately; 4 with ranges that make any value inconsistent</div></div>
+    <div class="tile"><div class="v">3</div><div class="l">IRIs typed as both object and datatype property (outside OWL 2 DL)</div></div>
+    <div class="tile"><div class="v">6,480</div><div class="l">RINF operational points that release v1.1.1 makes inconsistent (functional <code>era:opName</code>)</div></div>
+    <div class="tile"><div class="v">302</div><div class="l">terms of release v1.1.1 missing from the head, none deprecated</div></div>
+    <div class="tile"><div class="v">17</div><div class="l">of 1,177 new terms with <code>rdfs:isDefinedBy</code>; none with <code>vs:term_status</code></div></div>
+  </div>
+
+  <h3>Findings at a glance</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>#</th><th>Finding</th><th>Severity</th><th>Type</th></tr></thead>
+    <tbody>
+      <tr><td><a href="#b1">B1</a></td><td><code>era:x</code>, <code>y</code>, <code>z</code>, <code>offset</code>: disjoint datatype ranges once merged with v4.0.0</td><td><span class="sev blocker">BLOCKER</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#b2">B2</a></td><td>Three IRIs both object and datatype property</td><td><span class="sev blocker">BLOCKER</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#b3">B3</a></td><td>The branch is a fork of core v3.3.3 under the core's IRI and version</td><td><span class="sev blocker">BLOCKER</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#m1">M1</a></td><td>Release v1.1.1 makes live RINF inconsistent; the fix exists only on the branch head</td><td><span class="sev major">MAJOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#m2">M2</a></td><td>Domains and ranges of shared IRIs diverge, so the merge infers wrong types</td><td><span class="sev major">MAJOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#m3">M3</a></td><td>11 SUBSET-026 national values duplicate regulated RINF parameters</td><td><span class="sev major">MAJOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#m4">M4</a></td><td>Released terms deleted, not deprecated</td><td><span class="sev major">MAJOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#m5">M5</a></td><td>Release, branch head and hosted validator out of step; no extension shapes in the repository</td><td><span class="sev major">MAJOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#m6">M6</a></td><td>SKOS schemes with the same IRI hold different concepts; 3 coded properties point at missing schemes</td><td><span class="sev major">MAJOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#m7">M7</a></td><td>No provenance metadata to tell extension terms from core terms</td><td><span class="sev major">MAJOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#n1">m1</a></td><td>Naming off ERA principle P1: 106 classes, 328 properties</td><td><span class="sev minor">MINOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#n2">m2</a></td><td>1,117 labels only repeat the identifier</td><td><span class="sev minor">MINOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#n3">m3</a></td><td>Application constraints written as OWL restrictions on core classes</td><td><span class="sev minor">MINOR</span></td><td class="kind">design</td></tr>
+      <tr><td><a href="#n4">m4</a></td><td>Core axioms changed from the extension (disjointness, labels, tags)</td><td><span class="sev minor">MINOR</span></td><td class="kind">governance</td></tr>
+      <tr><td><a href="#n5">m5</a></td><td>Documentation gaps: base version, governance chapter, licence, examples</td><td><span class="sev minor">MINOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#n6">m6</a></td><td>v1.1.1 datatypes outside the OWL 2 datatype map</td><td><span class="sev minor">MINOR</span></td><td class="kind">confirmed</td></tr>
+      <tr><td><a href="#s1">S1–S4</a></td><td>Module packaging, CI gate, SUBSET-026 notation, SHACL profiles per view</td><td><span class="sev sugg">SUGGESTION</span></td><td class="kind">design</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================== 2 ============================== -->
+<section id="scope">
+  <h2><span class="num">02</span>What was reviewed</h2>
+  <p class="lede">The branch holds three versions of the extension, and they disagree. The review covers each one, because each has its own users.</p>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th>Artefact</th><th>What it is</th><th>Who uses it</th></tr></thead>
+    <tbody>
+      <tr><td class="nw"><strong>Release v1.1.1</strong><br><code>releases/v1.1.1/Ontology/ccstms.ttl</code></td><td>The last tagged extension release, a standalone file of 1,604 <code>era:</code> terms that also redeclares 674 core terms. Header: <code>owl:versionInfo "v1.1.1"</code>, title "ERA Ontology". CHANGELOG: RBC configuration, location accuracy, <code>SpeedRestriction</code>, removal of the "unstable Equipment model".</td><td>Anyone who downloads "the extension" from the releases folder.</td></tr>
+      <tr><td class="nw"><strong>Branch head</strong><br><code>ontology.ttl</code> at <code>e1cc7dd6c7</code></td><td>Core v3.3.3 with the extension inlined: 8,020 triples added, 6 removed. It adds 1,177 terms and changes 51 core terms. Header unchanged from core: <code>owl:versionInfo "v3.3.3"</code>, <code>owl:versionIRI …/releases/v3.3.3</code>.</td><td>The live work; 531 of its terms are in no release.</td></tr>
+      <tr><td class="nw"><strong>Hosted validator</strong><br>ITB <code>shacl/ccstms</code></td><td>SHACL validation service. Its API lists the validation types <code>infra</code>, <code>eng</code> and <code>opp</code> at v1.3 and v1.4.0 ("latest"), and <code>tp</code> at v1.3.</td><td>Data producers checking their files.</td></tr>
+      <tr><td class="nw"><strong>Target: v4.0.0</strong><br>tag <code>v4.0.0</code></td><td>Core release of 2026-11-23, <code>owl:priorVersion</code> v3.3.4. Identical to its candidate rc.5 (2026-11-18) apart from <code>owl:versionInfo</code> and <code>owl:versionIRI</code>. Since v3.3.3 the core has added terms of its own, among them <code>era:x</code>, <code>era:offset</code>, <code>era:startDate</code>, <code>era:event</code> and <code>era:Platform</code>.</td><td>The version the extension must align with.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Release v1.1.1 and branch head, side by side</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Check against v4.0.0</th><th class="n">Release v1.1.1</th><th class="n">Branch head</th></tr></thead>
+    <tbody>
+      <tr><td>Terms in <code>era:</code> that v4.0.0 does not define</td><td class="n">930</td><td class="n">1,164 of the 1,177 added</td></tr>
+      <tr><td>IRIs typed object property on one side, datatype property on the other</td><td class="n">4</td><td class="n">3</td></tr>
+      <tr><td>Range differs from v4.0.0 (on IRIs both define)</td><td class="n">64</td><td class="n">13</td></tr>
+      <tr><td>Domain differs from v4.0.0</td><td class="n">50</td><td class="n">12</td></tr>
+      <tr><td>Uses terms v4.0.0 deprecates</td><td class="n">100</td><td class="n">0</td></tr>
+      <tr><td><code>owl:FunctionalProperty</code> added to core properties</td><td class="n">14</td><td class="n">0</td></tr>
+      <tr><td>Names equal to another v4.0.0 term up to case and separators</td><td class="n">51</td><td class="n">21</td></tr>
+      <tr><td>HermiT, v4.0.0 + extension + one real operational point</td><td class="n"><span class="sev major">INCONSISTENT</span></td><td class="n"><span class="sev ok">CONSISTENT</span></td></tr>
+      <tr><td>HermiT, v4.0.0 + extension + one coordinate value (<a href="#b1">B1</a>)</td><td class="n">not run</td><td class="n"><span class="sev major">INCONSISTENT</span></td></tr>
+    </tbody>
+  </table></div>
+  <p>The head is clearly better than the release: it dropped the functional declarations and the use of deprecated terms. Most findings below are therefore about the head. Where the release is worse, the finding says so.</p>
+
+  <h3>Modules, by <code>era:ccsView</code> tag on the head's new terms</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Tag</th><th>Module (documented purpose)</th><th class="n">New terms</th></tr></thead>
+    <tbody>
+      <tr><td><code>ss026</code></td><td>Engineering of ETCS balise telegrams (SUBSET-026 packets and variables)</td><td class="n">520</td></tr>
+      <tr><td><code>OPP</code></td><td>TMS / SCI-OP use case, aligned with Concept_Interface_TMS_CCS v1.2</td><td class="n">289</td></tr>
+      <tr><td><code>INFRA</code></td><td>Infrastructure data objects</td><td class="n">209</td></tr>
+      <tr><td><code>TP</code></td><td>Train protection, including the field object controller</td><td class="n">107</td></tr>
+      <tr><td><code>ENG</code></td><td>Engineering of ETCS Level 2</td><td class="n">65</td></tr>
+      <tr><td><code>MAP</code></td><td>Digital map, coordinate projections</td><td class="n">33</td></tr>
+      <tr><td>none</td><td>untagged</td><td class="n">6</td></tr>
+    </tbody>
+  </table></div>
+  <p>A term can carry several tags. The extension document also lists <code>OI</code> (on-board infrastructure) and <code>SDI_Generic</code>. Release v1.1.1 tags 151 terms <code>OI</code>, but none of the head's new terms carries that tag.</p>
+</section>
+
+<!-- ============================== 3 ============================== -->
+<section id="governance">
+  <h2><span class="num">03</span>Against the governance framework</h2>
+  <p class="lede">The criteria are those of <code>governance/Framework-extensions-management.md</code> on the branch itself: the guiding requirements of §2 and the evaluation criteria of §5.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Criterion</th><th>What the framework asks</th><th>Assessment</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Separate branch</strong></td><td>Same repository as the core, separate branch</td><td>Done, but the branch replaces <code>ontology.ttl</code> wholesale rather than adding a module beside it (<a href="#b3">B3</a>).</td><td><span class="sev minor">PARTLY</span></td></tr>
+      <tr><td><strong>Licence</strong></td><td>EUPL or compatible</td><td>The head inherits the core's <code>cc:license</code> (Implementing Decision 2017/863, EUPL 1.2), and the release README says EUPL. The Approach document says "no licensing model … decided yet (e.g. EUPL 1.2)".</td><td><span class="sev minor">PARTLY</span></td></tr>
+      <tr><td><strong>Best practices / ERA principles</strong></td><td>If the extension reuses <code>era:</code>, follow era-principles</td><td>It reuses <code>era:</code> and departs from P1 (naming), P3 (scheme IRIs), P4 (deprecate, never delete) and P5 (term metadata): <a href="#n1">m1</a>, <a href="#m6">M6</a>, <a href="#m4">M4</a>, <a href="#m7">M7</a>.</td><td><span class="sev major">NOT MET</span></td></tr>
+      <tr><td><strong>Justification</strong></td><td>Documented use case and rationale</td><td>Strong. The extension document and the Cover and Approach documents give the System Pillar use cases, consumers and module purposes, and limit the scope to static configuration data plus diagnostics.</td><td><span class="sev ok">MET</span></td></tr>
+      <tr><td><strong>Relevance</strong></td><td>Use cases outside the regulated scope the core covers</td><td>Micro-level CCS/TMS data is outside RINF and ERATV. But the <code>ss026</code> module re-mints ETCS national values that v4.0.0 already carries as RINF parameters (<a href="#m3">M3</a>). The documents do not discuss the TSI CCS boundary.</td><td><span class="sev minor">PARTLY</span></td></tr>
+      <tr><td><strong>Reuse first</strong></td><td>Prefer established vocabularies</td><td>Documented reuse of OWL-Time, GeoSPARQL, QUDT, W3C Organization and SKOS. Not measured term by term in the TTL.</td><td><span class="sev ok">MET</span> <span class="side kind">as documented</span></td></tr>
+      <tr><td><strong>Clarity</strong></td><td>Clear, formal definitions and usage, with an evolution plan</td><td>Every new term has a comment, but 1,117 labels only repeat the identifier (<a href="#n2">m2</a>). The governance chapter of the extension document reads "To be updated", and there is no roadmap.</td><td><span class="sev minor">PARTLY</span></td></tr>
+      <tr><td><strong>Non-duplication</strong></td><td>No overlap with existing elements</td><td>13 IRIs defined separately by v4.0.0 (<a href="#b1">B1</a>, <a href="#m2">M2</a>). 11 snake_case duplicates of v4.0.0 properties (<a href="#m3">M3</a>). 50 SKOS schemes diverge (<a href="#m6">M6</a>).</td><td><span class="sev major">NOT MET</span></td></tr>
+      <tr><td><strong>Interoperability</strong></td><td>Align with RDF(S), OWL, SHACL, SKOS; cover the interface with the ERA Ontology</td><td>Punning outside OWL 2 DL (<a href="#b2">B2</a>). No extension shapes in the repository (<a href="#m5">M5</a>). Aligned with v3.3.3, not v4.0.0 (<a href="#b3">B3</a>).</td><td><span class="sev major">NOT MET</span></td></tr>
+      <tr><td><strong>Transparency</strong></td><td>Decisions documented and traceable</td><td>CHANGELOGs exist for v1.1 and v1.1.1 only. Nothing documents the head's 531 unreleased terms or the validator's v1.3 and v1.4.0 (<a href="#m5">M5</a>).</td><td><span class="sev minor">PARTLY</span></td></tr>
+      <tr><td><strong>Impact</strong></td><td>Backward compatibility and integration risk assessed</td><td>No assessment found. The release breaks RINF reasoning (<a href="#m1">M1</a>), released terms vanished (<a href="#m4">M4</a>), and 51 core terms are changed.</td><td><span class="sev major">NOT MET</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================== 4 ============================== -->
+<section id="findings">
+  <h2><span class="num">04</span>Findings</h2>
+  <p class="lede">Each finding gives its evidence, why it matters and the action to take. "Confirmed" means it was measured or proved by a reasoner. "Design" means it is a recommendation where reasonable people could choose otherwise.</p>
+
+  <h3>Blockers</h3>
+
+  <div class="finding" id="b1">
+    <h4><span class="id">B1</span><span class="sev blocker">BLOCKER</span>Four properties get ranges that no value can satisfy once merged with v4.0.0 <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span> The branch head and v4.0.0 both define <code>era:x</code>, <code>era:y</code> and <code>era:z</code>. The head uses them for map projections, with range <code>xsd:double</code>; v4.0.0 uses them for coach-layout grids, with range <code>xsd:int</code>. <code>era:offset</code> is <code>xsd:double</code> on the head and <code>xsd:integer</code> in v4.0.0. In OWL 2 the value spaces of <code>xsd:double</code> and of the integer types are disjoint, and two <code>rdfs:range</code> axioms are read together, so no literal can be a value. HermiT shows this with one individual:</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Run</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>v4.0.0 + <code>ex:a era:x "3"^^xsd:int</code> (control)</td><td><span class="sev ok">CONSISTENT</span></td></tr>
+        <tr><td>v4.0.0 + extension delta + the same <code>xsd:int</code> value</td><td><span class="sev major">INCONSISTENT</span></td></tr>
+        <tr><td>branch head + <code>ex:a era:x "1.5"^^xsd:double</code> (control)</td><td><span class="sev ok">CONSISTENT</span></td></tr>
+        <tr><td>v4.0.0 + extension delta + the same <code>xsd:double</code> value</td><td><span class="sev major">INCONSISTENT</span></td></tr>
+        <tr><td>v4.0.0 + <code>ex:a era:offset "2"^^xsd:integer</code> (control)</td><td><span class="sev ok">CONSISTENT</span></td></tr>
+        <tr><td>v4.0.0 + extension delta + the same value</td><td><span class="sev major">INCONSISTENT</span></td></tr>
+      </tbody>
+    </table></div>
+<pre><span class="c"># v4.0.0</span>
+era:x a owl:DatatypeProperty ; rdfs:range xsd:int ;
+      rdfs:domain [ owl:unionOf ( era:CoachLayoutGridSize era:GridPosition … ) ] .
+<span class="c"># ext-ccstms head</span>
+era:x a owl:DatatypeProperty ; rdfs:range xsd:double ;
+      rdfs:domain [ owl:unionOf ( era:FunctionalElementProjection era:LinearElementCoordinate ) ] .
+<span class="c"># merged: every value of era:x must be an xsd:int and an xsd:double. None is.</span></pre>
+    <p><span class="lab">Impact.</span> Any data that uses these properties, whether coach layouts that conform to v4.0.0 or map data that conforms to the extension, makes a reasoner reject the merged ontology. The two meanings are unrelated: a seat-grid column has nothing to do with a projected easting. <code>y</code> and <code>z</code> have the same ranges as <code>x</code>; they were not run separately. Four core LRS properties (<code>offsetFromOrigin</code>, <code>startOffsetFromOrigin</code>, <code>endOffsetFromOrigin</code>, <code>lengthOfNetLinearElement</code>) have the same pattern on a naive file merge: still <code>xsd:double</code> on the branch, <code>xsd:decimal</code> in v4.0.0. Rebasing (<a href="#b3">B3</a>) removes those four. The other four need new names.</p>
+    <p class="fix">Give the extension's terms their own IRIs, for example <code>era:projectedX</code>, or reuse GeoSPARQL geometry. Never mint a term whose IRI the target core release already defines. Add an IRI-collision check against the target tag to CI (<a href="#s2">S2</a>).</p>
+  </div>
+
+  <div class="finding" id="b2">
+    <h4><span class="id">B2</span><span class="sev blocker">BLOCKER</span>Three IRIs are both object and datatype properties <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span></p>
+    <ul class="points">
+      <li><code>era:gsmrConstraintsOperateOnlyInCircuitSwitch</code> and <code>era:etcsBaselineIncompleteCompatibility</code> are datatype properties in v3.3.3 and v4.0.0, with range <code>xsd:string</code>. The head adds <code>rdf:type owl:ObjectProperty</code> to both, keeping <code>owl:DatatypeProperty</code> and the <code>xsd:string</code> range.</li>
+      <li><code>era:accuracy</code> is a new datatype property on the head (<code>xsd:double</code>, domain <code>era:OffsetAccuracy</code>). v4.0.0 defines it as an object property ranging over <code>skos:Concept</code>, with domain <code>GeoCoordinateDef ⊔ GeoCoordinateType</code>.</li>
+      <li>Release v1.1.1 had four such conflicts: <code>accuracy</code>, <code>gsmrConstraintsOperateOnlyInCircuitSwitch</code>, <code>vehiclePantographHead</code> and <code>warning</code>.</li>
+      <li>Owlready2 reported each IRI while loading ("belongs to more than one entity types … trying to fix it").</li>
+    </ul>
+    <p><span class="lab">Impact.</span> OWL 2 DL does not allow one IRI as both an object and a data property. DL tools then reject the ontology, or silently "repair" it in tool-specific ways, so different consumers see different ontologies. An object-property declaration with a literal range is also self-contradictory on its own.</p>
+    <p class="fix">Remove the two extra <code>owl:ObjectProperty</code> types. If a coded value is meant, add a new object property and deprecate the string one (P4, P8). Rename the extension's <code>accuracy</code>, for example <code>era:offsetAccuracyValue</code>.</p>
+  </div>
+
+  <div class="finding" id="b3">
+    <h4><span class="id">B3</span><span class="sev blocker">BLOCKER</span>The branch is a fork of core v3.3.3, published under the core's IRI and version <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span> The head's <code>ontology.ttl</code> is the whole core v3.3.3 with 8,020 triples added. The header is still the core's: ontology IRI <code>http://data.europa.eu/949/</code>, <code>owl:versionInfo "v3.3.3"</code>, <code>owl:versionIRI …/-/releases/v3.3.3</code>, <code>owl:priorVersion …/v3.3.2</code>. Release v1.1.1 uses the same ontology IRI with <code>owl:versionInfo "v1.1.1"</code>. No document states which core version the extension builds on. v4.0.0 comes after v3.3.4 and has changed core terms the branch keeps: four LRS offsets went from <code>xsd:double</code> to <code>xsd:decimal</code>, and v4.0.0 added its own <code>x</code>, <code>offset</code>, <code>startDate</code> and <code>Platform</code>.</p>
+    <p><span class="lab">Impact.</span> Two different files claim to be "ERA Ontology v3.3.3" and neither says which one is meant. The extension cannot be loaded as a module on top of v4.0.0, or later on v4.0.0. Every core release then means a three-way merge by hand. The governance framework allows its own namespace, and at least asks for a separable unit.</p>
+<pre><span class="c"># illustrative module header: own IRI and version, importing the core release it extends</span>
+&lt;http://data.europa.eu/949/ext/ccstms&gt; a owl:Ontology ;
+    owl:versionInfo "v1.2.0" ;
+    owl:imports &lt;https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology/-/releases/v4.0.0&gt; ;
+    dct:license &lt;http://data.europa.eu/eli/dec_impl/2017/863/oj&gt; .</pre>
+    <p class="fix">Rebase the branch on <code>v4.0.0</code>. Split the extension into its own file with its own ontology IRI and version, importing the core version IRI it extends. Keep the core's <code>ontology.ttl</code> byte-identical to the tag. See also <a href="#s1">S1</a>.</p>
+  </div>
+
+  <h3>Major</h3>
+
+  <div class="finding" id="m1">
+    <h4><span class="id">M1</span><span class="sev major">MAJOR</span>Release v1.1.1 makes live RINF data inconsistent; the fix exists only on the branch head <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span> Release v1.1.1 declares <code>owl:FunctionalProperty</code> on 14 core properties. It also adds <code>maxCardinality 1</code> on <code>era:opName</code> for <code>era:OperationalPoint</code>. In <code>rinf-plus</code>, 6,480 operational points have more than one name, many of them bilingual, for example <code>operationalPoint/ae4b44fc65</code> "Riksgräns Haparanda - Tornio | Tornio-raja". HermiT on v4.0.0 plus that one point is consistent. Adding the v1.1.1 extension makes it <strong>inconsistent</strong>. Four more of the 14 properties have several values on live subjects:</p>
+    <ul class="points">
+      <li><code>contactStripMaterial</code>: 51,154 subjects</li>
+      <li><code>gaugingCheckLocation</code>: 4,737 subjects</li>
+      <li><code>trainDetectionSystemSpecificCheck</code>: 1,126 subjects</li>
+      <li><code>localRulesOrRestrictionsDoc</code>: 550 subjects</li>
+    </ul>
+    <p><code>gaugingCheckLocation</code> is a datatype property, so its distinct strings are inconsistent in the same way as <code>opName</code>. The other three are object properties: they don't make the data inconsistent, but a reasoner concludes that the distinct concepts or documents are one individual (<code>owl:sameAs</code>). A further 23 sections of line break the release's <code>qualifiedCardinality 1</code> on <code>era:nationalLine</code>.</p>
+    <p><span class="lab">Impact.</span> Anyone who loads the published extension with RINF, its main companion dataset, gets an inconsistent graph or merged concepts. The head no longer declares these: the head plus the same point is consistent, and the head's own new restrictions have no live violations. But no release carries the fix.</p>
+    <p class="fix">Cut a new release from the rebased head and mark v1.1.1 as superseded in the releases folder. Keep functional and cardinality constraints that RINF publishers break out of OWL: they belong in SHACL (<a href="#n3">m3</a>).</p>
+  </div>
+
+  <div class="finding" id="m2">
+    <h4><span class="id">M2</span><span class="sev major">MAJOR</span>Shared IRIs with different domains and ranges: the merge infers wrong types <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span> RDFS reads several <code>rdfs:domain</code> or <code>rdfs:range</code> axioms on one property as an intersection, so each pair below makes every use infer both sides.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>IRI</th><th>Branch head</th><th>v4.0.0</th></tr></thead>
+      <tbody>
+        <tr><td><code>era:startDate</code></td><td>domain <code>PhysicalTrainUnitIdentifier</code></td><td>domain <code>CompositIdentifierOperationalType ⊔ CompositIdentifierPlannedType</code></td></tr>
+        <tr><td><code>era:event</code></td><td>domain <code>EventEstimation ⊔ EventHandling</code>, range <code>MovementEvent</code></td><td>domain <code>WagonStatusMessage</code>, range <code>Event</code></td></tr>
+        <tr><td><code>era:activities</code></td><td>domain <code>StopDescription</code>, range <code>rdf:List</code></td><td>domain <code>TrainRunningData</code>, range <code>era:Activities</code></td></tr>
+        <tr><td><code>era:arrival</code></td><td>domain <code>EventEstimation</code></td><td>domain <code>AlternativeTrain</code></td></tr>
+        <tr><td><code>era:content</code></td><td>domain <code>OnBoardExtension</code></td><td>domain: union of 5 document and token classes</td></tr>
+        <tr><td><code>era:timeValue</code></td><td>domain <code>AdditionalEventTime</code>, range <code>xsd:dateTime</code></td><td>domain <code>Time</code>, range <code>xsd:time</code></td></tr>
+        <tr><td><code>era:trainLength</code></td><td>range <code>xsd:unsignedInt</code> and an anonymous range</td><td>range <code>xsd:integer</code></td></tr>
+        <tr><td><code>era:Platform</code></td><td>class, "Defines the object platform"</td><td>class, "The surface next to a track along which one or more trains is intended to remain stationary…"</td></tr>
+      </tbody>
+    </table></div>
+    <p>The head also widens the domain of three core properties. It replaces a named class with a union:</p>
+    <ul class="points">
+      <li><code>era:etcsMVersion</code>: <code>ETCS</code> becomes <code>BaliseGroup ⊔ ETCS ⊔ ETCSTrackToTrainPacket_2 ⊔ ETCSTrackToTrainRM_32 ⊔ SystemVersion</code></li>
+      <li><code>era:rbcPhone</code>: <code>RadioBlockCenter</code> becomes the union with three track-to-train packets</li>
+      <li><code>era:onLinearElement</code>: gains <code>SegmentProfile</code></li>
+    </ul>
+    <p>On a merge, v4.0.0's narrower domain survives alongside the union, so the widening has no effect except where v4.0.0's axiom is removed. That is a core change.</p>
+    <p><span class="lab">Impact.</span> A TAF wagon-status message would be inferred to be an ATO event estimation, a train-unit identifier a composite identifier, and so on. No error is raised; queries and classifications are simply wrong. Changing a core domain is a "more complex" change under P4 and needs the core's agreement.</p>
+    <p class="fix">For each of the 13 IRIs, either reuse v4.0.0's term with v4.0.0's semantics or mint an extension-specific IRI. Propose the three domain widenings to the core as change requests, rather than carrying them on the branch.</p>
+  </div>
+
+  <div class="finding" id="m3">
+    <h4><span class="id">M3</span><span class="sev major">MAJOR</span>SUBSET-026 national values duplicate regulated RINF parameters <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span> The head adds 11 snake_case properties for ETCS national values that v4.0.0 already has in camelCase, each with an <code>era:rinfIndex</code> (track parameters 1.1.1.3.2.16.x and 1.2.1.1.1.16.x):</p>
+    <ul class="points">
+      <li><code>d_nvroll</code> duplicates <code>dNvroll</code> (RINF 1.1.1.3.2.16.1). The same holds for <code>d_nvovtrp</code>, <code>d_nvpotrp</code>, <code>m_nvderun</code>, <code>q_nvdriver_adhes</code>, <code>q_nvemrrls</code>, <code>q_nvsbtsmperm</code>, <code>t_nvcontact</code>, <code>t_nvovtrp</code>, <code>v_nvallowovtrp</code> and <code>v_nvsupovtrp</code>.</li>
+      <li>Two of them also differ in kind: <code>q_nvdriver_adhes</code> and <code>q_nvemrrls</code> are datatype properties on the head but coded object properties in v4.0.0, ranging over <code>skos:Concept</code>.</li>
+      <li>Ten more new terms differ from an v4.0.0 term only by case, as property/class pairs: <code>Controller</code>/<code>controller</code>, <code>switch</code>/<code>Switch</code>, <code>operationalPoint</code>/<code>OperationalPoint</code> and others.</li>
+    </ul>
+    <p><span class="lab">Impact.</span> One SUBSET-026 variable gets two IRIs, so RINF data and CCS/TMS data on the same national values never join. The governance framework keeps extensions to use cases outside the regulated scope, and RINF parameters are inside it.</p>
+    <p class="fix">Reuse v4.0.0's <code>dNvroll</code> family and drop the 11 duplicates; they are unreleased, so no deprecation is needed. Rename the property/class pairs so that names stay unique beyond case (P1).</p>
+  </div>
+
+  <div class="finding" id="m4">
+    <h4><span class="id">M4</span><span class="sev major">MAJOR</span>Released terms deleted, not deprecated <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span> 302 <code>era:</code> terms of release v1.1.1 (100 classes, 138 object, 63 datatype, 1 annotation property) don't appear anywhere in the head. None carries <code>owl:deprecated</code> or <code>dct:isReplacedBy</code>. Nine were renamed by case or separator only: <code>nidC</code> → <code>nid_c</code>, <code>m_nvcontact</code> → <code>mNvcontact</code>, <code>RelativePosition</code> → <code>relativePosition</code>, <code>TrainDetector</code> → <code>trainDetector</code>, and others. The <code>ETCSPacket_*</code> classes look replaced by <code>ETCSTrackToTrainPacket_*</code>, but no mapping says so. Between v1.1 and v1.1.1, 91 terms were removed and 31 added, also without deprecation. That step was announced only as "removal of unstable Equipment model".</p>
+    <p><span class="lab">Impact.</span> Data, queries and validators written for a release stop matching, with no error. P4 is explicit: deprecate, never delete. Some renames also go against P1, from camelCase to snake_case.</p>
+    <p class="fix">Restore the 302 terms in the head as deprecated, each with <code>dct:isReplacedBy</code> where a successor exists. From now on, treat every released IRI as permanent.</p>
+  </div>
+
+  <div class="finding" id="m5">
+    <h4><span class="id">M5</span><span class="sev major">MAJOR</span>Release, branch head and validator are out of step; no extension shapes in the repository <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span></p>
+    <ul class="points">
+      <li><strong>Releases.</strong> The releases folder holds v1.1 and v1.1.1. The head has 531 terms that are in no release.</li>
+      <li><strong>Validator.</strong> The ITB validator offers <code>infra</code>, <code>eng</code> and <code>opp</code> at v1.3 and v1.4.0 (aliased <code>*_latest</code>), and <code>tp</code> at v1.3. The validator user guide on the branch uses <code>infra.v1.3</code> in its examples.</li>
+      <li><strong>Shapes.</strong> The branch's <code>era-shacl/</code> lists the same files as v4.0.0's (<code>common</code>, <code>rinf</code>, <code>eratv</code>, <code>eradis</code>, <code>evr</code>), and none is for extension terms. The extension document describes shapes per domain and class, such as <code>BaliseGroupShape.ttl</code> and <code>HorizontalTransitionShape.ttl</code>, that are not in the repository.</li>
+    </ul>
+    <p><span class="lab">Impact.</span> Nobody can tell which ontology version a v1.4.0 validation report checks data against, or review those shapes. Producers validate against rules that are not published with the ontology. This fails the Transparency requirement.</p>
+    <p class="fix">Publish the shapes the validator uses in <code>era-shacl/ccstms/</code>, versioned with the ontology release they belong to, and align the numbering of the ontology, the shapes and the validator. Every ITB validation type should name an ontology version IRI.</p>
+  </div>
+
+  <div class="finding" id="m6">
+    <h4><span class="id">M6</span><span class="sev major">MAJOR</span>Schemes with the same IRI hold different concepts; coded properties point at missing schemes <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span> See <a href="#skos">section 5</a>. 50 of the 92 schemes that both the head and v4.0.0 define differ, and 24 of those share no concept IRI at all. Three coded properties name a scheme that does not exist. Three scheme IRIs break P3.</p>
+    <p><span class="lab">Impact.</span> A concept valid under one scheme file is unknown under the other with the same scheme IRI. Whichever file loads last decides what is valid. The core's SPARQL-based SKOS constraints (P8) then flag correct data.</p>
+    <p class="fix">For shared schemes, contribute missing concepts to the core scheme rather than redefining the scheme. Fix the three dangling pointers and the three P3 IRIs.</p>
+  </div>
+
+  <div class="finding" id="m7">
+    <h4><span class="id">M7</span><span class="sev major">MAJOR</span>No provenance metadata to tell extension terms from core terms <span class="kind">confirmed</span></h4>
+    <p><span class="lab">Evidence.</span> Coverage of the P5 term metadata on the head's 1,177 new terms:</p>
+    <ul class="points">
+      <li>On every term: <code>rdfs:label</code>, <code>rdfs:comment</code> and <code>dct:created</code>.</li>
+      <li><code>rdfs:isDefinedBy</code>: 17 terms.</li>
+      <li><code>dct:modified</code>, <code>vs:term_status</code> and <code>skos:definition</code>: none.</li>
+    </ul>
+    <p>The only other marker is <code>era:ccsView</code>. It is not a provenance marker: the head also puts it on 45 core terms (the documented example tags <code>era:LinearElement</code>), and 6 new terms lack it.</p>
+    <p><span class="lab">Impact.</span> With one namespace and one ontology IRI, nothing machine-readable says which terms are core and which are extension. The documented plan to extract sub-ontologies, and any later merge into the core, then depends on diffing files. Without <code>term_status</code>, users can't tell stable terms from experimental ones, although the release notes call parts "unstable".</p>
+    <p class="fix">Add <code>rdfs:isDefinedBy &lt;extension ontology IRI&gt;</code>, <code>vs:term_status</code> and <code>dct:modified</code> to every extension term. Keep <code>era:ccsView</code> for use-case views only.</p>
+  </div>
+
+  <h3>Minor</h3>
+
+  <div class="finding" id="n1">
+    <h4><span class="id">m1</span><span class="sev minor">MINOR</span>Naming off principle P1: 106 classes, 328 properties <span class="kind">confirmed</span></h4>
+    <p>P1 asks for CamelCase, classes starting upper-case and properties lower-case, and names unique within the ontology. On the head:</p>
+    <ul class="points">
+      <li>106 new classes are not UpperCamelCase, for example <code>ETCSTrackToTrainPacket_131</code>.</li>
+      <li>328 new properties are snake_case, for example <code>a_nvmaxredadh1</code> and <code>d_adhesion</code>.</li>
+    </ul>
+    <p>v4.0.0 writes the same SUBSET-026 variables as <code>dNvroll</code>, so two styles now coexist. Nothing breaks, but every rename after release costs a deprecation (P4).</p>
+    <p class="fix">Rename before the first release that carries these terms. Keep the SUBSET-026 variable name in <code>skos:notation</code> (<a href="#s3">S3</a>).</p>
+  </div>
+
+  <div class="finding" id="n2">
+    <h4><span class="id">m2</span><span class="sev minor">MINOR</span>1,117 labels only repeat the identifier <span class="kind">confirmed</span></h4>
+    <p>For 1,117 of the 1,177 new terms, <code>rdfs:label</code> equals the local name apart from case and separators, for example <code>D_Nvovtrp</code> and <code>LinearElement </code>, the latter with a trailing space. Many comments are "Defines the …" restatements. Labels are what documentation, editors and the RINF/ERATV interfaces show people. This weakens the Clarity criterion.</p>
+    <p class="fix">Give human-readable labels, for example "Roll-away distance limit" for <code>D_NVROLL</code>, with a language tag (<code>@en</code>, as the P8 template shows). Move the SUBSET-026 mnemonic to <code>skos:notation</code>.</p>
+  </div>
+
+  <div class="finding" id="n3">
+    <h4><span class="id">m3</span><span class="sev minor">MINOR</span>Application constraints written as OWL restrictions on core classes <span class="kind">design</span></h4>
+    <p>The head adds 24 restrictions to 9 core classes:</p>
+    <ul class="points">
+      <li>8 are <code>maxCardinality 1</code>: seven on names, and one on <code>Switch.reversalTime</code>.</li>
+      <li>5 are <code>minQualifiedCardinality 1</code>: <code>Tunnel.tunnelTubes</code>, <code>Switch.foulingPoints</code>, <code>PlatformEdge.stopLocations</code>, <code>LevelCrossing.dangerPoints</code> and <code>NetAreaReference.includes</code>.</li>
+      <li>11 are <code>minCardinality 0</code>, which says nothing.</li>
+    </ul>
+    <p>Live RINF has no violations of the maximum restrictions: 15,360 kilometric posts have a name, and none has two. Under the open-world assumption, though, the five minimum restrictions assert that every RINF tunnel has a tube and every switch a fouling point, whether or not anyone publishes one. These are completeness rules for CCS/TMS data, not facts about every tunnel.</p>
+    <p class="fix">Express them as SHACL shapes in the CCS/TMS profiles (<a href="#s4">S4</a>), and drop the 11 vacuous restrictions.</p>
+  </div>
+
+  <div class="finding" id="n4">
+    <h4><span class="id">m4</span><span class="sev minor">MINOR</span>Core axioms changed from the extension <span class="kind">governance</span></h4>
+    <p>The head changes 51 core terms. It adds:</p>
+    <ul class="points">
+      <li><code>owl:disjointWith</code> between <code>era:VehicleSet</code> and each of <code>VehicleType</code>, <code>VehicleTypeConfiguration</code> and <code>VehicleTypeConfigParameterSet</code>. None of these is in v4.0.0.</li>
+      <li><code>skos:altLabel</code> on <code>era:Switch</code> ("Point"), <code>mNvcontact</code> and <code>etcsMVersion</code>.</li>
+      <li>48 <code>era:ccsView</code> tags on 45 core terms.</li>
+      <li>The two punned types of <a href="#b2">B2</a>.</li>
+    </ul>
+    <p>No resource in <code>rinf-plus</code> carries two of the disjoint types; ERATV-KG was not checked. The disjointness may well be right, but it is a statement about ERATV classes, and the core should own it.</p>
+    <p class="fix">Raise the disjointness and the labels as core change requests. Keep the extension to additions.</p>
+  </div>
+
+  <div class="finding" id="n5">
+    <h4><span class="id">m5</span><span class="sev minor">MINOR</span>Documentation gaps <span class="kind">confirmed</span></h4>
+    <ul class="points">
+      <li><strong>Base version.</strong> No document states the core version the extension builds on. The newest dated release in the release notes is data model v1.1 (21 March 2025); nothing documents v1.1.1 or the head.</li>
+      <li><strong>Governance.</strong> The "Governance and Change Management" chapter of the extension document reads "To be updated". The Approach document is "In Approval by System Pillar", and its licence statement contradicts the README (see <a href="#governance">section 3</a>).</li>
+      <li><strong>Examples.</strong> The SHACL example in the extension document is not valid Turtle. It uses <code>xsd:minInclusive</code> inside <code>sh:property</code> instead of <code>sh:minInclusive</code>, and it has an unclosed <code>&gt;</code>. The prefix appendix prints <code>era</code> as <code>&lt;http://data.europa.eu/949&gt;</code>, without the trailing slash.</li>
+      <li><strong>Direction.</strong> Some documents say releases are derived from the ERA vocabulary by an automated process. Others describe the JSON model in Polarion as the master, exported per release. They are not reconciled.</li>
+    </ul>
+  </div>
+
+  <div class="finding" id="n6">
+    <h4><span class="id">m6</span><span class="sev minor">MINOR</span>Release v1.1.1 datatypes outside the OWL 2 datatype map <span class="kind">confirmed</span></h4>
+    <p>Release v1.1.1 uses <code>xsd:date</code> as a range twice and <code>geo:wktLiteral</code> once. It also gives one datatype property, <code>utcOffset</code>, the range <code>skos:Concept</code>. HermiT runs only on a copy with those retyped; the core has the same <code>xsd:date</code> habit. The head no longer defines <code>utcOffset</code>.</p>
+    <p class="fix">Where OWL 2 DL tooling matters, prefer <code>xsd:dateTime</code> or <code>xsd:dateTimeStamp</code>, and declare <code>geo:wktLiteral</code> as <code>rdfs:Datatype</code>.</p>
+  </div>
+
+  <h3>Suggestions</h3>
+
+  <div class="finding" id="s1">
+    <h4><span class="id">S1</span><span class="sev sugg">SUGGESTION</span>Package the extension as a module, and generate the views from it <span class="kind">design</span></h4>
+    <p>Use one file per module, all importing the core release, as in the header in <a href="#b3">B3</a>. Keep <code>era:</code> for terms the core accepts. A dedicated namespace, for example <code>http://data.europa.eu/949/ext/ccstms/</code>, is allowed by the framework and would make collisions like <a href="#b1">B1</a> impossible by construction. Generate the <code>ccsView</code> sub-ontologies from the module, as the documents already plan.</p>
+  </div>
+  <div class="finding" id="s2">
+    <h4><span class="id">S2</span><span class="sev sugg">SUGGESTION</span>A CI gate that runs the checks of this review <span class="kind">design</span></h4>
+    <p>Each check below ran here in seconds to minutes:</p>
+    <ul class="points">
+      <li>IRI collisions and kind conflicts against the target core tag;</li>
+      <li>HermiT with one sample individual per property;</li>
+      <li>P1 and P5 lint;</li>
+      <li>scheme resolution for every <code>era:inSkosConceptScheme</code>;</li>
+      <li>a diff of released IRIs, so that a missing term fails the build unless it is deprecated;</li>
+      <li>the published shapes run against example data.</li>
+    </ul>
+  </div>
+  <div class="finding" id="s3">
+    <h4><span class="id">S3</span><span class="sev sugg">SUGGESTION</span>A pattern for SUBSET-026 variables <span class="kind">design</span></h4>
+<pre>era:nvRollawayDistance a owl:DatatypeProperty ;     <span class="c"># illustrative IRI, CamelCase (P1)</span>
+    rdfs:label "Roll-away distance (national value)"@en ;
+    skos:notation "D_NVROLL" ;                       <span class="c"># the SUBSET-026 mnemonic, searchable</span>
+    rdfs:isDefinedBy &lt;http://data.europa.eu/949/ext/ccstms&gt; ;
+    vs:term_status "unstable" .
+<span class="c"># …or, for a variable v4.0.0 already has, reuse era:dNvroll and add nothing.</span></pre>
+  </div>
+  <div class="finding" id="s4">
+    <h4><span class="id">S4</span><span class="sev sugg">SUGGESTION</span>SHACL profiles per view, in the repository <span class="kind">design</span></h4>
+    <p>Express the cardinalities, mandatory properties and <code>sh:in</code> lists of each <code>ccsView</code> (<code>INFRA</code>, <code>ENG</code>, <code>OPP</code>, <code>TP</code>, …) as node shapes targeting the classes that view uses. Version them with the ontology, and publish the same files to ITB. This gives the validator a source, keeps OWL free of completeness rules (<a href="#n3">m3</a>), and lets RINF data stay valid against the core while CCS/TMS data is checked more strictly.</p>
+  </div>
+</section>
+
+<!-- ============================== 5 ============================== -->
+<section id="skos">
+  <h2><span class="num">05</span>Vocabularies</h2>
+  <p class="lede">The branch head has 189 concept schemes in <code>era-skos/</code>; v4.0.0 has 423 across all registers. Schemes were matched by scheme IRI and concepts by concept IRI.</p>
+
+  <div class="tiles">
+    <div class="tile"><div class="v">92</div><div class="l">schemes in both</div></div>
+    <div class="tile"><div class="v">50</div><div class="l">of those differ; 24 share no concept IRI</div></div>
+    <div class="tile"><div class="v">97</div><div class="l">schemes only on the branch</div></div>
+    <div class="tile"><div class="v">99 / 99</div><div class="l">coded new properties carrying <code>era:inSkosConceptScheme</code> (P8)</div></div>
+  </div>
+
+  <p>Across the 50 schemes that differ, the head has 1,659 concepts: 1,062 are not in v4.0.0, and v4.0.0 has 1,380 that the head lacks. Among the 24 that share no concept are <code>BrakeType</code> (2 concepts on the head, 15 in v4.0.0), <code>ETCSBaselines</code> (9 against 7), <code>ETCSEquipmentLevels</code>, <code>GSMRNetworks</code>, <code>LegacyRadioSystems</code>, <code>Navigabilities</code> and <code>TrainDetectionSystemsSpecificChecks</code>. In each, the two sides mint different concept IRIs for the same scheme.</p>
+
+  <h3>Pointers and IRIs to fix</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Item</th><th>Problem</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><code>era:atoState</code> → <code>concepts/ato-state/ATOState</code></td><td>No such scheme; the file defines <code>…/AtoState</code> (case differs)</td><td>P8</td></tr>
+      <tr><td><code>era:m_lineGauge</code> → <code>concepts/line-guage/LineGauge</code></td><td>No such scheme ("guage")</td><td>P8</td></tr>
+      <tr><td><code>era:otherTrainCategory</code> → <code>concepts/oitc/OtherInternationalTrainCategory</code></td><td>No such scheme</td><td>P8</td></tr>
+      <tr><td><code>concepts/etcs-equipment-on-board-level/eratv/ETCSEquipmentLevels</code></td><td>Extra path segment in a scheme IRI (the <code>rinf</code>/<code>eratv</code> segment is for concepts)</td><td>P3</td></tr>
+      <tr><td><code>concepts/organisation-roles/</code></td><td>Scheme IRI without the CamelCase label</td><td>P3</td></tr>
+      <tr><td><code>concepts/q-suitability/Q_Suitability</code></td><td>Underscore in the scheme label</td><td>P3</td></tr>
+    </tbody>
+  </table></div>
+  <p>Release v1.1.1's own SKOS set had 8 coded properties pointing at a scheme found in no SKOS file, 42 concepts without <code>skos:prefLabel</code>, and two scheme IRIs shared by two files (<code>vehicle-types/Categories</code>, <code>vehicle-types/SubCategories</code>). Five more pointed at the EU country and language authority tables; those are external, not dangling. The head's set is cleaner.</p>
+</section>
+
+<!-- ============================== 6 ============================== -->
+<section id="shacl">
+  <h2><span class="num">06</span>Shapes and the hosted validator</h2>
+  <p>The repository holds no SHACL shapes for extension terms. The branch's <code>era-shacl/</code> has the same file list as v4.0.0's. The rules that producers are actually checked against live only in the ITB validator (<code>www.itb.ec.europa.eu/shacl/ccstms</code>), as validation types <code>infra</code>, <code>eng</code> and <code>opp</code> at v1.3 and v1.4.0 and <code>tp</code> at v1.3. The validator user guide on the branch describes Java plug-ins for "domain-specific constraints that cannot be expressed in standard SHACL". Those constraints can't be reviewed or reproduced from the repository either.</p>
+  <div class="note warn"><p>Not reviewed here: the content of the ITB shapes (only the validator's list of types was read), and the 258 JSON Schema files in <code>releases/v1.1.1/Schemas/</code>. Both are worth a follow-up once they are published with an ontology version.</p></div>
+</section>
+
+<!-- ============================== 7 ============================== -->
+<section id="works">
+  <h2><span class="num">07</span>What already works</h2>
+  <ul class="points">
+    <li><strong>Consistent on its own.</strong> HermiT finds the branch head consistent with no unsatisfiable class (29,058 triples, 6.6 s). It stays consistent with a real multi-name RINF operational point.</li>
+    <li><strong>The head fixed the release's worst axioms.</strong> It adds no functional declarations, uses no term v4.0.0 deprecates, and its new cardinality restrictions have zero violations on live RINF.</li>
+    <li><strong>Complete basic metadata.</strong> Every new term has a label, a comment and a creation date, and every coded property names its scheme (P8).</li>
+    <li><strong>Purpose and scope are well argued.</strong> The documents give use cases, consumers, the static-data boundary and the "data model follows function" rule, plus documented reuse of OWL-Time, GeoSPARQL, QUDT and SKOS.</li>
+    <li><strong>A real validation service exists.</strong> Producers can check data today through the web interface, REST, SOAP and an offline CLI.</li>
+  </ul>
+</section>
+
+<!-- ============================== 8 ============================== -->
+<section id="path">
+  <h2><span class="num">08</span>Path to alignment with v4.0.0</h2>
+  <p class="lede">In order. Steps 1 to 4 clear the blockers. Steps 5 to 8 clear the major findings.</p>
+  <ol class="points">
+    <li><strong>Rebase</strong> the branch on <code>v4.0.0</code>, keeping the core file identical to the tag (<a href="#b3">B3</a>).</li>
+    <li><strong>Split</strong> the extension into its own ontology file or files, with its own IRI and version, importing the v4.0.0 version IRI (<a href="#b3">B3</a>, <a href="#s1">S1</a>).</li>
+    <li><strong>Resolve the 13 shared IRIs:</strong> reuse v4.0.0's term with its semantics, or rename. Start with <code>x</code>, <code>y</code>, <code>z</code>, <code>offset</code> and <code>accuracy</code> (<a href="#b1">B1</a>, <a href="#m2">M2</a>).</li>
+    <li><strong>Remove the punned types</strong> on <code>gsmrConstraintsOperateOnlyInCircuitSwitch</code> and <code>etcsBaselineIncompleteCompatibility</code> (<a href="#b2">B2</a>).</li>
+    <li><strong>Reuse v4.0.0's RINF national-value properties</strong> instead of the 11 snake_case copies (<a href="#m3">M3</a>).</li>
+    <li><strong>Restore the 302 released terms as deprecated</strong>, with replacements (<a href="#m4">M4</a>).</li>
+    <li><strong>Fix the SKOS layer:</strong> contribute to shared schemes, and fix the 3 pointers and the 3 IRIs (<a href="#m6">M6</a>).</li>
+    <li><strong>Publish</strong> the shapes and the metadata (<code>isDefinedBy</code>, <code>term_status</code>), then cut a release whose number matches the validator's (<a href="#m5">M5</a>, <a href="#m7">M7</a>, <a href="#m1">M1</a>).</li>
+  </ol>
+  <p>Then rerun the checks of <a href="#method">section 9</a>. The release is ready when the collision, kind and range checks are empty and HermiT is consistent with one sample value per property.</p>
+</section>
+
+<!-- ============================== 9 ============================== -->
+<section id="method">
+  <h2><span class="num">09</span>Method, evidence and limits</h2>
+
+  <h3>Sources</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Source</th><th>Version</th></tr></thead>
+    <tbody>
+      <tr><td>ERA ontology repository on GitLab (public)</td><td>branch <code>ext-ccstms</code> at <code>e1cc7dd6c7</code> (2026-11-20, unchanged on 25 November); tags <code>v4.0.0</code> (2026-11-23), <code>v4.0.0-rc.5</code> (2026-11-18) and <code>v3.3.3</code> (2026-07-28); downloaded through the GitLab REST API</td></tr>
+      <tr><td>Extension release</td><td><code>releases/v1.1.1/Ontology/ccstms.ttl</code> and <code>releases/v1.1/Ontology/ccstms.ttl</code> on the branch</td></tr>
+      <tr><td>Documents on the branch</td><td>Data Model_01_ERA Ontology Extension, Cover Document, Data Model_01_Approach (v1.1), Release Notes, Data Model_00_Guide; <code>Framework-extensions-management.md</code>; <code>era-principles.md</code> v2.0; CCSTMS Validator User Guide</td></tr>
+      <tr><td>Live data</td><td><code>graph.data.era.europa.eu/repositories/rinf-plus</code>, queried 22 November 2026</td></tr>
+      <tr><td>Hosted validator</td><td><code>www.itb.ec.europa.eu/shacl/ccstms/api/info</code>, read 22 November 2026</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Tools and how the checks work</h3>
+  <ul class="points">
+    <li>rdflib 7.6.0 for parsing and graph diffs, and owlready2 0.48 with its bundled HermiT for reasoning.</li>
+    <li>HermiT runs on copies in which datatypes outside the OWL 2 map (<code>xsd:date</code>, <code>rdf:langString</code>, <code>geo:wktLiteral</code>) are retyped, because HermiT rejects them otherwise. The source files are not modified.</li>
+    <li>The "extension delta" is the head's new terms with their blank-node descriptions, the restrictions it adds to core classes, and its ground triples on changed core terms: 14,560 triples.</li>
+    <li>Terms are compared by IRI. "Near-duplicate" means equal names after lower-casing and dropping non-alphanumeric characters.</li>
+    <li>"Labels repeating the identifier" uses the same normalisation.</li>
+  </ul>
+
+  <h3>Every reasoner run</h3>
+  <p>Repeated on 25 November with v4.0.0 as the target. The rc.5 column gives the result of the same run on 22 November.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Run</th><th class="n">Triples</th><th>v4.0.0</th><th>rc.5</th><th class="n">Seconds</th></tr></thead>
+    <tbody>
+      <tr><td>release v1.1.1 alone</td><td class="n">22,046</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">82.2</td></tr>
+      <tr><td>v4.0.0 alone</td><td class="n">47,691</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">3.3</td></tr>
+      <tr><td>v4.0.0 + release v1.1.1</td><td class="n">60,475</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">71.5</td></tr>
+      <tr><td>v4.0.0 + v1.1.1 without its 4 kind conflicts</td><td class="n">60,471</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">82.9</td></tr>
+      <tr><td>v4.0.0 + real operational point (control)</td><td class="n">47,694</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">2.6</td></tr>
+      <tr><td>v4.0.0 + v1.1.1 (no kind conflicts) + real operational point</td><td class="n">60,474</td><td><span class="sev major">INCONSISTENT</span></td><td><span class="sev major">INCONSISTENT</span></td><td class="n">81.1</td></tr>
+      <tr><td>branch head alone</td><td class="n">29,058</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">5.1</td></tr>
+      <tr><td>branch head + real operational point</td><td class="n">29,061</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">5.8</td></tr>
+      <tr><td>v4.0.0 + head delta</td><td class="n">61,477</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">6.8</td></tr>
+      <tr><td>v4.0.0 + head delta + real operational point</td><td class="n">61,480</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">7.5</td></tr>
+      <tr><td>v4.0.0 + <code>era:x "3"^^xsd:int</code> (control)</td><td class="n">47,692</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">2.5</td></tr>
+      <tr><td>v4.0.0 + head delta + <code>era:x "3"^^xsd:int</code></td><td class="n">61,478</td><td><span class="sev major">INCONSISTENT</span></td><td><span class="sev major">INCONSISTENT</span></td><td class="n">4.7</td></tr>
+      <tr><td>branch head + <code>era:x "1.5"^^xsd:double</code> (control)</td><td class="n">29,059</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">4.4</td></tr>
+      <tr><td>v4.0.0 + head delta + <code>era:x "1.5"^^xsd:double</code></td><td class="n">61,478</td><td><span class="sev major">INCONSISTENT</span></td><td><span class="sev major">INCONSISTENT</span></td><td class="n">6.3</td></tr>
+      <tr><td>v4.0.0 + <code>era:offset "2"^^xsd:integer</code> (control)</td><td class="n">47,692</td><td><span class="sev ok">CONSISTENT</span></td><td><span class="sev ok">CONSISTENT</span></td><td class="n">2.5</td></tr>
+      <tr><td>v4.0.0 + head delta + <code>era:offset "2"^^xsd:integer</code></td><td class="n">61,478</td><td><span class="sev major">INCONSISTENT</span></td><td><span class="sev major">INCONSISTENT</span></td><td class="n">5.1</td></tr>
+    </tbody>
+  </table></div>
+  <p>The "real operational point" is <code>operationalPoint/ae4b44fc65</code> with its two <code>era:opName</code> values, fetched live from <code>rinf-plus</code>.</p>
+
+  <h3>Live-data queries</h3>
+  <ul class="points">
+    <li><strong>Several values.</strong> For each property: <code>SELECT (COUNT(*) AS ?n) WHERE { SELECT ?s WHERE { ?s era:&lt;p&gt; ?o } GROUP BY ?s HAVING (COUNT(DISTINCT ?o) &gt; 1) }</code>.</li>
+    <li><strong>Cardinality restrictions.</strong> The same query restricted to the class.</li>
+    <li><strong>Disjointness.</strong> <code>COUNT(DISTINCT ?s)</code> over <code>?s a era:A, era:B</code>.</li>
+  </ul>
+
+  <h3>Limits</h3>
+  <ul class="points">
+    <li>The reasoner runs use the ontologies plus single individuals, not the full RINF graph. They prove that a clash exists, not how much data it affects.</li>
+    <li>Disjointness was checked against <code>rinf-plus</code> only, not ERATV-KG.</li>
+    <li>"Reuse first" is assessed from the documents, not measured in the TTL.</li>
+    <li>Not reviewed: the ITB shapes, the JSON Schemas, and the extension's example instances.</li>
+    <li>The SKOS comparison is by IRI. Concepts that mean the same thing under different IRIs count as different, which is the point of <a href="#m6">M6</a>.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>A technical review of the public repository at the commits listed above, measured 22 November 2026 and re-checked against v4.0.0 on 25 November 2026. It is not an ERA decision. Severity follows BLOCKER / MAJOR / MINOR / SUGGESTION. "Confirmed" findings were measured or proved by a reasoner; "design" findings are recommendations.</p>
+</footer>
+
+</div>
+</body>
+</html>
