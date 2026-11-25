@@ -441,6 +441,10 @@
 const ERA = 'http://data.europa.eu/949/';
 const ENDPOINT  = 'https://graph.uat.data.test-era.europa.eu/repositories/ERATV-KG';
 const WORKBENCH = 'https://graph.uat.data.test-era.europa.eu/sparql';
+/* GraphDB's own view of a resource in ERATV-KG, the IRI written as the workbench writes it
+   (":" kept, everything else percent-encoded, so an IRI holding %20 keeps it) */
+const DESCRIBE = 'https://graph.uat.data.test-era.europa.eu/resource';
+const describeUrl = u => `${DESCRIBE}?uri=${encodeURIComponent(u).replace(/%3A/gi, ':')}&repositoryId=ERATV-KG&role=subject`;
 const GRAPH = ERA + 'graph/eratv';
 const ONTOLOGY_GRAPH = ERA + 'graph/ontology';
 const SKOS_GRAPH = ERA + 'graph/skos';
@@ -1014,7 +1018,7 @@ if(typeof module !== 'undefined') module.exports = {ENDPOINT, GRAPH, PREFIXES, I
   msOf, msLabel, catKey, catLabel, subLabel, statusLabel, roleNumber, lit, writableIri, buildIndex, addComments, matches, matchSparql,
   validateForm, emptyForm, needsComments, ONTOLOGY_QUERY, conceptLabelQuery, compareIndex, csvCell, parseTsv,
   TSI_ROW, NOT_VALUES, typeValuesQuery, typeModels, encodeTypes, decodeType, typeColumns, matchColumns, typeRows, sectionTitle,
-  cellKey, rowDiff, valueText, readState, stateSearch, packIndex, unpackIndex, VT_BASE};
+  cellKey, rowDiff, valueText, readState, stateSearch, packIndex, unpackIndex, VT_BASE, describeUrl};
 
 /* ================================================================== *
  * Page part
@@ -1031,7 +1035,6 @@ let S = null;            // the snapshot, when it loaded
 let loadedAt = '';       // where the index comes from, for the notes
 let current = null, page = 0, selected = null, liveOk = false;
 let searchSeq = 0, viewSeq = 0;   // a newer search or type view makes an older answer stale
-const httpOnly = u => /^https?:\/\//i.test(u) ? u : '#';
 /* GraphDB refuses a workbench URL much above 8 KB (HTTP 400). */
 function setWorkbenchLink(a, q, label){
   const url = workbenchUrl(q);
@@ -1569,7 +1572,7 @@ function colHeader(c, only){
   th.append(el('span', '', c.label));
   if(c.cfg){
     const a = el('a', 'sub', safeDecode(localName(c.cfg)));
-    a.href = httpOnly(c.cfg); a.target = '_blank'; a.rel = 'noopener'; a.title = c.cfg;
+    a.href = describeUrl(c.cfg); a.target = '_blank'; a.rel = 'noopener'; a.title = `Describe ${c.cfg} in GraphDB (ERATV-KG)`;
     th.append(a);
   } else if(c.key === 'all') th.append(el('span', 'sub', 'stated on the type'));
   if(only){ th.append(el('span', 'only', `only in ${only}`)); }
@@ -1663,7 +1666,7 @@ function typeCard(t, res){
   ].filter(Boolean);
   for(const l of lines) card.append(el('div', '', l));
   const meta = el('div', 'meta');
-  const a = el('a', '', t.uri); a.href = httpOnly(t.uri); a.target = '_blank'; a.rel = 'noopener';
+  const a = el('a', '', t.uri); a.href = describeUrl(t.uri); a.target = '_blank'; a.rel = 'noopener'; a.title = 'Describe this vehicle type in GraphDB (ERATV-KG)';
   const e = el('a', '', 'Open in ERATV ↗'); e.href = ERATV_PAGE + encodeURIComponent(t.id); e.target = '_blank'; e.rel = 'noopener';
   meta.append(a, document.createTextNode(' · '), e);
   card.append(meta);

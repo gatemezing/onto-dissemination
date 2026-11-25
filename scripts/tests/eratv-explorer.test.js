@@ -362,3 +362,12 @@ test('notes, holders and structure are never values of a type', () => {
   for(const g of ['notes/', 'derived/', 'links/']) assert.ok(q.includes(`!STRSTARTS(STR(?g), "https://data.europa.eu/949/graph/eratv/${g}")`), g);
   assert.equal((q.match(/NOT IN \(/g) || []).length, 3);   // on the type or set, and on both nested levels
 });
+
+test('IRIs open in GraphDB, written as the workbench writes them', () => {
+  assert.equal(V.describeUrl('http://data.europa.eu/949/sectionOfLine/fe45bdf6c0'),
+    'https://graph.uat.data.test-era.europa.eu/resource?uri=http:%2F%2Fdata.europa.eu%2F949%2FsectionOfLine%2Ffe45bdf6c0&repositoryId=ERATV-KG&role=subject');
+  // an IRI holding a percent-escape keeps it: GraphDB decodes the parameter once
+  const nl = VT + '11-273-0001-8-001-The%20Netherlands';
+  assert.equal(new URL(V.describeUrl(nl)).searchParams.get('uri'), nl);
+  assert.match(V.describeUrl(nl), /The%2520Netherlands&repositoryId=ERATV-KG&role=subject$/);
+});
