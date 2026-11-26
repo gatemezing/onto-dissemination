@@ -144,7 +144,7 @@
   #statusArea.warn{color:var(--orange);}
   .fetchErr .h{font-weight:700;margin-bottom:2px;}
   .fetchErr .b{line-height:1.5;}
-  .fetchErr .retryBtn{background:none;border:none;color:var(--blue);text-decoration:underline;
+  .fetchErr .retryBtn, .retryBtn.inline{background:none;border:none;color:var(--blue);text-decoration:underline;
     cursor:pointer;font:inherit;padding:0;margin-left:4px;}
   .fetchErr details{margin-top:5px;}
   .fetchErr summary{cursor:pointer;font-size:11px;color:var(--muted);}
@@ -204,6 +204,8 @@
   .cov.has .n{color:#9ede8c;font-weight:600;}
   .cov.none{background:rgba(240,168,58,.12);border-color:rgba(240,168,58,.4);}
   .cov.none .n{color:#f3c073;font-weight:600;}
+  .cov.err{background:rgba(233,91,84,.12);border-color:rgba(233,91,84,.45);}
+  .cov.err .n{color:var(--danger);font-weight:600;}
   .cov .where{color:var(--muted);}
   tr.noData td{background:rgba(240,168,58,.07);color:#f3c073;font-style:italic;}
   .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:10px;margin-bottom:16px;}
@@ -396,8 +398,16 @@
       Germany's 112, Spain's 126 and France's 148. So for most parameters a single sparse country returns nothing,
       which used to look identical to a broken query. Every run now reports one chip per selected parameter saying
       either how many values it found or <em>no data</em> and where, empty parameters appear as explicit rows in the
-      table rather than being omitted, and a failed request is labelled <em>query error</em> so the two can never be
-      confused. The <em>By location</em> export writes <code>no data</code> into the cell for the same reason.</p>
+      table rather than being omitted, and a parameter whose query got no answer is labelled <em>query failed</em>
+      so the two can never be confused — the rest of the run is still shown. The <em>By location</em> export writes
+      <code>no data</code> into the cell for the same reason.</p>
+    <p><strong>Only what is in force today.</strong> Infrastructure managers republish ahead of time: DB InfraGO
+      already carries a second copy of nearly every German section, operational point and track, valid from
+      1 January 2027, so without a rule Germany counted twice (36,441 tracks with a maximum permitted speed, of
+      which 18,215 are in force) and next year's values read as current. Every query therefore leaves out a resource
+      whose validity begins after the day you run it. Nothing else is removed: resources with no validity (ten
+      countries publish none) and ended windows stay. ETCS, contact-line, train-detection and hot-axle-box
+      sub-objects carry no validity of their own, so for those the tracks pointing at them decide.</p>
     <p><strong>Both full-data sheets are the same rows seen two ways</strong> — long, one row per value, and wide,
       one row per location with the parameters pivoted into columns — so they share their location block, their
       value/label naming and their rule for dropping a column nobody filled in. A parameter that hangs off an
@@ -418,7 +428,10 @@
       <code>era:netReference/geo:hasGeometry</code>: 101 of 101 in Estonia, 28,344 of 28,344 in Germany. This map
       draws each section as the straight chord between its two operational points regardless, rather than that
       now-available real curve — a simplification carried over from before section geometry was widely published,
-      not a limit of today's data. It is drawn on
+      not a limit of today's data. Each country is fetched on its own, with its own row cap, so one large
+      network can never crowd the others off the map, and a track's value reaches its section whichever way the
+      publisher links the two (<code>era:isPartOf</code> or <code>era:hasPart</code> — Austria, Croatia, Lithuania
+      and Luxembourg only publish the latter). It is drawn on
       <a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a>, over a plain Esri basemap; the
       “Railway overlay” checkbox adds the <a href="https://www.openrailwaymap.org/" target="_blank" rel="noopener">OpenRailwayMap</a>
       <em>standard</em> layer for real track, station and line-number context, off by default so its own colours
@@ -433,7 +446,8 @@
     <p><strong>The full-data sheet.</strong> One row per location where the value applies. A running track hangs off
       a section of line, giving its start and end operational point and that section's own length
       (<code>era:lengthOfSectionOfLine</code>, RINF 1.1.0.0.0.5) alongside whichever parameter you actually picked;
-      a station track hangs off an operational point, which is named instead and carries no section length. Where a
+      a station track hangs off an operational point, which is named instead and carries no section length. The
+      part-whole link is read in either direction, since publishers assert one or the other. Where a
       value sits on a shared sub-object — a contact line system, ETCS equipment, a train
       detection system, or a trackside hot axle box detector, reused across many tracks — the row reports the track that points at it, since the
       sub-object carries no location of its own. 216 of the 227 populated parameters have such a path; the rest
@@ -576,20 +590,20 @@ function selectParam(e){
   closeList();
   renderSelected();
   updateScopeUI();
-  $('resultPanel').hidden = true;
+  hideRunPanels();
 }
 function removeParam(uri){
   picked = picked.filter(e => e.u !== uri);
   renderSelected();
   updateScopeUI();
-  $('resultPanel').hidden = true;
+  hideRunPanels();
   setStatus('');
 }
 function clearAllParams(){
   picked = [];
   renderSelected();
   updateScopeUI();
-  $('resultPanel').hidden = true;
+  hideRunPanels();
   setStatus('');
 }
 $('paramChips').addEventListener('click', ev => {
@@ -818,7 +832,7 @@ $('allParamsBtn').addEventListener('click', () => {
   picked = withData.slice();
   renderSelected();
   updateScopeUI();
-  $('resultPanel').hidden = true;
+  hideRunPanels();
   setStatus('');
   runExtract();
 });
@@ -843,10 +857,64 @@ function safeUri(u){
     throw new Error('Refusing to query a malformed property URI: ' + u);
   return u;
 }
-function buildQuery(e, withCountry){
+/* ------------------------------------------------------------------ *
+ * Validity: only what is in force on the day of the run
+ *
+ * Infrastructure managers republish ahead of time. DB InfraGO (graph/0080)
+ * carries a second copy of nearly every German section, operational point,
+ * track, platform and tunnel, dated from 2027-01-01: 130,337 resources that
+ * are not yet valid (measured 2026-11-26). Without a rule every German count
+ * came out doubled — 36,441 tracks "carrying" era:maximumPermittedSpeed where
+ * 18,215 are in force — and next year's values were listed as current (221
+ * German place/value pairs exist only in the 2027 copy). Greece has 549 such
+ * resources; no other dataset has any.
+ *
+ * The rule is one-sided on purpose: a resource whose validity begins after
+ * the day of the run is left out, and nothing else is. Undated resources stay
+ * (ten countries publish no validity at all), and so do ended windows: there
+ * are only a few hundred, in NOR/BEL/AUT/FRA, and dropping them would delete
+ * whatever has no successor. The filter is a FILTER NOT EXISTS on the subject
+ * rather than a join, so a resource with no validity is never lost to it.
+ *
+ * ETCS, contact-line, train-detection and HABD sub-objects carry no validity
+ * of their own but are minted per track — Germany's 36,647 ETCS objects are
+ * one per section track, both windows included — so for a "via:" parameter
+ * the rule reads the tracks that point at the sub-object, and leaves it out
+ * only when every one of them is not yet valid.
+ *
+ * Cost, all 27 countries: ~0.5 s → ~2.7 s for a distinct-value query.
+ * ------------------------------------------------------------------ */
+const VALIDITY_PREFIXES = ['PREFIX time: <http://www.w3.org/2006/time#>',
+                           'PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>'];
+/* The local calendar day, since that is the day the reader means by "today". */
+function validOn(d){
+  d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function safeDay(day){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) throw new Error('Refusing to query with a malformed date: ' + day);
+  return day;
+}
+const notYetValid = (v, day) => '?' + v + ' era:validity/time:hasBeginning/time:inXSDDate ?' + v + 'From . ' +
+  'FILTER(?' + v + 'From > "' + safeDay(day) + '"^^xsd:date)';
+/* Keeps ?v unless its validity begins after `day`. */
+function inForce(v, day){
+  return 'FILTER NOT EXISTS { ' + notYetValid(v, day) + ' }';
+}
+/* For a value on a sub-object reached through `hop`: drop the sub-object only
+   if some referrer is not yet valid and no referrer is in force. */
+function inForceVia(v, hop, day){
+  const r = v + 'Ref', r2 = v + 'Ref2';
+  return 'FILTER NOT EXISTS { ?' + r + ' <' + hop + '> ?' + v + ' . ' + notYetValid(r, day) +
+    ' FILTER NOT EXISTS { ?' + r2 + ' <' + hop + '> ?' + v + ' . ' + inForce(r2, day) + ' } }';
+}
+const viaHop = e => (e.loc || '').startsWith('via:') ? safeUri('http://data.europa.eu/949/' + e.loc.slice(4)) : null;
+
+function buildQuery(e, withCountry, day){
   const propUri = safeUri(e.u);
   const graphs = scopeGraphs();
-  const L = ['SELECT ?value' + (withCountry ? ' ?country' : '') + ' (COUNT(DISTINCT ?s) AS ?resources)'];
+  const L = ['PREFIX era: <http://data.europa.eu/949/>', ...VALIDITY_PREFIXES,
+             'SELECT ?value' + (withCountry ? ' ?country' : '') + ' (COUNT(DISTINCT ?s) AS ?resources)'];
   L.push('WHERE {');
   if(withCountry){
     /* Pair every dataset with the country that publishes it, so that
@@ -867,6 +935,9 @@ function buildQuery(e, withCountry){
     L.push('  }');
   }
   L.push('  GRAPH ?g { ?s <' + propUri + '> ?value }');
+  // A "via:" value can also sit directly on a dated resource, so both apply.
+  L.push('  ' + inForce('s', day));
+  if(viaHop(e)) L.push('  ' + inForceVia('s', viaHop(e), day));
   L.push('}');
   L.push('GROUP BY ?value' + (withCountry ? ' ?country' : ''));
   if(!withCountry){
@@ -909,10 +980,15 @@ function chunk(items, per){
  * by the endpoint at 120s, while every bound-predicate form below returns in
  * about two seconds across all 27 countries.
  *
- * The parent lookup is deliberately one step: `?parent era:hasPart ?res`
- * serves both cases at once, because a running track hangs off a section of
- * line (giving opStart/opEnd) and a station track hangs off an operational
- * point (giving that point's own name).
+ * The parent lookup is deliberately one step, and serves both cases at once:
+ * a running track hangs off a section of line (giving opStart/opEnd) and a
+ * station track hangs off an operational point (giving that point's own name).
+ * It reads the part-whole link in either direction, `era:isPartOf|^era:hasPart`,
+ * because publishers disagree on which one they assert (measured 2026-11-26):
+ * Austria (all eight datasets), Croatia, Lithuania and Luxembourg publish
+ * only era:hasPart from sections to tracks, while Greece links 2,390 section
+ * tracks by era:isPartOf and only 363 of them back by era:hasPart. Across all
+ * countries the either-way path costs ~3 s → ~6 s with the validity rule.
  * ------------------------------------------------------------------ */
 function detailShare(){
   // Split the row budget evenly across the chosen countries. A single LIMIT
@@ -926,7 +1002,7 @@ function detailShare(){
   return Math.max(200, Math.floor(DETAIL_CAP / Math.max(1, chosen.size * Math.max(1, picked.length))));
 }
 
-function buildDetailQuery(e){
+function buildDetailQuery(e, day){
   const propUri = safeUri(e.u);
   const loc = e.loc || '';
   const share = detailShare();
@@ -938,14 +1014,16 @@ function buildDetailQuery(e){
     B.push(P + '{ SELECT DISTINCT ?country ?res ?value ?stName ?enName ?opName ?resName ?length WHERE {');
     B.push(P + '    VALUES ?g { ' + vals + ' }');
     B.push(P + '    BIND("' + c.c + '" AS ?country)');
-    if(loc.startsWith('via:')){
+    if(viaHop(e)){
       // The value lives on a shared sub-object, so the row reports the track
-      // that points at it — the sub-object itself has no location.
+      // that points at it — the sub-object itself has no location. That track
+      // is also what carries the validity.
       B.push(P + '    GRAPH ?g { ?sub <' + propUri + '> ?value }');
-      B.push(P + '    ?res era:' + loc.slice(4) + ' ?sub .');
+      B.push(P + '    ?res <' + viaHop(e) + '> ?sub .');
     } else {
       B.push(P + '    GRAPH ?g { ?res <' + propUri + '> ?value }');
     }
+    B.push(P + '    ' + inForce('res', day));
     if(loc === 'self'){
       B.push(P + '    OPTIONAL { ?res era:opStart ?st . ?st era:opName ?stName }');
       B.push(P + '    OPTIONAL { ?res era:opEnd   ?en . ?en era:opName ?enName }');
@@ -957,7 +1035,7 @@ function buildDetailQuery(e){
       // section of line (opStart/opEnd, and that section's own length),
       // a station track off an operational point (its own name, no length).
       B.push(P + '    OPTIONAL {');
-      B.push(P + '      ?parent era:hasPart ?res .');
+      B.push(P + '      ?res era:isPartOf|^era:hasPart ?parent .');
       B.push(P + '      OPTIONAL { ?parent era:opStart ?st . ?st era:opName ?stName }');
       B.push(P + '      OPTIONAL { ?parent era:opEnd   ?en . ?en era:opName ?enName }');
       B.push(P + '      OPTIONAL { ?parent era:opName ?opName }');
@@ -969,7 +1047,7 @@ function buildDetailQuery(e){
     return B.join('\n');
   };
 
-  return ['PREFIX era: <http://data.europa.eu/949/>',
+  return ['PREFIX era: <http://data.europa.eu/949/>', ...VALIDITY_PREFIXES,
           'SELECT ?country ?res ?value ?stName ?enName ?opName ?resName ?length WHERE {',
           chosenCountries().map(branch).join('\n' + P + 'UNION\n'),
           '}'].join('\n');
@@ -978,25 +1056,54 @@ function buildDetailQuery(e){
 /* ------------------------------------------------------------------ *
  * Running the extraction
  * ------------------------------------------------------------------ */
-function setStatus(msg, kind){
+function setStatus(msg, kind, retry){
   const el = $('statusArea');
   el.className = kind || '';
   if(kind === 'loading') el.innerHTML = '<span class="spinner"></span><span>' + esc(msg) + '</span>';
   else el.textContent = msg;
+  if(retry && kind !== 'loading') appendRetry(el, retry);
+}
+function appendRetry(el, retry){
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'retryBtn inline'; b.textContent = 'Try again';
+  b.addEventListener('click', retry);
+  el.append(' ', b);
 }
 
-async function sparql(query, signal){
-  const res = await fetch(META.endpoint, {
-    method: 'POST',
-    headers: {'Content-Type':'application/sparql-query', 'Accept':'application/sparql-results+json'},
-    body: query,
-    signal,
-  });
-  if(!res.ok){
-    const body = await res.text().catch(() => '');
-    throw new Error('HTTP ' + res.status + (body ? ' — ' + body.slice(0, 240) : ''));
+/* Each query gets its own deadline. The endpoint stops a query itself at
+   120 s and answers 503, so this only catches a connection that never
+   answers. It used to be one 180 s timer for the whole run, which cancelled
+   every query of a long run at once: "Extract every RINF parameter" is a few
+   hundred queries, six at a time, and went past it on Germany. */
+const QUERY_TIMEOUT_S = 150;
+async function sparql(query, signal, timeoutS = QUERY_TIMEOUT_S){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutS * 1000);
+  const relay = () => ctrl.abort();
+  if(signal){ if(signal.aborted) ctrl.abort(); else signal.addEventListener('abort', relay, {once: true}); }
+  try{
+    let res;
+    try{
+      res = await fetch(META.endpoint, {
+        method: 'POST',
+        headers: {'Content-Type':'application/sparql-query', 'Accept':'application/sparql-results+json'},
+        body: query,
+        signal: ctrl.signal,
+      });
+    } catch(err){
+      // Only a failure of the request itself may be read as network or CORS.
+      if(err && err.name !== 'AbortError') err.network = true;
+      throw err;
+    }
+    if(!res.ok){
+      const body = await res.text().catch(() => '');
+      throw new Error('HTTP ' + res.status + (body ? ' — ' + body.slice(0, 240) : ''));
+    }
+    return (await res.json()).results.bindings;
+  } finally {
+    clearTimeout(timer);
+    if(signal) signal.removeEventListener('abort', relay);
   }
-  return (await res.json()).results.bindings;
 }
 
 /* ------------------------------------------------------------------ *
@@ -1017,7 +1124,8 @@ async function sparql(query, signal){
  * headers on the actual response — not just the preflight. */
 async function describeFetchError(err, endpoint){
   if(err && err.name === 'AbortError')
-    return {title:'Timed out', message:'The request took too long and was cancelled.', detail:String(err.message || err)};
+    return {title:'Timed out', message:'No answer within ' + QUERY_TIMEOUT_S + ' s, so the request was cancelled.',
+            detail:String(err.message || err)};
   const m = /^HTTP (\d+)/.exec((err && err.message) || '');
   if(m){
     const code = +m[1];
@@ -1033,6 +1141,14 @@ async function describeFetchError(err, endpoint){
     const known = KNOWN[code] || ['The endpoint returned an error', 'HTTP ' + code + ' — see technical detail below.'];
     return {title:known[0], message:known[1], detail:err.message};
   }
+  /* Anything else thrown on the way (a bug in this page, an unreadable
+     answer) is not a network failure, and the probe below would call it a
+     CORS block: the data arrived, so say what actually broke. */
+  if(!(err && err.network))
+    return {title:'This page failed while handling the answer',
+            message:'The endpoint answered, but this tool hit an error processing the result — most likely a bug ' +
+                    'here rather than on the endpoint, and worth reporting with the technical detail below.',
+            detail:String((err && (err.name + ': ' + err.message)) || err)};
   let reachable = false;
   try{ await fetch(new URL(endpoint).origin + '/', {mode:'no-cors', cache:'no-store'}); reachable = true; }
   catch{ reachable = false; }
@@ -1091,16 +1207,18 @@ async function runExtract(){
   if(!picked.length || !chosen.size) return;
   const wantBreakdown = $('breakdown').checked && !$('breakdown').disabled;
   const wantDetail    = $('wantDetail').checked && !$('wantDetail').disabled;
+  const day = validOn();
 
   let plans;
   try{
     plans = picked.map(e => ({
       param: e,
-      mainQ:   buildQuery(e, false),
-      breakQ:  wantBreakdown ? buildQuery(e, true) : null,
+      mainQ:   buildQuery(e, false, day),
+      breakQ:  wantBreakdown ? buildQuery(e, true, day) : null,
       // A parameter with no resolved path to a section of line simply has no
       // detail query; the others in the same run still get one.
-      detailQ: wantDetail && e.loc ? buildDetailQuery(e) : null,
+      detailQ: wantDetail && e.loc ? buildDetailQuery(e, day) : null,
+      fail: {},
     }));
   } catch(err){
     setStatus(err.message, 'error');
@@ -1108,35 +1226,46 @@ async function runExtract(){
   }
 
   $('runBtn').disabled = true;
-  $('resultPanel').hidden = true;
+  hideRunPanels();
   const label = picked.length === 1 ? '' : ' for ' + picked.length + ' parameters';
   setStatus('Querying ' + new URL(META.endpoint).host + label + '…', 'loading');
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 180000);
   const started = performance.now();
   try{
+    /* A query that fails is recorded against its parameter instead of
+       aborting the run: one 503 in a 15-parameter (or 200-parameter bulk) run
+       used to discard every other result with it. */
     const tasks = [];
+    const guarded = (pl, key, q) => async () => {
+      try{ pl[key] = await sparql(q); }
+      catch(err){ pl.fail[key] = err; }
+    };
     plans.forEach(pl => {
-      tasks.push(async () => { pl.main = await sparql(pl.mainQ, ctrl.signal); });
-      if(pl.breakQ)  tasks.push(async () => { pl.brk = await sparql(pl.breakQ, ctrl.signal); });
-      if(pl.detailQ) tasks.push(async () => { pl.det = await sparql(pl.detailQ, ctrl.signal); });
+      tasks.push(guarded(pl, 'main', pl.mainQ));
+      if(pl.breakQ)  tasks.push(guarded(pl, 'brk', pl.breakQ));
+      if(pl.detailQ) tasks.push(guarded(pl, 'det', pl.detailQ));
     });
     await pooled(tasks, 6, (d, t) => {
       if(picked.length > 1) setStatus('Querying ' + new URL(META.endpoint).host +
         ' — ' + d + ' of ' + t + ' queries…', 'loading');
     });
+    // Nothing came back at all: report the cause as a whole, as before.
+    if(plans.every(pl => pl.fail.main)) throw plans[0].fail.main;
+    // Otherwise each failure is put in words once, for the chips and the table.
+    for(const pl of plans)
+      for(const k of Object.keys(pl.fail)) pl.fail[k] = await describeFetchError(pl.fail[k], META.endpoint);
 
-    /* One label lookup for every URI value across every parameter. */
+    /* One label lookup for every URI value across every parameter. Missing
+       labels only cost readability, so a failure here is reported, not fatal. */
     const uriValues = [...new Set(plans.flatMap(pl =>
-      pl.main.filter(b => b.value.type === 'uri').map(b => b.value.value)))];
+      (pl.main || []).filter(b => b.value.type === 'uri').map(b => b.value.value)))];
     const labels = new Map();
+    let labelsFailed = null;
     if(uriValues.length){
-      for(const b of await sparql(buildLabelQuery(uriValues), ctrl.signal)){
-        labels.set(b.value.value, b.label.value);
-      }
+      try{
+        for(const b of await sparql(buildLabelQuery(uriValues))) labels.set(b.value.value, b.label.value);
+      } catch(err){ labelsFailed = await describeFetchError(err, META.endpoint); }
     }
-    clearTimeout(timer);
     const elapsed = (performance.now() - started) / 1000;
 
     const share = detailShare();
@@ -1144,7 +1273,7 @@ async function runExtract(){
     const allRows = [], allDetail = [], perParam = [];
 
     for(const pl of plans){
-      const rows = pl.main.map(b => ({
+      const rows = (pl.main || []).map(b => ({
         param: pl.param,
         value: b.value.value,
         isUri: b.value.type === 'uri',
@@ -1198,9 +1327,13 @@ async function runExtract(){
         withData: withData.sort(),
         empty: scopeCodes.filter(c => !withData.includes(c)).sort(),
         perCountryKnown: !!pl.brk,
+        failed: pl.fail.main || null,          // {title, message, detail}: no answer, which is not "no data"
+        breakdownFailed: pl.fail.brk || null,
+        detailFailed: pl.fail.det || null,
       });
-      allRows.push(...rows);
-      allDetail.push(...detail);
+      // Loops, not push(...): a spread passes every row as an argument.
+      for(const x of rows) allRows.push(x);
+      for(const x of detail) allDetail.push(x);
     }
 
     allDetail.sort((a, b) =>
@@ -1218,6 +1351,7 @@ async function runExtract(){
       countries_: chosenCountries().map(c => c.c),
       all: isAll(),
       graphs: scopeGraphs(),
+      validOn: day,
       query: plans.map(pl => '/* === ' + (pl.param.l || pl.param.n) + ' === */\n' + pl.mainQ +
         (pl.breakQ ? '\n\n/* --- per-country breakdown --- */\n' + pl.breakQ : '') +
         (pl.detailQ ? '\n\n/* --- full data, one row per location --- */\n' + pl.detailQ : '')
@@ -1225,12 +1359,15 @@ async function runExtract(){
       elapsed,
       capped: perParam.some(x => x.capped),
       breakdown: plans.some(pl => pl.brk),
+      brkFailed: new Set(perParam.filter(x => x.breakdownFailed).map(x => x.param.u)),
       detail: allDetail,
       hasDetail,
       detailCapped: perParam.some(x => x.cappedCountries.length),
       detailShare: share,
       cappedCountries: [...new Set(perParam.flatMap(x => x.cappedCountries))],
       skippedDetail: wantDetail ? picked.filter(e => !e.loc) : [],
+      detailFailed: perParam.filter(x => x.detailFailed).map(x => x.param),
+      labelsFailed,
       fetched: new Date().toISOString().slice(0, 19).replace('T', ' ') + 'Z',
     };
     sortState = {key:'resources', dir:-1};
@@ -1238,8 +1375,23 @@ async function runExtract(){
     mapParamOptions();
 
     const totalValues = allRows.length;
-    const emptyParams = perParam.filter(x => !x.values);
-    if(!totalValues){
+    const failed = perParam.filter(x => x.failed);
+    const emptyParams = perParam.filter(x => !x.values && !x.failed);
+    /* Anything that did not come back is said first: a partial result must
+       never read as a complete one. */
+    const problems = [];
+    if(failed.length) problems.push(failed.length + ' of ' + picked.length + ' parameter queries got no answer (' +
+      [...new Set(failed.map(x => x.failed.title))].join('; ') + ') — marked “query failed” below, which is not ' +
+      'the same as no data');
+    const brkFailed = perParam.filter(x => !x.failed && x.breakdownFailed).length;
+    if(brkFailed) problems.push('the per-country breakdown failed for ' + brkFailed + ' parameter' + (brkFailed === 1 ? '' : 's'));
+    if(lastRun.detailFailed.length) problems.push('the full-data query failed for ' + lastRun.detailFailed.length +
+      ' parameter' + (lastRun.detailFailed.length === 1 ? '' : 's'));
+    if(labelsFailed) problems.push('value labels could not be fetched (' + labelsFailed.title + '), so coded values show their identifiers only');
+    if(problems.length){
+      setStatus('Incomplete — ' + problems.join('; ') + '. ' + fmt(totalValues) + ' distinct ' +
+        (totalValues === 1 ? 'value' : 'values') + ' from the rest, in ' + elapsed.toFixed(1) + 's.', 'warn', runExtract);
+    } else if(!totalValues){
       setStatus('No data — the ' + (picked.length === 1 ? 'query ran' : picked.length + ' queries ran') +
         ' without error, and ' + (picked.length === 1 ? 'this parameter is' : 'none of these parameters is') +
         ' published in ' + r_scopeWord() + ' RINF dataset.', 'warn');
@@ -1255,9 +1407,9 @@ async function runExtract(){
         ' in ' + elapsed.toFixed(1) + 's.', 'success');
     }
   } catch(err){
-    clearTimeout(timer);
-    if(err.name === 'AbortError') setStatus('Query error — timed out after 180 s. No result was returned; ' +
-      'this is not the same as the parameter having no data. Try fewer parameters or countries.', 'error');
+    if(err && err.name === 'AbortError') setStatus('Query error — no answer within ' + QUERY_TIMEOUT_S + ' s. ' +
+      'No result was returned; this is not the same as the parameter having no data. ' +
+      'Try fewer parameters or countries.', 'error', runExtract);
     else await setFetchErrorStatus($('statusArea'), 'error', err, META.endpoint, runExtract);
   } finally {
     $('runBtn').disabled = false;
@@ -1336,6 +1488,11 @@ function renderCoverage(){
     : codes.map(name).join(', ');
   $('coverStrip').innerHTML = r.perParam.map(x => {
     const ix = x.param.i[0] || '—';
+    if(x.failed){
+      return `<span class="cov err" title="${esc(x.failed.message + ' — ' + x.failed.detail)}">` +
+        `<span class="ix">${esc(ix)}</span><span>${esc(x.param.l || x.param.n)}</span>` +
+        `<span class="n">query failed</span><span class="where">${esc(x.failed.title)}</span></span>`;
+    }
     if(!x.values){
       return `<span class="cov none" title="The query ran and returned zero rows — this is data coverage, not an error">` +
         `<span class="ix">${esc(ix)}</span><span>${esc(x.param.l || x.param.n)}</span>` +
@@ -1387,7 +1544,10 @@ function renderResults(){
   $('resultTable').querySelector('thead').innerHTML = '<tr>' + thead + '</tr>';
 
   const rows = sortedRows();
-  const max = Math.max(1, ...rows.map(x => x.resources));
+  // Not Math.max(...rows): "every parameter" for Germany is 244,019 rows,
+  // past the engine's argument limit, and the RangeError surfaced as a CORS
+  // diagnosis.
+  const max = rows.reduce((m, x) => Math.max(m, x.resources), 1);
   const body = rows.slice(0, TABLE_LIMIT).map(x => {
     const cells = cols.map(c => {
       if(c.k === 'param'){
@@ -1408,6 +1568,8 @@ function renderResults(){
           '<span class="bar" style="width:' + Math.max(2, x.resources / max * 46).toFixed(1) + 'px"></span> ' +
           pct.toFixed(pct < 1 ? 2 : 1) + '%</td>';
       }
+      if(r.brkFailed.has(x.param.u))
+        return '<td class="num" title="unknown — the per-country breakdown query for this parameter failed">?</td>';
       const v = x.byCountry[c.k];
       return v ? '<td class="num">' + fmt(v) + '</td>'
         : '<td class="num" title="no data — this country publishes no resource with this value">' +
@@ -1419,7 +1581,14 @@ function renderResults(){
      so an empty result is visible in the table itself and not inferred from
      the absence of one. */
   const nameOf = cc => (BY_CODE[cc] && BY_CODE[cc].l) || cc;
-  const noDataRows = r.perParam.filter(x => !x.values).map(x =>
+  const failedRows = r.perParam.filter(x => x.failed).map(x =>
+    '<tr class="noData"><td class="lbl" title="' + esc(x.param.u) + '">' +
+    '<span style="font-family:\'SF Mono\',Consolas,monospace;font-size:11px">' +
+    esc(x.param.i[0] || '') + '</span> ' + esc(x.param.l || x.param.n) + '</td>' +
+    '<td colspan="' + (cols.length - 1) + '" style="color:var(--danger)" title="' + esc(x.failed.detail) + '">' +
+    'query failed — ' + esc(x.failed.title) + '. Nothing came back, which is not the same as no data; ' +
+    'use “Try again” above.</td></tr>').join('');
+  const noDataRows = failedRows + r.perParam.filter(x => !x.values && !x.failed).map(x =>
     '<tr class="noData"><td class="lbl" title="' + esc(x.param.u) + '">' +
     '<span style="font-family:\'SF Mono\',Consolas,monospace;font-size:11px">' +
     esc(x.param.i[0] || '') + '</span> ' + esc(x.param.l || x.param.n) + '</td>' +
@@ -1453,9 +1622,15 @@ function renderResults(){
           r.cappedCountries.map(c => BY_CODE[c].l).slice(0, 4).join(', ') +
           (r.cappedCountries.length > 4 ? ' +' + (r.cappedCountries.length - 4) + ' more' : '') +
           '), so those are partial. Select fewer countries for a bigger share each.'
-        : ' — complete, nothing was truncated.');
+        : ' — complete, nothing was truncated.') +
+      (r.detailFailed.length
+        ? ' The full-data query failed for ' + r.detailFailed.map(e => e.l || e.n).slice(0, 3).join(', ') +
+          (r.detailFailed.length > 3 ? ' +' + (r.detailFailed.length - 3) + ' more' : '') +
+          ', so those have no rows here.'
+        : '');
   } else {
-    $('detailNote').textContent = '';
+    $('detailNote').textContent = r.detailFailed.length
+      ? 'The full-data query failed for every parameter, so there is no full-data sheet for this run.' : '';
   }
   $('detailCsvBtn').hidden = !(r.hasDetail && r.detail.length);
 
@@ -1495,7 +1670,8 @@ function exportTable(){
     if(showType)  row.push(x.datatype || '');
     row.push(x.resources);
     if(!r.breakdown) row.push(+(x.resources / paramTotal(x.param) * 100).toFixed(3));
-    r.countries.forEach(c => row.push(x.byCountry[c] || 0));
+    // Blank, not 0, where the breakdown failed: 0 would claim "none here".
+    r.countries.forEach(c => row.push(r.brkFailed.has(x.param.u) ? '' : (x.byCountry[c] || 0)));
     return row;
   });
   return {head, body};
@@ -1689,12 +1865,12 @@ $('detailCsvBtn').addEventListener('click', () => {
  * One parameter picked colours by that parameter's distinct values, exactly
  * as before. Several parameters picked colours by parameter instead — one
  * flat colour per parameter, since mixing two unrelated value domains (a
- * gauge in mm, a speed in km/h) into one legend would not mean anything. A
- * single combined SPARQL query carries every OPTIONAL value alongside the
- * shared topology, so comparing five parameters costs one round trip, not
- * five duplicate ones.
+ * gauge in mm, a speed in km/h) into one legend would not mean anything.
+ * Each country's sections are fetched once and each parameter's values in a
+ * query of their own (see buildMapTopologyQuery), so five parameters cost one
+ * topology query per country plus five small ones, run in parallel.
  * ------------------------------------------------------------------ */
-const MAP_LIMIT = 30000;
+const MAP_LIMIT = 30000;     // per country — see buildMapTopologyQuery
 const MAP_SEP = '|~|';
 /* No green or teal: green land cover used to be part of the default base
    tiles (and still appears if the OpenRailwayMap overlay is turned on), so a
@@ -1715,54 +1891,96 @@ let mapOff  = new Set();     // single mode only: values switched off in the leg
 let mapParamOff = new Set(); // indices into lastRun.params currently excluded from the map
 let leafletMap = null, orwLayer = null, segLayer = null;
 
+/* The first coordinate pair in the WKT: the point itself for a POINT, which
+   the topology query picks whenever the place has one, else the first vertex
+   of whatever it has — 102 Norwegian sections end at a point published only
+   as a GEOMETRYCOLLECTION of LINESTRINGs, and this map draws chords anyway.
+   Signed coordinates are valid WKT and some publishers write them: Czechia
+   and Lithuania give every point as `POINT (+14.3659840 49.1908230)`, which a
+   pattern without "+" rejected, so neither country was ever drawn. */
 function parsePoint(w){
-  const m = /POINT\s*\(\s*([-\d.eE]+)\s+([-\d.eE]+)/.exec(w || '');
+  const m = /\(\s*([-+\d.eE]+)\s+([-+\d.eE]+)/.exec(w || '');
   if(!m) return null;
   const lon = +m[1], lat = +m[2];
   return (isFinite(lon) && isFinite(lat)) ? [lat, lon] : null; // Leaflet order: [lat, lng]
 }
 
-/* One combined query for every picked parameter: shared topology, one
-   GROUP_CONCAT'd ?value<i> per parameter. Per-parameter variable names
-   (?v0/?trk0, ?v1/?trk1, …) keep each OPTIONAL's binding from leaking into
-   the next — SPARQL variables are query-scoped, not block-scoped, so two
-   OPTIONALs sharing a variable name would silently correlate. */
-function buildMapQuery(params){
-  const pairs = scopeGraphs().filter(g => GRAPH_TO_COUNTRY[GRAPH_URI(g)])
-    .map(g => '    (<' + GRAPH_URI(g) + '> "' + GRAPH_TO_COUNTRY[GRAPH_URI(g)] + '")');
-  const valueSelects = params.map((e, i) =>
-    '       (GROUP_CONCAT(DISTINCT ?v' + i + '; separator="' + MAP_SEP + '") AS ?value' + i + ')');
-  const optionals = params.flatMap((e, i) => {
-    const propUri = safeUri(e.u);
-    const branches = ['{ ?sol <' + propUri + '> ?v' + i + ' }',
-      '{ ?trk' + i + ' era:isPartOf ?sol . ?trk' + i + ' <' + propUri + '> ?v' + i + ' }'];
-    // Some parameters (the catalogue's "via:" shape — e.g. era:umax2, which
-    // actually sits on the track's era:ContactLineSystem, not the track
-    // itself) live one hop further out on a sub-object. Without this branch
-    // the map found geometry for every section but a value for none of them:
-    // ?trk era:isPartOf ?sol never matches a ContactLineSystem directly.
-    if((e.loc || '').startsWith('via:')){
-      const viaUri = safeUri('http://data.europa.eu/949/' + e.loc.slice(4));
-      branches.push('{ ?trk' + i + 'v era:isPartOf ?sol . ?trk' + i + 'v <' + viaUri + '> ?sub' + i + ' . ' +
-        '?sub' + i + ' <' + propUri + '> ?v' + i + ' }');
-    }
-    return ['    OPTIONAL { ' + branches.join('\n               UNION ') + ' }'];
-  });
-  return ['PREFIX era: <http://data.europa.eu/949/>',
-    'PREFIX geo: <http://www.opengis.net/ont/geosparql#>',
-    'SELECT ?country ?a ?b (SAMPLE(?st) AS ?startName) (SAMPLE(?en) AS ?endName)',
-    ...valueSelects,
+/* The map is fetched in two phases, per country (era-graph skill, Rule 4):
+   the sections with their end positions once, then one small query per
+   parameter for the values, joined here on the section URI.
+
+   Per country, because one LIMIT over the whole scope dropped whole
+   countries: an all-country map filled its 30,000 rows partway through
+   Germany, and the 17 countries after it in the list came back with no
+   section at all — read as "Italy publishes nothing". Each country now has
+   the whole cap to itself (the largest, France, has 13,515 sections).
+
+   Values apart from the topology, because one query carrying every
+   parameter as its own OPTIONAL multiplied a section's rows by each
+   parameter's tracks × values: Austria (~4.6 tracks a section) took 84 s for
+   three parameters. Separately, each costs what that one parameter costs
+   and they run in parallel: five parameters for Germany went from 50 s in
+   one query to 2.5 s + 20.8 s (the slowest, era:gradientProfile).
+
+   Grouped by section, with one geometry per end picked deterministically.
+   Grouping by the two end positions instead drew a section once per
+   geometry its points carry (Norway: 708 sections as 4,760 segments) and
+   merged distinct sections that share both ends (736 in Germany).
+
+   Tracks are reached by `era:isPartOf|^era:hasPart`: Austria, Croatia,
+   Lithuania and Luxembourg publish only era:hasPart, so an isPartOf-only join
+   drew every Austrian section grey (0 of 1,376 with a speed; 1,435 of 1,493
+   now). Per country and per parameter, the either-way path costs nothing
+   noticeable (DEU 5.4 s vs 4.7 s, FRA 3.9 s vs 4.0 s). Sections not yet in
+   force are left out, as in the table (see inForce); their tracks follow
+   their window. */
+const MAP_PREFIXES = ['PREFIX era: <http://data.europa.eu/949/>',
+                      'PREFIX geo: <http://www.opengis.net/ont/geosparql#>', ...VALIDITY_PREFIXES];
+const mapGraphs = cc => BY_CODE[cc].g.map(g => '<' + GRAPH_URI(g) + '>').join(' ');
+
+function buildMapTopologyQuery(cc, day){
+  /* A point can carry several geometries (up to 24 in Norway, 627 of them
+     GEOMETRYCOLLECTIONs of LINESTRINGs). Take the smallest POINT, so the pick
+     is deterministic and a line never wins over a point that exists. */
+  const pick = w => 'MIN(IF(STRSTARTS(STR(?' + w + '), "POINT"), STR(?' + w + '), CONCAT("~", STR(?' + w + '))))';
+  return [...MAP_PREFIXES,
+    'SELECT ?sol (' + pick('wa') + ' AS ?a) (' + pick('wb') + ' AS ?b) (SAMPLE(?st) AS ?startName) (SAMPLE(?en) AS ?endName)',
     'WHERE {',
-    '  VALUES (?g ?country) {', ...pairs, '  }',
+    '  VALUES ?g { ' + mapGraphs(cc) + ' }',
     '  GRAPH ?g {',
     '    ?sol a era:SectionOfLine ; era:opStart ?o1 ; era:opEnd ?o2 .',
-    '    ?o1 era:netReference/geo:hasGeometry/geo:asWKT ?a ; era:opName ?st .',
-    '    ?o2 era:netReference/geo:hasGeometry/geo:asWKT ?b ; era:opName ?en .',
-    '    # each value may sit on the section itself or on one of its tracks',
-    ...optionals,
+    '    ?o1 era:netReference/geo:hasGeometry/geo:asWKT ?wa ; era:opName ?st .',
+    '    ?o2 era:netReference/geo:hasGeometry/geo:asWKT ?wb ; era:opName ?en .',
+    '    ' + inForce('sol', day),
     '  }',
     '}',
-    'GROUP BY ?country ?a ?b',
+    'GROUP BY ?sol',
+    'LIMIT ' + MAP_LIMIT].join('\n');
+}
+
+function buildMapValueQuery(e, cc, day){
+  const propUri = safeUri(e.u);
+  // The value may sit on the section itself or on one of its tracks.
+  const branches = ['{ ?sol <' + propUri + '> ?v }',
+    '{ ?trk era:isPartOf|^era:hasPart ?sol . ?trk <' + propUri + '> ?v }'];
+  // Some parameters (the catalogue's "via:" shape — e.g. era:umax2, which
+  // actually sits on the track's era:ContactLineSystem, not the track
+  // itself) live one hop further out on a sub-object. Without this branch
+  // the map found geometry for every section but a value for none of them:
+  // the track never carries the value directly.
+  if(viaHop(e))
+    branches.push('{ ?trkv era:isPartOf|^era:hasPart ?sol . ?trkv <' + viaHop(e) + '> ?sub . ?sub <' + propUri + '> ?v }');
+  return [...MAP_PREFIXES,
+    'SELECT ?sol (GROUP_CONCAT(DISTINCT ?v; separator="' + MAP_SEP + '") AS ?value)',
+    'WHERE {',
+    '  VALUES ?g { ' + mapGraphs(cc) + ' }',
+    '  GRAPH ?g {',
+    '    ?sol a era:SectionOfLine .',
+    '    ' + inForce('sol', day),
+    '    ' + branches.join('\n    UNION '),
+    '  }',
+    '}',
+    'GROUP BY ?sol',
     'LIMIT ' + MAP_LIMIT].join('\n');
 }
 
@@ -1794,7 +2012,35 @@ $('mapParamPicks').addEventListener('click', ev => {
   renderMapParamPicks();
 });
 
+/* The map belongs to the run it was drawn from: mapData's parameter indices
+   point into that run's parameter list. It used to outlive the run — change
+   the parameter and run again, and the old map and legend stayed on screen;
+   a click on that legend then read a parameter index the new run doesn't
+   have, threw, and left the only parameter switched off, after which "Draw
+   map" silently did nothing until the page was reloaded. Now the map panel
+   is hidden whenever the results are (a parameter, scope or run change), the
+   old map is cleared when a new run lands, and a map that was on screen is
+   redrawn for the new run, so it follows the parameter. */
+let mapDrawSeq = 0;          // the latest drawNetwork() call; older ones discard their answer
+function hideRunPanels(){
+  $('resultPanel').hidden = true;
+  $('mapPanel').hidden = true;
+}
+function resetMap(){
+  mapDrawSeq++;              // a draw still in flight belongs to the old run
+  mapData = null;
+  mapOff = new Set();
+  if(segLayer) segLayer.clearLayers();
+  $('mapWrap').hidden = true; $('mapLegend').hidden = true;
+  $('mapReset').hidden = true; $('mapPopBtn').hidden = true;
+  $('mapNote').innerHTML = '';
+  $('mapStatus').className = 'moreNote';
+  $('mapBtn').disabled = false;
+}
+
 function mapParamOptions(){
+  const redraw = !!mapData;  // a map was on screen: keep it in step with the new run
+  resetMap();
   mapParamOff = new Set(lastRun.params.map((_, i) => i).slice(1)); // default: just the first
   renderMapParamPicks();
   $('mapPanel').hidden = false;
@@ -1802,6 +2048,7 @@ function mapParamOptions(){
     ? 'Pick one or more parameters above, then draw. One parameter shows its values; several show one colour ' +
       'each instead.'
     : 'Draws every section of line in scope, coloured by the value it carries for the chosen parameter.';
+  if(redraw) drawNetwork();
 }
 
 /* One Leaflet map, created once and reused across redraws. */
@@ -1836,7 +2083,7 @@ function fitToSegments(){
 function multiTooltipHTML(s){
   const cc = BY_CODE[s.cc] ? BY_CODE[s.cc].l : s.cc;
   const rows = mapData.origIndex.filter(oi => !mapParamOff.has(oi)).map(oi => {
-    const e = lastRun.params[oi], v = s.vals.get(oi);
+    const e = mapData.params[oi], v = s.vals.get(oi);
     const nm = esc((e.i[0] || '—') + ' ' + (e.l || e.n));
     return v === undefined
       ? '<span style="color:#7a8394">○ ' + nm + ': no data</span>'
@@ -1886,21 +2133,76 @@ function renderSegments(){
   }
 }
 
+/* Nothing drawable came back. Only "no data" when every country answered. */
+function showNoSegments(failedCc){
+  mapData = null;
+  $('mapWrap').hidden = true; $('mapLegend').hidden = true;
+  $('mapReset').hidden = true; $('mapPopBtn').hidden = true;
+  const name = cc => (BY_CODE[cc] && BY_CODE[cc].l) || cc;
+  $('mapStatus').className = failedCc.length ? 'moreNote err' : 'moreNote';
+  $('mapStatus').textContent = failedCc.length
+    ? 'Nothing to draw from the countries that answered, and no answer for ' +
+      failedCc.map(x => name(x.cc)).join(', ') + ' — so this is not the same as no data.'
+    : 'No data — the query ran without error, but no section of line in this ' +
+      'scope has both of its operational points positioned.';
+  if(failedCc.length) appendRetry($('mapStatus'), drawNetwork);
+}
+
 async function drawNetwork(){
-  const picks = lastRun.params.map((e, i) => ({e, i})).filter(p => !mapParamOff.has(p.i));
-  if(!picks.length) return;
+  if(!lastRun) return;
+  const run = lastRun, token = ++mapDrawSeq;
+  const stale = () => token !== mapDrawSeq;   // a newer draw or run took over
+  const picks = run.params.map((e, i) => ({e, i})).filter(p => !mapParamOff.has(p.i));
+  if(!picks.length){
+    $('mapStatus').className = 'moreNote';
+    $('mapStatus').textContent = 'Pick at least one parameter above, then draw.';
+    return;
+  }
   $('mapBtn').disabled = true;
-  $('mapStatus').textContent = picks.length > 1 ? 'Fetching ' + picks.length + ' networks…' : 'Fetching the network…';
-  const ctrl = new AbortController();
+  // The run's own scope and day, not whatever is ticked now: the map has to
+  // show the same thing as the table it sits under.
+  const scope = run.countries_, day = run.validOn;
+  const what = picks.length > 1 ? picks.length + ' networks' : 'the network';
+  $('mapStatus').className = 'moreNote';
+  $('mapStatus').textContent = 'Fetching ' + what + '…';
   const t0 = performance.now();
   try{
-    const rows = await sparql(buildMapQuery(picks.map(p => p.e)), ctrl.signal);
+    const params = picks.map(p => p.e);
+    // One topology query per country and one value query per country and
+    // parameter, all through the same six-wide pool.
+    const results = scope.map(cc => ({cc, rows: null, vals: params.map(() => null), err: null}));
+    const tasks = [];
+    results.forEach(x => {
+      tasks.push(async () => {
+        try{ x.rows = await sparql(buildMapTopologyQuery(x.cc, day)); } catch(err){ x.err = x.err || err; }
+      });
+      params.forEach((e, qi) => tasks.push(async () => {
+        try{ x.vals[qi] = new Map((await sparql(buildMapValueQuery(e, x.cc, day))).map(b => [b.sol.value, b.value])); }
+        catch(err){ x.err = x.err || err; }
+      }));
+    });
+    await pooled(tasks, 6, (d, t) => {
+      if(!stale()) $('mapStatus').textContent = 'Fetching ' + what + ' — ' + d + ' of ' + t + ' queries…';
+    });
+    if(stale()) return;
+    /* A country with any query unanswered is left off the map and named: drawn
+       with a missing value query, its sections would read "no data". */
+    const failedCc = results.filter(x => x.err);
+    if(failedCc.length === results.length) throw failedCc[0].err;
+    for(const x of failedCc) x.diag = await describeFetchError(x.err, META.endpoint);
+    if(stale()) return;
+    const cappedCc = results.filter(x => !x.err && x.rows.length >= MAP_LIMIT).map(x => x.cc);
+    const rows = results.filter(x => !x.err).flatMap(x => x.rows.map(b => {
+      const row = Object.assign(b, {country: {value: x.cc}});
+      x.vals.forEach((m, qi) => { const v = m.get(b.sol.value); if(v) row['value' + qi] = v; });
+      return row;
+    }));
     const elapsed = (performance.now() - t0) / 1000;
 
     if(picks.length === 1){
       const e = picks[0].e;
       const label = new Map();
-      lastRun.rows.filter(x => x.param === e && x.label).forEach(x => label.set(x.value, x.label));
+      run.rows.filter(x => x.param === e && x.label).forEach(x => label.set(x.value, x.label));
       const segs = [];
       for(const b of rows){
         const A = parsePoint(b.a.value), B = parsePoint(b.b.value);
@@ -1914,14 +2216,7 @@ async function drawNetwork(){
                    t: b.endName ? b.endName.value : '',
                    v: vals.length ? [...new Set(vals)].sort().join(' | ') : null});
       }
-      if(!segs.length){
-        $('mapStatus').textContent = 'No data — the query ran without error, but no section of line in this ' +
-          'scope has both of its operational points positioned.';
-        $('mapWrap').hidden = true; $('mapLegend').hidden = true;
-        $('mapReset').hidden = true;
-        $('mapPopBtn').hidden = true;
-        return;
-      }
+      if(!segs.length){ showNoSegments(failedCc); return; }
       /* Rank values by how much network carries them, so the legend is ordered
          by what the reader will actually see on screen. Colours start at this
          parameter's own palette slot (the same one its chip showed in "Colour
@@ -1935,21 +2230,21 @@ async function drawNetwork(){
       const colour = new Map();
       ranked.slice(0, MAP_PALETTE.length).forEach((x, i) =>
         colour.set(x[0], MAP_PALETTE[(paletteOffset + i) % MAP_PALETTE.length]));
-      mapData = {mode: 'single', segs, param: e, colour, ranked,
+      mapData = {mode: 'single', segs, param: e, params: run.params, colour, ranked,
                  otherCount: ranked.slice(MAP_PALETTE.length).reduce((s, x) => s + x[1], 0),
                  noneCount: counts.get(null) || 0, elapsed};
       mapOff = new Set();
     } else {
       const labelMaps = picks.map(p => {
         const m = new Map();
-        lastRun.rows.filter(x => x.param === p.e && x.label).forEach(x => m.set(x.value, x.label));
+        run.rows.filter(x => x.param === p.e && x.label).forEach(x => m.set(x.value, x.label));
         return m;
       });
       const segs = [];
       for(const b of rows){
         const A = parsePoint(b.a.value), B = parsePoint(b.b.value);
         if(!A || !B) continue;
-        const vals = new Map(); // original lastRun.params index -> value string
+        const vals = new Map(); // original run.params index -> value string
         picks.forEach((p, qi) => {
           const field = b['value' + qi];
           const raw = (field && field.value) ? field.value.split(MAP_SEP).filter(Boolean) : [];
@@ -1959,17 +2254,10 @@ async function drawNetwork(){
         segs.push({A, B, cc: b.country.value,
                    s: b.startName ? b.startName.value : '', t: b.endName ? b.endName.value : '', vals});
       }
-      if(!segs.length){
-        $('mapStatus').textContent = 'No data — the query ran without error, but no section of line in this ' +
-          'scope has both of its operational points positioned.';
-        $('mapWrap').hidden = true; $('mapLegend').hidden = true;
-        $('mapReset').hidden = true;
-        $('mapPopBtn').hidden = true;
-        return;
-      }
+      if(!segs.length){ showNoSegments(failedCc); return; }
       const origIndex = picks.map(p => p.i);
       const colour = new Map(origIndex.map(i => [i, MAP_PALETTE[i % MAP_PALETTE.length]]));
-      mapData = {mode: 'multi', segs, origIndex, colour, elapsed};
+      mapData = {mode: 'multi', segs, params: run.params, origIndex, colour, elapsed};
     }
 
     $('mapWrap').hidden = false;
@@ -1980,11 +2268,18 @@ async function drawNetwork(){
     renderLegend();
     renderMapParamPicks();
     const segCount = mapData.segs.length;
-    $('mapStatus').textContent = mapData.mode === 'single'
-      ? fmt(segCount) + ' sections of line drawn in ' + mapData.elapsed.toFixed(1) + 's' +
-        (segCount >= MAP_LIMIT ? ' (capped)' : '') + '.'
+    const ccName = cc => (BY_CODE[cc] && BY_CODE[cc].l) || cc;
+    const capNote = cappedCc.length
+      ? ' Capped at ' + fmt(MAP_LIMIT) + ' sections in ' + cappedCc.map(ccName).join(', ') + ', so partial there.' : '';
+    const failNote = failedCc.length
+      ? ' Missing: ' + failedCc.map(x => ccName(x.cc) + ' (' + x.diag.title.toLowerCase() + ')').join(', ') +
+        ' — no answer, so those sections are not drawn; this is not the same as no data.' : '';
+    $('mapStatus').className = failedCc.length ? 'moreNote err' : 'moreNote';
+    $('mapStatus').textContent = (mapData.mode === 'single'
+      ? fmt(segCount) + ' sections of line drawn in ' + mapData.elapsed.toFixed(1) + 's.'
       : fmt(segCount) + ' sections of line in scope, over ' + picks.length + ' parameters, drawn in ' +
-        mapData.elapsed.toFixed(1) + 's' + (segCount >= MAP_LIMIT ? ' (capped)' : '') + '.';
+        mapData.elapsed.toFixed(1) + 's.') + capNote + failNote;
+    if(failedCc.length) appendRetry($('mapStatus'), drawNetwork);
     $('mapNote').innerHTML = mapData.mode === 'single'
       ? '<strong>Read this as topology, not alignment.</strong> Sections of line now publish their own ' +
         'geometry almost everywhere too, but each is still drawn as the straight chord between the two ' +
@@ -2000,15 +2295,19 @@ async function drawNetwork(){
     $('mapReset').hidden = false;
     $('mapPopBtn').hidden = false;
   } catch(err){
+    if(stale()) return;
+    $('mapWrap').hidden = true; $('mapLegend').hidden = true;
+    $('mapReset').hidden = true; $('mapPopBtn').hidden = true;
+    mapData = null;
     await setFetchErrorStatus($('mapStatus'), 'moreNote err', err, META.endpoint, drawNetwork);
   } finally {
-    $('mapBtn').disabled = false;
+    if(!stale()) $('mapBtn').disabled = false;
   }
 }
 
 /* Normalized legend rows, shared by the on-page legend and the pop-out
    window: {key, off, label, count, color}. key is the raw value (single
-   mode) or the lastRun.params index (multi mode) — kept only so the on-page
+   mode) or the mapData.params index (multi mode) — kept only so the on-page
    legend can still wire up its click-to-toggle behaviour. */
 function legendItems(){
   if(mapData.mode === 'single'){
@@ -2021,7 +2320,7 @@ function legendItems(){
       ({key: it.v, off: mapOff.has(it.v), label: it.lab || String(it.v), count: it.n, color: it.c}));
   }
   return mapData.origIndex.map(oi => {
-    const e = lastRun.params[oi];
+    const e = mapData.params[oi];
     return {key: oi, off: mapParamOff.has(oi), label: (e.i[0] || '—') + ' — ' + (e.l || e.n),
             count: mapData.segs.filter(s => s.vals.has(oi)).length, color: mapData.colour.get(oi)};
   });
@@ -2115,9 +2414,11 @@ function popoutSegments(){
 function buildPopoutHTML(){
   const segs = popoutSegments();
   const legend = legendItems().map(it => ({label: it.label, count: it.count, color: it.color}));
-  const title = lastRun.params.length === 1
-    ? (lastRun.params[0].i[0] || '\u2014') + '  ' + (lastRun.params[0].l || lastRun.params[0].n)
-    : lastRun.params.length + ' parameters';
+  // What the map shows, not how many parameters the run had.
+  const shown = mapData.mode === 'single' ? [mapData.param] : mapData.origIndex.map(i => mapData.params[i]);
+  const title = shown.length === 1
+    ? (shown[0].i[0] || '\u2014') + '  ' + (shown[0].l || shown[0].n)
+    : shown.length + ' parameters';
   const note = $('mapNote').innerHTML;
   const baseChecked = $('mapBase').checked;
   const payload = JSON.stringify({segs, legend, title, note, baseChecked, osmAttrib: OSM_ATTRIB, ormAttrib: ORM_ATTRIB});
@@ -2427,6 +2728,13 @@ $('xlsBtn').addEventListener('click', () => {
     ['RINF datasets queried', r.graphs.join(', ')],
     ['Named graph pattern', META.graphPrefix + '{dataset}'],
     [],
+    ['In force on', r.validOn + ' — resources whose validity begins later are left out (DB InfraGO already ' +
+      'publishes a 2027 copy of most German data); undated resources and ended windows are kept'],
+    ['Parameters whose query failed', r.perParam.filter(x => x.failed).length
+      ? r.perParam.filter(x => x.failed).map(x => (x.param.l || x.param.n) + ' (' + x.failed.title + ')').join('; ') +
+        ' — no answer, which is not the same as no data'
+      : 'none'],
+    [],
     ['Countries selected', r.countries_.length],
     ['Distinct values returned', r.rows.length],
     ['Result capped', r.capped ? 'YES — top ' + r.rows.length + ' by resource count' : 'no'],
@@ -2460,11 +2768,14 @@ $('xlsBtn').addEventListener('click', () => {
     ['', 'because many parameters sit on sub-objects that carry no country of their own.'],
     ['', 'Caveat: dataset 0081 (Austria) is 99.76% Austrian; 13 of 5,402 country-tagged resources are LIE/CHE/DEU border objects.'],
     ['', 'Liechtenstein and the United Kingdom publish no dataset of their own and have no country entry.'],
-    ['', '"Resources" counts distinct subjects carrying the value within the selected scope.'],
+    ['', '"Resources" counts distinct subjects carrying the value within the selected scope, in force on the day above.'],
+    ['', 'For a value on an ETCS, contact-line, train-detection or HABD sub-object (undated, minted per track), the'],
+    ['', 'tracks pointing at it decide: it is left out only when every one of them is not yet valid.'],
     [],
     ['Method — the Full data sheet', 'One row per location where the value applies, de-duplicated.'],
     ['', 'A running track hangs off a section of line, which gives Start OP and End OP; a station track hangs'],
-    ['', 'off an operational point, which gives that point\'s name instead. Where the value sits on a shared'],
+    ['', 'off an operational point, which gives that point\'s name instead. The part-whole link is read in either'],
+    ['', 'direction (era:isPartOf or era:hasPart), since publishers assert one or the other. Where the value sits on a'],
     ['', 'sub-object (contact line system, ETCS, train detection), the row reports the track that points at it,'],
     ['', 'since the sub-object itself is reused across many tracks and carries no location of its own.'],
     [],
@@ -2515,7 +2826,7 @@ function applyHash(){
     picked = [];
     renderSelected();
     updateScopeUI();
-    $('resultPanel').hidden = true;
+    hideRunPanels();
     setStatus('“' + name + '” is not a RINF parameter in this catalogue — pick one below.', 'error');
     return false;
   }
@@ -2574,7 +2885,7 @@ $('fCounts').textContent = CATALOG.length + ' current properties carry an era:ri
 })();
 
 $('runBtn').addEventListener('click', runExtract);
-$('countryGrid').addEventListener('change', () => { if(lastRun) $('resultPanel').hidden = true; });
+$('countryGrid').addEventListener('change', () => { if(lastRun) hideRunPanels(); });
 window.addEventListener('hashchange', applyHash);
 
 updateScopeUI();
