@@ -40,7 +40,7 @@ others, with no error. Check each before concluding "no data".E
 | 1 | Line identity | `era:lineId` on the LPS (9,543 / 9,642) | HRV (55), NOR (32): identifier only in the English `rdfs:label` |
 | 2 | Reaching operational points | `era:kmPost/era:hasLRS` on the line's LRS | HRV: none — but sections name them via `era:opStart`/`era:opEnd` |
 | 3 | Linear referencing | `era:hasLrsCoordinate` present | HRV: net point references carry geometry only, **no position at all** |
-| 4 | Part–whole link | both `era:isPartOf` and `era:hasPart` | HRV: only `era:hasPart` (645 tracks otherwise invisible) |
+| 4 | Part–whole link | both `era:isPartOf` and `era:hasPart` | Section → track, measured 2026-11-26: only `era:hasPart` in HRV (645 tracks), AUT (all 8 datasets; 6,450 tracks in `0081`), LTU (`1224`) and LUX (`0082`); GRC (`0073`) the other way: 2,390 by `era:isPartOf`, only 363 back by `era:hasPart` |
 | 5 | Organisation URIs | `body/organisation/0087` | HRV also mints `…/0078_ORG`; NOR uses `…/organisations/0076` |
 
 Consequences:
@@ -89,7 +89,13 @@ Consequences:
     `GEOMETRYCOLLECTION`s, and 463 have more than one `POINT`. Pick one
     deterministically (`MIN`).
   - 2 Norwegian points have no `POINT` at all.
-  - WKT is `POINT(lon lat)`: longitude first.
+  - WKT is `POINT(lon lat)`: longitude first. CZE and LTU sign every
+    coordinate (`POINT (+14.3659840 49.1908230)`): a number pattern without `+`
+    drops both countries (the value explorer's map did, until 2026-11-26).
+  - Norway also has points published only as a `GEOMETRYCOLLECTION` of
+    `LINESTRING`s (102 of its 708 sections end at one): prefer a `POINT` when
+    picking — `MIN(IF(STRSTARTS(STR(?w), "POINT"), STR(?w), CONCAT("~", STR(?w))))` —
+    and fall back to the first vertex.
 - **Probe the part-whole direction per country represented in the run, never
   once globally**, the moment a tool lets more than one line be picked at
   once. A single probe was safe when a run could only ever touch one line;
@@ -214,6 +220,17 @@ and taking `MAX`/`SAMPLE` per group is. era-ask.html's tunnel-length measure
 is immune for exactly this reason — grouping by `tunnelIdentification` before
 taking `MAX(length)` absorbs the duplication a raw-URI count would not.
 
+**When the question is "what is published today", filter out what is not yet
+valid instead** — `FILTER NOT EXISTS { ?s era:validity/time:hasBeginning/time:inXSDDate ?b
+FILTER(?b > "<today>"^^xsd:date) }`. Measured 2026-11-26: the only not-yet-valid
+resources are DB InfraGO's 2027 copy (130,337) and 549 in Greece; ended windows
+are a few hundred (NOR, BEL, AUT, FRA). For `era:maximumPermittedSpeed` that
+takes Germany from 36,441 tracks to the 18,215 in force, and 221 German
+place/value pairs exist only in the 2027 copy. **ETCS, `ContactLineSystem` and
+`TrainDetectionSystem` objects carry no validity** but are minted per track
+(36,647 German ETCS objects, both windows), so read the referring track's
+window. The value explorer does both (`inForce`, `inForceVia`).
+
 **Use one of the ten no-validity countries above as a known-safe control**
 when sanity-checking a new resource-count or aggregate query. Spain in
 particular has come up clean for every resource type checked so far; a query
@@ -256,7 +273,16 @@ Measured, identical results:
   `UNION` is free (1.1 s vs 0.6 s); with the property join, label resolution and
   `GROUP_CONCAT` it goes **1.4 s → 57 s**. An alternation path
   (`era:hasPart|^era:isPartOf`) is the same. Probe the direction once with a
-  `LIMIT 1` query, then emit one form.
+  `LIMIT 1` query, then emit one form. **Exception, measured 2026-11-26:** in a
+  query for *one country and one parameter*, `?trk era:isPartOf|^era:hasPart ?sol`
+  costs nothing noticeable (DEU 5.4 s vs 4.7 s, FRA 3.9 vs 4.0, AUT 0.8 vs 0.6),
+  so the value explorer's map and full-data sheet use it rather than a probe.
+- **Several multi-valued `OPTIONAL`s in one query multiply.** Rows per subject
+  are the *product* of each `OPTIONAL`'s matches: three track parameters for
+  Austria (~4.6 tracks a section) took 84 s as three `OPTIONAL`s, 3 s as one
+  `UNION` whose branches each bind their own variable (rows add up), and ~1 s as
+  separate queries in parallel. Five parameters for Germany: 50 s in one query,
+  2.5 s topology + 20.8 s for the slowest value query when split.
 - **Resolve labels in a separate `VALUES`-bounded query.** Inline
   `OPTIONAL { ?v skos:prefLabel ?l }` cost 12.1 s vs 2.6 s without; the separate
   lookup over the distinct URIs took 0.07 s.
@@ -590,7 +616,7 @@ from the browser and share a dependency-free XLSX writer.
 | `era-holobox-frame.html` | `/holobox.html` | the same bubble graph, natively rendered (no iframe — see Rule 6), in a single desktop view since commit `27ab948` (the 4-face pyramid layout was removed), with an Expand-to-next-bubble control |
 | `era-ask.html` | `/ask.html` | plain-language or voice questions (EN/FR/DE/ES/IT): an in-browser open LLM (Qwen2.5-1.5B via WebLLM/WebGPU) fills a JSON-schema-constrained intent that selects hand-written SPARQL across `rinf-plus`, `OCR-KG` and `era-lex`; keyword matching without WebGPU; evaluated by `scripts/tests/ask_llm_eval.py` |
 | `era-rdf-exporter.html` | `/exporter.html` | export any resource URI as RDF/XML |
-| `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country, plus a network map |
+| `era-rinf-value-explorer.html` | `/values.html` | distinct values per RINF parameter, per country, in force on the day of the run, plus a network map fetched per country (topology + one value query per parameter) that follows the parameter when you run again; tested by `scripts/tests/value-explorer.test.js` and, live, `value_explorer_check.py` |
 | `era-rcc-parameters.html` | `/rcc.html` | route-compatibility parameters, multi-country/multi-line with "Select all", plus a network map |
 | `era-route-book.html` | `/routebook.html` | TSI OPE Appendix D2 elements + coverage, multi-country/multi-line with "Select all", plus a network map |
 | `era-eurostat-exporter.html` | `/eurostat.html` | the two Eurostat CSV extracts (sections + track parameters with point positions, TEN-T flags), "no data" for missing values; queries generated by `scripts/build-eurostat-queries.py` |
