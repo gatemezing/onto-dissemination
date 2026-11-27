@@ -51,7 +51,7 @@ the scripts that build each extract, so they stay current with the files.
 
 | Extract | Used by | Latest extraction | Built by |
 |---|---|---|---|
-| RINF parameter catalogue — every ERA property with a RINF index, with per-country coverage | RINF Parameter Values explorer | <!-- extract:rinf-catalog -->2026-11-26 — 293 properties (221 populated), 27 countries, 99 datasets<!-- /extract:rinf-catalog --> | `scripts/build-rinf-parameter-catalog.py`, checked nightly (see [below](#keeping-the-rinf-parameter-snapshot-fresh)) |
+| RINF parameter catalogue — every ERA property with a RINF index, with per-country coverage | RINF Parameter Values explorer | <!-- extract:rinf-catalog -->2026-11-27 — 293 properties (221 populated), 27 countries, 100 datasets<!-- /extract:rinf-catalog --> | `scripts/build-rinf-parameter-catalog.py`, checked nightly (see [below](#keeping-the-rinf-parameter-snapshot-fresh)) |
 | ERADIS EC declarations, organisations, TSIs and directives | ERADIS Explorer | <!-- extract:eradis-declarations -->2026-11-19 — 22,256 declarations<!-- /extract:eradis-declarations --> | `scripts/build-eradis-snapshot.py` |
 | ERADIS NoBo certificates | ERADIS Explorer | <!-- extract:eradis-certificates -->2026-11-19 — 43,615 certificates<!-- /extract:eradis-certificates --> | `scripts/build-eradis-snapshot.py` |
 | ERATV vehicle types: the search index and every type's values per configuration, with property names and ERATV numbers from the ERA ontology release | ERATV Explorer, when ERATV-KG cannot be read | <!-- extract:eratv -->2026-11-25, 4,149 vehicle types<!-- /extract:eratv --> | `scripts/build-eratv-snapshot.js` |
